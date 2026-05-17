@@ -1,0 +1,80 @@
+Other materials
+categoryCode
+12025062114211484037531
+materialCode
+mfa-044_1 -> mfa-044_5
+
+Bankstatement
+categoryCode
+12025062216413672273869
+materialCode
+mfa-007_1 - mfa-007_4
+
+valid or previous visas for other countries
+categoryCode
+2026051411041876690
+materialCode
+mfa-011_1 - mfa-011_3
+
+Itinerary in China
+categoryCode
+12025062019595907456262
+materialCode
+
+Round trip air tickets
+categoryCode
+12025062020000706552852
+materialCode
+mfa-003_1
+
+Hotel reservation with payment
+categoryCode
+12025063014542307352106
+materialCode
+mfa-002_1 - 3
+
+Applicants under 18 years old
+22025062114181968780924
+mfa-039_1 - 5
+
+Photocopy of previous Chinese passports or previous Chinese visas(applicable for those who were Chinese citizens and have obtained foreign citizenship
+
+22025062418014204043091
+mfa-036_1 - 4
+
+Photocopy of previous Chinese visas (applicable for those who have obtained Chinese visas before)
+22025062114131912554297
+mfa-033_1- 3
+
+The blank pages of the passport
+22025070216180808782737
+mfa-017_1 - 2
+
+Proof of legal stay or residence status (applicable to those not applying for the visa in their country of citizenship)
+22025062114095544389381
+mfa-031_1 - 2
+
+Residential certificate/”Hukou” certificate or employment letter
+22025062114073725280378
+mfa-030_1
+
+
+
+
+
+visaPurpose
+: 
+"709002"
+visaType
+: 
+"710004"
+
+Hạng Q thăm thân :
+Cần các thông tin đặc thù như: tên người thân, quan hệ, id number, kiểu đi ( single, double hay multiple)
+
+
+L30 khác phần khai 6. dài hơn và thêm 1 file lịch trình du lịch
+
+chưa biết file cư trú dùng khi hộ chiếu chưa có 1 cái gì
+
+
