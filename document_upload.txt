@@ -78,3 +78,18 @@ L30 khác phần khai 6. dài hơn và thêm 1 file lịch trình du lịch
 chưa biết file cư trú dùng khi hộ chiếu chưa có 1 cái gì
 
 
+================================
+API VISA_TYPE
+L => visaPurpose: 709001, visaType: 710001, visaType: 710002
+M => visaPurpose: 709002, visaType: +3 
+
+visaPurpose
+: 
+"709002"
+visaType
+: 
+"710003"
+================================
+
+API previous cần call thử đã qua chinna thì sẽ thể nào  => build API
+build API otherinfor, signature, api upload file và cấu trúc tự động cho file

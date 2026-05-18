@@ -1,0 +1,575 @@
+import random
+from datetime import date
+from typing import Any
+
+from constants import (
+    APPLY_VISA_VALIDITY,
+    DEFAULT_EMBASSY,
+    DEFAULT_LANG,
+    ENTRIES_TYPE,
+    JOB_TYPE_BY_LABEL,
+    PREFER_JOB_TYPE,
+    SELF_EMPLOYED_JOB_DESC,
+    SERVICE_TYPE_NORMAL_EXPRESS,
+    VIETNAMESE_NAMES,
+    VISA_TYPE_VALUE,
+    EDUCATION_DEGREE_TYPE,
+    EDUCATION_SCHOOL_NAMES,
+    FAMILY_DEFAULT_PHONE,
+    FAMILY_FATHER_NOT_APPLY_REMARK,
+    FAMILY_PARENT_RELATION_MOTHER,
+    FAMILY_STREET_DISTRICT,
+    TRAVEL_ARRIVAL_COUNTY,
+    TRAVEL_CITY_CODE,
+    TRAVEL_EMERGENCY_RELATION,
+    TRAVEL_INVITE_NAMES,
+    TRAVEL_INVITE_PROVINCE,
+    TRAVEL_INVITE_RELATION_HOTEL,
+    TRAVEL_PAY_FOR_SELF,
+)
+from models import (
+    ApplyInfoProfile,
+    EducationInfoProfile,
+    FamilyInfoProfile,
+    PassportOCRData,
+    PassportOCRResult,
+    PersonInfoProfile,
+    PreviousTravelInfoProfile,
+    TravelInfoProfile,
+    WorkInfoProfile,
+)
+from utils import date_util, mobile_utils
+
+
+def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
+    ocr = ocr_data.Response.Data
+    return " ".join(
+        filter(
+            None,
+            [
+                ocr.passportFirstName if ocr else None,
+                ocr.passportFamilyName if ocr else None,
+            ],
+        )
+    )
+
+
+def build_person_profile(
+    applyid: str,
+    ocr: PassportOCRData | None,
+    province_city_code: str,
+    id_card_number: str,
+) -> PersonInfoProfile:
+    person_json: dict[str, Any] = {
+        "applyid": applyid,
+        "photoDetectionResult": 0,
+        "childrenFlag": False,
+        "applyCountry": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "birthplaceCounty": "",
+        "joinNationalityDate": "",
+        "otherName": "",
+        "formerName": "",
+        "chineseName": "",
+        "otherSpecify": "",
+        "haveOtherNationalityFlag": False,
+        "notApplyItems": [],
+        "otherNationals": [],
+        "havePermanentFlag": False,
+        "haveFormerNationalityFlag": False,
+        "permanentCountries": "",
+        "formerNationals": [],
+        "issueUnit": "",
+        "issueDate": "",
+        "lostPassportFlag": "",
+        "lostPassports": [],
+        "localName": "",
+        "lang": DEFAULT_LANG,
+        "otherPassportinfo": "",
+        "birthday": ocr.dateOfBirth if ocr else None,
+        "birthplaceCountry": ocr.issuingCountry if ocr else None,
+        "passportFamilyName": ocr.passportFamilyName if ocr else None,
+        "passportFirstName": ocr.passportFirstName if ocr else None,
+        "gender": ocr.sex if ocr else None,
+        "nationalityCountry": ocr.nationality if ocr else None,
+        "passportNumber": ocr.passportNumber if ocr else None,
+        "expirationDate": ocr.dateOfExpiration if ocr else None,
+        "issueCountry": ocr.issuingCountry if ocr else None,
+        "maritalStatus": random.choice(["706001", "706003"]),
+        "passport": random.choice(["707001", "707002"]),
+        "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
+        "photoPath": "",
+        "passportPath": "",
+        "birthplaceProvince": province_city_code,
+        "birthplaceCity": province_city_code,
+        "nationalityIdcard": id_card_number,
+    }
+    return PersonInfoProfile.from_dict(person_json)
+
+
+def build_apply_info_profile(
+    applyid: str,
+    first_letter_visa_type: str,
+    last_letter_visa_type: str,
+    entries_type: str,
+    type_of_visa_sub_value: str,
+    service_type: str,
+) -> ApplyInfoProfile:
+    visa_sub = VISA_TYPE_VALUE.get(first_letter_visa_type, {}).get(
+        type_of_visa_sub_value, {}
+    )
+    apply_info_json: dict[str, Any] = {
+        "travelAgencyLicenseNo": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "applyCountry": "",
+        "tempSaveFlag": False,
+        "userId": "",
+        "applyid": applyid,
+        "notApplyItems": [],
+        "groupVisaFlag": True,
+        "lang": DEFAULT_LANG,
+        "applyReason": {
+            "missionName": "",
+            "name": "",
+            "newPredecessorFlag": "",
+            "otherSpecify": "",
+            "personalMatters": "",
+            "predecessorName": "",
+            "relation": "",
+            "residencePermit": "",
+            "residentName": "",
+            "talentProgrammeName": "",
+            "travelAgencyLicenseNo": "",
+            "travelAgencyName": "",
+        },
+        "applyVisaValidity": APPLY_VISA_VALIDITY.get(first_letter_visa_type),
+        "applyMaxStayDays": last_letter_visa_type,
+        "applyVisaTimes": ENTRIES_TYPE.get(entries_type, {}),
+        "visaType": visa_sub.get("visaType"),
+        "visaPurpose": visa_sub.get("visaPurpose"),
+        "serviceType": SERVICE_TYPE_NORMAL_EXPRESS.get(service_type, {}),
+    }
+    return ApplyInfoProfile.from_dict(apply_info_json)
+
+
+def _work_experience_entry(
+    begin_date: str,
+    end_date: str,
+    province_city_code: str,
+    job_position: str,
+    job_duty: str,
+) -> dict[str, Any]:
+    return {
+        "sort": "1",
+        "beginDate": begin_date,
+        "endDate": end_date,
+        "jobName": random.choice(VIETNAMESE_NAMES).upper(),
+        "jobAddr": province_city_code,
+        "jobTel": mobile_utils.generate_job_tel(),
+        "jobPosition": job_position,
+        "jobDuty": job_duty,
+        "supervisorName": random.choice(VIETNAMESE_NAMES).upper(),
+        "supervisorTel": mobile_utils.generate_supervisor_tel(),
+    }
+
+
+def build_work_info_profile(
+    applyid: str,
+    register_date: date,
+    province_city_code: str,
+) -> WorkInfoProfile:
+    job_type_label = random.choice(PREFER_JOB_TYPE)
+    job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
+    work_begin_date = date_util.work_experience_begin_date(register_date)
+    work_end_date = date_util.work_experience_end_date()
+
+    if job_type_label == "Unemployed":
+        not_apply_items = [
+            {
+                "notApplyCode": "workExperience",
+                "remark": "NOI TRO",
+            }
+        ]
+        work_experience: list[dict[str, Any]] = []
+    elif job_type_label == "Self-employed":
+        not_apply_items = []
+        work_experience = [
+            _work_experience_entry(
+                work_begin_date,
+                work_end_date,
+                province_city_code,
+                SELF_EMPLOYED_JOB_DESC,
+                SELF_EMPLOYED_JOB_DESC,
+            )
+        ]
+    else:
+        not_apply_items = []
+        work_experience = [
+            _work_experience_entry(
+                work_begin_date,
+                work_end_date,
+                province_city_code,
+                "TU KINH DOANH",
+                "TU KINH DOANH",
+            )
+        ]
+
+    work_info_json: dict[str, Any] = {
+        "applyCountry": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "otherSpecify": "",
+        "d3": False,
+        "annualIncome": "",
+        "currency": "",
+        "notApplyItems": not_apply_items,
+        "workExperience": work_experience,
+        "applyid": applyid,
+        "lang": DEFAULT_LANG,
+        "jobType": job_type_code,
+    }
+    return WorkInfoProfile.from_dict(work_info_json)
+
+
+def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
+    _, degree_code, specialty = random.choice(EDUCATION_DEGREE_TYPE)
+    return {
+        "sort": "1",
+        "beginDate": "",
+        "endDate": "",
+        "schoolName": f"THPT {random.choice(EDUCATION_SCHOOL_NAMES)}, {province_city_code}",
+        "schoolAddr": "",
+        "highestDegree": degree_code,
+        "specialty": specialty,
+    }
+
+
+def build_education_info_profile(
+    applyid: str,
+    province_city_code: str,
+) -> EducationInfoProfile:
+    education_json: dict[str, Any] = {
+        "applyCountry": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "language": "",
+        "notApplyItems": [],
+        "educationExperience": [
+            _education_experience_entry(province_city_code)
+        ],
+        "applyid": applyid,
+        "lang": DEFAULT_LANG,
+    }
+    return EducationInfoProfile.from_dict(education_json)
+
+
+def _parent_birthday(main_account_birth_date: date) -> str:
+    years_before = random.randint(20, 25)
+    year = main_account_birth_date.year - years_before
+    month = random.randint(1, 12)
+    day = random.randint(1, 28)
+    return date_util.iso_date_str(date(year, month, day))
+
+
+def _empty_spouse_entry() -> dict[str, Any]:
+    return {
+        "address": "",
+        "birthCity": "",
+        "birthCountry": "",
+        "birthCounty": "",
+        "familyName": "",
+        "firstName": "",
+        "nationalityCountry": "",
+        "profession": "",
+        "birthday": "",
+        "sort": 1,
+        "country": "",
+        "province": "",
+        "city": "",
+        "county": "",
+    }
+
+
+def _empty_child_entry() -> dict[str, Any]:
+    return {
+        "tt1": False,
+        "tt2": "",
+        "familyName": "",
+        "firstName": "",
+        "nationalityCountry": "",
+        "profession": "",
+        "address": "",
+        "birthday": "",
+        "dd2": "",
+        "dd3": "",
+        "country": "",
+        "province": "",
+        "city": "",
+        "county": "",
+        "statusInChina": "",
+        "statusInChinaDetail": "",
+        "inChinaFlag": None,
+        "sort": 1,
+    }
+
+
+def build_family_info_profile(
+    applyid: str,
+    province_city_code: str,
+    main_account_birth_date: date,
+    family_nationality: str,
+) -> FamilyInfoProfile:
+    parent_family, parent_first = _emergency_contact_names()
+    phone = mobile_utils.generate_supervisor_tel(FAMILY_DEFAULT_PHONE)
+
+    family_json: dict[str, Any] = {
+        "applyCountry": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "haveSpouseFlag": "false",
+        "country": "",
+        "province": "",
+        "city": "",
+        "county": "",
+        "zipCode": "",
+        "mobilePhoneNumber": phone,
+        "phoneNumber": phone,
+        "email": "",
+        "streetAddr": f"{FAMILY_STREET_DISTRICT}, {province_city_code}",
+        "notApplyItems": [
+            {
+                "notApplyCode": "father",
+                "remark": FAMILY_FATHER_NOT_APPLY_REMARK,
+            },
+            {
+                "notApplyCode": "children",
+                "remark": "",
+            },
+            {
+                "notApplyCode": "spouse",
+                "remark": "",
+            },
+
+        ],
+        # "spouses": [_empty_spouse_entry()], todo: neu co vo chong => can lam them
+        "spouses":[],
+        "children": [_empty_child_entry()],
+        "relatives": [],
+        "relativeRelativeFlag": False,
+        "applyid": applyid,
+        "parents": [
+            {
+                "sort": "1",
+                "relation": FAMILY_PARENT_RELATION_MOTHER,
+                "familyName": parent_family,
+                "firstName": parent_first,
+                "nationalityCountry": family_nationality.upper(),
+                "profession": "",
+                "otherSpecify": "",
+                "birthday": _parent_birthday(main_account_birth_date),
+                "inChinaFlag": False,
+                "statusInChina": "",
+                "statusInChinaDetail": "",
+            }
+        ],
+        "lang": DEFAULT_LANG,
+    }
+    return FamilyInfoProfile.from_dict(family_json)
+
+
+def _emergency_contact_names() -> tuple[str, str]:
+    parts = random.choice(VIETNAMESE_NAMES).upper().split()
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
+def build_travel_info_profile(
+    applyid: str,
+    arrival_date: date,
+    leave_date: date,
+) -> TravelInfoProfile:
+    arrival_str = date_util.iso_date_str(arrival_date)
+    leave_str = date_util.iso_date_str(leave_date)
+    emergency_family, emergency_first = _emergency_contact_names()
+
+    travel_json: dict[str, Any] = {
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "leaveCity": TRAVEL_CITY_CODE,
+        "leaveCounty": "",
+        "leaveDate": leave_str,
+        "leaveVehicleType": "",
+        "disposableFunds": "",
+        "disposableFundsCurrency": "",
+        "emergencyCity": "",
+        "emergencyContactFamilyName": emergency_family,
+        "emergencyContactFirstName": emergency_first,
+        "emergencyContactMiddlename": "",
+        "emergencyCountry": "",
+        "emergencyCounty": "",
+        "emergencyEmail": "",
+        "emergencyPhoneNumber": mobile_utils.generate_supervisor_tel("0964585356"),
+        "emergencyProvince": "",
+        "emergencyRelation": TRAVEL_EMERGENCY_RELATION,
+        "emergencyStreetAddr": "",
+        "emergencyZipCode": "",
+        "payForTravel": TRAVEL_PAY_FOR_SELF,
+        "payForTravelAddr": "",
+        "payForTravelCountry": "",
+        "payForTravelEmail": "",
+        "payForTravelName": "",
+        "payForTravelOrganizationName": "",
+        "payForTravelPhoneNumber": "",
+        "payForTravelRelation": "",
+        "havePeersFlag": False,
+        "invitationNumber": "",
+        "inviteCity": TRAVEL_CITY_CODE,
+        "inviteCounty": "",
+        "inviteEmail": "",
+        "inviteName": random.choice(TRAVEL_INVITE_NAMES),
+        "invitePhoneNumber": mobile_utils.generate_supervisor_tel("15920187600"),
+        "inviteProvince": TRAVEL_INVITE_PROVINCE,
+        "inviteRelation": TRAVEL_INVITE_RELATION_HOTEL,
+        "inviteZipCode": "",
+        "sponsorCity": "",
+        "sponsorCountry": "",
+        "sponsorCounty": "",
+        "sponsorEmail": "",
+        "sponsorName": "",
+        "sponsorPhoneNumber": "",
+        "sponsorProvince": "",
+        "sponsorRelation": "",
+        "sponsorType": "",
+        "sponsorZipCode": "",
+        "travelCompanion": [],
+        "notApplyItems": [],
+        "arrivalVehicleType": "",
+        "arrivalCity": TRAVEL_CITY_CODE,
+        "arrivalCounty": TRAVEL_ARRIVAL_COUNTY,
+        "stayCity": "",
+        "stayCounty": "",
+        "travelAddr": "",
+        "stayInfo": [
+            {
+                "sort": 1,
+                "stayCity": TRAVEL_CITY_CODE,
+                "stayCounty": "",
+                "travelAddr": "",
+                "arrivalDate": arrival_str,
+                "leaveDate": leave_str,
+            }
+        ],
+        "applyid": applyid,
+        "arrivalDate": arrival_str,
+        "lang": DEFAULT_LANG,
+    }
+    return TravelInfoProfile.from_dict(travel_json)
+
+
+def _previous_travel_base(applyid: str) -> dict[str, Any]:
+    return {
+        "applyCountry": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "applyid": applyid,
+        "lang": DEFAULT_LANG,
+        "notApplyItems": [],
+    }
+
+
+def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
+    """First-time / no prior China travel: all flags false, lists empty."""
+    return {
+        **_previous_travel_base(applyid),
+        "arrivedChinaFlag": False,
+        "chinaResidenceLicenseFlag": "",
+        "collectFingerprintCountry": "",
+        "collectFingerprintDate": "",
+        "collectFingerprintFlag": "",
+        "collectFingerprintPlace": "",
+        "haveChinaVisaFlag": False,
+        "haveOtherVisaFlag": False,
+        "issueDate": "",
+        "issuePlace": "",
+        "visitedOtherCountryFlag": False,
+        "lostChinaVisaDate": "",
+        "lostChinaVisaFlag": "",
+        "lostChinaVisaNumber": "",
+        "lostChinaVisaPlace": "",
+        "otherCountries": "",
+        "otherVisas": "",
+        "previousTravelInChinaInfos": [],
+        "provideChinaVisaDetailFlag": "",
+        "residenceLicenseNumber": "",
+        "visaNumber": "",
+        "visaType": "",
+        "firstApplyChinaVisaFlag": False,
+    }
+
+
+def build_previous_china_travel_body(
+    applyid: str,
+) -> dict[str, Any]:
+    """Applicant has been to China before: fill prior-visit and visa fields."""
+  
+    return {
+        **_previous_travel_base(applyid),
+        "arrivedChinaFlag": True,
+        "chinaResidenceLicenseFlag": "",
+        "collectFingerprintCountry": "",
+        "collectFingerprintDate": "",
+        "collectFingerprintFlag": "",
+        "collectFingerprintPlace": "",
+        "haveChinaVisaFlag": True,
+        "haveOtherVisaFlag": False,
+        "issueDate": "",
+        "issuePlace": TRAVEL_CITY_CODE,
+        "visitedOtherCountryFlag": False,
+        "lostChinaVisaDate": "",
+        "lostChinaVisaFlag": "",
+        "lostChinaVisaNumber": "",
+        "lostChinaVisaPlace": "",
+        "otherCountries": "",
+        "otherVisas": "",
+        "previousTravelInChinaInfos": [
+            {
+                "sort": 1,
+                "arrivalDate": "",
+                "leaveDate": "",
+                "stayCity": TRAVEL_CITY_CODE,
+                "stayCounty": TRAVEL_ARRIVAL_COUNTY,
+                "travelAddr": "",
+            }
+        ],
+        "provideChinaVisaDetailFlag": "",
+        "residenceLicenseNumber": "",
+        "visaNumber": "",
+        "visaType": "",
+        "firstApplyChinaVisaFlag": False,
+    }
+
+
+def build_previous_travel_info_profile(
+    applyid: str,
+    not_previous_china: bool = True,
+) -> PreviousTravelInfoProfile:
+    if not_previous_china:
+        previous_travel_json = _build_no_previous_china_travel_body(applyid)
+    else:
+        previous_travel_json = build_previous_china_travel_body(applyid)
+    return PreviousTravelInfoProfile.from_dict(previous_travel_json)

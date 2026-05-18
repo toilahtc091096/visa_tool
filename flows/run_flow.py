@@ -1,35 +1,74 @@
 import random
 
+from datetime import date, datetime
 import httpx
 
+from generate_file import hotel_info
 from api import (
     api_get_draft,
     api_passport_ocr,
     api_save_apply_info,
     api_save_person_info,
+    api_save_education_info,
+    api_save_family_info,
+    api_save_previous_travel_info,
+    api_save_travel_info,
+    api_save_work_info,
 )
-from constants import DEFAULT_EMBASSY, DEFAULT_LANG
-from models import (
-    ApplyInfoProfile,
-    GetDraftListBody,
-    GetDraftListResult,
-    PersonInfoProfile,
-    has_name,
-    passport_ocr_result_from_dict,
+from constants import (
+    DOCUMENT_DATA,
+    ENTRIES_TYPE,
+    MY_VISA_TYPE,
+    SERVICE_VISA_TYPE,
+    VISA_TYPE_DAY_VALUE,
+    VISA_TYPE_VALUE,
 )
-from utils import log_event, notify
+from flows.flow_payloads import (
+    build_apply_info_profile,
+    build_person_profile,
+    build_education_info_profile,
+    build_family_info_profile,
+    build_previous_travel_info_profile,
+    build_travel_info_profile,
+    build_work_info_profile,
+    full_name_from_ocr,
+)
+from models import GetDraftListBody, GetDraftListResult, has_name, passport_ocr_result_from_dict
+from utils import date_util, log_event, notify
 
 
 async def run_flow(
     base_url: str,
     token: str,
     tmp_secret: str,
+    visa_type: str,
+    register_date: date,
+    guest_name: list[str],
     file_path: str,
     province_city_code: str,
     id_card_number: str,
+    entries_type: str,
+    type_of_visa_sub_value: str,
+    service_type: str,
+    not_previous_china: bool = True,
 ) -> None:
+    first_letter_visa_type = visa_type[0]
+    last_letter_visa_type = visa_type[1:]
+    if (
+        visa_type not in MY_VISA_TYPE
+        or first_letter_visa_type not in SERVICE_VISA_TYPE
+        or last_letter_visa_type not in VISA_TYPE_DAY_VALUE[first_letter_visa_type]
+    ):
+        log_event({"step": "Visa Type", "status": visa_type + " not support"})
+        return
+    if entries_type not in ENTRIES_TYPE:
+        log_event({"step": "ENTRIES_TYPE check", "status": ENTRIES_TYPE + " not support"})
+        return
+    if type_of_visa_sub_value not in VISA_TYPE_VALUE.get(first_letter_visa_type, {}):
+        log_event({"step": "service type", "status": type_of_visa_sub_value + " not support"})
+        return
+
     async with httpx.AsyncClient() as client:
-        # STEP 0: get ocr to getinformation name:
         step = "get ocr"
         ok, meta = await api_passport_ocr(
             client=client,
@@ -39,7 +78,6 @@ async def run_flow(
             file_path=file_path,
             form_field_name="file",
         )
-
         log_event({"step": step, "ok": ok, **meta})
         resp = meta.get("response")
         if isinstance(resp, dict):
@@ -51,7 +89,6 @@ async def run_flow(
             )
             return
 
-        # STEP 1: get_draft
         step = "get_draft"
         body_draft = GetDraftListBody()
         ok1, meta1 = await api_get_draft(client, base_url, token, tmp_secret, body_draft)
@@ -66,20 +103,8 @@ async def run_flow(
 
         resp1 = meta1.get("response", {})
         result = GetDraftListResult.from_dict(resp1)
+        full_name = full_name_from_ocr(ocr_data)
 
-        full_name = " ".join(
-            filter(
-                None,
-                [
-                    ocr_data.Response.Data.passportFirstName
-                    if ocr_data.Response.Data
-                    else None,
-                    ocr_data.Response.Data.passportFamilyName
-                    if ocr_data.Response.Data
-                    else None,
-                ],
-            )
-        )
         if not has_name(result, full_name):
             log_event(
                 {
@@ -112,121 +137,35 @@ async def run_flow(
                 }
             )
             await notify(f"Flow FAILED at step={step}: missing applyid in response")
-            # GOI API TAO MOI DE LAY APPLYID MOI
             return
 
-        # STEP 2: save_personal_information (only if step1 success)
         step = "save_personal_information"
-
-        ocr = ocr_data.Response.Data
-
-        person_json = {
-            "applyid": first_applyid,
-            "photoDetectionResult": 0,  # không quan trọng
-            "childrenFlag": False,  # không quan trọng
-            "applyCountry": "",  # không quan trọng
-            "finishedStep": 9,  # không quan trọng
-            "embassy": DEFAULT_EMBASSY,  # không quan trọng
-            "tempSaveFlag": False,  # không quan trọng
-            "userId": "",  # không quan trọng
-            "birthplaceCounty": "",  # không quan trọng
-            "joinNationalityDate": "",  # không quan trọng
-            "otherName": "",  # không quan trọng 1.1C
-            "formerName": "",  # không quan trọng 1.1D
-            "chineseName": "",  # không quan trọng
-            "otherSpecify": "",  # không quan trọng
-            "haveOtherNationalityFlag": False,  # không quan trọng
-            "notApplyItems": [],  # không quan trọng
-            "otherNationals": [],  # không quan trọng
-            "havePermanentFlag": False,  # không quan trọng
-            "haveFormerNationalityFlag": False,  # không quan trọng
-            "permanentCountries": "",  # không quan trọng
-            "formerNationals": [],  # không quan trọng
-            "issueUnit": "",  # không quan trọng
-            "issueDate": "",  # không quan trọng
-            "lostPassportFlag": "",  # không quan trọng
-            "lostPassports": [],  # không quan trọng
-            "localName": "",  # không quan trọng
-            "lang": DEFAULT_LANG,  # không quan trọng
-            "otherPassportinfo": "",  # không quan trọng
-            "birthday": ocr.dateOfBirth if ocr else None,  # 1.2  OCR
-            "birthplaceCountry": ocr.issuingCountry if ocr else None,  # 1.4A OCR
-            "passportFamilyName": ocr.passportFamilyName if ocr else None,  # 1.1A OCR
-            "passportFirstName": ocr.passportFirstName if ocr else None,  # 1.1B OCR
-            "gender": ocr.sex if ocr else None,  # 1.3 OCR
-            "nationalityCountry": ocr.nationality if ocr else None,  # 1.6A OCR
-            "passportNumber": ocr.passportNumber if ocr else None,  # 1.7B OCR
-            "expirationDate": ocr.dateOfExpiration if ocr else None,  # 1.7E OCR
-            "issueCountry": ocr.issuingCountry if ocr else None,  # 1.7C OCR
-            # Fake ra, cần lấy tất cả các giá trị ở đây để làm list fake 706001 - 706005 (706001 và 706003 )
-            "maritalStatus": random.choice(["706001", "706003"]),
-            # 1.7A cần  lấy tất cả các giá trị ở đây để làm list fake 707001 -> 707006 ( không chọn vào 707006 ưu tiên 2 cái đầu)
-            "passport": random.choice(["707001", "707002"]),
-            # 1.7D, có vài loại thông tin này, cần lấy ra hết
-            "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
-            "photoPath": "",  # tim cach lay sau hoac la tu len trang de upload
-            "passportPath": "",  # tim cach lay sau hoac la tu len trang de upload
-            "birthplaceProvince": province_city_code,  # 1.4B Chưa lấy được
-            "birthplaceCity": province_city_code,  # 1.4C Chưa lấy được
-            "nationalityIdcard": id_card_number,  # 1.6B Chưa lấy được
-        }
-        body_save_person_infor = PersonInfoProfile.from_dict(person_json)
+        body_save_person_infor = build_person_profile(
+            first_applyid,
+            ocr_data.Response.Data,
+            province_city_code,
+            id_card_number,
+        )
         ok2, meta2 = await api_save_person_info(
             client, base_url, token, tmp_secret, body_save_person_infor
         )
         log_event({"step": step, "ok": ok2, **meta2})
-
         if not ok2:
             await notify(
                 f"Flow FAILED at step={step}. status={meta2.get('status_code')} "
                 f"err={meta2.get('error')}"
             )
             return
-        # STEP 3: save_type_of_visa
+
         step = "save_type_of_visa"
-
-        apply_info_json = {
-            "travelAgencyLicenseNo": "",
-            "finishedStep": 9,
-            "embassy": DEFAULT_EMBASSY,
-            "applyCountry": "",
-
-            # ===== VISA INFO (replace per run / UX) =====
-            "visaPurpose": "709001",
-            "serviceType": "701001",
-            "applyVisaValidity": "3",
-            "applyMaxStayDays": "15",
-            "applyVisaTimes": "703001",
-            "visaType": "710001",
-
-            "tempSaveFlag": False,
-            "userId": "",
-
-            "applyReason": {
-                "missionName": "",
-                "name": "",
-                "newPredecessorFlag": "",
-                "otherSpecify": "",
-                "personalMatters": "",
-                "predecessorName": "",
-                "relation": "",
-                "residencePermit": "",
-                "residentName": "",
-                "talentProgrammeName": "",
-                "travelAgencyLicenseNo": "",
-                "travelAgencyName": "",
-            },
-
-            "applyid": first_applyid,
-            "notApplyItems": [],
-
-            "groupVisaFlag": True,
-
-            "lang": DEFAULT_LANG,
-        }
-
-        body_save_apply_info = ApplyInfoProfile.from_dict(apply_info_json)
-
+        body_save_apply_info = build_apply_info_profile(
+            first_applyid,
+            first_letter_visa_type,
+            last_letter_visa_type,
+            entries_type,
+            type_of_visa_sub_value,
+            service_type,
+        )
         ok3, meta3 = await api_save_apply_info(
             client,
             base_url,
@@ -234,16 +173,7 @@ async def run_flow(
             tmp_secret,
             body_save_apply_info,
         )
-
-        log_event(
-            {
-                "step": step,
-                "ok": ok3,
-                **meta3,
-            }
-        )
-        # su dung type o day de setting file theo list
-
+        log_event({"step": step, "ok": ok3, **meta3})
         if not ok3:
             await notify(
                 f"Flow FAILED at step={step}. "
@@ -252,4 +182,134 @@ async def run_flow(
             )
             return
 
-    # await notify("Flow SUCCESS: all steps completed.")
+        # Step 4: SaveWorkInfo
+        step = "save_work_info"
+        body_save_work_info = build_work_info_profile(
+            first_applyid,
+            register_date,
+            province_city_code,
+        )
+        ok4, meta4 = await api_save_work_info(
+            client,
+            base_url,
+            token,
+            tmp_secret,
+            body_save_work_info,
+        )
+        log_event({"step": step, "ok": ok4, **meta4})
+        if not ok4:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta4.get('status_code')} "
+                f"err={meta4.get('error')}"
+            )
+            return
+
+        # Step 5: SaveEducationInfo
+        step = "save_education_info"
+        body_save_education_info = build_education_info_profile(
+            first_applyid,
+            province_city_code,
+        )
+        ok5, meta5 = await api_save_education_info(
+            client,
+            base_url,
+            token,
+            tmp_secret,
+            body_save_education_info,
+        )
+        log_event({"step": step, "ok": ok5, **meta5})
+        if not ok5:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta5.get('status_code')} "
+                f"err={meta5.get('error')}"
+            )
+            return
+
+        # Step 6: SaveFamilyInfo
+        step = "save_family_info"
+        dob = date_util.parse_date(ocr_data.Response.Data.dateOfBirth)
+
+        if dob is None:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                "status={('data is not valid')} "
+                "err={('step 6 cannot parse date')}"
+            )
+            return
+        else:
+            print(dob)
+        body_save_family_info = build_family_info_profile(
+            first_applyid,
+            province_city_code,
+            datetime.strptime(ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
+            ocr_data.Response.Data.nationality
+        )
+        ok6, meta6 = await api_save_family_info(
+            client,
+            base_url,
+            token,
+            tmp_secret,
+            body_save_family_info,
+        )
+        log_event({"step": step, "ok": ok6, **meta6})
+        if not ok6:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta6.get('status_code')} "
+                f"err={meta6.get('error')}"
+            )
+            return
+
+        m, f = date_util.monday_and_friday_skip_4_weeks(register_date)
+
+        # Step 7: SaveTravelInfo
+        step = "save_travel_info"
+        body_save_travel_info = build_travel_info_profile(
+            first_applyid,
+            m,
+            f,
+        )
+        ok7, meta7 = await api_save_travel_info(
+            client,
+            base_url,
+            token,
+            tmp_secret,
+            body_save_travel_info,
+        )
+        log_event({"step": step, "ok": ok7, **meta7})
+        if not ok7:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta7.get('status_code')} "
+                f"err={meta7.get('error')}"
+            )
+            return
+
+        # Step 8: SavePreviousTravelInfo
+        step = "save_previous_travel_info"
+        body_save_previous_travel_info = build_previous_travel_info_profile(
+            first_applyid,
+            not_previous_china=not_previous_china
+        )
+        ok8, meta8 = await api_save_previous_travel_info(
+            client,
+            base_url,
+            token,
+            tmp_secret,
+            body_save_previous_travel_info,
+        )
+        log_event({"step": step, "ok": ok8, **meta8})
+        if not ok8:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta8.get('status_code')} "
+                f"err={meta8.get('error')}"
+            )
+            return
+
+        first_apply_id = random.choice([0, 1])
+        data = DOCUMENT_DATA[visa_type]
+        hotel = data["hotel"][first_apply_id]
+        await hotel_info.render_docx_template(hotel, guest_name, m, f)

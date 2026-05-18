@@ -15,6 +15,16 @@ from .passport_ocr import (
     passport_ocr_result_from_dict,
 )
 from .person import PersonInfoProfile
+from .education import EducationExperience, EducationInfoProfile
+from .family import (
+    FamilyChild,
+    FamilyInfoProfile,
+    FamilyParent,
+    FamilySpouse,
+)
+from .previous_travel import PreviousTravelInfoProfile
+from .travel import StayInfo, TravelInfoProfile
+from .work import WorkExperience, WorkInfoProfile
 
 __all__ = [
     "ApplyInfoProfile",
@@ -30,5 +40,16 @@ __all__ = [
     "PassportOCRResult",
     "passport_ocr_result_from_dict",
     "PersonInfoProfile",
+    "EducationExperience",
+    "EducationInfoProfile",
+    "FamilyChild",
+    "FamilyInfoProfile",
+    "FamilyParent",
+    "FamilySpouse",
+    "PreviousTravelInfoProfile",
+    "StayInfo",
+    "TravelInfoProfile",
+    "WorkExperience",
+    "WorkInfoProfile",
     "has_name",
 ]
