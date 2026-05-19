@@ -96,3 +96,18 @@ build API otherinfor, signature, api upload file và cấu trúc tự động ch
 
 GBR là mã quốc gia ISO 3166-1 alpha-3 của Vương quốc Anh (United Kingdom / UK – Anh).
  
+
+================================
+20/05 todo:
+L15: chỉ cần 1 hotel
+L30: cần ghép 3 hotel
+	Cần hỏi lịch trình xem có thể đảo không hay cố định
+	
+Từ lịch trình 	=> Chọn nơi đến ( 1 trong 3 tỉnh ở 3 hotel) 	=> Tạo file vé máy bay 
+																=> Tạo file hotel theo vé máy bay
+																
+Mapping Tỉnh và các hotel và thông tin để đẩy vào param 2 method tạo hotel và vé máy bay 
+
+Đối với L30 cần ghép file
+
+Cần tạo logic tạo ngày cho L15 và L30  ( L30 => Cần tạo 3 lịch)
