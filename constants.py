@@ -99,7 +99,7 @@ VIETNAMESE_NAMES = (
     "Do Van Phu",
     "Ngo Thi Thao",
 )
- 
+
 # (label, highestDegree code, specialty text)
 EDUCATION_DEGREE_TYPE = (
     ("Technical_secondary", "714003", "THPT"),
@@ -461,4 +461,9 @@ VIETNAM_ADMIN = {
         "LONG HO",
         "MANG THIT"
     ]
+}
+
+
+ALLOWED_CHINA_VISA_TYPES = {
+    "L","M","F","Z","X1","X2","S1","S2","Q1","Q2","C","D","G","R"
 }

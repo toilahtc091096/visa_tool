@@ -1,33 +1,46 @@
 import asyncio
 from datetime import datetime, date
 from flows import run_flow
-
+ 
 __all__ = ["run_flow", "main"]
-
-
+ 
+ 
 def main() -> None:
     # Can phai dien
     base_url = (
-        "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1" 
+        "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
     )
-    token = "YjI1OTg2OWIzYzhhMGM2OGI5N2I2YTRhY2VkMDQ1MDlmMWM4NDM2ZTNlNTg5MjU0OTYwYWM4YmMwOTAyY2NjYw=="
+    token = "ZWYzOTgzYmVhNTUxNjVmZTY0NjgyYWRlOWM0MDEzNWY5MTU4Yzg0ZDA5MjIyNGU5MGRiN2RhNzdlYjc1OTMzMw=="
     tmp_secret = (
-        "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_85127832_1778984240370_53da586b25b90b2449f10cd3f97cad9e"
+        "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_08277556_1779160011978_e9624e3833f9088365aa98eddb6733be"
     )
-    province_city_code = "HAI PHONG" 
-    id_card_number = "031192000564" 
+    province_city_code = "HAI PHONG"
+    id_card_number = "031192000564"
     file_path = r"test\passport_data.png"
     visa_type="L15"
     register_date = date(2026,5,18)
     guest_name_hotel_file = ["Hoang Thanh Cong"]
     # for api visa type
     entries_type = "S"
-    type_of_visa_sub_value = "G"
-    service_type = "E"
-    not_previous_china = True  # True = first time in China (all flags false)
+    type_of_visa_sub_value = "I"
+    service_type = "N"
     # ==========================================
-
-
+    #1
+    arrivedChinaFlag=False # Đã từng đến Trung Quốc hay chưa (TRUE/FALSE)
+    #2
+    haveChinaVisaFlag=False # Đã có visa Trung Quốc hay chưa (TRUE/FALSE)
+    old_visaType="L" # Loại visa Trung Quốc (bắt buộc nếu haveChinaVisaFlag=True)
+    old_visaNumber="E12345678" # Số visa Trung Quốc (không bắt buộc)
+    old_issueDate="2024-01" # Ngày cấp visa Trung Quốc (không bắt buộc, định dạng YYYY-MM-DD)
+    old_issuePlace="Hanoi" # Nơi cấp visa Trung Quốc (không bắt buộc)
+    #3
+    haveOtherVisaFlag=False # Đã có visa nước khác (không phải Trung Quốc) hay chưa (TRUE/FALSE)
+    old_otherVisas=["JPN","KOR"] # Danh sách mã quốc gia  của các visa khác (nên có nếu haveOtherVisaFlag=True)
+    #4
+    old_otherCountries=["THA",""] # Danh sách mã quốc gia  đã đi trong 12 tháng gần nhất
+ 
+ 
+ 
     asyncio.run(
         run_flow(
             base_url,
@@ -42,11 +55,21 @@ def main() -> None:
             entries_type,
             type_of_visa_sub_value,
             service_type,
-            not_previous_china,
+            arrivedChinaFlag,
+            haveChinaVisaFlag,
+            old_visaType,
+            old_visaNumber,
+            old_issueDate,
+            old_issuePlace,
+            haveOtherVisaFlag,
+            old_otherVisas,
+            old_otherCountries
         )
     )
-
-
+ 
+ 
 if __name__ == "__main__":
     main()
+ 
+ 
  

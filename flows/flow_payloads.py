@@ -1,7 +1,7 @@
 import random
 from datetime import date
 from typing import Any
-
+from utils import date_util, log_event, notify
 from constants import (
     APPLY_VISA_VALIDITY,
     DEFAULT_EMBASSY,
@@ -26,6 +26,7 @@ from constants import (
     TRAVEL_INVITE_PROVINCE,
     TRAVEL_INVITE_RELATION_HOTEL,
     TRAVEL_PAY_FOR_SELF,
+    ALLOWED_CHINA_VISA_TYPES,
 )
 from models import (
     ApplyInfoProfile,
@@ -521,12 +522,37 @@ def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
         "firstApplyChinaVisaFlag": False,
     }
 
-
+# param 
 def build_previous_china_travel_body(
     applyid: str,
+    haveChinaVisaFlag: bool = False,
+    old_visaType: str ="",
+    old_visaNumber: str ="",
+    old_issueDate: str ="",
+    old_issuePlace: str ="",
+    haveOtherVisaFlag: str ="",
+    old_otherVisas: str ="",
+    old_otherCountries: str ="",
 ) -> dict[str, Any]:
     """Applicant has been to China before: fill prior-visit and visa fields."""
-  
+
+    errs = validate_payload({
+        "arrivedChinaFlag": True,
+        "haveChinaVisaFlag": haveChinaVisaFlag,
+        "visaType": old_visaType,
+        "visaNumber": old_visaNumber,
+        "issueDate": old_issueDate,
+        "issuePlace": old_issuePlace,
+        "haveOtherVisaFlag": haveOtherVisaFlag,
+        "otherVisas": list_to_csv_country_codes(old_otherVisas),
+        "otherCountries": list_to_csv_country_codes(old_otherCountries)
+    })
+
+    if errs:
+        print("INVALID:")
+        log_event({"step": "Step 8: SavePreviousTravelInfo", "status":  f"Validate step previous travel error '{errs}'"})
+        for e in errs:
+            print("-", e)
     return {
         **_previous_travel_base(applyid),
         "arrivedChinaFlag": True,
@@ -535,41 +561,140 @@ def build_previous_china_travel_body(
         "collectFingerprintDate": "",
         "collectFingerprintFlag": "",
         "collectFingerprintPlace": "",
-        "haveChinaVisaFlag": True,
-        "haveOtherVisaFlag": False,
-        "issueDate": "",
-        "issuePlace": TRAVEL_CITY_CODE,
-        "visitedOtherCountryFlag": False,
         "lostChinaVisaDate": "",
         "lostChinaVisaFlag": "",
         "lostChinaVisaNumber": "",
         "lostChinaVisaPlace": "",
         "otherCountries": "",
-        "otherVisas": "",
+        "provideChinaVisaDetailFlag": "",
+        "residenceLicenseNumber": "",
         "previousTravelInChinaInfos": [
             {
                 "sort": 1,
                 "arrivalDate": "",
                 "leaveDate": "",
-                "stayCity": TRAVEL_CITY_CODE,
-                "stayCounty": TRAVEL_ARRIVAL_COUNTY,
+                # "stayCity": TRAVEL_CITY_CODE,
+                # "stayCounty": TRAVEL_ARRIVAL_COUNTY,
+                "arrivalCity": "",
+                "arrivalCounty": "",
                 "travelAddr": "",
             }
         ],
-        "provideChinaVisaDetailFlag": "",
-        "residenceLicenseNumber": "",
-        "visaNumber": "",
-        "visaType": "",
-        "firstApplyChinaVisaFlag": False,
+        "visaNumber": old_visaNumber, 
+        "visaType": old_visaType,
+        "firstApplyChinaVisaFlag": not haveChinaVisaFlag,
+        "otherVisas": old_otherVisas,
+        "haveChinaVisaFlag": haveChinaVisaFlag,
+        "haveOtherVisaFlag": haveOtherVisaFlag,
+        "issueDate": old_issueDate,
+        "issuePlace": old_issuePlace,
+        "visitedOtherCountryFlag": not _is_blank(old_otherCountries),
     }
 
 
 def build_previous_travel_info_profile(
     applyid: str,
-    not_previous_china: bool = True,
+    arrivedChinaFlag: bool = False,
+    haveChinaVisaFlag: bool = False,
+    old_visaType: str ="",
+    old_visaNumber: str ="",
+    old_issueDate: str ="",
+    old_issuePlace: str ="",
+    haveOtherVisaFlag: str ="",
+    old_otherVisas: str ="",
+    old_otherCountries: str ="",
 ) -> PreviousTravelInfoProfile:
-    if not_previous_china:
+    if not arrivedChinaFlag:
         previous_travel_json = _build_no_previous_china_travel_body(applyid)
     else:
-        previous_travel_json = build_previous_china_travel_body(applyid)
+        previous_travel_json = build_previous_china_travel_body(
+            applyid,
+            haveChinaVisaFlag,
+            old_visaType,
+            old_visaNumber,
+            old_issueDate,
+            old_issuePlace,
+            haveOtherVisaFlag,
+            old_otherVisas,
+            old_otherCountries,
+            )
     return PreviousTravelInfoProfile.from_dict(previous_travel_json)
+
+
+
+def _is_blank(x: Any) -> bool:
+    if x is None:
+        return True
+    if isinstance(x, str):
+        return x.strip() == ""
+    if isinstance(x, (list, tuple, set)):
+        return len([i for i in x if not _is_blank(i)]) == 0
+    return False
+
+def _clean_list(xs):
+    if xs is None:
+        return []
+    if isinstance(xs, str):
+        xs = [xs]
+    return [str(x).strip().upper() for x in xs if not _is_blank(x)]
+
+def validate_payload(p: dict) -> list[str]:
+    """
+    Check theo logic boolean flags:
+    - haveChinaVisaFlag=True => visaType REQUIRED and must be valid
+    - haveOtherVisaFlag=True => otherVisas MUST have >=1 country code
+    - otherCountries: optional, nhưng nếu có thì không được chứa rỗng
+    Trả về list lỗi (rỗng => hợp lệ)
+    """
+    errors = []
+
+    arrivedChinaFlag = bool(p.get("arrivedChinaFlag", False))
+    haveChinaVisaFlag = bool(p.get("haveChinaVisaFlag", False))
+    haveOtherVisaFlag = bool(p.get("haveOtherVisaFlag", False))
+
+    visaType = p.get("visaType")
+    otherVisas = _clean_list(p.get("otherVisas"))
+    otherCountries = _clean_list(p.get("otherCountries"))
+
+    # Rule 1: haveChinaVisaFlag => visaType required + valid
+    if haveChinaVisaFlag:
+        if _is_blank(visaType):
+            errors.append("haveChinaVisaFlag=True nhưng thiếu visaType (required).")
+        else:
+            vt = str(visaType).strip().upper()
+            if vt not in ALLOWED_CHINA_VISA_TYPES:
+                errors.append(f"visaType='{visaType}' không hợp lệ (không nằm trong whitelist).")
+
+    # Rule 2: haveOtherVisaFlag => otherVisas required
+    if haveOtherVisaFlag:
+        if len(otherVisas) == 0:
+            errors.append("haveOtherVisaFlag=True nhưng otherVisas rỗng (cần ít nhất 1 mã quốc gia).")
+
+    # Rule 3: otherCountries optional but must not contain blank entries
+    # (ví dụ ["THA",""] => lỗi)
+    raw_other_countries = p.get("otherCountries")
+    if isinstance(raw_other_countries, (list, tuple)) and any(_is_blank(x) for x in raw_other_countries):
+        errors.append("otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
+
+    # (Optional sanity) nếu arrivedChinaFlag=False mà haveChinaVisaFlag=True thì cảnh báo
+    if (not arrivedChinaFlag) and haveChinaVisaFlag:
+        errors.append("arrivedChinaFlag=False nhưng haveChinaVisaFlag=True (kiểm tra lại logic).")
+
+    return errors
+
+def list_to_csv_country_codes(xs, *, upper=True):
+    if xs is None:
+        return ""
+    if isinstance(xs, str):
+        return xs.strip().upper() if upper else xs.strip()
+
+    cleaned = []
+    for x in xs:
+        if x is None:
+            continue
+        s = str(x).strip()
+        if not s:
+            continue
+        cleaned.append(s.upper() if upper else s)
+
+    return ",".join(cleaned)

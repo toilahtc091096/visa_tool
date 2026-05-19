@@ -50,7 +50,15 @@ async def run_flow(
     entries_type: str,
     type_of_visa_sub_value: str,
     service_type: str,
-    not_previous_china: bool = True,
+    arrivedChinaFlag: bool = False,
+    haveChinaVisaFlag: bool = False,
+    old_visaType: str ="",
+    old_visaNumber: str ="",
+    old_issueDate: str ="",
+    old_issuePlace: str ="",
+    haveOtherVisaFlag: str ="",
+    old_otherVisas: str ="",
+    old_otherCountries: str ="",
 ) -> None:
     first_letter_visa_type = visa_type[0]
     last_letter_visa_type = visa_type[1:]
@@ -238,8 +246,6 @@ async def run_flow(
                 "err={('step 6 cannot parse date')}"
             )
             return
-        else:
-            print(dob)
         body_save_family_info = build_family_info_profile(
             first_applyid,
             province_city_code,
@@ -291,7 +297,15 @@ async def run_flow(
         step = "save_previous_travel_info"
         body_save_previous_travel_info = build_previous_travel_info_profile(
             first_applyid,
-            not_previous_china=not_previous_china
+            arrivedChinaFlag,
+            haveChinaVisaFlag,
+            old_visaType,
+            old_visaNumber,
+            old_issueDate,
+            old_issuePlace,
+            haveOtherVisaFlag,
+            old_otherVisas,
+            old_otherCountries
         )
         ok8, meta8 = await api_save_previous_travel_info(
             client,
@@ -313,3 +327,4 @@ async def run_flow(
         data = DOCUMENT_DATA[visa_type]
         hotel = data["hotel"][first_apply_id]
         await hotel_info.render_docx_template(hotel, guest_name, m, f)
+ 

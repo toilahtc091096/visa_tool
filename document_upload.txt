@@ -93,3 +93,6 @@ visaType
 
 API previous cần call thử đã qua chinna thì sẽ thể nào  => build API
 build API otherinfor, signature, api upload file và cấu trúc tự động cho file
+
+GBR là mã quốc gia ISO 3166-1 alpha-3 của Vương quốc Anh (United Kingdom / UK – Anh).
+ 
