@@ -4,17 +4,19 @@ from typing import Any
 import httpx
 
 from utils import build_upload_headers
+from constants import (
+    BASE_URL
+)
 
 
 async def api_passport_ocr(
     client: httpx.AsyncClient,
-    base_url: str,
     token: str,
     tmp_secret: str,
     file_path: str,                 # đường dẫn file png/jpg/pdf...
     form_field_name: str = "file",  # tùy backend: "file"/"passport"/"image"...
 ) -> tuple[bool, dict[str, Any]]:
-    url = f"{base_url}/PassportOCR"
+    url = f"{BASE_URL}/PassportOCR"
     headers = build_upload_headers(token, tmp_secret)
 
     if not os.path.isfile(file_path):
@@ -76,3 +78,4 @@ async def api_passport_ocr(
                 "file": {"path": file_path, "field": form_field_name},
             },
         }
+ 

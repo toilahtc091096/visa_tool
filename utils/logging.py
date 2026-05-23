@@ -1,6 +1,7 @@
 import json
 import time
 from typing import Any, Dict
+import traceback
 
 
 def log_event(event: Dict[str, Any], path: str = "run.log") -> None:
@@ -16,3 +17,12 @@ async def notify(message: str) -> None:
     Ví dụ Telegram: gọi Bot API sendMessage.
     """
     print(f"[NOTI] {message}")
+
+def log_exception(exc: Exception, event: Dict[str, Any], path: str = "run.log") -> None:
+    event.update({
+        "level": "error",
+        "error_type": type(exc).__name__,
+        "error_msg": str(exc),
+        "traceback": traceback.format_exc(),
+    })
+    log_event(event, path)

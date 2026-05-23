@@ -1,6 +1,6 @@
 import random
 from datetime import date
-from typing import Any
+from typing import Any, Dict
 from utils import date_util, log_event, notify
 from constants import (
     APPLY_VISA_VALIDITY,
@@ -27,6 +27,7 @@ from constants import (
     TRAVEL_INVITE_RELATION_HOTEL,
     TRAVEL_PAY_FOR_SELF,
     ALLOWED_CHINA_VISA_TYPES,
+    L_15_HOTEL_INFO,
 )
 from models import (
     ApplyInfoProfile,
@@ -38,9 +39,10 @@ from models import (
     PreviousTravelInfoProfile,
     TravelInfoProfile,
     WorkInfoProfile,
+    UploadMaterialBody,
 )
 from utils import date_util, mobile_utils
-
+import os
 
 def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
     ocr = ocr_data.Response.Data
@@ -54,6 +56,17 @@ def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
         )
     )
 
+def vietnamese_name_from_ocr(ocr_data: PassportOCRResult) -> str:
+    ocr = ocr_data.Response.Data
+    return " ".join(
+        filter(
+            None,
+            [
+                ocr.passportFamilyName if ocr else None,
+                ocr.passportFirstName if ocr else None,
+            ],
+        )
+    )
 
 def build_person_profile(
     applyid: str,
@@ -394,27 +407,35 @@ def _emergency_contact_names() -> tuple[str, str]:
         return parts[0], ""
     return parts[0], " ".join(parts[1:])
 
-
-def build_travel_info_profile(
+def getTravelCommonInfo(
+    *,
     applyid: str,
-    arrival_date: date,
-    leave_date: date,
-) -> TravelInfoProfile:
-    arrival_str = date_util.iso_date_str(arrival_date)
-    leave_str = date_util.iso_date_str(leave_date)
-    emergency_family, emergency_first = _emergency_contact_names()
-
-    travel_json: dict[str, Any] = {
+    emergency_family: str,
+    emergency_first: str,
+) -> Dict[str, Any]:
+    """
+    Build the common (#same) part of travel_json.
+    """
+    return {
         "finishedStep": 9,
         "embassy": DEFAULT_EMBASSY,
         "tempSaveFlag": False,
+
         "userId": "",
-        "leaveCity": TRAVEL_CITY_CODE,
-        "leaveCounty": "",
-        "leaveDate": leave_str,
-        "leaveVehicleType": "",
         "disposableFunds": "",
         "disposableFundsCurrency": "",
+
+        "sponsorCity": "",
+        "sponsorCountry": "",
+        "sponsorCounty": "",
+        "sponsorEmail": "",
+        "sponsorName": "",
+        "sponsorPhoneNumber": "",
+        "sponsorProvince": "",
+        "sponsorRelation": "",
+        "sponsorType": "",
+        "sponsorZipCode": "",
+
         "emergencyCity": "",
         "emergencyContactFamilyName": emergency_family,
         "emergencyContactFirstName": emergency_first,
@@ -427,56 +448,120 @@ def build_travel_info_profile(
         "emergencyRelation": TRAVEL_EMERGENCY_RELATION,
         "emergencyStreetAddr": "",
         "emergencyZipCode": "",
+
+        # pay (default for self)
         "payForTravel": TRAVEL_PAY_FOR_SELF,
+        # for other
+        "payForTravelName": "",
+        "payForTravelPhoneNumber": "",
+        "payForTravelEmail": "",
+        # for organization
+        "payForTravelOrganizationName": "",
+        "payForTravelRelation": "",
         "payForTravelAddr": "",
         "payForTravelCountry": "",
-        "payForTravelEmail": "",
-        "payForTravelName": "",
-        "payForTravelOrganizationName": "",
-        "payForTravelPhoneNumber": "",
-        "payForTravelRelation": "",
+        # end pay
+
+        # HavePeersFlag: not use
         "havePeersFlag": False,
-        "invitationNumber": "",
-        "inviteCity": TRAVEL_CITY_CODE,
-        "inviteCounty": "",
-        "inviteEmail": "",
-        "inviteName": random.choice(TRAVEL_INVITE_NAMES),
-        "invitePhoneNumber": mobile_utils.generate_supervisor_tel("15920187600"),
-        "inviteProvince": TRAVEL_INVITE_PROVINCE,
-        "inviteRelation": TRAVEL_INVITE_RELATION_HOTEL,
-        "inviteZipCode": "",
-        "sponsorCity": "",
-        "sponsorCountry": "",
-        "sponsorCounty": "",
-        "sponsorEmail": "",
-        "sponsorName": "",
-        "sponsorPhoneNumber": "",
-        "sponsorProvince": "",
-        "sponsorRelation": "",
-        "sponsorType": "",
-        "sponsorZipCode": "",
-        "travelCompanion": [],
-        "notApplyItems": [],
-        "arrivalVehicleType": "",
-        "arrivalCity": TRAVEL_CITY_CODE,
-        "arrivalCounty": TRAVEL_ARRIVAL_COUNTY,
-        "stayCity": "",
-        "stayCounty": "",
-        "travelAddr": "",
-        "stayInfo": [
-            {
-                "sort": 1,
-                "stayCity": TRAVEL_CITY_CODE,
-                "stayCounty": "",
-                "travelAddr": "",
-                "arrivalDate": arrival_str,
-                "leaveDate": leave_str,
-            }
-        ],
+
         "applyid": applyid,
-        "arrivalDate": arrival_str,
         "lang": DEFAULT_LANG,
     }
+
+def getL15TravelInfo(
+    *,
+    applyid: str,
+    emergency_family: str,
+    emergency_first: str,
+    # not same inputs
+    hotel_type: str,
+    arrival_str: str,
+    leave_str: str,
+    arrivalVehicleType: str,
+    leaveVehicleType: str,
+) -> Dict[str, Any]:
+    """
+    Full travel_json = #same + specific (hotel/flight/date) part.
+    """
+    travel_json: Dict[str, Any] = getTravelCommonInfo(
+        applyid=applyid,
+        emergency_family=emergency_family,
+        emergency_first=emergency_first,
+    )
+
+    travel_json.update(
+        {
+            # For hotel
+            "invitationNumber": "",
+            "inviteCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
+            "inviteCounty": "",
+            "inviteEmail": "",
+            "inviteName": L_15_HOTEL_INFO[hotel_type].get("name"),
+            "invitePhoneNumber": mobile_utils.generate_supervisor_tel("15920187600"),
+            "inviteProvince": L_15_HOTEL_INFO[hotel_type].get("inviteProvince"),
+            "inviteRelation": L_15_HOTEL_INFO[hotel_type].get("relationship"),
+            "inviteZipCode": "",
+
+            # For flight / travel plan
+            "travelCompanion": [],
+            "notApplyItems": [],
+            "arrivalVehicleType": arrivalVehicleType,
+            "arrivalCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
+            "arrivalCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
+            "stayCity": "",
+            "stayCounty": "",
+            "travelAddr": "",
+            "stayInfo": [
+                {
+                    "sort": 1,
+                    "stayCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
+                    "stayCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
+                    "travelAddr": "",
+                    "arrivalDate": arrival_str,
+                    "leaveDate": leave_str,
+                }
+            ],
+            "leaveCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
+            "leaveCounty": "",
+            "leaveDate": leave_str,
+            "leaveVehicleType": leaveVehicleType, 
+            "arrivalDate": arrival_str,
+        }
+    )
+
+    return travel_json
+
+
+def build_travel_info_profile(
+    visa_type: str,
+    applyid: str,
+    arrival_date: date,
+    leave_date: date,
+    hotel_type: int,
+    arrivalVehicleType: str,
+    leaveVehicleType: str
+) -> TravelInfoProfile:
+    arrival_str = date_util.iso_date_str(arrival_date)
+    leave_str = date_util.iso_date_str(leave_date)
+    emergency_family, emergency_first = _emergency_contact_names()
+
+    if visa_type == 'L15':
+        print(arrivalVehicleType)
+        travel_json: dict[str, Any] = getL15TravelInfo(
+            applyid=applyid, 
+            emergency_family=emergency_family, 
+            emergency_first=emergency_first,
+            hotel_type=hotel_type,
+            arrival_str=arrival_str, 
+            leave_str=leave_str,
+            arrivalVehicleType=arrivalVehicleType,
+            leaveVehicleType=leaveVehicleType
+            )
+    elif visa_type == 'L30': 
+        travel_json={}
+    else: 
+        travel_json={}
     return TravelInfoProfile.from_dict(travel_json)
 
 
@@ -698,3 +783,12 @@ def list_to_csv_country_codes(xs, *, upper=True):
         cleaned.append(s.upper() if upper else s)
 
     return ",".join(cleaned)
+
+def build_upload_material_body(file_path: str, categoryCode: str, materialCode: str, businessId: str) -> UploadMaterialBody:
+    return UploadMaterialBody(
+        filePath=str(file_path),
+        fileName=os.path.basename(str(file_path)),
+        categoryCode=categoryCode,
+        materialCode=materialCode,
+        businessId=businessId,
+    )

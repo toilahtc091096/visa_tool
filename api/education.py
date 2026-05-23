@@ -6,10 +6,12 @@ import httpx
 from models import EducationInfoProfile
 from utils import build_upload_headers
 
+from constants import (
+    BASE_URL
+)
 
 async def api_save_education_info(
     client: httpx.AsyncClient,
-    base_url: str,
     token: str,
     tmp_secret: str,
     body: EducationInfoProfile,
@@ -21,7 +23,7 @@ async def api_save_education_info(
     ``status_code`` -1 and the exception message as ``error``.
     """
     try:
-        url = f"{base_url}/SaveEducationInfo"
+        url = f"{BASE_URL}/SaveEducationInfo"
         headers = build_upload_headers(token, tmp_secret)
         payload = asdict(body)
 

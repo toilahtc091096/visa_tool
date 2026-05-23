@@ -1,10 +1,20 @@
 from docxtpl import DocxTemplate
+import asyncio
 from datetime import date, timedelta
 from pathlib import Path
+from docx2pdf import convert
+from typing import Any
+import re
+from jinja2 import Environment
+from utils import vnd, cny, vnd_decimal
+from constants import (
+    UNIT_OF_HOTEL
+)
 
-import asyncio
 
-async def render_docx_template(file_name: str,names: list[str], first: date, end: date | None = None) -> str:
+
+
+async def render_docx_template_output_pdf(payload: dict[str, Any]) -> str:
     """
     Render a DOCX template with docxtpl asynchronously.
 
@@ -16,7 +26,12 @@ async def render_docx_template(file_name: str,names: list[str], first: date, end
     Returns:
         Path to saved output file
     """
-    base = Path(__file__).resolve().parent / ".." / "test"   # folder relative to this .py
+    file_name: str = payload.get("file_name")
+    names: list[str] = payload.get("names", [])
+    first: date = payload.get("first")
+    end: date | None = payload.get("end")
+
+    base = Path(__file__).resolve().parent / ".." / "resources"   # folder relative to this .py
     src = (base / file_name).resolve()
     out_dir = (base / "output").resolve()      # ./output next to this .py
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -26,22 +41,31 @@ async def render_docx_template(file_name: str,names: list[str], first: date, end
 
     if src.suffix.lower() != ".docx":
         raise ValueError(f"Not a .docx file: {src}")
+    name_part = "_".join(names)
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name_part).strip("_")
 
-    out = out_dir / (Path(file_name).stem + "_done.docx")
+    out = out_dir / (Path(file_name).stem + ".docx")
     doc = DocxTemplate(str(src))
-    second_first = (first + timedelta(weeks=1));
-    second_end = (end + timedelta(weeks=1));
-    third_first = (first + timedelta(weeks=2));
-    third_end = (end + timedelta(weeks=2));
-    cancel_day_free = (first - timedelta(days=2));
-    cancel_day_lost_free = (first - timedelta(days=1));
-    doc.render({
-        "first": first.day, 
+    jinja_env = Environment(autoescape=True)
+    jinja_env.filters["vnd"] = vnd
+    jinja_env.filters["cny"] = cny
+    jinja_env.filters["vnd_decimal"] = vnd_decimal
+    if payload.get("type") == 'hotel':
+        second_first = (first + timedelta(weeks=1));
+        second_end = (end + timedelta(weeks=1));
+        third_first = (first + timedelta(weeks=2));
+        third_end = (end + timedelta(weeks=2));
+        cancel_day_free = (first - timedelta(days=2));
+        cancel_day_lost_free = (first - timedelta(days=1));
+        doc.render({
+        "first": first.day,
         "f_month_num": first.month, 
         "f_month_text": first.strftime("%B").upper(),
+        "f_day_name": first.strftime("%A").upper(),
         "end": end.day, 
         "e_month_num": end.month,
         "e_month_text": end.strftime("%B").upper(),
+        "e_day_name": end.strftime("%A").upper(),
         "second_first": second_first.day, 
         "s_f_month_num": second_first.month, 
         "s_f_month_text": second_first.strftime("%B").upper(),
@@ -62,12 +86,47 @@ async def render_docx_template(file_name: str,names: list[str], first: date, end
         "cancel_day_lost_fee_m":cancel_day_lost_free.month,
         "cancel_day_lost_fee_y":cancel_day_lost_free.year,
         "cancel_day_lost_fee_month_text": cancel_day_lost_free.strftime("%B").upper(),
-        "name_list": names
-        })   
+        "names": names,
+        "unit_of_hotel": UNIT_OF_HOTEL,
+        # xet lai, truong hop nay < 18 tuoi, nen lam rieng, 2 bien nay nen chuyen tu main
+        "adults_number": 1, 
+        "child_number": 1
+        #end
+        }, jinja_env=jinja_env)
+    if payload.get("type") == 'flight_ticket':    
+        first: date = payload.get("first")
+        end: date | None = payload.get("end")
+
+        names: list[str] = payload.get("names", [])
+        doc.render({
+            "arrive_day": first.day,
+            "arrive_month_MMM" : first.strftime("%b").upper(),
+            "arrive_year_yyyy" : first.year,
+
+            "departure_day" : end.day,
+            "departure_month_MMM" : end.strftime("%b").upper(),
+            "departure_year_yyyy" : end.year,
+
+            "arrvied_city" : str(payload.get("arrvied_city")).upper(),
+            "name_list" : names,
+
+            "arrive_day_name" : first.strftime("%A").upper(),
+            "arrive_flight_number_from_05" : payload.get("arrive_flight_number_from_05"),
+            "arrive_flight_number_from_83" : payload.get("arrive_flight_number_from_83"),
+            "arrived_iata_code" : str(payload.get("arrived_iata_code")).upper(),
+
+            "departure_day_name" : end.strftime("%A").upper(),
+            "departure_flight_number_from_05" : payload.get("departure_flight_number_from_05"),
+            "departure_flight_number_from_83" : payload.get("departure_flight_number_from_83"),
+            "departure_iata_code" : str(payload.get("departure_iata_code")),
+            "departure_city": str(payload.get("departure_city")),
+        }, jinja_env=jinja_env)
     doc.save(str(out))
-    return out
+    safe = safe or "NONAME"
 
+    pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
-# Example usage:
-# asyncio.run(render_docx_template("../test/L30_Khach_san.docx", "6",
-#                                 "../test/output/L30_Khach_san_done.docx"))
+    convert(str(out), str(pdf_out))
+
+    return str(pdf_out)   # return PDF, not DOCX
+ 

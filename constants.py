@@ -1,5 +1,10 @@
 """Shared constants for API headers and site defaults."""
-
+BASE_URL = (
+    "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
+)
+BASE_FILE_UPLOAD_URL = (
+    "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
+)
 # Embassy / site defaults
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
@@ -24,28 +29,32 @@ SEC_CH_UA = (
 MY_VISA_TYPE = {"L15", "L30", "M", "Q"}
 
 DOCUMENT_DATA = {
-    "L15": ({"hotel": ["L15_1_hotel_GreenTree_Inn.docx","L15_1_hotel_Pazhou_Exhibition.docx"]}),
+    "L15": ({"hotel": [
+        "Nanxing_hotel.docx"
+        "L_Magic_Design_hotel.docx",
+        "hantao_hotel.docx",
+    ]}),
 }
 
-ENTRIES_TYPE = {"S":"703001","D":"703002","M":"703003"}
+ENTRIES_TYPE = {"S": "703001", "D": "703002", "M": "703003"}
 SERVICE_VISA_TYPE = {
-    "L" : ({"I","G"}),
-    "M" : ({"MT","MP","MO"})
-    }
+    "L": ({"I", "G"}),
+    "M": ({"MT", "MP", "MO"})
+}
 VISA_TYPE_VALUE = {
     "L": {
-        "I" : ({"visaPurpose": 709001, "visaType":710001}), 
-        "G" : ({"visaPurpose": 709001, "visaType":710002})
+        "I": ({"visaPurpose": 709001, "visaType": 710001}),
+        "G": ({"visaPurpose": 709001, "visaType": 710002})
     }
 }
-APPLY_VISA_VALIDITY = {"L":3}
+APPLY_VISA_VALIDITY = {"L": 3}
 VISA_TYPE_DAY_VALUE = {
-    "L" : ({"15","30"}),
-    "M" : ({"MT","MP","MO"})
-    }
-    # entries_type = "S"
-    # service_type = "I"
-SERVICE_TYPE_NORMAL_EXPRESS = {"N":"701001","E":"701002"}
+    "L": ({"15", "30"}),
+    "M": ({"MT", "MP", "MO"})
+}
+# entries_type = "S"
+# service_type = "I"
+SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
 VIETNAMESE_NAMES = (
     "Nguyen Van An",
@@ -111,7 +120,7 @@ EDUCATION_SCHOOL_NAMES = (
 )
 
 FAMILY_PARENT_RELATION_MOTHER = "727003"
-#todo: phan nay co the check them 
+# todo: phan nay co the check them
 FAMILY_FATHER_NOT_APPLY_REMARK = "DA MAT"
 FAMILY_DEFAULT_PHONE = "0931773485"
 FAMILY_STREET_DISTRICT = "LE CHAN"
@@ -120,6 +129,7 @@ TRAVEL_CITY_CODE = "CAN1"
 TRAVEL_ARRIVAL_COUNTY = "440112"
 TRAVEL_INVITE_PROVINCE = "GD"
 TRAVEL_PAY_FOR_SELF = "708001"
+# 708002 for other ( need name, phone),708003 for organization ( need name, relation, address, country)
 TRAVEL_INVITE_RELATION_HOTEL = "KHACH SAN"
 TRAVEL_EMERGENCY_RELATION = "BAN BE"
 TRAVEL_INVITE_NAMES = (
@@ -127,23 +137,23 @@ TRAVEL_INVITE_NAMES = (
 )
 
 JOB_TYPE = (
-    ("Businessperson","713003"),
-    ("Company employee","713004"),
-    ("Entertainer","713005"),
-    ("Industrial/agricultural worker","713006"),
-    ("Student","713007"),
-    ("Member of parliament","713011"),
-    ("Government official","713012"),
-    ("Military personnel","713013"),
-    ("NGO staff","713014"),
-    ("Religious personnel","713015"),
-    ("Media representative","713016"),
-    ("Crew member","713008"),
-    ("Self-employed","713009"),
-    ("Unemployed","713001"),
-    ("Retired","713010"),
-    ("Academic","713017"),
-    ("Other","713002"),
+    ("Businessperson", "713003"),
+    ("Company employee", "713004"),
+    ("Entertainer", "713005"),
+    ("Industrial/agricultural worker", "713006"),
+    ("Student", "713007"),
+    ("Member of parliament", "713011"),
+    ("Government official", "713012"),
+    ("Military personnel", "713013"),
+    ("NGO staff", "713014"),
+    ("Religious personnel", "713015"),
+    ("Media representative", "713016"),
+    ("Crew member", "713008"),
+    ("Self-employed", "713009"),
+    ("Unemployed", "713001"),
+    ("Retired", "713010"),
+    ("Academic", "713017"),
+    ("Other", "713002"),
 )
 
 PREFER_JOB_TYPE = (
@@ -465,5 +475,251 @@ VIETNAM_ADMIN = {
 
 
 ALLOWED_CHINA_VISA_TYPES = {
-    "L","M","F","Z","X1","X2","S1","S2","Q1","Q2","C","D","G","R"
+    "L", "M", "F", "Z", "X1", "X2", "S1", "S2", "Q1", "Q2", "C", "D", "G", "R"
 }
+
+L_30_HOTEL_INFO = [
+    {
+        "place_city": "BEIJING",
+        "iata_code": "PEK",
+        "name": "GreenTree Inn Beijing East Yizhuang District Second Kechuang Street Express Hotel",
+        "address": "No.17 Second Kechuang Street, Daxing District, Beijing, Daxing, Beijing, 100023, Trung Quốc",
+        "city": "BJ",
+        "arrivalCounty": "110115",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "15944417395",
+        "inviteProvince": "110115",
+        "documentName": "GreenTree_Inn_Beejin.docx"
+    },
+    {
+        "place_city": "SHANGHAI",
+        "iata_code": "SHA",
+        "arrive_id": 2,
+        "departure_id": 2,
+        "name": "Holiday Inn Express Shanghai Pujiang Lianhang Road, an IHG Hotel",
+        "address": "No. 618, Zhuyuan Road, Pujiang Zhen, Minhang District, Minhang, Shanghai, 200233, Trung Quốc",
+        "city": "SH",
+        "arrivalCounty": "310112",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "12164117988",
+        "inviteProvince": "310112",
+        "documentName": "Holiday_Inn_Express_ShangHai.docx"
+    },
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Lanvande Hotel Guangzhou Eastxiaonan subway station",
+        "address": "No.713 Sorth South Jiang Nan Road Guangzhou, China, Hai Zhu, GuangZhou, 510000, Trung Quốc",
+        "city": "CAN1",
+        "arrivalCounty": "440105",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "12083931111",
+        "inviteProvince": "440105",
+        "documentName": "Lanvande_Hotel_GzuangChau.docx"
+    },
+    {
+        "place_city": "BEIJING",
+        "iata_code": "CAN",
+        "name": "GreenTree Inn Beijing East Yizhuang District Second Kechuang Street Express Hotel",
+        "address": "16th Floor, Reception Room, Huijin International Financial Center, Trung Quốc",
+        "city": "CAN1",
+        "arrivalCounty": "440100",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "113751794679",
+        "inviteProvince": "440100",
+        "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx"
+    },
+    # "inviteProvince": "GD"
+    # CAN1 Quang CHau
+    # BJ Beijing
+
+]
+
+L_15_HOTEL_INFO = [
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Nanxing Hotel (Nanxing Hotel)",
+        "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe, Guangzhou, 510000, Trung Quốc ⼴东省⼴州市天河区荷光路158号5楼, 天河区, ⼴州",
+        "city": "CAN",
+        "arrivalCounty": "440106",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "118928746347",
+        "inviteProvince": "GD",
+        "documentName": "Nanxing_hotel.docx",
+        "citySelectedBox": "CAN1",
+    },
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "L-Magic Design hotel ( L-Magic 设计酒店)",
+        "address": "No. 31, Tianhui Building, Jiangnan East Road, Haizhu District, Guangzhou, Guangdong Province, Guangzhou, 123456, Trung Quốc 广东省广州市海珠区江南东路天汇大厦31号, 广州市",
+        "city": "CAN",
+        "arrivalCounty": "440100",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "118924163387",
+        "inviteProvince": "440100",
+        "documentName": "L_Magic_Design_hotel.docx",
+        "citySelectedBox": "CAN1",
+    },
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Hantao AI Select International Apartment",
+        "address": "Room 1018 Zhongdingminghui (Middle Tower), No 76 Feng Le Road, Huangpu District, Guangzhou, Guangdong, China, Huang Pu, Guangzhou, 510799, China",
+        "city": "CAN",
+        "arrivalCounty": "440100",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "115920187600",
+        "inviteProvince": "440100",
+        "documentName": "hantao_hotel.docx",
+        "citySelectedBox": "CAN1",
+    },
+]
+
+FLIGHT_TEMPLATE = {
+    "L15": [
+        {"name": "Ve_VN_Air.docx"},
+        {"name": "VE_MAY_BAY_L15_B_Jet.docx"}
+    ]
+}
+
+# constants/upload_file_code.py
+# All entries use list[dict] even if only 1 materialCode.
+
+UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
+    "FLIGHT_TICKET": [
+        {"categoryCode": "12025062020000706552852", "materialCode": "mfa-003_1"},
+    ],
+
+    "OTHER_MATERIALS": [
+        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_1"},
+        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_2"},
+        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_3"},
+        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_4"},
+        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_5"},
+    ],
+
+    "BANK_STATEMENT": [
+        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_1"},
+        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_2"},
+        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_3"},
+        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_4"},
+    ],
+
+    "OTHER_COUNTRY_VISAS": [
+        {"categoryCode": "2026051411041876690", "materialCode": "mfa-011_1"},
+        {"categoryCode": "2026051411041876690", "materialCode": "mfa-011_2"},
+        {"categoryCode": "2026051411041876690", "materialCode": "mfa-011_3"},
+    ],
+
+    "ITINERARY_IN_CHINA": [
+        {"categoryCode": "12025062019595907456262", "materialCode": "mfa-004_1"},
+    ],
+
+    "HOTEL_RESERVATION_WITH_PAYMENT": [
+        {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_1"},
+        {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_2"},
+        {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_3"},
+    ],
+
+    "UNDER_18": [
+        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_1"},
+        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_2"},
+        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_3"},
+        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_4"},
+        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_5"},
+    ],
+
+    "PREV_CHINESE_PASSPORT_OR_VISA_FOR_EX_CHINESE": [
+        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_1"},
+        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_2"},
+        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_3"},
+        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_4"},
+    ],
+
+    "PREV_CHINESE_VISA": [
+        {"categoryCode": "22025062114131912554297", "materialCode": "mfa-033_1"},
+        {"categoryCode": "22025062114131912554297", "materialCode": "mfa-033_2"},
+        {"categoryCode": "22025062114131912554297", "materialCode": "mfa-033_3"},
+    ],
+
+    "PASSPORT_BLANK_PAGES": [
+        {"categoryCode": "22025070216180808782737", "materialCode": "mfa-017_1"},
+        {"categoryCode": "22025070216180808782737", "materialCode": "mfa-017_2"},
+    ],
+
+    "PROOF_OF_LEGAL_STAY": [
+        {"categoryCode": "22025062114095544389381", "materialCode": "mfa-031_1"},
+        {"categoryCode": "22025062114095544389381", "materialCode": "mfa-031_2"},
+    ],
+
+    "HUKOU_OR_EMPLOYMENT_LETTER": [
+        {"categoryCode": "22025062114073725280378", "materialCode": "mfa-030_1"},
+    ],
+}
+
+
+UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
+    "L15": {
+        "COMMON": {
+            "FLIGHT_TICKET": [
+                {"categoryCode": "12025062020000706552852",
+                    "materialCode": "mfa-003_1"},
+
+            ],
+            "HOTEL_RESERVATION_WITH_PAYMENT": [
+                {"categoryCode": "12025063014542307352106",
+                    "materialCode": "mfa-002_1"},
+                {"categoryCode": "12025063014542307352106",
+                    "materialCode": "mfa-002_2"},
+                {"categoryCode": "12025063014542307352106",
+                    "materialCode": "mfa-002_3"},
+            ],
+        },
+        "NO_CHINA": {
+
+            "OTHER_MATERIALS": [
+                {"categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_1"},
+                {"categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_2"},
+                {"categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_3"},
+                {"categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_4"},
+                {"categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_5"},
+            ],
+        },
+        "CHINA_VISITED": {
+            "PREV_CHINESE_VISA": [
+                {"categoryCode": "22025062114131912554297",
+                    "materialCode": "mfa-033_1"},
+                {"categoryCode": "22025062114131912554297",
+                    "materialCode": "mfa-033_2"},
+            ],
+            "PASSPORT_BLANK_PAGES": [
+                {"categoryCode": "22025070216180808782737",
+                    "materialCode": "mfa-017_1"},
+            ],
+        },
+        "UNDER_18": {
+            "UNDER_18": [
+                {"categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_1"},
+                {"categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_2"},
+            ],
+        },
+    }
+}
+
+UNIT_OF_HOTEL = 5870276

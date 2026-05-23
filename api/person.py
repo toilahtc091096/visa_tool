@@ -5,16 +5,18 @@ import httpx
 
 from models import PersonInfoProfile
 from utils import build_get_draft_headers
+from constants import (
+    BASE_URL
+)
 
 
 async def api_save_person_info(
     client: httpx.AsyncClient,
-    base_url: str,
     token: str,
     tmp_secret: str,
     body: PersonInfoProfile,
 ) -> tuple[bool, dict[str, Any]]:
-    url = f"{base_url}/SavePersonInfo"  # đổi path cho đúng API của bạn
+    url = f"{BASE_URL}/SavePersonInfo"  # đổi path cho đúng API của bạn
     headers = build_get_draft_headers(token, tmp_secret)
     if is_dataclass(body):
         payload = asdict(body)
@@ -61,3 +63,4 @@ async def api_save_person_info(
                 "json": payload,
             },
         }
+ 

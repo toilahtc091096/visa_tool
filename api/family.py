@@ -7,9 +7,12 @@ from models import FamilyInfoProfile
 from utils import build_upload_headers
 
 
+from constants import (
+    BASE_URL
+)
+
 async def api_save_family_info(
     client: httpx.AsyncClient,
-    base_url: str,
     token: str,
     tmp_secret: str,
     body: FamilyInfoProfile,
@@ -21,7 +24,7 @@ async def api_save_family_info(
     ``status_code`` -1 and the exception message as ``error``.
     """
     try:
-        url = f"{base_url}/SaveFamilyInfo"
+        url = f"{BASE_URL}/SaveFamilyInfo"
         headers = build_upload_headers(token, tmp_secret)
         payload = asdict(body)
 
@@ -48,3 +51,4 @@ async def api_save_family_info(
             "status_code": -1,
             "error": str(e),
         }
+ 

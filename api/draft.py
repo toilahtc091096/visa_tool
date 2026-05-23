@@ -6,15 +6,17 @@ import httpx
 from models import GetDraftListBody, GetDraftListResult
 from utils import build_get_draft_headers
 
+from constants import (
+    BASE_URL
+)
 
 async def api_get_draft(
     client: httpx.AsyncClient,
-    base_url: str,
     token: str,
     tmp_secret: str,
     body: GetDraftListBody,
 ) -> Tuple[bool, Dict[str, Any]]:
-    url = f"{base_url}/GetDraftList"
+    url = f"{BASE_URL}/GetDraftList"
     headers = build_get_draft_headers(token, tmp_secret)
     payload = asdict(body)
 
@@ -48,3 +50,4 @@ async def api_get_draft(
                 "json": payload,
             },
         }
+ 
