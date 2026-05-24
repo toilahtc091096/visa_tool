@@ -8,6 +8,7 @@ from .previous_travel import api_save_previous_travel_info
 from .travel import api_save_travel_info
 from .work import api_save_work_info
 from .upload_file_materia import api_upload_file
+from .other_info import api_save_other_info
 
 __all__ = [
     "api_get_draft",
@@ -20,4 +21,5 @@ __all__ = [
     "api_save_travel_info",
     "api_save_work_info",
     "api_upload_file",
+    "api_save_other_info",
 ]

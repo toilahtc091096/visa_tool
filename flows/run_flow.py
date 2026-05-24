@@ -15,6 +15,7 @@ from api import (
     api_save_travel_info,
     api_save_work_info,
     api_upload_file,
+    api_save_other_info,
 )
 from constants import (
     DOCUMENT_DATA,
@@ -39,6 +40,7 @@ from flows.flow_payloads import (
     full_name_from_ocr,
     vietnamese_name_from_ocr,
     build_upload_material_body,
+    build_other_info,
 )
 from models import GetDraftListBody, GetDraftListResult, has_name, passport_ocr_result_from_dict, upload_material
 from utils import date_util, log_event, notify
@@ -331,6 +333,26 @@ async def run_flow(
                 f"err={meta8.get('error')}"
             )
             return
+
+        # Step 8: Save Other Info
+        step = "save_other_info"
+        body_other_info = build_other_info(
+            first_applyid,
+        )
+        ok8, meta8 = await api_save_other_info(
+            client,
+            token,
+            tmp_secret,
+            body_other_info,
+        )
+        log_event({"step": step, "ok": ok8, **meta8})
+        if not ok8:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta8.get('status_code')} "
+                f"err={meta8.get('error')}"
+            )
+            return
         hotel = L_15_HOTEL_INFO[hotel_type].get("documentName")
         if guest_name ==[]: 
             guest_name = [vietnamese_name]
@@ -425,9 +447,6 @@ async def api_upload_file_common(
             "err={meta9.get('error')}"
             )
         return
- 
-
-
 
 def generate_phone_pair(prefix: str):
     """

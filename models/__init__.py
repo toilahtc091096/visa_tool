@@ -26,6 +26,7 @@ from .previous_travel import PreviousTravelInfoProfile
 from .travel import StayInfo, TravelInfoProfile
 from .work import WorkExperience, WorkInfoProfile
 from .upload_material import UploadMaterialBody
+from .other_information import OtherInformationProfile, MilitaryServiceInfo, OtherInfoItem
 
 __all__ = [
     "ApplyInfoProfile",
@@ -54,4 +55,7 @@ __all__ = [
     "WorkInfoProfile",
     "UploadMaterialBody",
     "has_name",
+    "OtherInformationProfile", 
+    "MilitaryServiceInfo", 
+    "OtherInfoItem"
 ]

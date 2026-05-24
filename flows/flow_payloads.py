@@ -1,7 +1,8 @@
 import random
+import os
 from datetime import date
 from typing import Any, Dict
-from utils import date_util, log_event, notify
+from utils import date_util, log_event, notify, mobile_utils
 from constants import (
     APPLY_VISA_VALIDITY,
     DEFAULT_EMBASSY,
@@ -28,6 +29,8 @@ from constants import (
     TRAVEL_PAY_FOR_SELF,
     ALLOWED_CHINA_VISA_TYPES,
     L_15_HOTEL_INFO,
+    MALE_VIETNAMESE_NAMES,
+    FEMALE_VIETNAMESE_NAMES,
 )
 from models import (
     ApplyInfoProfile,
@@ -40,9 +43,10 @@ from models import (
     TravelInfoProfile,
     WorkInfoProfile,
     UploadMaterialBody,
+    OtherInformationProfile,
+    OtherInfoItem,
 )
-from utils import date_util, mobile_utils
-import os
+
 
 def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
     ocr = ocr_data.Response.Data
@@ -56,6 +60,7 @@ def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
         )
     )
 
+
 def vietnamese_name_from_ocr(ocr_data: PassportOCRResult) -> str:
     ocr = ocr_data.Response.Data
     return " ".join(
@@ -67,6 +72,7 @@ def vietnamese_name_from_ocr(ocr_data: PassportOCRResult) -> str:
             ],
         )
     )
+
 
 def build_person_profile(
     applyid: str,
@@ -341,7 +347,7 @@ def build_family_info_profile(
     main_account_birth_date: date,
     family_nationality: str,
 ) -> FamilyInfoProfile:
-    parent_family, parent_first = _emergency_contact_names()
+    parent_female_family, parent_female_first = _emergency_female_contact_names()
     phone = mobile_utils.generate_supervisor_tel(FAMILY_DEFAULT_PHONE)
 
     family_json: dict[str, Any] = {
@@ -350,7 +356,7 @@ def build_family_info_profile(
         "embassy": DEFAULT_EMBASSY,
         "tempSaveFlag": False,
         "userId": "",
-        "haveSpouseFlag": "false",
+        "haveSpouseFlag": True,
         "country": "",
         "province": "",
         "city": "",
@@ -376,7 +382,7 @@ def build_family_info_profile(
 
         ],
         # "spouses": [_empty_spouse_entry()], todo: neu co vo chong => can lam them
-        "spouses":[],
+        "spouses": [],
         "children": [_empty_child_entry()],
         "relatives": [],
         "relativeRelativeFlag": False,
@@ -385,8 +391,8 @@ def build_family_info_profile(
             {
                 "sort": "1",
                 "relation": FAMILY_PARENT_RELATION_MOTHER,
-                "familyName": parent_family,
-                "firstName": parent_first,
+                "familyName": parent_female_family,
+                "firstName": parent_female_first,
                 "nationalityCountry": family_nationality.upper(),
                 "profession": "",
                 "otherSpecify": "",
@@ -406,6 +412,21 @@ def _emergency_contact_names() -> tuple[str, str]:
     if len(parts) == 1:
         return parts[0], ""
     return parts[0], " ".join(parts[1:])
+
+
+def _emergency_male_contact_names() -> tuple[str, str]:
+    parts = random.choice(MALE_VIETNAMESE_NAMES).upper().split()
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
+def _emergency_female_contact_names() -> tuple[str, str]:
+    parts = random.choice(FEMALE_VIETNAMESE_NAMES).upper().split()
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
 
 def getTravelCommonInfo(
     *,
@@ -469,6 +490,7 @@ def getTravelCommonInfo(
         "lang": DEFAULT_LANG,
     }
 
+
 def getL15TravelInfo(
     *,
     applyid: str,
@@ -525,7 +547,7 @@ def getL15TravelInfo(
             "leaveCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
             "leaveCounty": "",
             "leaveDate": leave_str,
-            "leaveVehicleType": leaveVehicleType, 
+            "leaveVehicleType": leaveVehicleType,
             "arrivalDate": arrival_str,
         }
     )
@@ -549,19 +571,19 @@ def build_travel_info_profile(
     if visa_type == 'L15':
         print(arrivalVehicleType)
         travel_json: dict[str, Any] = getL15TravelInfo(
-            applyid=applyid, 
-            emergency_family=emergency_family, 
+            applyid=applyid,
+            emergency_family=emergency_family,
             emergency_first=emergency_first,
             hotel_type=hotel_type,
-            arrival_str=arrival_str, 
+            arrival_str=arrival_str,
             leave_str=leave_str,
             arrivalVehicleType=arrivalVehicleType,
             leaveVehicleType=leaveVehicleType
-            )
-    elif visa_type == 'L30': 
-        travel_json={}
-    else: 
-        travel_json={}
+        )
+    elif visa_type == 'L30':
+        travel_json = {}
+    else:
+        travel_json = {}
     return TravelInfoProfile.from_dict(travel_json)
 
 
@@ -579,7 +601,7 @@ def _previous_travel_base(applyid: str) -> dict[str, Any]:
 
 
 def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
-    """First-time / no prior China travel: all flags false, lists empty."""
+    """First-time / no prior China travel: all flags False, lists empty."""
     return {
         **_previous_travel_base(applyid),
         "arrivedChinaFlag": False,
@@ -607,17 +629,19 @@ def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
         "firstApplyChinaVisaFlag": False,
     }
 
-# param 
+# param
+
+
 def build_previous_china_travel_body(
     applyid: str,
     haveChinaVisaFlag: bool = False,
-    old_visaType: str ="",
-    old_visaNumber: str ="",
-    old_issueDate: str ="",
-    old_issuePlace: str ="",
-    haveOtherVisaFlag: str ="",
-    old_otherVisas: str ="",
-    old_otherCountries: str ="",
+    old_visaType: str = "",
+    old_visaNumber: str = "",
+    old_issueDate: str = "",
+    old_issuePlace: str = "",
+    haveOtherVisaFlag: str = "",
+    old_otherVisas: str = "",
+    old_otherCountries: str = "",
 ) -> dict[str, Any]:
     """Applicant has been to China before: fill prior-visit and visa fields."""
 
@@ -635,7 +659,8 @@ def build_previous_china_travel_body(
 
     if errs:
         print("INVALID:")
-        log_event({"step": "Step 8: SavePreviousTravelInfo", "status":  f"Validate step previous travel error '{errs}'"})
+        log_event({"step": "Step 8: SavePreviousTravelInfo",
+                  "status":  f"Validate step previous travel error '{errs}'"})
         for e in errs:
             print("-", e)
     return {
@@ -665,7 +690,7 @@ def build_previous_china_travel_body(
                 "travelAddr": "",
             }
         ],
-        "visaNumber": old_visaNumber, 
+        "visaNumber": old_visaNumber,
         "visaType": old_visaType,
         "firstApplyChinaVisaFlag": not haveChinaVisaFlag,
         "otherVisas": old_otherVisas,
@@ -681,13 +706,13 @@ def build_previous_travel_info_profile(
     applyid: str,
     arrivedChinaFlag: bool = False,
     haveChinaVisaFlag: bool = False,
-    old_visaType: str ="",
-    old_visaNumber: str ="",
-    old_issueDate: str ="",
-    old_issuePlace: str ="",
-    haveOtherVisaFlag: str ="",
-    old_otherVisas: str ="",
-    old_otherCountries: str ="",
+    old_visaType: str = "",
+    old_visaNumber: str = "",
+    old_issueDate: str = "",
+    old_issuePlace: str = "",
+    haveOtherVisaFlag: str = "",
+    old_otherVisas: str = "",
+    old_otherCountries: str = "",
 ) -> PreviousTravelInfoProfile:
     if not arrivedChinaFlag:
         previous_travel_json = _build_no_previous_china_travel_body(applyid)
@@ -702,9 +727,8 @@ def build_previous_travel_info_profile(
             haveOtherVisaFlag,
             old_otherVisas,
             old_otherCountries,
-            )
+        )
     return PreviousTravelInfoProfile.from_dict(previous_travel_json)
-
 
 
 def _is_blank(x: Any) -> bool:
@@ -716,12 +740,14 @@ def _is_blank(x: Any) -> bool:
         return len([i for i in x if not _is_blank(i)]) == 0
     return False
 
+
 def _clean_list(xs):
     if xs is None:
         return []
     if isinstance(xs, str):
         xs = [xs]
     return [str(x).strip().upper() for x in xs if not _is_blank(x)]
+
 
 def validate_payload(p: dict) -> list[str]:
     """
@@ -744,28 +770,34 @@ def validate_payload(p: dict) -> list[str]:
     # Rule 1: haveChinaVisaFlag => visaType required + valid
     if haveChinaVisaFlag:
         if _is_blank(visaType):
-            errors.append("haveChinaVisaFlag=True nhưng thiếu visaType (required).")
+            errors.append(
+                "haveChinaVisaFlag=True nhưng thiếu visaType (required).")
         else:
             vt = str(visaType).strip().upper()
             if vt not in ALLOWED_CHINA_VISA_TYPES:
-                errors.append(f"visaType='{visaType}' không hợp lệ (không nằm trong whitelist).")
+                errors.append(
+                    f"visaType='{visaType}' không hợp lệ (không nằm trong whitelist).")
 
     # Rule 2: haveOtherVisaFlag => otherVisas required
     if haveOtherVisaFlag:
         if len(otherVisas) == 0:
-            errors.append("haveOtherVisaFlag=True nhưng otherVisas rỗng (cần ít nhất 1 mã quốc gia).")
+            errors.append(
+                "haveOtherVisaFlag=True nhưng otherVisas rỗng (cần ít nhất 1 mã quốc gia).")
 
     # Rule 3: otherCountries optional but must not contain blank entries
     # (ví dụ ["THA",""] => lỗi)
     raw_other_countries = p.get("otherCountries")
     if isinstance(raw_other_countries, (list, tuple)) and any(_is_blank(x) for x in raw_other_countries):
-        errors.append("otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
+        errors.append(
+            "otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
 
     # (Optional sanity) nếu arrivedChinaFlag=False mà haveChinaVisaFlag=True thì cảnh báo
     if (not arrivedChinaFlag) and haveChinaVisaFlag:
-        errors.append("arrivedChinaFlag=False nhưng haveChinaVisaFlag=True (kiểm tra lại logic).")
+        errors.append(
+            "arrivedChinaFlag=False nhưng haveChinaVisaFlag=True (kiểm tra lại logic).")
 
     return errors
+
 
 def list_to_csv_country_codes(xs, *, upper=True):
     if xs is None:
@@ -784,6 +816,7 @@ def list_to_csv_country_codes(xs, *, upper=True):
 
     return ",".join(cleaned)
 
+
 def build_upload_material_body(file_path: str, categoryCode: str, materialCode: str, businessId: str) -> UploadMaterialBody:
     return UploadMaterialBody(
         filePath=str(file_path),
@@ -792,3 +825,44 @@ def build_upload_material_body(file_path: str, categoryCode: str, materialCode: 
         materialCode=materialCode,
         businessId=businessId,
     )
+
+def build_other_info(
+    applyid: str,
+) -> OtherInformationProfile:
+
+    other_info_items = [
+        OtherInfoItem(
+            sort=str(i),
+            itemValue=False,
+            itemNote="",
+        )
+        for i in range(1, 12)
+    ]
+
+    profile = OtherInformationProfile(
+        applyCountry="",
+
+        finishedStep=9,
+
+        embassy=DEFAULT_EMBASSY,
+
+        tempSaveFlag=False,
+
+        userId="",
+
+        militaryServiceInfos=[],
+
+        otherInfoItems=other_info_items,
+
+        itemValue3="",
+
+        applyid=applyid,
+
+        notApplyItems=[],
+
+        otherProblemFlag=False,
+
+        lang="en_US",
+    )
+
+    return profile
