@@ -27,7 +27,7 @@ from .travel import StayInfo, TravelInfoProfile
 from .work import WorkExperience, WorkInfoProfile
 from .upload_material import UploadMaterialBody
 from .other_information import OtherInformationProfile, MilitaryServiceInfo, OtherInfoItem
-
+from .signature import ContactInfoProfile
 __all__ = [
     "ApplyInfoProfile",
     "ApplyReason",
@@ -57,5 +57,6 @@ __all__ = [
     "has_name",
     "OtherInformationProfile", 
     "MilitaryServiceInfo", 
-    "OtherInfoItem"
+    "OtherInfoItem",
+    "ContactInfoProfile",
 ]

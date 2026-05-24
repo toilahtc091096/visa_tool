@@ -862,6 +862,41 @@ def build_other_info(
 
         otherProblemFlag=False,
 
+        lang=DEFAULT_LANG,
+    )
+
+    return profile
+
+
+def build_signature_body(
+    applyid: str,
+) -> ContactInfoProfile:
+
+    profile = ContactInfoProfile(
+        applyCountry="",
+
+        finishedStep=9,
+
+        embassy=DEFAULT_EMBASSY,
+
+        tempSaveFlag=False,
+
+        userId="",
+
+        agentFlag=False,
+
+        agentName="CONG TY TNHH DU LICH WM TRAVEL VIETNAM",
+
+        W2="752001",
+
+        relationship="CONG TY DU LICH",
+
+        agentAddr="KDT DUONG NOI, HA DONG, HA NOI",
+
+        agentTel="0936188491",
+
+        applyid=applyid,
+
         lang="en_US",
     )
 

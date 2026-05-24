@@ -1,0 +1,70 @@
+from dataclasses import asdict
+from typing import Any
+
+import httpx
+
+from models import ContactInfoProfile
+from utils import build_upload_headers
+
+from constants import (
+    BASE_URL
+)
+
+
+async def api_save_signature_info(
+    client: httpx.AsyncClient,
+    token: str,
+    tmp_secret: str,
+    body: ContactInfoProfile,
+) -> tuple[bool, dict[str, Any]]:
+    """
+    POST ``ContactInfoProfile`` to
+    ``{BASE_URL}/SaveSignatureInfo``.
+
+    Returns:
+        (True, response_data)
+        (False, error_data)
+    """
+
+    try:
+        url = f"{BASE_URL}/SaveSignatureInfo"
+
+        headers = build_upload_headers(
+            token=token,
+            tmp_secret=tmp_secret,
+        )
+
+        payload = asdict(body)
+
+        resp = await client.post(
+            url,
+            headers=headers,
+            json=payload,
+        )
+
+        data = (
+            resp.json()
+            if resp.headers.get(
+                "content-type", ""
+            ).startswith("application/json")
+            else {"raw": resp.text}
+        )
+
+        ok = resp.status_code in (200, 201)
+
+        if not ok:
+            return False, {
+                "status_code": resp.status_code,
+                "error": "failedSaveSignatureInfo",
+            }
+
+        return True, {
+            "status_code": resp.status_code,
+            "response": data,
+        }
+
+    except Exception as e:
+        return False, {
+            "status_code": -1,
+            "error": str(e),
+        }
