@@ -45,6 +45,7 @@ from models import (
     UploadMaterialBody,
     OtherInformationProfile,
     OtherInfoItem,
+    ContactInfoProfile,
 )
 
 
@@ -829,7 +830,6 @@ def build_upload_material_body(file_path: str, categoryCode: str, materialCode: 
 def build_other_info(
     applyid: str,
 ) -> OtherInformationProfile:
-
     other_info_items = [
         OtherInfoItem(
             sort=str(i),

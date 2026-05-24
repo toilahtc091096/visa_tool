@@ -111,13 +111,11 @@ async def render_docx_template_output_pdf(payload: dict[str, Any]) -> str:
             "name_list" : names,
 
             "arrive_day_name" : first.strftime("%A").upper(),
-            "arrive_flight_number_from_05" : payload.get("arrive_flight_number_from_05"),
-            "arrive_flight_number_from_83" : payload.get("arrive_flight_number_from_83"),
+            "arrive_flight_number" : payload.get("arrive_flight_number"),
             "arrived_iata_code" : str(payload.get("arrived_iata_code")).upper(),
 
             "departure_day_name" : end.strftime("%A").upper(),
-            "departure_flight_number_from_05" : payload.get("departure_flight_number_from_05"),
-            "departure_flight_number_from_83" : payload.get("departure_flight_number_from_83"),
+            "departure_flight_number" : payload.get("departure_flight_number"),
             "departure_iata_code" : str(payload.get("departure_iata_code")),
             "departure_city": str(payload.get("departure_city")),
         }, jinja_env=jinja_env)

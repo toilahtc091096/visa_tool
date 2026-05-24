@@ -16,6 +16,7 @@ from api import (
     api_save_work_info,
     api_upload_file,
     api_save_other_info,
+    api_save_signature_info,
 )
 from constants import (
     DOCUMENT_DATA,
@@ -41,6 +42,7 @@ from flows.flow_payloads import (
     vietnamese_name_from_ocr,
     build_upload_material_body,
     build_other_info,
+    build_signature_body,
 )
 from models import GetDraftListBody, GetDraftListResult, has_name, passport_ocr_result_from_dict, upload_material
 from utils import date_util, log_event, notify
@@ -277,8 +279,11 @@ async def run_flow(
 
         m, f = date_util.monday_and_friday_skip_4_weeks(register_date)
 
-        arrive_05, depature_05 = generate_phone_pair("05");
-        arrive_83, depature_83 = generate_phone_pair("83");
+        
+        if (flight_ticket %2 == 0):
+            arrive_flight_number, departure_flight_number = generate_phone_pair("05");
+        else: 
+            arrive_flight_number, departure_flight_number = generate_phone_pair("83");
         # Step 7: SaveTravelInfo
         step = "save_travel_info"
         body_save_travel_info = build_travel_info_profile(
@@ -287,8 +292,8 @@ async def run_flow(
             m,
             f,
             hotel_type,
-            arrive_05, 
-            depature_05
+            arrive_flight_number, 
+            departure_flight_number
         )
         ok7, meta7 = await api_save_travel_info(
             client,
@@ -353,6 +358,25 @@ async def run_flow(
                 f"err={meta8.get('error')}"
             )
             return
+        # Step 9: Save Signature
+        step = "save_signature"
+        body_signature_info = build_signature_body(
+            first_applyid,
+        )
+        ok8, meta8 = await api_save_signature_info(
+            client,
+            token,
+            tmp_secret,
+            body_signature_info,
+        )
+        log_event({"step": step, "ok": ok8, **meta8})
+        if not ok8:
+            await notify(
+                f"Flow FAILED at step={step}. "
+                f"status={meta8.get('status_code')} "
+                f"err={meta8.get('error')}"
+            )
+            return
         hotel = L_15_HOTEL_INFO[hotel_type].get("documentName")
         if guest_name ==[]: 
             guest_name = [vietnamese_name]
@@ -381,14 +405,12 @@ async def run_flow(
                 file_name = FLIGHT_TEMPLATE[visa_type][flight_ticket]["name"]
             else:
                 log_exception( KeyError(f"Key {visa_type} not found"), {"event": "not have ticket key ", "visa_type": visa_type})
-
+            print(arrive_flight_number, departure_flight_number)
             payload = {
                 #fake
                 "file_name": file_name,
-                "arrive_flight_number_from_05": arrive_05,    
-                "arrive_flight_number_from_83": arrive_83,    
-                "departure_flight_number_from_05": depature_05, 
-                "departure_flight_number_from_83": depature_83, 
+                "arrive_flight_number": arrive_flight_number,    
+                "departure_flight_number": departure_flight_number, 
                 #fake
 
                 "arrvied_city": L_15_HOTEL_INFO[hotel_type].get("place_city"),                   

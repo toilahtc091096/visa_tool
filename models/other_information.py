@@ -52,9 +52,9 @@ class OtherInformationProfile:
 
     otherInfoItems: list[OtherInfoItem] = field(default_factory=list)
 
-    itemValue3: str
+    itemValue3: str = ""
 
-    applyid: str
+    applyid: str = ""
 
     notApplyItems: list[Any] = field(default_factory=list)
 
