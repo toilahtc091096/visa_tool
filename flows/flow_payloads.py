@@ -1,3 +1,4 @@
+
 import random
 import os
 from datetime import date
@@ -27,10 +28,13 @@ from constants import (
     TRAVEL_INVITE_PROVINCE,
     TRAVEL_INVITE_RELATION_HOTEL,
     TRAVEL_PAY_FOR_SELF,
+    TRAVEL_PAY_FOR_OTHER,
     ALLOWED_CHINA_VISA_TYPES,
     L_15_HOTEL_INFO,
     MALE_VIETNAMESE_NAMES,
     FEMALE_VIETNAMESE_NAMES,
+    FAMILY_PARENT_RELATION_FATHER,
+    GIVEN_MALE_VIETNAMESE_NAMES,
 )
 from models import (
     ApplyInfoProfile,
@@ -306,8 +310,8 @@ def _empty_spouse_entry() -> dict[str, Any]:
         "birthCity": "",
         "birthCountry": "",
         "birthCounty": "",
-        "familyName": "",
-        "firstName": "",
+        "familyName": "czxcxz",
+        "firstName": "czxcxz zxcxzc",
         "nationalityCountry": "",
         "profession": "",
         "birthday": "",
@@ -319,16 +323,21 @@ def _empty_spouse_entry() -> dict[str, Any]:
     }
 
 
-def _empty_child_entry() -> dict[str, Any]:
+def _child_entry(
+    childFamilyName: str ="", 
+    childGivenName: str ="", 
+    childNationality: str ="",
+    childBirthDate: str =""
+    ) -> dict[str, Any]:
     return {
         "tt1": False,
         "tt2": "",
-        "familyName": "",
-        "firstName": "",
-        "nationalityCountry": "",
+        "familyName": childFamilyName.upper(), 
+        "firstName": childGivenName.upper(), 
+        "nationalityCountry": childNationality.upper(),
         "profession": "",
         "address": "",
-        "birthday": "",
+        "birthday": childBirthDate.upper(),
         "dd2": "",
         "dd3": "",
         "country": "",
@@ -347,49 +356,114 @@ def build_family_info_profile(
     province_city_code: str,
     main_account_birth_date: date,
     family_nationality: str,
+    haveSpouseFlag: bool,
+    haveChildFlag: bool,
+    childFamilyName: str ="", 
+    childGivenName: str ="", 
+    childNationality: str ="",
+    childBirthDate: str ="",
+    fatherFamilyName: str ="",
+    fatherGivenName: str ="",
+    fatherNationality: str ="",
+    fatherBirthDate: str ="",
+
+    motherFamilyName: str ="",
+    motherGivenName: str ="",
+    motherNationality: str ="",
+    motherBirthDate: str ="",
+    passportFamilyName: str = "",
 ) -> FamilyInfoProfile:
+    
+    not_apply_items = []
+    spouses_info = []
+    parents_info = []
     parent_female_family, parent_female_first = _emergency_female_contact_names()
     phone = mobile_utils.generate_supervisor_tel(FAMILY_DEFAULT_PHONE)
+    # keep spouse notApply item only if haveSpouseFlag is not True
+    if haveSpouseFlag is not True:
+        not_apply_items.append({
+            "notApplyCode": "spouse",
+            "remark": "",
+        })
+        spouses_info=[]
+    else:
+        spouses_info = [_empty_spouse_entry()]   
+    
+    if haveChildFlag is not True:
+        not_apply_items.append({
+        "notApplyCode": "children",
+        "remark": "",
+        })
+        child_info = []
+    else:
+        if childNationality == "":
+            childNationality = family_nationality
+        child_info = [
+            _child_entry(
+                childFamilyName,
+                childGivenName,
+                childNationality,
+                childBirthDate)
+            ]
 
-    family_json: dict[str, Any] = {
-        "applyCountry": "",
-        "finishedStep": 9,
-        "embassy": DEFAULT_EMBASSY,
-        "tempSaveFlag": False,
-        "userId": "",
-        "haveSpouseFlag": True,
-        "country": "",
-        "province": "",
-        "city": "",
-        "county": "",
-        "zipCode": "",
-        "mobilePhoneNumber": phone,
-        "phoneNumber": phone,
-        "email": "",
-        "streetAddr": f"{FAMILY_STREET_DISTRICT}, {province_city_code}",
-        "notApplyItems": [
-            {
+    if fatherFamilyName == "" and fatherGivenName == "":
+        if random.randint(0, 9) < 3:
+            not_apply_items.append({
                 "notApplyCode": "father",
                 "remark": FAMILY_FATHER_NOT_APPLY_REMARK,
-            },
-            {
-                "notApplyCode": "children",
-                "remark": "",
-            },
-            {
-                "notApplyCode": "spouse",
-                "remark": "",
-            },
-
-        ],
-        # "spouses": [_empty_spouse_entry()], todo: neu co vo chong => can lam them
-        "spouses": [],
-        "children": [_empty_child_entry()],
-        "relatives": [],
-        "relativeRelativeFlag": False,
-        "applyid": applyid,
-        "parents": [
-            {
+            },)
+        else: 
+            parents_info.append({
+                "sort": "1",
+                "relation": FAMILY_PARENT_RELATION_FATHER,
+                "familyName": passportFamilyName,
+                "firstName": GIVEN_MALE_VIETNAMESE_NAMES,
+                "nationalityCountry": family_nationality.upper(),
+                "profession": "",
+                "otherSpecify": "",
+                "birthday": _parent_birthday(main_account_birth_date),
+                "inChinaFlag": False,
+                "statusInChina": "",
+                "statusInChinaDetail": "",
+                "tt1": False,
+                "tt2": "",
+                "profession": "",
+                "address": "",
+                "dd2": "",
+                "dd3": "",
+                "country": "",
+                "province": "",
+                "city": "",
+                "county": "",
+            }) # add cha random
+    else: 
+        # dien thong tin cha   
+        parents_info.append({
+                "sort": "1",
+                "relation": FAMILY_PARENT_RELATION_FATHER,
+                "familyName": fatherFamilyName,
+                "firstName": fatherGivenName,
+                "nationalityCountry": family_nationality.upper(),
+                "profession": "",
+                "otherSpecify": "",
+                "birthday": fatherBirthDate,
+                "inChinaFlag": False,
+                "statusInChina": "",
+                "statusInChinaDetail": "",
+                "tt1": False,
+                "tt2": "",
+                "profession": "",
+                "address": "",
+                "dd2": "",
+                "dd3": "",
+                "country": "",
+                "province": "",
+                "city": "",
+                "county": "",
+            })     
+        
+    if motherFamilyName == "" and motherGivenName == "":
+        parents_info.append({
                 "sort": "1",
                 "relation": FAMILY_PARENT_RELATION_MOTHER,
                 "familyName": parent_female_family,
@@ -401,8 +475,46 @@ def build_family_info_profile(
                 "inChinaFlag": False,
                 "statusInChina": "",
                 "statusInChinaDetail": "",
-            }
-        ],
+            })
+        
+    else: 
+        parents_info.append({
+                "sort": "1",
+                "relation": FAMILY_PARENT_RELATION_MOTHER,
+                "familyName": motherFamilyName,
+                "firstName": motherGivenName,
+                "nationalityCountry": family_nationality.upper(),
+                "profession": "",
+                "otherSpecify": "",
+                "birthday": motherBirthDate,
+                "inChinaFlag": False,
+                "statusInChina": "",
+                "statusInChinaDetail": "",
+            })
+            
+    family_json: dict[str, Any] = {
+        "applyCountry": "",
+        "finishedStep": 9,
+        "embassy": DEFAULT_EMBASSY,
+        "tempSaveFlag": False,
+        "userId": "",
+        "country": "",
+        "province": "",
+        "city": "",
+        "county": "",
+        "zipCode": "",
+        "mobilePhoneNumber": phone,
+        "phoneNumber": phone,
+        "email": "",
+        "streetAddr": f"{FAMILY_STREET_DISTRICT}, {province_city_code}",
+        "notApplyItems": not_apply_items,
+        "haveSpouseFlag": "" if haveSpouseFlag is not True else haveSpouseFlag,
+        "spouses": spouses_info,
+        "children": child_info,
+        "relatives": [],
+        "relativeRelativeFlag": False,
+        "applyid": applyid,
+        "parents": parents_info,
         "lang": DEFAULT_LANG,
     }
     return FamilyInfoProfile.from_dict(family_json)
@@ -472,6 +584,8 @@ def getTravelCommonInfo(
         "emergencyZipCode": "",
 
         # pay (default for self)
+        # if under 10 ages, choose OTHER, and add parent information 
+        # if 
         "payForTravel": TRAVEL_PAY_FOR_SELF,
         # for other
         "payForTravelName": "",
@@ -559,6 +673,13 @@ def getL15TravelInfo(
 def build_travel_info_profile(
     visa_type: str,
     applyid: str,
+    dob: str,
+    fatherFamilyName: str,
+    fatherGivenName: str,
+    motherFamilyName: str,
+    motherGivenName: str,
+    payName: str,
+    payMobile: str,
     arrival_date: date,
     leave_date: date,
     hotel_type: int,
@@ -568,9 +689,8 @@ def build_travel_info_profile(
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
     emergency_family, emergency_first = _emergency_contact_names()
-
+        
     if visa_type == 'L15':
-        print(arrivalVehicleType)
         travel_json: dict[str, Any] = getL15TravelInfo(
             applyid=applyid,
             emergency_family=emergency_family,
@@ -585,6 +705,14 @@ def build_travel_info_profile(
         travel_json = {}
     else:
         travel_json = {}
+        
+    if payMobile != "" and payName != "":
+        travel_json.update({
+            "payForTravel": TRAVEL_PAY_FOR_OTHER,
+            "payForTravelName": payName,
+            "payForTravelPhoneNumber": payMobile,
+            "payForTravelEmail": "",
+        }) 
     return TravelInfoProfile.from_dict(travel_json)
 
 
@@ -629,9 +757,6 @@ def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
         "visaType": "",
         "firstApplyChinaVisaFlag": False,
     }
-
-# param
-
 
 def build_previous_china_travel_body(
     applyid: str,

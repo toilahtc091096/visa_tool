@@ -38,11 +38,34 @@ def main() -> None:
     #name in ticket
     guest_name = []
     ticket_names = []
+    #family
+    haveSpouseFlag = True
+
+    haveChildFlag = False
+    childFamilyName = ""
+    childGivenName = ""
+    childNationality = ""
+    childBirthDate = ""
+    # parent
+    # father
+    fatherFamilyName = ""
+    fatherGivenName = ""
+    fatherNationality = ""
+    fatherBirthDate = ""
+
+    # mother
+    motherFamilyName = ""
+    motherGivenName = ""
+    motherNationality = ""
+    motherBirthDate = ""
+    payMobile=""
+    payName=""
 
     asyncio.run(
         run_flow(
             token,
             tmp_secret,
+            #common
             visa_type,
             register_date,
             guest_name,
@@ -53,6 +76,26 @@ def main() -> None:
             entries_type,
             type_of_visa_sub_value,
             service_type,
+            #common
+            #family
+            haveSpouseFlag,
+            haveChildFlag,
+            childFamilyName, 
+            childGivenName, 
+            childNationality,
+            childBirthDate,
+            #father
+            fatherFamilyName,
+            fatherGivenName,
+            fatherNationality,
+            fatherBirthDate,
+            #mother
+            motherFamilyName,
+            motherGivenName,
+            motherNationality,
+            motherBirthDate,
+            #family
+            #travel info
             arrivedChinaFlag,
             haveChinaVisaFlag,
             old_visaType,
@@ -61,7 +104,10 @@ def main() -> None:
             old_issuePlace,
             haveOtherVisaFlag,
             old_otherVisas,
-            old_otherCountries
+            old_otherCountries,
+            payMobile,
+            payName,
+            #travel info
         )
     )
 

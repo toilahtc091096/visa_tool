@@ -80,36 +80,46 @@ GBR là mã quốc gia ISO 3166-1 alpha-3 của Vương quốc Anh (United Kingd
 20/05 todo:
 L15: chỉ cần 1 hotel
 L30: cần ghép 3 hotel
-	Cần hỏi lịch trình xem có thể đảo không hay cố định
-Từ lịch trình 	=> Chọn nơi đến ( 1 trong 3 tỉnh ở 3 hotel) 	=> Tạo file vé máy bay 
-																=> Tạo file hotel theo vé máy bay
+  Cần hỏi lịch trình xem có thể đảo không hay cố định
+Từ lịch trình   => Chọn nơi đến ( 1 trong 3 tỉnh ở 3 hotel)   => Tạo file vé máy bay 
+                                => Tạo file hotel theo vé máy bay
 Mapping Tỉnh và các hotel và thông tin để đẩy vào param 2 method tạo hotel và vé máy bay 
 Đối với L30 cần ghép file
 Cần tạo logic tạo ngày cho L15 và L30  ( L30 => Cần tạo 3 lịch)
 ================================
 Viết 1 hàm để gửi all file theo visa_type 
-L15 chia làm 2 loại 
-	Chung:
-		+ 2 blank 
-		+ Hotel 
-		+ ticket flight 
-		+ bank statement
-		+ other: Gồm 1 file từ trung tâm visa
-	Đã từng sang:
-		+ valid or previous visas for other countries ( ảnh hộ chiếu đã chụp)
-	Chưa từng sang: (Hộ chiếu trắng)
-		+ file Residential: Cư trú 
-	Trường hợp dưới 18 tuổi thì cần thêm 2 file là 
-		+ "Applicants under 18 years old"
-		+ other: thêm 1 giấy ủy quyền 
+resources/
+  L15/
+    chung/
+      2_trang_ho_chieu_trang/
+      khach_san/
+      ve_may_bay/
+      sao_ke_ngan_hang/
+      xac_nhan_tu_trung_tam_visa/
+
+    lich_su_xuat_canh/
+      da_tung_di_nuoc_ngoai/
+        visa_cac_nuoc_khac_anh_ho_chieu/
+      chua_tung_di_ho_chieu_trang/
+        giay_cu_tru/
+
+    duoi_18_tuoi/
+      giay_to_cho_nguoi_duoi_18/
+      giay_uy_quyen/
+
+    xuat_file/
+      upload_len_hiraku.zip
 
 Liệt kê các file cần gửi cho L15 để test
 Test 
 =================================
 API Family cần cho nhập thêm từ input 
-	+ Father ( 2 names, quoc tich, ngay sinh)
-	+ Mother ( 2 names, quoc tich, ngay sinh)
-	+ Children ( 2 names, quoc tich, ngay sinh)
+  + Father ( 2 names, quoc tich, ngay sinh)
+  + Mother ( 2 names, quoc tich, ngay sinh)
+  + Children ( 2 names, quoc tich, ngay sinh)
 Neu thong tin nay có => Không random 
-Đối với 16 tuổi thì thông tin này có 
+Đối với xxx tuổi thì thông tin này có  => Can hoi lai + work va education
+Phuong thuc thanh toan = Other, cha me 
 Cần lọc thêm các thông tin khác ( Đưa ra input, và nếu để trống thì random )
+cờ spouses 
+Thông tin cha mẹ trong trường hợp khác

@@ -185,6 +185,7 @@ EDUCATION_SCHOOL_NAMES = (
 )
 
 FAMILY_PARENT_RELATION_MOTHER = "727003"
+FAMILY_PARENT_RELATION_FATHER = "727002"
 # todo: phan nay co the check them
 FAMILY_FATHER_NOT_APPLY_REMARK = "DA MAT"
 FAMILY_DEFAULT_PHONE = "0931773485"
@@ -194,6 +195,7 @@ TRAVEL_CITY_CODE = "CAN1"
 TRAVEL_ARRIVAL_COUNTY = "440112"
 TRAVEL_INVITE_PROVINCE = "GD"
 TRAVEL_PAY_FOR_SELF = "708001"
+TRAVEL_PAY_FOR_OTHER = "708002"
 # 708002 for other ( need name, phone),708003 for organization ( need name, relation, address, country)
 TRAVEL_INVITE_RELATION_HOTEL = "KHACH SAN"
 TRAVEL_EMERGENCY_RELATION = "BAN BE"
@@ -651,8 +653,8 @@ L_15_HOTEL_INFO = [
 
 FLIGHT_TEMPLATE = {
     "L15": [
-        {"name": "Ve_VN_Air.docx"},
-        {"name": "VE_MAY_BAY_L15_B_Jet.docx"}
+        {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
+        {"name": "VE_MAY_BAY_L15_B_Jet.docx", "prefix_flight_text": "CZ", "prefix_number": "83"},
     ]
 }
 
@@ -788,3 +790,63 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
 }
 
 UNIT_OF_HOTEL = 5870276
+
+GIVEN_MALE_VIETNAMESE_NAMES = (
+    "Anh Duy",
+    "Bao Long",
+    "Chi Bao",
+    "Cong Minh",
+    "Duc Anh",
+    "Duc Huy",
+    "Duc Manh",
+    "Duc Thang",
+    "Gia Huy",
+    "Hai Dang",
+    "Hoang Anh",
+    "Hoang Long",
+    "Huu Phuc",
+    "Huu Thang",
+    "Khac Minh",
+    "Le Minh",
+    "Manh Cuong",
+    "Minh Anh",
+    "Minh Duc",
+    "Minh Hieu",
+    "Minh Hoang",
+    "Minh Khang",
+    "Minh Quan",
+    "Ngoc Anh",
+    "Ngoc Minh",
+    "Phuc An",
+    "Phuc Thinh",
+    "Quang Huy",
+    "Quang Minh",
+    "Quang Vinh",
+    "Quoc Anh",
+    "Quoc Huy",
+    "Quoc Khanh",
+    "Quoc Thang",
+    "Quoc Trung",
+    "Tan Phat",
+    "Thanh Dat",
+    "Thanh Long",
+    "Thien An",
+    "Thien Phuc",
+    "Thien Tu",
+    "Tuan Anh",
+    "Tuan Kiet",
+    "Tuan Minh",
+    "Tuan Vu",
+    "Van Duc",
+    "Viet Anh",
+    "Viet Duc",
+    "Viet Hoang",
+    "Viet Hung",
+    "Viet Khang",
+    "Viet Long",
+    "Viet Phuc",
+    "Viet Quan",
+    "Viet Thang",
+    "Viet Tuan",
+)
+ 

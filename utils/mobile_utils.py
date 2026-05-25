@@ -27,3 +27,32 @@ def generate_job_tel(chosen: str = DEFAULT_JOB_TEL) -> str:
 
 def generate_supervisor_tel(chosen: str = DEFAULT_SUPERVISOR_TEL) -> str:
     return random_phone_like(chosen)
+
+
+
+def generate_phone_pair(prefix: str):
+    """
+    Input:
+        "05"
+
+    Output:
+        ("0512", "0518")
+    """
+
+    if len(prefix) != 2 or not prefix.isdigit():
+        raise ValueError("prefix must be 2 digits string")
+
+    # số đầu
+    first_suffix = random.randint(10, 89)
+
+    # số thứ 2 cách vài đơn vị
+    second_suffix = first_suffix + random.randint(1, 9)
+
+    # tránh vượt 99
+    if second_suffix > 99:
+        second_suffix = 99
+
+    first_number = f"{prefix}{first_suffix:02d}"
+    second_number = f"{prefix}{second_suffix:02d}"
+
+    return first_number, second_number
