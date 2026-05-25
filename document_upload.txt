@@ -133,5 +133,6 @@ tach rieng truong hop duoi 18 tuoi
 
 Thu test 1 case full
   Xac dinh cac buoc can phai tu lam 
-  Xac dinh cac param phai dien  
-    Theo cac truong hop ( Mo ta cac truong hop)
+  xac dinh ra ro cac truong hop ( noi chuyen )
+    Xac dinh cac param phai dien  trong cac truong hop ( noi chuyen )
+    Xac dinh file can phai co cho moi loai 
