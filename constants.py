@@ -620,7 +620,7 @@ UPLOAD_CONFIG = {
             "limit": 1,
         },
         "HUKOU_OR_EMPLOYMENT_LETTER": {
-            "folder": L_15_AUTHORIZATION_LETTER_OUTPUT_PATH,
+            "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
             "limit": 1,
         },
         "FLIGHT_TICKET": {
@@ -630,6 +630,28 @@ UPLOAD_CONFIG = {
         "HOTEL_RESERVATION_WITH_PAYMENT": {
             "folder": L_15_HOTEL_OUTPUT_PATH,
             "limit": 10,
+        },
+        # HISTORY
+        "OTHER_MATERIALS": {
+            "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+            "limit": 5,
+        },
+        "PREV_CHINESE_VISA": {
+            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+            "limit": 1,
+        },
+        # "NEVER_TRAVEL_PHOTOS": {
+        #     "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+        #     "limit": 1,
+        # },
+        # UNDER 18
+        "UNDER_18_DOCUMENTS": {
+            "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+            "limit": 1,
+        },
+        "UNDER_18_AUTHEN": {
+            "folder": L_15_AUTHORIZATION_LETTER_OUTPUT_PATH,
+            "limit": 1,
         },
     }
 }
@@ -691,46 +713,44 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "materialCode": "mfa-030_1",
                 },
             ],
-        },
-        "HISTORY": {
-            "NO_CHINA": {
-                "OTHER_MATERIALS": [
-                    {
-                        "categoryCode": "12025062114211484037531",
-                        "materialCode": "mfa-044_1",
-                    },
-                    {
-                        "categoryCode": "12025062114211484037531",
-                        "materialCode": "mfa-044_2",
-                    },
-                    {
-                        "categoryCode": "12025062114211484037531",
-                        "materialCode": "mfa-044_3",
-                    },
-                    {
-                        "categoryCode": "12025062114211484037531",
-                        "materialCode": "mfa-044_4",
-                    },
-                    {
-                        "categoryCode": "12025062114211484037531",
-                        "materialCode": "mfa-044_5",
-                    },
-                ],
-            },
-            "CHINA_VISITED": {
-                "PREV_CHINESE_VISA": [
-                    {
-                        "categoryCode": "22025062114131912554297",
-                        "materialCode": "mfa-033_1",
-                    },
-                    {
-                        "categoryCode": "22025062114131912554297",
-                        "materialCode": "mfa-033_2",
-                    },
-                ]
-            },
-        },
-        "UNDER_18": {
+            # },
+            # "HISTORY": {
+            # "NO_CHINA": {
+            "OTHER_MATERIALS": [
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_1",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_2",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_3",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_4",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_5",
+                },
+            ],
+            # },
+            # "CHINA_VISITED": {
+            "PREV_CHINESE_VISA": [
+                {
+                    "categoryCode": "22025062114131912554297",
+                    "materialCode": "mfa-033_1",
+                },
+                {
+                    "categoryCode": "22025062114131912554297",
+                    "materialCode": "mfa-033_2",
+                },
+            ],
+            # },
             "UNDER_18": [
                 {
                     "categoryCode": "22025062114181968780924",

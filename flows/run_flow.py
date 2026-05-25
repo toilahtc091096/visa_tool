@@ -489,13 +489,9 @@ async def run_flow(
 
         cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[visa_type]     
         
-        
         for group_key, group_cfg in cfg_file_by_visa_type.items():
-
             for doc_type, files in group_cfg.items():
-
                     config = UPLOAD_CONFIG[visa_type].get(doc_type)
-
                     if not config:
                         continue
 
@@ -508,7 +504,7 @@ async def run_flow(
 
                         if not upload_file:
                             continue
-
+                        print(upload_file)
                         await api_upload_file_common(
                             client,
                             token,
