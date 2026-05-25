@@ -631,7 +631,6 @@ UPLOAD_CONFIG = {
             "folder": L_15_HOTEL_OUTPUT_PATH,
             "limit": 10,
         },
-        # HISTORY
         "OTHER_MATERIALS": {
             "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
             "limit": 5,
@@ -640,11 +639,6 @@ UPLOAD_CONFIG = {
             "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
             "limit": 1,
         },
-        # "NEVER_TRAVEL_PHOTOS": {
-        #     "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
-        #     "limit": 1,
-        # },
-        # UNDER 18
         "UNDER_18_DOCUMENTS": {
             "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
             "limit": 1,
