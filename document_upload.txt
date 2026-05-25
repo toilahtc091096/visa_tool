@@ -123,3 +123,15 @@ Phuong thuc thanh toan = Other, cha me
 Cần lọc thêm các thông tin khác ( Đưa ra input, và nếu để trống thì random )
 cờ spouses 
 Thông tin cha mẹ trong trường hợp khác
+==================================
+Lam file ve may bay, xem lai cac truong hop may bay va hotel 
+
+tach rieng truong hop duoi 18 tuoi 
+  file hotel 
+  cac param di kem 
+  test 1 truogn hop
+
+Thu test 1 case full
+  Xac dinh cac buoc can phai tu lam 
+  Xac dinh cac param phai dien  
+    Theo cac truong hop ( Mo ta cac truong hop)

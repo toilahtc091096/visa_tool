@@ -617,7 +617,7 @@ UPLOAD_CONFIG = {
         },
         "BANK_STATEMENT": {
             "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
-            "limit": 1,
+            "limit": 2,
         },
         "HUKOU_OR_EMPLOYMENT_LETTER": {
             "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
