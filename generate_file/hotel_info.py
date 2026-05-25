@@ -14,7 +14,7 @@ from constants import (
 
 
 
-async def render_docx_template_output_pdf(payload: dict[str, Any]) -> str:
+async def render_docx_template_output_pdf(payload: dict[str, Any], output_path: str = "") -> str:
     """
     Render a DOCX template with docxtpl asynchronously.
 
@@ -33,7 +33,7 @@ async def render_docx_template_output_pdf(payload: dict[str, Any]) -> str:
 
     base = Path(__file__).resolve().parent / ".." / "resources"   # folder relative to this .py
     src = (base / file_name).resolve()
-    out_dir = (base / "output").resolve()      # ./output next to this .py
+    out_dir = (base / output_path).resolve()      # ./output next to this .py
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if not src.exists():
@@ -125,6 +125,6 @@ async def render_docx_template_output_pdf(payload: dict[str, Any]) -> str:
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
     convert(str(out), str(pdf_out))
-
+    out.unlink()   # same as os.remove(out)
     return str(pdf_out)   # return PDF, not DOCX
  

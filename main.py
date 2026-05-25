@@ -7,9 +7,9 @@ __all__ = ["run_flow", "main"]
 
 def main() -> None:
     # Can phai dien
-    token = "MTlmOWJiMmFhZjhlNTU5MjFjZmMwOGM3ZmQ1M2Y2M2U0OGM2ZDM5YTY4YzJlZTI3YTFlODdlZGE1ZGE2Y2UwMw=="
+    token = "NGY5YzY2ZjZmMWNhNDEyZjdkNmM2NDU3NWMxOGExYzQ1ZTgzYmViNGY0MDZhNDU1MmIyNjBhMWQwMjRjMTA5Yw=="
     tmp_secret = (
-        "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_20050095_1779526952150_2223c6e0ca292ee01c9a9de9ed1ad8fd"
+        "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_62351951_1779699846513_41f2f90fed8567941a94063e485c15fd"
     )
     province_city_code = "HAI PHONG"
     id_card_number = "031192000564"

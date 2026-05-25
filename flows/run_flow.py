@@ -29,6 +29,19 @@ from constants import (
     FLIGHT_TEMPLATE,
     UPLOAD_FILE_CODE,
     UPLOAD_FILE_CODE_BY_VISA_TYPE,
+    L_15_HOTEL_OUTPUT_PATH,
+    L_15_TICKET_OUTPUT_PATH,
+    L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+    L_15_HOTEL_OUTPUT_PATH,
+    L_15_TICKET_OUTPUT_PATH,
+    L_15_BANK_STATEMENT_OUTPUT_PATH,
+    L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+    L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+    L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+    L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+    L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+    L_15_AUTHORIZATION_LETTER_OUTPUT_PATH,
+    UPLOAD_CONFIG,
 )
 from flows.flow_payloads import (
     build_apply_info_profile,
@@ -45,9 +58,14 @@ from flows.flow_payloads import (
     build_signature_body,
 )
 from models import GetDraftListBody, GetDraftListResult, has_name, passport_ocr_result_from_dict, upload_material
-from utils import date_util, log_event, notify
-from utils.logging import log_exception
-from utils.mobile_utils import generate_phone_pair
+from utils import (
+    date_util,
+    generate_phone_pair,
+    log_event,
+    log_exception,
+    notify,
+    get_files
+)
 
 async def run_flow(
     token: str,
@@ -266,91 +284,91 @@ async def run_flow(
         #     return
 
         # Step 6: SaveFamilyInfo
-        step = "save_family_info"
-        dob = date_util.parse_date(ocr_data.Response.Data.dateOfBirth)
+        # step = "save_family_info"
+        # dob = date_util.parse_date(ocr_data.Response.Data.dateOfBirth)
 
-        if dob is None:
-            await notify(
-                f"Flow FAILED at step={step}. "
-                "status={('data is not valid')} "
-                "err={('step 6 cannot parse date')}"
-            )
-            return
-        body_save_family_info = build_family_info_profile(
-            first_applyid,
-            province_city_code,
-            datetime.strptime(ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
-            ocr_data.Response.Data.nationality,
-            haveSpouseFlag,
-            haveChildFlag,
-            childFamilyName,
-            childGivenName,
-            childNationality,
-            childBirthDate,
-            fatherFamilyName,
-            fatherGivenName,
-            fatherNationality,
-            fatherBirthDate,
-            motherFamilyName,
-            motherGivenName,
-            motherNationality,
-            motherBirthDate,
-            ocr_data.Response.Data.passportFamilyName
-        )
-        ok6, meta6 = await api_save_family_info(
-            client,
-            token,
-            tmp_secret,
-            body_save_family_info,
-        )
-        log_event({"step": step, "ok": ok6, **meta6})
-        if not ok6:
-            await notify(
-                f"Flow FAILED at step={step}. "
-                f"status={meta6.get('status_code')} "
-                f"err={meta6.get('error')}"
-            )
-            return
+        # if dob is None:
+        #     await notify(
+        #         f"Flow FAILED at step={step}. "
+        #         "status={('data is not valid')} "
+        #         "err={('step 6 cannot parse date')}"
+        #     )
+        #     return
+        # body_save_family_info = build_family_info_profile(
+        #     first_applyid,
+        #     province_city_code,
+        #     datetime.strptime(ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
+        #     ocr_data.Response.Data.nationality,
+        #     haveSpouseFlag,
+        #     haveChildFlag,
+        #     childFamilyName,
+        #     childGivenName,
+        #     childNationality,
+        #     childBirthDate,
+        #     fatherFamilyName,
+        #     fatherGivenName,
+        #     fatherNationality,
+        #     fatherBirthDate,
+        #     motherFamilyName,
+        #     motherGivenName,
+        #     motherNationality,
+        #     motherBirthDate,
+        #     ocr_data.Response.Data.passportFamilyName
+        # )
+        # ok6, meta6 = await api_save_family_info(
+        #     client,
+        #     token,
+        #     tmp_secret,
+        #     body_save_family_info,
+        # )
+        # log_event({"step": step, "ok": ok6, **meta6})
+        # if not ok6:
+        #     await notify(
+        #         f"Flow FAILED at step={step}. "
+        #         f"status={meta6.get('status_code')} "
+        #         f"err={meta6.get('error')}"
+        #     )
+        #     return
 
         m, f = date_util.monday_and_friday_skip_4_weeks(register_date)
 
         prefix_flight_text = FLIGHT_TEMPLATE[visa_type][flight_ticket]["prefix_flight_text"]
         arrive_flight_number, departure_flight_number = generate_phone_pair(FLIGHT_TEMPLATE[visa_type][flight_ticket]["prefix_number"]);
         # Step 7: SaveTravelInfo
-        step = "save_travel_info"
-        arrive_flight_number_full_info = prefix_flight_text +" "+ arrive_flight_number
-        departure_flight_number_full_info = prefix_flight_text +" "+ departure_flight_number           
-        body_save_travel_info = build_travel_info_profile(
-            visa_type,
-            first_applyid,
-            dob,
-            fatherFamilyName,
-            fatherGivenName,
-            motherFamilyName,
-            motherGivenName,
-            payName,
-            payMobile,
-            m,
-            f,
-            hotel_type,
-            arrive_flight_number_full_info, 
-            departure_flight_number_full_info,
-        )
-        ok7, meta7 = await api_save_travel_info(
-            client,
-            token,
-            tmp_secret,
-            body_save_travel_info,
-        )
-        print(body_save_travel_info)
-        log_event({"step": step, "ok": ok7, **meta7})
-        if not ok7:
-            await notify(
-                f"Flow FAILED at step={step}. "
-                f"status={meta7.get('status_code')} "
-                f"err={meta7.get('error')}"
-            )
-            return
+        # step = "save_travel_info"
+        # arrive_flight_number_full_info = prefix_flight_text +" "+ arrive_flight_number
+        # departure_flight_number_full_info = prefix_flight_text +" "+ departure_flight_number           
+        # body_save_travel_info = build_travel_info_profile(
+        #     visa_type,
+        #     first_applyid,
+        #     dob,
+        #     fatherFamilyName,
+        #     fatherGivenName,
+        #     motherFamilyName,
+        #     motherGivenName,
+        #     payName,
+        #     payMobile,
+        #     m,
+        #     f,
+        #     hotel_type,
+        #     arrive_flight_number_full_info, 
+        #     departure_flight_number_full_info,
+        # )
+        # ok7, meta7 = await api_save_travel_info(
+        #     client,
+        #     token,
+        #     tmp_secret,
+        #     body_save_travel_info,
+        # )
+        # print(body_save_travel_info)
+        # log_event({"step": step, "ok": ok7, **meta7})
+        # if not ok7:
+        #     await notify(
+        #         f"Flow FAILED at step={step}. "
+        #         f"status={meta7.get('status_code')} "
+        #         f"err={meta7.get('error')}"
+        #     )
+        #     return
 
         # # Step 8: SavePreviousTravelInfo
         # step = "save_previous_travel_info"
@@ -430,7 +448,7 @@ async def run_flow(
         #         "end": f,
         #         "type": 'hotel'
         #     }
-        #     pdf_hotel = await hotel_info.render_docx_template_output_pdf(payload)
+        #     pdf_hotel = await hotel_info.render_docx_template_output_pdf(payload, L_15_HOTEL_OUTPUT_PATH)
         #     log_event({"step": "genenrate hotel file", "ok": "ok"})
         # except Exception as e:
         #     log_exception(e, {"event": "render_failed", "file": hotel})
@@ -466,19 +484,41 @@ async def run_flow(
         #     log_event({"step": "genenrate flight ticket file", "ok": "ok"})
         # except Exception as e:
         #     log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-        # pdf_ticket = await hotel_info.render_docx_template_output_pdf(payload)
-        # step = "Step 9 Upload File"
+        # pdf_ticket = await hotel_info.render_docx_template_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
+        step = "Step 9 Upload File"
 
-        # cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[visa_type]     
-        # for group_key, group_cfg in cfg_file_by_visa_type.items():
-        #     for doc_type, files in group_cfg.items():             
-        #         for f in files:   
-        #             if doc_type == 'FLIGHT_TICKET':
-        #                 file_name = pdf_ticket
-        #                 await api_upload_file_common(client, token, tmp_secret, file_name, f["categoryCode"], f["materialCode"], first_applyid)
-        #             if doc_type == "HOTEL_RESERVATION_WITH_PAYMENT":
-        #                 for f, file_name in zip(files, pdf_hotels):
-        #                     await api_upload_file_common(client, token, tmp_secret, file_name, f["categoryCode"], f["materialCode"], first_applyid)
+        cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[visa_type]     
+        
+        
+        for group_key, group_cfg in cfg_file_by_visa_type.items():
+
+            for doc_type, files in group_cfg.items():
+
+                    config = UPLOAD_CONFIG[visa_type].get(doc_type)
+
+                    if not config:
+                        continue
+
+                    upload_files = get_files(
+                        config["folder"],
+                        config["limit"],
+                    )
+
+                    for f_doc, upload_file in zip(files, upload_files):
+
+                        if not upload_file:
+                            continue
+
+                        await api_upload_file_common(
+                            client,
+                            token,
+                            tmp_secret,
+                            upload_file,
+                            f_doc["categoryCode"],
+                            f_doc["materialCode"],
+                            first_applyid,
+                        )   
+                            
 
 
 async def api_upload_file_common(
