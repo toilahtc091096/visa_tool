@@ -85,4 +85,5 @@ def build_upload_headers(
         "token": token,
         "uid": DEFAULT_UID,
         "user-agent": user_agent,
+        "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOTc0ODNhMGMtNzU1YS00MjMzLWE2MmEtMmU1ODM0MzEzMzAyIn0.AXLhc5AC0pUxdu-IgUT1Mes3cBfcqExmnFqeAfOyphaFnJeJMlxbKIvb8cbAqac5rlqW-Ok35uIcWl60fxAI8w"
     }

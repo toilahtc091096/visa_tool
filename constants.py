@@ -468,6 +468,9 @@ L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "L15\\chung\\xac_nhan_tu_trung_tam_v
 L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
     "L15\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
 )
+L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
+    "L15\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
+)
 
 L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
     "L15\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
@@ -632,7 +635,7 @@ UPLOAD_CONFIG = {
             },
         ],
         "PREV_CHINESE_VISA": {
-            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+            "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
             "limit": 1,
         },
         "UNDER_18_DOCUMENTS": {
@@ -643,6 +646,18 @@ UPLOAD_CONFIG = {
             "folder": L_15_AUTHORIZATION_LETTER_OUTPUT_PATH,
             "limit": 1,
         },
+        "OTHER_COUNTRY_VISAS": [
+            {
+                "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+                "limit": 1,
+            }
+        ],
+        "PREV_CHINESE_VISA": [
+            {
+                "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+                "limit": 1,
+            }
+        ]
     }
 }
 
@@ -745,6 +760,20 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "materialCode": "mfa-039_2",
                 },
             ],
+            "OTHER_COUNTRY_VISAS": [
+                {
+                    "categoryCode": "12025062114213765489140",
+                    "materialCode": "mfa-011_1",
+                },
+                {
+                    "categoryCode": "12025062114213765489140",
+                    "materialCode": "mfa-011_2",
+                },
+                {
+                    "categoryCode": "12025062114213765489140",
+                    "materialCode": "mfa-011_3",
+                },
+            ],
         },
     }
 }
@@ -809,3 +838,12 @@ GIVEN_MALE_VIETNAMESE_NAMES = (
     "Viet Thang",
     "Viet Tuan",
 )
+
+SEX_MAP = {
+    "1": "M",
+    "2": "F",
+}
+
+NATIONALITY_MAP = {
+    "VNM": "Viet Nam",
+}

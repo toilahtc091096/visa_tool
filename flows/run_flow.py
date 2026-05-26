@@ -18,7 +18,7 @@ from api import (
     api_list_online_applications,
     api_get_work_info,
     api_get_education_info,
-    api_get_family_info
+    api_get_family_info,
 )
 from constants import (
     HOTEL_DATA,
@@ -38,6 +38,8 @@ from constants import (
     OLD_APPLY_STATUS_APPROVED,
     CV_DATA,
     L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+    SEX_MAP,
+    NATIONALITY_MAP,
 )
 from flows.flow_payloads import (
     build_apply_info_profile,
@@ -75,6 +77,8 @@ from utils import (
     notify,
     get_files,
     api_upload_file_common,
+    format_date,
+    get_today_parts,
 )
 
 
@@ -323,7 +327,7 @@ async def run_flow(
 
         # step = "save_education_info"
         # # todo:  if under 10 ages, ignore
-        # educationExperience=[]
+        # educationExperience = []
         # if old_item_id != "":
         #     ok, res = await api_get_education_info(
         #         client=client,
@@ -343,7 +347,7 @@ async def run_flow(
         #         if ct08_province_city_code != ""
         #         else province_city_code
         #     ),
-        #     educationExperience
+        #     educationExperience,
         # )
         # ok5, meta5 = await api_save_education_info(
         #     client,
@@ -361,15 +365,15 @@ async def run_flow(
         #     return
 
         # step = "save_family_info"
-        # old_notApplyItems=[]
-        # old_streetAddr=""
-        # old_phoneNumber=""
-        # old_mobilePhoneNumber=""
-        # old_parents=[]
-        # old_children=[]
-        # old_relatives=[]
-        # old_haveSpouseFlag=False
-        # old_spouses=[]
+        # old_notApplyItems = []
+        # old_streetAddr = ""
+        # old_phoneNumber = ""
+        # old_mobilePhoneNumber = ""
+        # old_parents = []
+        # old_children = []
+        # old_relatives = []
+        # old_haveSpouseFlag = False
+        # old_spouses = []
         # if old_item_id != "":
         #     ok, res = await api_get_family_info(
         #         client=client,
@@ -608,15 +612,34 @@ async def run_flow(
         # await hotel_info.render_docx_template_output_pdf(
         #     payload, L_15_TICKET_OUTPUT_PATH
         # )
-        
+
         # CV FILE
         if ticket_names == []:
             ticket_names = [vietnamese_name]
         try:
+
+            today_yyyy, today_mm, today_dd = get_today_parts()
             file_name = CV_DATA
+
             payload = {
                 "file_name": file_name,
                 "names": ticket_names,
+                "visa_type_first": first_letter_visa_type,
+                "visa_type_number": last_letter_visa_type,
+                "submit_year_yyyy": today_yyyy,
+                "submit_month_mm": today_mm,
+                "submit_day_dd": today_dd,
+                "sex": SEX_MAP.get(ocr_data.Response.Data.sex, ""),
+                "nationality": NATIONALITY_MAP.get(
+                    ocr_data.Response.Data.nationality, ""
+                ),
+                "passportNo": ocr_data.Response.Data.passportNumber,
+                "birth_date_dd_mm_yyyy": format_date(
+                    ocr_data.Response.Data.dateOfBirth
+                ),
+                "expired_day_dd_mm_yyyy": format_date(
+                    ocr_data.Response.Data.dateOfExpiration
+                ),
             }
             log_event({"step": "genenrate flight ticket file", "ok": "ok"})
         except Exception as e:
@@ -626,7 +649,7 @@ async def run_flow(
         await cv_info.render_docx_template_output_pdf(
             payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
         )
-        #END
+        # END
         step = "Step 9 Upload File"
 
         cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[visa_type]
@@ -659,7 +682,7 @@ async def run_flow(
                     if not upload_file:
                         continue
 
-                    print(upload_file)
+                    print(upload_file, f_doc["categoryCode"], f_doc["materialCode"])
 
                     await api_upload_file_common(
                         client,

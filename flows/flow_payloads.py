@@ -253,6 +253,8 @@ def build_work_info_profile(
         for experience in experiences:
             experience.endDate = work_end_date
             we_src = experiences if experiences != [] else work_experience
+    else:
+        we_src = work_experience
 
     work_info_json: dict[str, Any] = {
         "applyCountry": "",
@@ -308,6 +310,8 @@ def build_education_info_profile(
             if educationExperience != []
             else [_education_experience_entry(province_city_code)]
         )
+    else:
+        we_src = [_education_experience_entry(province_city_code)]
     education_json: dict[str, Any] = {
         "applyCountry": "",
         "finishedStep": 9,
@@ -502,7 +506,6 @@ def build_family_info_profile(
                 "county": "",
             }
         )
-
     if motherFamilyName == "" and motherGivenName == "":
         parents_info.append(
             {
@@ -540,22 +543,34 @@ def build_family_info_profile(
     parents_src = []
     if old_parents != []:
         parents_src = old_parents if old_parents != [] else parents_info
-        
+    else:
+        parents_src = parents_info
+
     relative_src = []
     if old_relatives != []:
         relative_src = old_relatives if old_relatives != [] else []
-        
+    else:
+        relative_src = []
+
     notApplyItems_src = []
     if old_notApplyItems != []:
-        notApplyItems_src = old_notApplyItems if old_notApplyItems != [] else not_apply_items
+        notApplyItems_src = (
+            old_notApplyItems if old_notApplyItems != [] else not_apply_items
+        )
+    else:
+        notApplyItems_src = not_apply_items
 
     children_src = []
     if old_children != []:
         children_src = old_children if old_children != [] else child_info
+    else:
+        children_src = child_info
 
     spouses_src = []
     if old_spouses != []:
-        spouses_src = old_spouses if old_spouses != [] else spouses_info        
+        spouses_src = old_spouses if old_spouses != [] else spouses_info
+    else:
+        spouses_src = spouses_info
 
     family_json: dict[str, Any] = {
         "applyCountry": "",
@@ -713,7 +728,7 @@ def getL15TravelInfo(
                     "sort": 1,
                     "stayCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
                     "stayCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
-                    "travelAddr": L_15_HOTEL_INFO[hotel_type].get("address"), 
+                    "travelAddr": L_15_HOTEL_INFO[hotel_type].get("address"),
                     "arrivalDate": arrival_str,
                     "leaveDate": leave_str,
                 }

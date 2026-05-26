@@ -10,7 +10,7 @@ materialCode
 mfa-007_1 - mfa-007_4
 valid or previous visas for other countries
 categoryCode
-2026051411041876690
+12025062114213765489140 #2026051411041876690
 materialCode
 mfa-011_1 - mfa-011_3
 Itinerary in China
@@ -267,5 +267,5 @@ Bước 6: check các api tiếp theo sau khi nhập và file xong hết
 
 Lỗi: 
   API 1 đang thiếu 2 ảnh 
-  Ve tao lai file may bay va file nha phong
+  Ve tao lai file may bay va file nha phong ok 
  

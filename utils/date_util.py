@@ -40,3 +40,16 @@ def parse_date(date_str: str):
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except (ValueError, TypeError):
         return None
+
+def format_date(date_text):
+    return datetime.strptime(date_text, "%Y-%m-%d").strftime("%d.%m.%Y")
+
+
+def get_today_parts():
+    today = datetime.today()
+
+    today_yyyy = today.strftime("%Y")
+    today_mm = today.strftime("%m")
+    today_dd = today.strftime("%d")
+
+    return today_yyyy, today_mm, today_dd
