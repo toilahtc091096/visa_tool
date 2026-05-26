@@ -6,7 +6,7 @@ from .headers import (
 )
 from .logging import log_event, notify, log_exception
 from .money_format import vnd, cny, vnd_decimal
-from .upload_file import get_files
+from .upload_file import get_files, api_upload_file_common
 from .mobile_utils import generate_phone_pair
 
 __all__ = [
@@ -22,4 +22,5 @@ __all__ = [
     "get_files"
     "generate_phone_pair"
     "log_exception"
+    "api_upload_file_common"
 ]

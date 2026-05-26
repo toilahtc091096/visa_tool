@@ -1,9 +1,7 @@
-import random
-
 from datetime import date, datetime
 import httpx
 
-from generate_file import hotel_info
+from generate_file import hotel_info, cv_info
 from api import (
     api_get_draft,
     api_passport_ocr,
@@ -17,9 +15,13 @@ from api import (
     api_upload_file,
     api_save_other_info,
     api_save_signature_info,
+    api_list_online_applications,
+    api_get_work_info,
+    api_get_education_info,
+    api_get_family_info
 )
 from constants import (
-    DOCUMENT_DATA,
+    HOTEL_DATA,
     ENTRIES_TYPE,
     MY_VISA_TYPE,
     SERVICE_VISA_TYPE,
@@ -27,21 +29,15 @@ from constants import (
     VISA_TYPE_VALUE,
     L_15_HOTEL_INFO,
     FLIGHT_TEMPLATE,
-    UPLOAD_FILE_CODE,
     UPLOAD_FILE_CODE_BY_VISA_TYPE,
     L_15_HOTEL_OUTPUT_PATH,
     L_15_TICKET_OUTPUT_PATH,
-    L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
     L_15_HOTEL_OUTPUT_PATH,
     L_15_TICKET_OUTPUT_PATH,
-    L_15_BANK_STATEMENT_OUTPUT_PATH,
-    L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-    L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-    L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
-    L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-    L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
-    L_15_AUTHORIZATION_LETTER_OUTPUT_PATH,
     UPLOAD_CONFIG,
+    OLD_APPLY_STATUS_APPROVED,
+    CV_DATA,
+    L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
 )
 from flows.flow_payloads import (
     build_apply_info_profile,
@@ -57,15 +53,30 @@ from flows.flow_payloads import (
     build_other_info,
     build_signature_body,
 )
-from models import GetDraftListBody, GetDraftListResult, has_name, passport_ocr_result_from_dict, upload_material
+from models import (
+    GetDraftListBody,
+    GetDraftListResult,
+    has_name,
+    passport_ocr_result_from_dict,
+    upload_material,
+    OnlineApplicationListResponse,
+    GetWorkInfoResponse,
+    GetWorkInfoResponseWrapper,
+    GetWorkInfoData,
+    WorkExperienceItem,
+    GetEducationInfoResponse,
+    GetFamilyInfoResponse,
+)
 from utils import (
     date_util,
     generate_phone_pair,
     log_event,
     log_exception,
     notify,
-    get_files
+    get_files,
+    api_upload_file_common,
 )
+
 
 async def run_flow(
     token: str,
@@ -73,39 +84,39 @@ async def run_flow(
     visa_type: str,
     register_date: date,
     guest_name: list[str],
-    ticket_names:list[str],
+    ticket_names: list[str],
     file_path: str,
     province_city_code: str,
     id_card_number: str,
     entries_type: str,
     type_of_visa_sub_value: str,
     service_type: str,
-
-    haveSpouseFlag: bool=False,
-    haveChildFlag: bool = False, 
-    childFamilyName: str ="", 
-    childGivenName: str ="", 
-    childNationality: str ="",
-    childBirthDate: str ="",
-    fatherFamilyName: str ="",
-    fatherGivenName: str ="",
-    fatherNationality: str ="",
-    fatherBirthDate: str ="",
-    motherFamilyName: str ="",
-    motherGivenName: str ="",
-    motherNationality: str ="",
-    motherBirthDate: str ="",
+    haveSpouseFlag: bool = False,
+    ct08_province_city_code: str = "",
+    haveChildFlag: bool = False,
+    childFamilyName: str = "",
+    childGivenName: str = "",
+    childNationality: str = "",
+    childBirthDate: str = "",
+    fatherFamilyName: str = "",
+    fatherGivenName: str = "",
+    fatherNationality: str = "",
+    fatherBirthDate: str = "",
+    motherFamilyName: str = "",
+    motherGivenName: str = "",
+    motherNationality: str = "",
+    motherBirthDate: str = "",
     arrivedChinaFlag: bool = False,
     haveChinaVisaFlag: bool = False,
-    old_visaType: str ="",
-    old_visaNumber: str ="",
-    old_issueDate: str ="",
-    old_issuePlace: str ="",
-    haveOtherVisaFlag: bool=False,
-    old_otherVisas: list[str]=[],
-    old_otherCountries: list[str]=[],
-    payMobile: str ="",
-    payName: str ="",
+    old_visaType: str = "",
+    old_visaNumber: str = "",
+    old_issueDate: str = "",
+    old_issuePlace: str = "",
+    haveOtherVisaFlag: bool = False,
+    old_otherVisas: list[str] = [],
+    old_otherCountries: list[str] = [],
+    payMobile: str = "",
+    payName: str = "",
 ) -> None:
     first_letter_visa_type = visa_type[0]
     last_letter_visa_type = visa_type[1:]
@@ -117,10 +128,14 @@ async def run_flow(
         log_event({"step": "Visa Type", "status": visa_type + " not support"})
         return
     if entries_type not in ENTRIES_TYPE:
-        log_event({"step": "ENTRIES_TYPE check", "status": entries_type + " not support"})
+        log_event(
+            {"step": "ENTRIES_TYPE check", "status": entries_type + " not support"}
+        )
         return
     if type_of_visa_sub_value not in VISA_TYPE_VALUE.get(first_letter_visa_type, {}):
-        log_event({"step": "service type", "status": type_of_visa_sub_value + " not support"})
+        log_event(
+            {"step": "service type", "status": type_of_visa_sub_value + " not support"}
+        )
         return
 
     async with httpx.AsyncClient() as client:
@@ -165,11 +180,12 @@ async def run_flow(
                 {
                     "step": step,
                     "ok": False,
-                    "error": "Missing user_name in response",
+                    "error": "Missing user_name in draft, create new",
                     "response": resp1,
                 }
             )
-            await notify(f"Flow FAILED at step={step}: missing user_id in response")
+            # todo: api create new
+
             return
 
         obj = next(
@@ -182,8 +198,8 @@ async def run_flow(
         )
         first_applyid = obj.applyid if obj else ""
         print("applyid=", first_applyid)
-        hotel_type = int(first_applyid[-1]) % len(DOCUMENT_DATA[visa_type]["hotel"]);
-        flight_ticket = int(first_applyid[-1]) % 2;
+        hotel_type = int(first_applyid[-1]) % len(HOTEL_DATA[visa_type]["hotel"])
+        flight_ticket = int(first_applyid[-1]) % 2
         if not first_applyid:
             log_event(
                 {
@@ -238,13 +254,57 @@ async def run_flow(
         #     )
         #     return
 
-        # # Step 4: SaveWorkInfo
+        # step = "get_old_list"
+        # old_item_id = ""
+        # if haveChinaVisaFlag:
+        #     okList, metaList = await api_list_online_applications(
+        #         client,
+        #         token,
+        #         tmp_secret,
+        #         ocr_data.Response.Data.passportNumber,
+        #     )
+        #     if okList:
+        #         model = OnlineApplicationListResponse.from_dict(metaList["response"])
+        #         for item in model.rows:
+        #             if item.applyStatus == OLD_APPLY_STATUS_APPROVED:
+        #                 old_item_id = item.applyid
+        #     log_event({"step": step, "ok": okList, **metaList})
+        #     if not okList:
+        #         await notify(
+        #             f"Flow FAILED at step={step}. "
+        #             f"status={metaList.get('status_code')} "
+        #             f"err={metaList.get('error')}"
+        #         )
+        #         return
         # step = "save_work_info"
-        # if under 10 ages, ignore 
+        # # todo: if under 10 ages, ignore
+        # # todo: if have old old_item_id
+        # job_type = ""
+        # experiences: list[WorkExperienceItem] = []
+        # if old_item_id != "":
+        #     ok, res = await api_get_work_info(
+        #         client=client,
+        #         token=token,
+        #         tmp_secret=tmp_secret,
+        #         applyid=old_item_id,
+        #     )
+        #     if ok:
+        #         model = GetWorkInfoResponse.from_dict(res["response"])
+        #         data = model.data  # Optional[GetWorkInfoData]
+        #         if data:
+        #             job_type = data.jobType
+        #             experiences = data.workExperience
+        #             # model.raw is the full original dict
         # body_save_work_info = build_work_info_profile(
         #     first_applyid,
         #     register_date,
-        #     province_city_code,
+        #     (
+        #         ct08_province_city_code
+        #         if ct08_province_city_code != ""
+        #         else province_city_code
+        #     ),
+        #     job_type,
+        #     experiences,
         # )
         # ok4, meta4 = await api_save_work_info(
         #     client,
@@ -261,12 +321,29 @@ async def run_flow(
         #     )
         #     return
 
-        # # Step 5: SaveEducationInfo
         # step = "save_education_info"
-        # if under 10 ages, ignore 
+        # # todo:  if under 10 ages, ignore
+        # educationExperience=[]
+        # if old_item_id != "":
+        #     ok, res = await api_get_education_info(
+        #         client=client,
+        #         token=token,
+        #         tmp_secret=tmp_secret,
+        #         applyid=old_item_id,
+        #     )
+        #     if ok:
+        #         model = GetEducationInfoResponse.from_dict(res["response"])
+        #         data = model.data  # Optional[GetWorkInfoData]
+        #         if data:
+        #             educationExperience = data.educationExperience
         # body_save_education_info = build_education_info_profile(
         #     first_applyid,
-        #     province_city_code,
+        #     (
+        #         ct08_province_city_code
+        #         if ct08_province_city_code != ""
+        #         else province_city_code
+        #     ),
+        #     educationExperience
         # )
         # ok5, meta5 = await api_save_education_info(
         #     client,
@@ -283,8 +360,36 @@ async def run_flow(
         #     )
         #     return
 
-        # Step 6: SaveFamilyInfo
         # step = "save_family_info"
+        # old_notApplyItems=[]
+        # old_streetAddr=""
+        # old_phoneNumber=""
+        # old_mobilePhoneNumber=""
+        # old_parents=[]
+        # old_children=[]
+        # old_relatives=[]
+        # old_haveSpouseFlag=False
+        # old_spouses=[]
+        # if old_item_id != "":
+        #     ok, res = await api_get_family_info(
+        #         client=client,
+        #         token=token,
+        #         tmp_secret=tmp_secret,
+        #         applyid=old_item_id,
+        #     )
+        #     if ok:
+        #         model = GetFamilyInfoResponse.from_dict(res["response"])
+        #         data = model.data  # Optional[GetWorkInfoData]
+        #         if data:
+        #             old_notApplyItems = data.notApplyItems
+        #             old_streetAddr = data.streetAddr
+        #             old_phoneNumber = data.phoneNumber
+        #             old_mobilePhoneNumber = data.mobilePhoneNumber
+        #             old_parents = data.parents
+        #             old_children = data.children
+        #             old_relatives = data.relatives
+        #             old_haveSpouseFlag = data.haveSpouseFlag
+        #             old_spouses = data.spouses
         # dob = date_util.parse_date(ocr_data.Response.Data.dateOfBirth)
 
         # if dob is None:
@@ -296,7 +401,11 @@ async def run_flow(
         #     return
         # body_save_family_info = build_family_info_profile(
         #     first_applyid,
-        #     province_city_code,
+        #     (
+        #         ct08_province_city_code
+        #         if ct08_province_city_code != ""
+        #         else province_city_code
+        #     ),
         #     datetime.strptime(ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
         #     ocr_data.Response.Data.nationality,
         #     haveSpouseFlag,
@@ -313,7 +422,16 @@ async def run_flow(
         #     motherGivenName,
         #     motherNationality,
         #     motherBirthDate,
-        #     ocr_data.Response.Data.passportFamilyName
+        #     ocr_data.Response.Data.passportFamilyName,
+        #     old_notApplyItems,
+        #     old_streetAddr,
+        #     old_phoneNumber,
+        #     old_mobilePhoneNumber,
+        #     old_parents,
+        #     old_children,
+        #     old_relatives,
+        #     old_haveSpouseFlag,
+        #     old_spouses,
         # )
         # ok6, meta6 = await api_save_family_info(
         #     client,
@@ -330,14 +448,19 @@ async def run_flow(
         #     )
         #     return
 
-        m, f = date_util.monday_and_friday_skip_4_weeks(register_date)
+        # m, f = date_util.monday_and_friday_skip_4_weeks(register_date)
 
-        prefix_flight_text = FLIGHT_TEMPLATE[visa_type][flight_ticket]["prefix_flight_text"]
-        arrive_flight_number, departure_flight_number = generate_phone_pair(FLIGHT_TEMPLATE[visa_type][flight_ticket]["prefix_number"]);
-        # Step 7: SaveTravelInfo
+        # prefix_flight_text = FLIGHT_TEMPLATE[visa_type][flight_ticket][
+        #     "prefix_flight_text"
+        # ]
+        # arrive_flight_number, departure_flight_number = generate_phone_pair(
+        #     FLIGHT_TEMPLATE[visa_type][flight_ticket]["prefix_number"]
+        # )
         # step = "save_travel_info"
-        # arrive_flight_number_full_info = prefix_flight_text +" "+ arrive_flight_number
-        # departure_flight_number_full_info = prefix_flight_text +" "+ departure_flight_number           
+        # arrive_flight_number_full_info = prefix_flight_text + " " + arrive_flight_number
+        # departure_flight_number_full_info = (
+        #     prefix_flight_text + " " + departure_flight_number
+        # )
         # body_save_travel_info = build_travel_info_profile(
         #     visa_type,
         #     first_applyid,
@@ -351,7 +474,7 @@ async def run_flow(
         #     m,
         #     f,
         #     hotel_type,
-        #     arrive_flight_number_full_info, 
+        #     arrive_flight_number_full_info,
         #     departure_flight_number_full_info,
         # )
         # ok7, meta7 = await api_save_travel_info(
@@ -370,7 +493,6 @@ async def run_flow(
         #     )
         #     return
 
-        # # Step 8: SavePreviousTravelInfo
         # step = "save_previous_travel_info"
         # body_save_previous_travel_info = build_previous_travel_info_profile(
         #     first_applyid,
@@ -382,7 +504,7 @@ async def run_flow(
         #     old_issuePlace,
         #     haveOtherVisaFlag,
         #     old_otherVisas,
-        #     old_otherCountries
+        #     old_otherCountries,
         # )
         # ok8, meta8 = await api_save_previous_travel_info(
         #     client,
@@ -399,7 +521,6 @@ async def run_flow(
         #     )
         #     return
 
-        # # Step 8: Save Other Info
         # step = "save_other_info"
         # body_other_info = build_other_info(
         #     first_applyid,
@@ -418,7 +539,6 @@ async def run_flow(
         #         f"err={meta8.get('error')}"
         #     )
         #     return
-        # # Step 9: Save Signature
         # step = "save_signature"
         # body_signature_info = build_signature_body(
         #     first_applyid,
@@ -438,112 +558,115 @@ async def run_flow(
         #     )
         #     return
         # hotel = L_15_HOTEL_INFO[hotel_type].get("documentName")
-        # if guest_name ==[]: 
+        # if guest_name == []:
         #     guest_name = [vietnamese_name]
-        # try: 
+        # try:
         #     payload = {
-        #        "file_name": hotel,
+        #         "file_name": hotel,
         #         "names": guest_name,
         #         "first": m,
         #         "end": f,
-        #         "type": 'hotel'
+        #         "type": "hotel",
         #     }
-        #     pdf_hotel = await hotel_info.render_docx_template_output_pdf(payload, L_15_HOTEL_OUTPUT_PATH)
+        #     await hotel_info.render_docx_template_output_pdf(
+        #         payload, L_15_HOTEL_OUTPUT_PATH
+        #     )
         #     log_event({"step": "genenrate hotel file", "ok": "ok"})
         # except Exception as e:
         #     log_exception(e, {"event": "render_failed", "file": hotel})
         #     raise
 
-        # pdf_hotels = [pdf_hotel]
-
-
         # file_name = ""
-        # if ticket_names =='': 
+        # if ticket_names == []:
         #     ticket_names = [vietnamese_name]
-        # try: 
+        # try:
         #     if visa_type in FLIGHT_TEMPLATE:
         #         file_name = FLIGHT_TEMPLATE[visa_type][flight_ticket]["name"]
         #     else:
-        #         log_exception( KeyError(f"Key {visa_type} not found"), {"event": "not have ticket key ", "visa_type": visa_type})
+        #         log_exception(
+        #             KeyError(f"Key {visa_type} not found"),
+        #             {"event": "not have ticket key ", "visa_type": visa_type},
+        #         )
         #     payload = {
-        #         #fake
         #         "file_name": file_name,
-        #         "arrive_flight_number": arrive_flight_number,    
-        #         "departure_flight_number": departure_flight_number, 
-        #         #fake
-
-        #         "arrvied_city": L_15_HOTEL_INFO[hotel_type].get("place_city"),                   
-        #         "names": ticket_names,  
-        #         "arrived_iata_code": L_15_HOTEL_INFO[hotel_type].get("iata_code"),              
-        #         "departure_iata_code": L_15_HOTEL_INFO[hotel_type].get("iata_code"),          
-        #         "departure_city": L_15_HOTEL_INFO[hotel_type].get("place_city"),                  
+        #         "arrive_flight_number": arrive_flight_number,
+        #         "departure_flight_number": departure_flight_number,
+        #         "arrvied_city": L_15_HOTEL_INFO[hotel_type].get("place_city"),
+        #         "names": ticket_names,
+        #         "arrived_iata_code": L_15_HOTEL_INFO[hotel_type].get("iata_code"),
+        #         "departure_iata_code": L_15_HOTEL_INFO[hotel_type].get("iata_code"),
+        #         "departure_city": L_15_HOTEL_INFO[hotel_type].get("place_city"),
         #         "first": m,
         #         "end": f,
-        #         "type": 'flight_ticket'
+        #         "type": "flight_ticket",
         #     }
         #     log_event({"step": "genenrate flight ticket file", "ok": "ok"})
         # except Exception as e:
-        #     log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-        # pdf_ticket = await hotel_info.render_docx_template_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
+        #     log_exception(
+        #         e, {"event": "render_failed", "file": payload.get("file_name")}
+        #     )
+        # await hotel_info.render_docx_template_output_pdf(
+        #     payload, L_15_TICKET_OUTPUT_PATH
+        # )
+        
+        # CV FILE
+        if ticket_names == []:
+            ticket_names = [vietnamese_name]
+        try:
+            file_name = CV_DATA
+            payload = {
+                "file_name": file_name,
+                "names": ticket_names,
+            }
+            log_event({"step": "genenrate flight ticket file", "ok": "ok"})
+        except Exception as e:
+            log_exception(
+                e, {"event": "render_failed", "file": payload.get("file_name")}
+            )
+        await cv_info.render_docx_template_output_pdf(
+            payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
+        )
+        #END
         step = "Step 9 Upload File"
 
-        cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[visa_type]     
-        
+        cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[visa_type]
+
         for group_key, group_cfg in cfg_file_by_visa_type.items():
             for doc_type, files in group_cfg.items():
-                    config = UPLOAD_CONFIG[visa_type].get(doc_type)
-                    if not config:
-                        continue
 
+                config = UPLOAD_CONFIG[visa_type].get(doc_type)
+
+                if not config:
+                    continue
+
+                # Support both:
+                # {}  -> single config
+                # []  -> multiple configs
+                configs = config if isinstance(config, list) else [config]
+
+                all_upload_files = []
+
+                for cfg in configs:
                     upload_files = get_files(
-                        config["folder"],
-                        config["limit"],
+                        cfg["folder"],
+                        cfg["limit"],
                     )
 
-                    for f_doc, upload_file in zip(files, upload_files):
+                    all_upload_files.extend(upload_files)
 
-                        if not upload_file:
-                            continue
-                        print(upload_file)
-                        await api_upload_file_common(
-                            client,
-                            token,
-                            tmp_secret,
-                            upload_file,
-                            f_doc["categoryCode"],
-                            f_doc["materialCode"],
-                            first_applyid,
-                        )   
-                            
+                for f_doc, upload_file in zip(files, all_upload_files):
 
+                    if not upload_file:
+                        continue
 
-async def api_upload_file_common(
-    client:str,
-    token: str,
-    tmp_secret: str,
-    file_name:str,
-    category_code:str,
-    material_code:str,
-    first_applyid:str,
-)   -> None:
-    ticket_upload_payload_body = build_upload_material_body(
-        file_name,
-        category_code,
-        material_code,
-        first_applyid,
-        )
-    ok9, meta9 = await api_upload_file(
-        client,
-        token,
-        tmp_secret,
-        ticket_upload_payload_body,                        
-        )         
-    log_event({"step": "step", "ok": ok9, **meta9})
-    if not ok9:
-        await notify(
-            f"Flow FAILED at step={'step'}. "
-            f"status={meta9.get('status_code')} "
-            "err={meta9.get('error')}"
-            )
-        return
- 
+                    print(upload_file)
+
+                    await api_upload_file_common(
+                        client,
+                        token,
+                        tmp_secret,
+                        upload_file,
+                        f_doc["categoryCode"],
+                        f_doc["materialCode"],
+                        first_applyid,
+                    )

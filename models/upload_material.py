@@ -19,4 +19,3 @@ class UploadMaterialBody:
             materialCode=d.get("materialCode", "") or "",
             businessId=d.get("businessId", "") or "",
         )
- 

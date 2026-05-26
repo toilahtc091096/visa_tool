@@ -1,9 +1,10 @@
-
-import random
 import os
+import random
 from datetime import date
 from typing import Any, Dict
 from utils import date_util, log_event, notify, mobile_utils
+from dataclasses import asdict, is_dataclass
+from typing import Any
 from constants import (
     APPLY_VISA_VALIDITY,
     DEFAULT_EMBASSY,
@@ -50,6 +51,9 @@ from models import (
     OtherInformationProfile,
     OtherInfoItem,
     ContactInfoProfile,
+    OnlineApplicationRow,
+    WorkExperienceItem,
+    EducationExperienceItem,
 )
 
 
@@ -109,7 +113,7 @@ def build_person_profile(
         "formerNationals": [],
         "issueUnit": "",
         "issueDate": "",
-        "lostPassportFlag": "",
+        "lostPassportFlag": False,
         "lostPassports": [],
         "localName": "",
         "lang": DEFAULT_LANG,
@@ -160,7 +164,7 @@ def build_apply_info_profile(
         "applyReason": {
             "missionName": "",
             "name": "",
-            "newPredecessorFlag": "",
+            "newPredecessorFlag": False,
             "otherSpecify": "",
             "personalMatters": "",
             "predecessorName": "",
@@ -206,6 +210,8 @@ def build_work_info_profile(
     applyid: str,
     register_date: date,
     province_city_code: str,
+    job_type: str = "",
+    experiences: list[WorkExperienceItem] = [],
 ) -> WorkInfoProfile:
     job_type_label = random.choice(PREFER_JOB_TYPE)
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
@@ -242,6 +248,11 @@ def build_work_info_profile(
                 "TU KINH DOANH",
             )
         ]
+    we_src = []
+    if experiences != []:
+        for experience in experiences:
+            experience.endDate = work_end_date
+            we_src = experiences if experiences != [] else work_experience
 
     work_info_json: dict[str, Any] = {
         "applyCountry": "",
@@ -254,12 +265,21 @@ def build_work_info_profile(
         "annualIncome": "",
         "currency": "",
         "notApplyItems": not_apply_items,
-        "workExperience": work_experience,
+        "workExperience": [_to_dict(i) for i in (we_src or [])],
         "applyid": applyid,
         "lang": DEFAULT_LANG,
-        "jobType": job_type_code,
+        "jobType": job_type if job_type != "" else job_type_code,
     }
     return WorkInfoProfile.from_dict(work_info_json)
+
+
+def _to_dict(x: Any) -> dict[str, Any]:
+    if isinstance(x, dict):
+        return x
+    if is_dataclass(x):
+        return asdict(x)
+    # fallback: object có attribute
+    return dict(vars(x))
 
 
 def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
@@ -278,7 +298,16 @@ def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
 def build_education_info_profile(
     applyid: str,
     province_city_code: str,
+    educationExperience: list[EducationExperienceItem],
 ) -> EducationInfoProfile:
+
+    we_src = []
+    if educationExperience != []:
+        we_src = (
+            educationExperience
+            if educationExperience != []
+            else [_education_experience_entry(province_city_code)]
+        )
     education_json: dict[str, Any] = {
         "applyCountry": "",
         "finishedStep": 9,
@@ -287,9 +316,7 @@ def build_education_info_profile(
         "userId": "",
         "language": "",
         "notApplyItems": [],
-        "educationExperience": [
-            _education_experience_entry(province_city_code)
-        ],
+        "educationExperience": [_to_dict(i) for i in (we_src or [])],
         "applyid": applyid,
         "lang": DEFAULT_LANG,
     }
@@ -324,16 +351,16 @@ def _empty_spouse_entry() -> dict[str, Any]:
 
 
 def _child_entry(
-    childFamilyName: str ="", 
-    childGivenName: str ="", 
-    childNationality: str ="",
-    childBirthDate: str =""
-    ) -> dict[str, Any]:
+    childFamilyName: str = "",
+    childGivenName: str = "",
+    childNationality: str = "",
+    childBirthDate: str = "",
+) -> dict[str, Any]:
     return {
         "tt1": False,
         "tt2": "",
-        "familyName": childFamilyName.upper(), 
-        "firstName": childGivenName.upper(), 
+        "familyName": childFamilyName.upper(),
+        "firstName": childGivenName.upper(),
         "nationalityCountry": childNationality.upper(),
         "profession": "",
         "address": "",
@@ -358,87 +385,100 @@ def build_family_info_profile(
     family_nationality: str,
     haveSpouseFlag: bool,
     haveChildFlag: bool,
-    childFamilyName: str ="", 
-    childGivenName: str ="", 
-    childNationality: str ="",
-    childBirthDate: str ="",
-    fatherFamilyName: str ="",
-    fatherGivenName: str ="",
-    fatherNationality: str ="",
-    fatherBirthDate: str ="",
-
-    motherFamilyName: str ="",
-    motherGivenName: str ="",
-    motherNationality: str ="",
-    motherBirthDate: str ="",
+    childFamilyName: str = "",
+    childGivenName: str = "",
+    childNationality: str = "",
+    childBirthDate: str = "",
+    fatherFamilyName: str = "",
+    fatherGivenName: str = "",
+    fatherNationality: str = "",
+    fatherBirthDate: str = "",
+    motherFamilyName: str = "",
+    motherGivenName: str = "",
+    motherNationality: str = "",
+    motherBirthDate: str = "",
     passportFamilyName: str = "",
+    old_notApplyItems=[],
+    old_streetAddr: str = "",
+    old_phoneNumber: str = "",
+    old_mobilePhoneNumber: str = "",
+    old_parents=[],
+    old_children=[],
+    old_relatives=[],
+    old_haveSpouseFlag=False,
+    old_spouses=[],
 ) -> FamilyInfoProfile:
-    
+
     not_apply_items = []
     spouses_info = []
     parents_info = []
     parent_female_family, parent_female_first = _emergency_female_contact_names()
     phone = mobile_utils.generate_supervisor_tel(FAMILY_DEFAULT_PHONE)
-    # keep spouse notApply item only if haveSpouseFlag is not True
     if haveSpouseFlag is not True:
-        not_apply_items.append({
-            "notApplyCode": "spouse",
-            "remark": "",
-        })
-        spouses_info=[]
+        not_apply_items.append(
+            {
+                "notApplyCode": "spouse",
+                "remark": "",
+            }
+        )
+        spouses_info = []
     else:
-        spouses_info = [_empty_spouse_entry()]   
-    
+        spouses_info = [_empty_spouse_entry()]
+
     if haveChildFlag is not True:
-        not_apply_items.append({
-        "notApplyCode": "children",
-        "remark": "",
-        })
+        not_apply_items.append(
+            {
+                "notApplyCode": "children",
+                "remark": "",
+            }
+        )
         child_info = []
     else:
         if childNationality == "":
             childNationality = family_nationality
         child_info = [
             _child_entry(
-                childFamilyName,
-                childGivenName,
-                childNationality,
-                childBirthDate)
-            ]
+                childFamilyName, childGivenName, childNationality, childBirthDate
+            )
+        ]
 
     if fatherFamilyName == "" and fatherGivenName == "":
         if random.randint(0, 9) < 3:
-            not_apply_items.append({
-                "notApplyCode": "father",
-                "remark": FAMILY_FATHER_NOT_APPLY_REMARK,
-            },)
-        else: 
-            parents_info.append({
-                "sort": "1",
-                "relation": FAMILY_PARENT_RELATION_FATHER,
-                "familyName": passportFamilyName,
-                "firstName": GIVEN_MALE_VIETNAMESE_NAMES,
-                "nationalityCountry": family_nationality.upper(),
-                "profession": "",
-                "otherSpecify": "",
-                "birthday": _parent_birthday(main_account_birth_date),
-                "inChinaFlag": False,
-                "statusInChina": "",
-                "statusInChinaDetail": "",
-                "tt1": False,
-                "tt2": "",
-                "profession": "",
-                "address": "",
-                "dd2": "",
-                "dd3": "",
-                "country": "",
-                "province": "",
-                "city": "",
-                "county": "",
-            }) # add cha random
-    else: 
-        # dien thong tin cha   
-        parents_info.append({
+            not_apply_items.append(
+                {
+                    "notApplyCode": "father",
+                    "remark": FAMILY_FATHER_NOT_APPLY_REMARK,
+                },
+            )
+        else:
+            parents_info.append(
+                {
+                    "sort": "1",
+                    "relation": FAMILY_PARENT_RELATION_FATHER,
+                    "familyName": passportFamilyName,
+                    "firstName": GIVEN_MALE_VIETNAMESE_NAMES,
+                    "nationalityCountry": family_nationality.upper(),
+                    "profession": "",
+                    "otherSpecify": "",
+                    "birthday": _parent_birthday(main_account_birth_date),
+                    "inChinaFlag": False,
+                    "statusInChina": "",
+                    "statusInChinaDetail": "",
+                    "tt1": False,
+                    "tt2": "",
+                    "profession": "",
+                    "address": "",
+                    "dd2": "",
+                    "dd3": "",
+                    "country": "",
+                    "province": "",
+                    "city": "",
+                    "county": "",
+                }
+            )
+    else:
+        parents_info.append(
+            {
                 "sort": "1",
                 "relation": FAMILY_PARENT_RELATION_FATHER,
                 "familyName": fatherFamilyName,
@@ -460,10 +500,12 @@ def build_family_info_profile(
                 "province": "",
                 "city": "",
                 "county": "",
-            })     
-        
+            }
+        )
+
     if motherFamilyName == "" and motherGivenName == "":
-        parents_info.append({
+        parents_info.append(
+            {
                 "sort": "1",
                 "relation": FAMILY_PARENT_RELATION_MOTHER,
                 "familyName": parent_female_family,
@@ -475,10 +517,12 @@ def build_family_info_profile(
                 "inChinaFlag": False,
                 "statusInChina": "",
                 "statusInChinaDetail": "",
-            })
-        
-    else: 
-        parents_info.append({
+            }
+        )
+
+    else:
+        parents_info.append(
+            {
                 "sort": "1",
                 "relation": FAMILY_PARENT_RELATION_MOTHER,
                 "familyName": motherFamilyName,
@@ -490,8 +534,29 @@ def build_family_info_profile(
                 "inChinaFlag": False,
                 "statusInChina": "",
                 "statusInChinaDetail": "",
-            })
-            
+            }
+        )
+
+    parents_src = []
+    if old_parents != []:
+        parents_src = old_parents if old_parents != [] else parents_info
+        
+    relative_src = []
+    if old_relatives != []:
+        relative_src = old_relatives if old_relatives != [] else []
+        
+    notApplyItems_src = []
+    if old_notApplyItems != []:
+        notApplyItems_src = old_notApplyItems if old_notApplyItems != [] else not_apply_items
+
+    children_src = []
+    if old_children != []:
+        children_src = old_children if old_children != [] else child_info
+
+    spouses_src = []
+    if old_spouses != []:
+        spouses_src = old_spouses if old_spouses != [] else spouses_info        
+
     family_json: dict[str, Any] = {
         "applyCountry": "",
         "finishedStep": 9,
@@ -503,18 +568,28 @@ def build_family_info_profile(
         "city": "",
         "county": "",
         "zipCode": "",
-        "mobilePhoneNumber": phone,
-        "phoneNumber": phone,
+        "mobilePhoneNumber": (
+            old_mobilePhoneNumber if old_mobilePhoneNumber != "" else phone
+        ),
+        "phoneNumber": old_phoneNumber if old_phoneNumber != "" else phone,
         "email": "",
-        "streetAddr": f"{FAMILY_STREET_DISTRICT}, {province_city_code}",
-        "notApplyItems": not_apply_items,
-        "haveSpouseFlag": "" if haveSpouseFlag is not True else haveSpouseFlag,
-        "spouses": spouses_info,
-        "children": child_info,
-        "relatives": [],
+        "streetAddr": (
+            old_streetAddr
+            if old_streetAddr != ""
+            else f"{FAMILY_STREET_DISTRICT}, {province_city_code}"
+        ),
+        "notApplyItems": [_to_dict(i) for i in (notApplyItems_src or [])],
+        "haveSpouseFlag": (
+            old_haveSpouseFlag
+            if old_haveSpouseFlag
+            else ("" if haveSpouseFlag is not True else haveSpouseFlag)
+        ),
+        "spouses": [_to_dict(i) for i in (spouses_src or [])],
+        "children": [_to_dict(i) for i in (children_src or [])],
+        "relatives": [_to_dict(i) for i in (relative_src or [])],
         "relativeRelativeFlag": False,
         "applyid": applyid,
-        "parents": parents_info,
+        "parents": [_to_dict(i) for i in (parents_src or [])],
         "lang": DEFAULT_LANG,
     }
     return FamilyInfoProfile.from_dict(family_json)
@@ -554,11 +629,9 @@ def getTravelCommonInfo(
         "finishedStep": 9,
         "embassy": DEFAULT_EMBASSY,
         "tempSaveFlag": False,
-
         "userId": "",
         "disposableFunds": "",
         "disposableFundsCurrency": "",
-
         "sponsorCity": "",
         "sponsorCountry": "",
         "sponsorCounty": "",
@@ -569,7 +642,6 @@ def getTravelCommonInfo(
         "sponsorRelation": "",
         "sponsorType": "",
         "sponsorZipCode": "",
-
         "emergencyCity": "",
         "emergencyContactFamilyName": emergency_family,
         "emergencyContactFirstName": emergency_first,
@@ -582,25 +654,16 @@ def getTravelCommonInfo(
         "emergencyRelation": TRAVEL_EMERGENCY_RELATION,
         "emergencyStreetAddr": "",
         "emergencyZipCode": "",
-
-        # pay (default for self)
-        # if under 10 ages, choose OTHER, and add parent information 
-        # if 
+        # todo: if under 10 ages, choose OTHER, and add parent information
         "payForTravel": TRAVEL_PAY_FOR_SELF,
-        # for other
         "payForTravelName": "",
         "payForTravelPhoneNumber": "",
         "payForTravelEmail": "",
-        # for organization
         "payForTravelOrganizationName": "",
         "payForTravelRelation": "",
         "payForTravelAddr": "",
         "payForTravelCountry": "",
-        # end pay
-
-        # HavePeersFlag: not use
         "havePeersFlag": False,
-
         "applyid": applyid,
         "lang": DEFAULT_LANG,
     }
@@ -611,7 +674,6 @@ def getL15TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
-    # not same inputs
     hotel_type: str,
     arrival_str: str,
     leave_str: str,
@@ -629,7 +691,6 @@ def getL15TravelInfo(
 
     travel_json.update(
         {
-            # For hotel
             "invitationNumber": "",
             "inviteCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
             "inviteCounty": "",
@@ -639,8 +700,6 @@ def getL15TravelInfo(
             "inviteProvince": L_15_HOTEL_INFO[hotel_type].get("inviteProvince"),
             "inviteRelation": L_15_HOTEL_INFO[hotel_type].get("relationship"),
             "inviteZipCode": "",
-
-            # For flight / travel plan
             "travelCompanion": [],
             "notApplyItems": [],
             "arrivalVehicleType": arrivalVehicleType,
@@ -654,7 +713,7 @@ def getL15TravelInfo(
                     "sort": 1,
                     "stayCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
                     "stayCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
-                    "travelAddr": "",
+                    "travelAddr": L_15_HOTEL_INFO[hotel_type].get("address"), 
                     "arrivalDate": arrival_str,
                     "leaveDate": leave_str,
                 }
@@ -684,13 +743,13 @@ def build_travel_info_profile(
     leave_date: date,
     hotel_type: int,
     arrivalVehicleType: str,
-    leaveVehicleType: str
+    leaveVehicleType: str,
 ) -> TravelInfoProfile:
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
     emergency_family, emergency_first = _emergency_contact_names()
-        
-    if visa_type == 'L15':
+
+    if visa_type == "L15":
         travel_json: dict[str, Any] = getL15TravelInfo(
             applyid=applyid,
             emergency_family=emergency_family,
@@ -699,20 +758,22 @@ def build_travel_info_profile(
             arrival_str=arrival_str,
             leave_str=leave_str,
             arrivalVehicleType=arrivalVehicleType,
-            leaveVehicleType=leaveVehicleType
+            leaveVehicleType=leaveVehicleType,
         )
-    elif visa_type == 'L30':
+    elif visa_type == "L30":
         travel_json = {}
     else:
         travel_json = {}
-        
+
     if payMobile != "" and payName != "":
-        travel_json.update({
-            "payForTravel": TRAVEL_PAY_FOR_OTHER,
-            "payForTravelName": payName,
-            "payForTravelPhoneNumber": payMobile,
-            "payForTravelEmail": "",
-        }) 
+        travel_json.update(
+            {
+                "payForTravel": TRAVEL_PAY_FOR_OTHER,
+                "payForTravelName": payName,
+                "payForTravelPhoneNumber": payMobile,
+                "payForTravelEmail": "",
+            }
+        )
     return TravelInfoProfile.from_dict(travel_json)
 
 
@@ -734,10 +795,10 @@ def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
     return {
         **_previous_travel_base(applyid),
         "arrivedChinaFlag": False,
-        "chinaResidenceLicenseFlag": "",
+        "chinaResidenceLicenseFlag": False,
         "collectFingerprintCountry": "",
         "collectFingerprintDate": "",
-        "collectFingerprintFlag": "",
+        "collectFingerprintFlag": False,
         "collectFingerprintPlace": "",
         "haveChinaVisaFlag": False,
         "haveOtherVisaFlag": False,
@@ -745,18 +806,19 @@ def _build_no_previous_china_travel_body(applyid: str) -> dict[str, Any]:
         "issuePlace": "",
         "visitedOtherCountryFlag": False,
         "lostChinaVisaDate": "",
-        "lostChinaVisaFlag": "",
+        "lostChinaVisaFlag": False,
         "lostChinaVisaNumber": "",
         "lostChinaVisaPlace": "",
         "otherCountries": "",
         "otherVisas": "",
         "previousTravelInChinaInfos": [],
-        "provideChinaVisaDetailFlag": "",
+        "provideChinaVisaDetailFlag": False,
         "residenceLicenseNumber": "",
         "visaNumber": "",
         "visaType": "",
         "firstApplyChinaVisaFlag": False,
     }
+
 
 def build_previous_china_travel_body(
     applyid: str,
@@ -771,38 +833,44 @@ def build_previous_china_travel_body(
 ) -> dict[str, Any]:
     """Applicant has been to China before: fill prior-visit and visa fields."""
 
-    errs = validate_payload({
-        "arrivedChinaFlag": True,
-        "haveChinaVisaFlag": haveChinaVisaFlag,
-        "visaType": old_visaType,
-        "visaNumber": old_visaNumber,
-        "issueDate": old_issueDate,
-        "issuePlace": old_issuePlace,
-        "haveOtherVisaFlag": haveOtherVisaFlag,
-        "otherVisas": list_to_csv_country_codes(old_otherVisas),
-        "otherCountries": list_to_csv_country_codes(old_otherCountries)
-    })
+    errs = validate_payload(
+        {
+            "arrivedChinaFlag": True,
+            "haveChinaVisaFlag": haveChinaVisaFlag,
+            "visaType": old_visaType,
+            "visaNumber": old_visaNumber,
+            "issueDate": old_issueDate,
+            "issuePlace": old_issuePlace,
+            "haveOtherVisaFlag": haveOtherVisaFlag,
+            "otherVisas": list_to_csv_country_codes(old_otherVisas),
+            "otherCountries": list_to_csv_country_codes(old_otherCountries),
+        }
+    )
 
     if errs:
         print("INVALID:")
-        log_event({"step": "Step 8: SavePreviousTravelInfo",
-                  "status":  f"Validate step previous travel error '{errs}'"})
+        log_event(
+            {
+                "step": "Step 8: SavePreviousTravelInfo",
+                "status": f"Validate step previous travel error '{errs}'",
+            }
+        )
         for e in errs:
             print("-", e)
     return {
         **_previous_travel_base(applyid),
         "arrivedChinaFlag": True,
-        "chinaResidenceLicenseFlag": "",
+        "chinaResidenceLicenseFlag": False,
         "collectFingerprintCountry": "",
         "collectFingerprintDate": "",
-        "collectFingerprintFlag": "",
+        "collectFingerprintFlag": False,
         "collectFingerprintPlace": "",
         "lostChinaVisaDate": "",
-        "lostChinaVisaFlag": "",
+        "lostChinaVisaFlag": False,
         "lostChinaVisaNumber": "",
         "lostChinaVisaPlace": "",
         "otherCountries": "",
-        "provideChinaVisaDetailFlag": "",
+        "provideChinaVisaDetailFlag": False,
         "residenceLicenseNumber": "",
         "previousTravelInChinaInfos": [
             {
@@ -893,34 +961,32 @@ def validate_payload(p: dict) -> list[str]:
     otherVisas = _clean_list(p.get("otherVisas"))
     otherCountries = _clean_list(p.get("otherCountries"))
 
-    # Rule 1: haveChinaVisaFlag => visaType required + valid
     if haveChinaVisaFlag:
         if _is_blank(visaType):
-            errors.append(
-                "haveChinaVisaFlag=True nhưng thiếu visaType (required).")
+            errors.append("haveChinaVisaFlag=True nhưng thiếu visaType (required).")
         else:
             vt = str(visaType).strip().upper()
             if vt not in ALLOWED_CHINA_VISA_TYPES:
                 errors.append(
-                    f"visaType='{visaType}' không hợp lệ (không nằm trong whitelist).")
+                    f"visaType='{visaType}' không hợp lệ (không nằm trong whitelist)."
+                )
 
-    # Rule 2: haveOtherVisaFlag => otherVisas required
     if haveOtherVisaFlag:
         if len(otherVisas) == 0:
             errors.append(
-                "haveOtherVisaFlag=True nhưng otherVisas rỗng (cần ít nhất 1 mã quốc gia).")
+                "haveOtherVisaFlag=True nhưng otherVisas rỗng (cần ít nhất 1 mã quốc gia)."
+            )
 
-    # Rule 3: otherCountries optional but must not contain blank entries
-    # (ví dụ ["THA",""] => lỗi)
     raw_other_countries = p.get("otherCountries")
-    if isinstance(raw_other_countries, (list, tuple)) and any(_is_blank(x) for x in raw_other_countries):
-        errors.append(
-            "otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
+    if isinstance(raw_other_countries, (list, tuple)) and any(
+        _is_blank(x) for x in raw_other_countries
+    ):
+        errors.append("otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
 
-    # (Optional sanity) nếu arrivedChinaFlag=False mà haveChinaVisaFlag=True thì cảnh báo
     if (not arrivedChinaFlag) and haveChinaVisaFlag:
         errors.append(
-            "arrivedChinaFlag=False nhưng haveChinaVisaFlag=True (kiểm tra lại logic).")
+            "arrivedChinaFlag=False nhưng haveChinaVisaFlag=True (kiểm tra lại logic)."
+        )
 
     return errors
 
@@ -943,7 +1009,9 @@ def list_to_csv_country_codes(xs, *, upper=True):
     return ",".join(cleaned)
 
 
-def build_upload_material_body(file_path: str, categoryCode: str, materialCode: str, businessId: str) -> UploadMaterialBody:
+def build_upload_material_body(
+    file_path: str, categoryCode: str, materialCode: str, businessId: str
+) -> UploadMaterialBody:
     return UploadMaterialBody(
         filePath=str(file_path),
         fileName=os.path.basename(str(file_path)),
@@ -951,6 +1019,7 @@ def build_upload_material_body(file_path: str, categoryCode: str, materialCode: 
         materialCode=materialCode,
         businessId=businessId,
     )
+
 
 def build_other_info(
     applyid: str,
@@ -966,27 +1035,16 @@ def build_other_info(
 
     profile = OtherInformationProfile(
         applyCountry="",
-
         finishedStep=9,
-
         embassy=DEFAULT_EMBASSY,
-
         tempSaveFlag=False,
-
         userId="",
-
         militaryServiceInfos=[],
-
         otherInfoItems=other_info_items,
-
         itemValue3="",
-
         applyid=applyid,
-
         notApplyItems=[],
-
         otherProblemFlag=False,
-
         lang=DEFAULT_LANG,
     )
 
@@ -999,29 +1057,17 @@ def build_signature_body(
 
     profile = ContactInfoProfile(
         applyCountry="",
-
         finishedStep=9,
-
         embassy=DEFAULT_EMBASSY,
-
         tempSaveFlag=False,
-
         userId="",
-
         agentFlag=False,
-
         agentName="CONG TY TNHH DU LICH WM TRAVEL VIETNAM",
-
         W2="752001",
-
         relationship="CONG TY DU LICH",
-
         agentAddr="KDT DUONG NOI, HA DONG, HA NOI",
-
         agentTel="0936188491",
-
         applyid=applyid,
-
         lang="en_US",
     )
 

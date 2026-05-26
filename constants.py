@@ -1,14 +1,14 @@
 """Shared constants for API headers and site defaults."""
 
 BASE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
+CHECK_OLD_LIST_BASE_URL = "https://bio.visaforchina.cn/staging-api"
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
-# Embassy / site defaults
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
+OLD_APPLY_STATUS_APPROVED = "审核通过"
 
-# Browser-like headers (match captured Postman/cURL samples)
 DEFAULT_EMAIL = "wmtravelvn@gmail.com"
 DEFAULT_GUID = "17097129405490"
 DEFAULT_UID = "2ff8647bc67a4af8879d7d04d2dd2c1b"
@@ -25,7 +25,7 @@ SEC_CH_UA = '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"'
 
 MY_VISA_TYPE = {"L15", "L30", "M", "Q"}
 
-DOCUMENT_DATA = {
+HOTEL_DATA = {
     "L15": (
         {
             "hotel": [
@@ -35,6 +35,8 @@ DOCUMENT_DATA = {
         }
     ),
 }
+
+CV_DATA = "CV.docx"
 
 ENTRIES_TYPE = {"S": "703001", "D": "703002", "M": "703003"}
 SERVICE_VISA_TYPE = {"L": ({"I", "G"}), "M": ({"MT", "MP", "MO"})}
@@ -46,8 +48,6 @@ VISA_TYPE_VALUE = {
 }
 APPLY_VISA_VALIDITY = {"L": 3}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO"})}
-# entries_type = "S"
-# service_type = "I"
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
 VIETNAMESE_NAMES = (
@@ -168,15 +168,12 @@ FEMALE_VIETNAMESE_NAMES = (
     "Pham Thi Trang",
 )
 
-# (label, highestDegree code, specialty text)
 EDUCATION_DEGREE_TYPE = (("Technical_secondary", "714003", "THPT"),)
 
-# School name middle part: "THPT {name}, {province}" (see SaveEducationInfo cURL)
-EDUCATION_SCHOOL_NAMES = ("NGO QUYEN",)
+EDUCATION_SCHOOL_NAMES = ("NGO QUYEN", "PHUNG HUNG", "TON THAT THUYET")
 
 FAMILY_PARENT_RELATION_MOTHER = "727003"
 FAMILY_PARENT_RELATION_FATHER = "727002"
-# todo: phan nay co the check them
 FAMILY_FATHER_NOT_APPLY_REMARK = "DA MAT"
 FAMILY_DEFAULT_PHONE = "0931773485"
 FAMILY_STREET_DISTRICT = "LE CHAN"
@@ -186,7 +183,6 @@ TRAVEL_ARRIVAL_COUNTY = "440112"
 TRAVEL_INVITE_PROVINCE = "GD"
 TRAVEL_PAY_FOR_SELF = "708001"
 TRAVEL_PAY_FOR_OTHER = "708002"
-# 708002 for other ( need name, phone),708003 for organization ( need name, relation, address, country)
 TRAVEL_INVITE_RELATION_HOTEL = "KHACH SAN"
 TRAVEL_EMERGENCY_RELATION = "BAN BE"
 TRAVEL_INVITE_NAMES = ("Hantao AI Select International Apartment",)
@@ -456,9 +452,6 @@ L_30_HOTEL_INFO = [
         "inviteProvince": "440100",
         "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
     },
-    # "inviteProvince": "GD"
-    # CAN1 Quang CHau
-    # BJ Beijing
 ]
 L_15_HOTEL_OUTPUT_PATH = "L15\\chung\\khach_san"
 L_15_TICKET_OUTPUT_PATH = "L15\\chung\\ve_may_bay"
@@ -493,7 +486,7 @@ L_15_HOTEL_INFO = [
         "place_city": "GUANGZHOU",
         "iata_code": "CAN",
         "name": "Nanxing Hotel (Nanxing Hotel)",
-        "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe, Guangzhou, 510000, Trung Quốc ⼴东省⼴州市天河区荷光路158号5楼, 天河区, ⼴州",
+        "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe",
         "city": "CAN",
         "arrivalCounty": "440106",
         "relationship": "KHACH SAN",
@@ -535,17 +528,14 @@ L_15_HOTEL_INFO = [
 
 FLIGHT_TEMPLATE = {
     "L15": [
-        {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
         {
             "name": "VE_MAY_BAY_L15_B_Jet.docx",
             "prefix_flight_text": "CZ",
             "prefix_number": "83",
         },
+        {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
     ]
 }
-
-# constants/upload_file_code.py
-# All entries use list[dict] even if only 1 materialCode.
 
 UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
     "FLIGHT_TICKET": [
@@ -631,10 +621,16 @@ UPLOAD_CONFIG = {
             "folder": L_15_HOTEL_OUTPUT_PATH,
             "limit": 10,
         },
-        "OTHER_MATERIALS": {
-            "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
-            "limit": 5,
-        },
+        "OTHER_MATERIALS": [
+            {
+                "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+                "limit": 4,
+            },
+            {
+                "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+                "limit": 1,
+            },
+        ],
         "PREV_CHINESE_VISA": {
             "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
             "limit": 1,
@@ -707,9 +703,6 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "materialCode": "mfa-030_1",
                 },
             ],
-            # },
-            # "HISTORY": {
-            # "NO_CHINA": {
             "OTHER_MATERIALS": [
                 {
                     "categoryCode": "12025062114211484037531",
@@ -732,8 +725,6 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "materialCode": "mfa-044_5",
                 },
             ],
-            # },
-            # "CHINA_VISITED": {
             "PREV_CHINESE_VISA": [
                 {
                     "categoryCode": "22025062114131912554297",
@@ -744,7 +735,6 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "materialCode": "mfa-033_2",
                 },
             ],
-            # },
             "UNDER_18": [
                 {
                     "categoryCode": "22025062114181968780924",

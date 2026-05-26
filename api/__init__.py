@@ -10,6 +10,10 @@ from .work import api_save_work_info
 from .upload_file_materia import api_upload_file
 from .other_info import api_save_other_info
 from .signature import api_save_signature_info
+from .get_list_old_by_visa_number import api_list_online_applications
+from .get_work_by_app_id import api_get_work_info
+from .api_get_education_info_by_app_id import api_get_education_info
+from .api_get_family_info import api_get_family_info
 
 __all__ = [
     "api_get_draft",
@@ -24,4 +28,9 @@ __all__ = [
     "api_upload_file",
     "api_save_other_info",
     "api_save_signature_info",
+    "api_list_online_applications",
+    "api_get_work_info",
+    "api_get_education_info",
+    "api_get_family_info"
 ]
+ 

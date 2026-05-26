@@ -129,6 +129,7 @@ Lam file ve may bay, xem lai cac truong hop may bay va hotel
 tach rieng truong hop duoi 18 tuoi 
   file hotel 
   cac param di kem 
+  education va work ?
   test 1 truogn hop
 
 Thu test 1 case full
@@ -136,3 +137,135 @@ Thu test 1 case full
   xac dinh ra ro cac truong hop ( noi chuyen )
     Xac dinh cac param phai dien  trong cac truong hop ( noi chuyen )
     Xac dinh file can phai co cho moi loai 
+
+Truong hop L15 
+  (tren 18 tuoi, chua qua trung quoc, chua co visa khac, chua co khach san va ve may bay, 
+  khong co thong tin chong, con, cha me, thong tin nguoi tra tien)
+  Dưới đây là hướng dẫn chuẩn hoá “kiểu trường hợp L15 – tối giản thông tin” để bạn dùng làm rule nhận diện + bộ câu hỏi phân loại + yêu cầu file/folder. Mình viết theo hướng bạn có thể đưa thẳng vào tài liệu đặc tả input_json.
+  Bộ câu hỏi để xác định đúng trường hợp này (Decision questions)
+  Mục tiêu: hỏi tối thiểu để phân loại “L15 tối giản” vs các biến thể “có người thân/đã đi TQ/có visa khác/có booking…”.
+  Bạn có thể dùng dạng checklist sau (có thứ tự ưu tiên):
+
+  Nhóm 0 — Xác định case & điều kiện tuổi
+    Khách xin loại visa nào? (L15 / loại khác)  
+
+    Khách đủ 18 tuổi trở lên chưa? (Có/Không)
+
+
+  Nhóm 1 — Trung Quốc (để loại các case có lịch sử TQ)
+    Khách đã từng đến Trung Quốc chưa? (Có/Chưa)
+
+      Nếu Có → không phải case này (rẽ nhánh sang case “đã đến TQ”)
+    Khách đã từng có visa Trung Quốc chưa? (Có/Không)
+      Nếu Có → cung cấp thông tin cũ:
+      Loại visa : 
+      số visa: 
+      ngày cấp:
+      nơi cấp:
+
+  Nhóm 2 — Visa nước khác/du lịch gần đây (để loại case có visa khác)
+    Khách có visa nước khác (không phải Trung Quốc) không? (Có/Không)
+      Nếu Có → hỏi danh sách nước (mã quốc gia) 
+      Cần file ảnh chụp trên visa 
+        File: (PDF/JPG/PNG)
+        Lưu vào: y/ 
+    Trong 12 tháng gần nhất khách đã đi nước nào? (Nếu không đi/không nhớ → bỏ trống)
+      Nếu có danh sách → thường là case khác hoặc case “có lịch sử du lịch”
+      Cần file ảnh chụp trên visa 
+        File: (PDF/JPG/PNG)
+        Lưu vào: y/ 
+
+  Nhóm 3 — Khách có cung cấp được vé máy bay hoặc xác nhận đặt vé, và/hoặc xác nhận đặt khách sạn không? (Có/Không)
+    Chưa làm trường hợp có => Bỏ qua bộ nhóm 3 này 
+    Nếu Không  → có thể bỏ qua ( hệ thống sẽ tự làm ) 
+      nếu có: a) Vé máy bay / Itinerary
+            File: (PDF/JPG/PNG)
+            Lưu vào: x/ 
+          b) Khách sạn / Booking confirmation
+            File: (PDF/JPG/PNG)
+            Lưu vào: y/ 
+
+  Nhóm 4 — Người thân (để tách case có/không có thông tin gia đình)
+    Khách có cung cấp thông tin người thân để khai vào hồ sơ không? (Có/Không)
+      Nếu Có → chuyển sang Câu hỏi 4.2 và yêu cầu khách điền form bên dưới.
+        Hãy cung cấp họ tên vợ/chồng của khách.
+        Quốc tịch vợ/chồng của khách là gì?(Nếu là Việt Nam thì nhập “VNM”)
+        Ngày sinh vợ/chồng của khách (theo dạng YYYY-MM-DD)?
+
+
+  Nhóm 5 — Người trả tiền (tách case có pay info)
+    Khách sẽ tự trả phí hay có người khác trả hộ?
+      Nếu Có
+        Tên người trả là gì, số điện thoại người trả là gì
+
+  Nhóm 6 — Trường bắt buộc do OCR không lấy được (để tạo input_json)
+    Tỉnh/Thành phố khách đang cư trú là gì? (ví dụ: HAI PHONG, HA NOI, …) (để map province_city_code)  
+    Số CCCD/CMND của khách là gì? (để điền id_card_number)  
+    Chọn loại dịch vụ:
+    Khách có yêu cầu chọn loại dịch vụ khác mặc định không?, nếu không thì bỏ qua 
+    nếu có :
+      Khách muốn nhập cảnh mấy lần: 1 lần, 2 lần hay nhiều lần?
+      Khách nộp hồ sơ đi cá nhân hay theo đoàn?
+      Khách chọn dịch vụ thường hay nhanh?
+
+    Ngày bắt đầu đăng ký: register_date (YYYY-MM-DD) #Là ngày khách require
+
+  Ví dụ 
+
+  Nhóm 0 — Xác định case & điều kiện tuổi
+    Khách xin loại visa nào? (L15 / loại khác)  
+    L15 
+    Khách đủ 18 tuổi trở lên chưa? (Có/Chưa)
+    Có 
+
+  Nhóm 1 — Trung Quốc (để loại các case có lịch sử TQ)
+    Khách đã từng đến Trung Quốc chưa? (Có/Chưa)
+      Chưa
+    Khách đã từng có visa Trung Quốc chưa? (Có/Chưa)
+      Chưa
+  Nhóm 2 — Visa nước khác/du lịch gần đây (để loại case có visa khác)
+    Khách có visa nước khác (không phải Trung Quốc) không? (Có/Không)
+      Không 
+    Trong 12 tháng gần nhất khách đã đi nước nào? (Nếu không đi/không nhớ → bỏ trống)
+      Không 
+
+  Nhóm 3 — Khách có cung cấp được vé máy bay hoặc xác nhận đặt vé, và/hoặc xác nhận đặt khách sạn không? (Có/Không)
+    Chưa làm trường hợp có => Bỏ qua bộ nhóm 3 này 
+    Nếu Không  → có thể bỏ qua ( hệ thống sẽ tự làm ) 
+      nếu có: a) Vé máy bay / Itinerary
+            File: (PDF/JPG/PNG)
+            Lưu vào: x/ 
+          b) Khách sạn / Booking confirmation
+            File: (PDF/JPG/PNG)
+            Lưu vào: y/ 
+
+  Nhóm 4 — Người thân (để tách case có/không có thông tin gia đình)
+    Khách có cung cấp thông tin người thân để khai vào hồ sơ không? (Có/Không)
+      Không 
+
+  Nhóm 5 — Người trả tiền (tách case có pay info)
+    Khách sẽ tự trả phí hay có người khác trả hộ?
+      Tự trả
+
+  Nhóm 6 — Trường bắt buộc do OCR không lấy được (để tạo input_json)
+    Tỉnh/Thành phố khách đang cư trú là gì? (ví dụ: HAI PHONG, HA NOI, …) (để map province_city_code)  
+    Số CCCD/CMND của khách là gì? (để điền id_card_number)  
+    Chọn loại dịch vụ:
+      Mặc định: Nhập cảnh 1 lần, đi cá nhân, dịch vụ thường.
+
+
+Bước 1: tạo folder, đẩy file 
+Bước 2: Tách nền trắng cho ảnh chân dung 
+Bước 3: upload ảnh chân dung, pass port lên 
+Bước 4: save tạo draft 
+Bước 5: điền thông tin API,tìm thông tin CT08 , call API 
+
+Bước 6: check các api tiếp theo sau khi nhập và file xong hết 
+  => Tự động call hay chờ? 
+
+
+
+Lỗi: 
+  API 1 đang thiếu 2 ảnh 
+  Ve tao lai file may bay va file nha phong
+ 

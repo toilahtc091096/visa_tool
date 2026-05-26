@@ -108,7 +108,7 @@ async def render_docx_template_output_pdf(payload: dict[str, Any], output_path: 
             "departure_year_yyyy" : end.year,
 
             "arrvied_city" : str(payload.get("arrvied_city")).upper(),
-            "name_list" : names,
+            "names" : names,
 
             "arrive_day_name" : first.strftime("%A").upper(),
             "arrive_flight_number" : payload.get("arrive_flight_number"),

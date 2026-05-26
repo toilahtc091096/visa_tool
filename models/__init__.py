@@ -28,6 +28,30 @@ from .work import WorkExperience, WorkInfoProfile
 from .upload_material import UploadMaterialBody
 from .other_information import OtherInformationProfile, MilitaryServiceInfo, OtherInfoItem
 from .signature import ContactInfoProfile
+from .online_application_list import (
+    OnlineApplicationRow, OnlineApplicationListResponse
+)
+from .get_work_info_response import (
+    GetWorkInfoResponse,
+    GetWorkInfoResponseWrapper,
+    GetWorkInfoData,
+    WorkExperienceItem,
+)
+
+from .education_info_response import (
+    GetEducationInfoResponse,
+    GetEducationInfoResponseWrapper,
+    GetEducationInfoData,
+    EducationExperienceItem,
+)
+from .family_info_response import (
+    FamilyMemberItem,
+    GetFamilyInfoData,
+    GetFamilyInfoResponse,
+    GetFamilyInfoResponseWrapper,
+    NotApplyItem,
+)
+
 __all__ = [
     "ApplyInfoProfile",
     "ApplyReason",
@@ -59,4 +83,20 @@ __all__ = [
     "MilitaryServiceInfo", 
     "OtherInfoItem",
     "ContactInfoProfile",
+    "OnlineApplicationRow",
+    "OnlineApplicationListResponse",
+    "GetWorkInfoResponse",
+    "GetWorkInfoResponseWrapper",
+    "GetWorkInfoData",
+    "WorkExperienceItem",
+    "GetEducationInfoResponse",
+    "GetEducationInfoResponseWrapper",
+    "GetEducationInfoData",
+    "EducationExperienceItem",
+    "GetFamilyInfoResponse",
+    "GetFamilyInfoResponseWrapper",
+    "GetFamilyInfoData",
+    "NotApplyItem",
+    "FamilyMemberItem",
 ]
+ 
