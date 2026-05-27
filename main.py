@@ -11,22 +11,20 @@ def main() -> None:
     # Case: L15 (minimal inputs)
     # =========================
 
-    # 0) Files
-    file_path = r"resources\\L15\\passport.png"  # Anh passport (file input)
 
     # 1) Auth (lay thu cong tu login do co captcha)
-    token = "NGY5YzY2ZjZmMWNhNDEyZjdkNmM2NDU3NWMxOGExYzQ1ZTgzYmViNGY0MDZhNDU1MmIyNjBhMWQwMjRjMTA5Yw=="
-    tmp_secret = "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_62351951_1779699846513_41f2f90fed8567941a94063e485c15fd"
-
+    # token = "NGY5YzY2ZjZmMWNhNDEyZjdkNmM2NDU3NWMxOGExYzQ1ZTgzYmViNGY0MDZhNDU1MmIyNjBhMWQwMjRjMTA5Ywx=="
+    # tmp_secret = "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_62351951_1779699846513_41f2f90fed8567941a94063e485c15fd"
+    authorization = "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiMTZlZTEzYzMtZjRmMy00MGVjLWJlNmMtYzI2N2E4NWZhY2YzIn0.XtBdkJfq69uSVamIhhrfHO54XACeIUOzEgrl-uH8a5y5yS05nUxQ6mmTmtgYBHxHerbocyOtU2fGRYzFOSEpMg"
     # 2) Thong tin ho so co ban
-    visa_type = "L15"
-    register_date = date(2026, 5, 26)  # Ngay dau tien dang ky
+    register_date = date.today() #date(2026, 5, 27)  # Ngay dau tien dang ky
 
     # 3) Thong tin cu tru / dinh danh (OCR khong lay duoc tu passport -> phai nhap tay)
-    province_city_code = "NGHE AN"  # Tinh/TP cua nguoi nop
-    id_card_number = "040301002556"  # So CCCD/CMND
+    province_city_code = "LAO CAI"  # Tinh/TP cua nguoi nop
+    id_card_number = "010300005345"  # So CCCD/CMND
 
     # 4) Lua chon visa cho API
+    visa_type = "L15"
     entries_type = "S"  # So lan nhap canh: S=Single, D=Double, M=Multiple
     type_of_visa_sub_value = "I"  # Hinh thuc nop: I=Individual, G=Group
     service_type = "N"  # Dich vu: N=Normal, E=Express
@@ -82,14 +80,12 @@ def main() -> None:
 
     asyncio.run(
         run_flow(
-            token,
-            tmp_secret,
+            authorization,
             # common
             visa_type,
             register_date,
             guest_name,
             ticket_names,
-            file_path,
             province_city_code,
             id_card_number,
             entries_type,

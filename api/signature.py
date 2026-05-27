@@ -55,7 +55,7 @@ async def api_save_signature_info(
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": "failedSaveSignatureInfo",
+                "error": data,
             }
 
         return True, {

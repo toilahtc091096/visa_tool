@@ -39,7 +39,7 @@ async def api_save_travel_info(
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": "failedSaveTravelInfo",
+                "error": data,
             }
 
         return True, {
@@ -52,4 +52,3 @@ async def api_save_travel_info(
             "status_code": -1,
             "error": str(e),
         }
- 

@@ -38,6 +38,7 @@ async def api_save_education_info(
             return False, {
                 "status_code": resp.status_code,
                 "error": "failedSaveEducationInfo",
+                "response": data,
             }
 
         return True, {
@@ -50,3 +51,4 @@ async def api_save_education_info(
             "status_code": -1,
             "error": str(e),
         }
+ 

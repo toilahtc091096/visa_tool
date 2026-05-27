@@ -9,15 +9,18 @@ from constants import (
     REFERER,
     SEC_CH_UA,
     USER_AGENT,
+    NORMAL_ACCEPT,
+    DEFAULT_VI_LANGUAGE,
+    LOGIN_DEFAULT_ORIGIN,
 )
 
 
-def build_headers(access_token: str, tmp_secret: str) -> Dict[str, str]:
+def build_login_headers(authorization: str) -> Dict[str, str]:
     return {
-        "Authorization": f"Bearer {access_token}",
-        "X-Tmp-Secret": tmp_secret,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        "Accept": NORMAL_ACCEPT,
+        "Accept-Language": DEFAULT_VI_LANGUAGE,
+        "Authorization": authorization,
+        "Origin": LOGIN_DEFAULT_ORIGIN,
     }
 
 
@@ -44,7 +47,7 @@ def build_get_draft_headers(
         "referer": REFERER,
         "sec-ch-ua": SEC_CH_UA,
         "sec-ch-ua-mobile": "?0",
-        'sec-ch-ua-platform': '"Windows"',
+        "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
@@ -77,7 +80,7 @@ def build_upload_headers(
         "referer": REFERER,
         "sec-ch-ua": SEC_CH_UA,
         "sec-ch-ua-mobile": "?0",
-        'sec-ch-ua-platform': '"Windows"',
+        "sec-ch-ua-platform": '"Windows"',
         "sec-fetch-dest": "empty",
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
@@ -85,5 +88,6 @@ def build_upload_headers(
         "token": token,
         "uid": DEFAULT_UID,
         "user-agent": user_agent,
-        "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOTc0ODNhMGMtNzU1YS00MjMzLWE2MmEtMmU1ODM0MzEzMzAyIn0.AXLhc5AC0pUxdu-IgUT1Mes3cBfcqExmnFqeAfOyphaFnJeJMlxbKIvb8cbAqac5rlqW-Ok35uIcWl60fxAI8w"
+        "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOTc0ODNhMGMtNzU1YS00MjMzLWE2MmEtMmU1ODM0MzEzMzAyIn0.AXLhc5AC0pUxdu-IgUT1Mes3cBfcqExmnFqeAfOyphaFnJeJMlxbKIvb8cbAqac5rlqW-Ok35uIcWl60fxAI8w",
     }
+ 

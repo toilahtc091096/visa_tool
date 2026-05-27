@@ -26,11 +26,13 @@ from .previous_travel import PreviousTravelInfoProfile
 from .travel import StayInfo, TravelInfoProfile
 from .work import WorkExperience, WorkInfoProfile
 from .upload_material import UploadMaterialBody
-from .other_information import OtherInformationProfile, MilitaryServiceInfo, OtherInfoItem
-from .signature import ContactInfoProfile
-from .online_application_list import (
-    OnlineApplicationRow, OnlineApplicationListResponse
+from .other_information import (
+    OtherInformationProfile,
+    MilitaryServiceInfo,
+    OtherInfoItem,
 )
+from .signature import ContactInfoProfile
+from .online_application_list import OnlineApplicationRow, OnlineApplicationListResponse
 from .get_work_info_response import (
     GetWorkInfoResponse,
     GetWorkInfoResponseWrapper,
@@ -50,6 +52,15 @@ from .family_info_response import (
     GetFamilyInfoResponse,
     GetFamilyInfoResponseWrapper,
     NotApplyItem,
+)
+from .login import LoginData, LoginApiResponse
+
+from .person_info import (
+    PersonInfoData,
+    PersonInfoError,
+    PersonInfoResponse,
+    PersonInfoResult,
+    person_info_result_from_dict,
 )
 
 __all__ = [
@@ -79,8 +90,8 @@ __all__ = [
     "WorkInfoProfile",
     "UploadMaterialBody",
     "has_name",
-    "OtherInformationProfile", 
-    "MilitaryServiceInfo", 
+    "OtherInformationProfile",
+    "MilitaryServiceInfo",
     "OtherInfoItem",
     "ContactInfoProfile",
     "OnlineApplicationRow",
@@ -98,5 +109,12 @@ __all__ = [
     "GetFamilyInfoData",
     "NotApplyItem",
     "FamilyMemberItem",
+    "LoginData",
+    "LoginApiResponse",
+    "PersonInfoData",
+    "PersonInfoError",
+    "PersonInfoResponse",
+    "PersonInfoResult",
+    "person_info_result_from_dict",
 ]
  

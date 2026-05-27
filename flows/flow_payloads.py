@@ -36,6 +36,7 @@ from constants import (
     FEMALE_VIETNAMESE_NAMES,
     FAMILY_PARENT_RELATION_FATHER,
     GIVEN_MALE_VIETNAMESE_NAMES,
+    VIETNAM_ADMIN,
 )
 from models import (
     ApplyInfoProfile,
@@ -54,6 +55,7 @@ from models import (
     OnlineApplicationRow,
     WorkExperienceItem,
     EducationExperienceItem,
+    PersonInfoData
 )
 
 
@@ -88,10 +90,16 @@ def build_person_profile(
     ocr: PassportOCRData | None,
     province_city_code: str,
     id_card_number: str,
+    personInfoData: PersonInfoData | None,
 ) -> PersonInfoProfile:
+    photo_path = getattr(personInfoData, "photoPath", None)
+    photo_url = getattr(personInfoData, "photoUrl", None)
+    photo_detection_result = getattr(personInfoData, "photoDetectionResult", None)
+    passport_path = getattr(personInfoData, "passportPath", None)
+    passport_url = getattr(personInfoData, "passportUrl", None)
+
     person_json: dict[str, Any] = {
         "applyid": applyid,
-        "photoDetectionResult": 0,
         "childrenFlag": False,
         "applyCountry": "",
         "finishedStep": 9,
@@ -130,8 +138,11 @@ def build_person_profile(
         "maritalStatus": random.choice(["706001", "706003"]),
         "passport": random.choice(["707001", "707002"]),
         "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
-        "photoPath": "",
-        "passportPath": "",
+        "photoPath": photo_path,
+        "photoUrl": photo_url,
+        "passportPath": passport_path,
+        "photoDetectionResult":photo_detection_result,
+        "passportUrl": passport_url,
         "birthplaceProvince": province_city_code,
         "birthplaceCity": province_city_code,
         "nationalityIdcard": id_card_number,
@@ -460,7 +471,7 @@ def build_family_info_profile(
                     "sort": "1",
                     "relation": FAMILY_PARENT_RELATION_FATHER,
                     "familyName": passportFamilyName,
-                    "firstName": GIVEN_MALE_VIETNAMESE_NAMES,
+                    "firstName": random.choice(GIVEN_MALE_VIETNAMESE_NAMES).upper(),
                     "nationalityCountry": family_nationality.upper(),
                     "profession": "",
                     "otherSpecify": "",
@@ -591,7 +602,7 @@ def build_family_info_profile(
         "streetAddr": (
             old_streetAddr
             if old_streetAddr != ""
-            else f"{FAMILY_STREET_DISTRICT}, {province_city_code}"
+            else f"{random.choice(VIETNAM_ADMIN[province_city_code])}, {province_city_code}"
         ),
         "notApplyItems": [_to_dict(i) for i in (notApplyItems_src or [])],
         "haveSpouseFlag": (
@@ -703,7 +714,15 @@ def getL15TravelInfo(
         emergency_family=emergency_family,
         emergency_first=emergency_first,
     )
-
+    addr = (L_15_HOTEL_INFO[hotel_type].get("address") or "").strip()
+    addr_100=""
+    if len(addr) > 100:
+        cut = addr[:100]
+        # nếu ký tự thứ 100 đang nằm giữa 1 từ thì lùi về khoảng trắng gần nhất
+        last_space = cut.rfind(" ")
+        addr_100 = cut[:last_space].rstrip() if last_space != -1 else cut.rstrip()
+    else:
+        addr_100 = addr
     travel_json.update(
         {
             "invitationNumber": "",
@@ -728,7 +747,7 @@ def getL15TravelInfo(
                     "sort": 1,
                     "stayCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
                     "stayCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
-                    "travelAddr": L_15_HOTEL_INFO[hotel_type].get("address"),
+                    "travelAddr": addr_100,
                     "arrivalDate": arrival_str,
                     "leaveDate": leave_str,
                 }

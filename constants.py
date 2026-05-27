@@ -5,9 +5,15 @@ CHECK_OLD_LIST_BASE_URL = "https://bio.visaforchina.cn/staging-api"
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
+PASSPORT_FILE_FOLDER="resources\\L15"
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
 OLD_APPLY_STATUS_APPROVED = "审核通过"
+OLD_APPLY_ID_FOR_TEST_TOKEN = "2026052752203677110"
+LOGIN_API_URL = "https://bio.visaforchina.cn/staging-api/application/online/login"
+NORMAL_ACCEPT = "application/json, text/plain, */*"
+DEFAULT_VI_LANGUAGE = "vi-VN"
+LOGIN_DEFAULT_ORIGIN = "https://bio.visaforchina.cn"
 
 DEFAULT_EMAIL = "wmtravelvn@gmail.com"
 DEFAULT_GUID = "17097129405490"
@@ -29,7 +35,8 @@ HOTEL_DATA = {
     "L15": (
         {
             "hotel": [
-                "Nanxing_hotel.docx" "L_Magic_Design_hotel.docx",
+                # "Nanxing_hotel.docx",
+                "L_Magic_Design_hotel.docx",
                 "hantao_hotel.docx",
             ]
         }
@@ -485,31 +492,31 @@ L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "L15\\duoi_18_tuoi\\giay_to_cho_nguoi_duoi
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "L15\\duoi_18_tuoi\\giay_uy_quyen"
 
 L_15_HOTEL_INFO = [
-    {
-        "place_city": "GUANGZHOU",
-        "iata_code": "CAN",
-        "name": "Nanxing Hotel (Nanxing Hotel)",
-        "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe",
-        "city": "CAN",
-        "arrivalCounty": "440106",
-        "relationship": "KHACH SAN",
-        "districtCounty": "",
-        "invitePhoneNumber": "118928746347",
-        "inviteProvince": "GD",
-        "documentName": "Nanxing_hotel.docx",
-        "citySelectedBox": "CAN1",
-    },
+    # {
+    #     "place_city": "GUANGZHOU",
+    #     "iata_code": "CAN",
+    #     "name": "Nanxing Hotel (Nanxing Hotel)",
+    #     "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe",
+    #     "city": "CAN",
+    #     "arrivalCounty": "440106",
+    #     "relationship": "KHACH SAN",
+    #     "districtCounty": "",
+    #     "invitePhoneNumber": "118928746347",
+    #     "inviteProvince": "GD",
+    #     "documentName": "Nanxing_hotel.docx",
+    #     "citySelectedBox": "CAN1",
+    # },
     {
         "place_city": "GUANGZHOU",
         "iata_code": "CAN",
         "name": "L-Magic Design hotel ( L-Magic 设计酒店)",
         "address": "No. 31, Tianhui Building, Jiangnan East Road, Haizhu District, Guangzhou, Guangdong Province, Guangzhou, 123456, Trung Quốc 广东省广州市海珠区江南东路天汇大厦31号, 广州市",
         "city": "CAN",
-        "arrivalCounty": "440100",
+        "arrivalCounty": "440105",
         "relationship": "KHACH SAN",
         "districtCounty": "",
         "invitePhoneNumber": "118924163387",
-        "inviteProvince": "440100",
+        "inviteProvince": "GD",
         "documentName": "L_Magic_Design_hotel.docx",
         "citySelectedBox": "CAN1",
     },
@@ -657,7 +664,7 @@ UPLOAD_CONFIG = {
                 "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
                 "limit": 1,
             }
-        ]
+        ],
     }
 }
 
@@ -847,3 +854,4 @@ SEX_MAP = {
 NATIONALITY_MAP = {
     "VNM": "Viet Nam",
 }
+ 

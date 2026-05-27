@@ -1,44 +1,55 @@
-from dataclasses import asdict
-from typing import Any
+from typing import Any, Optional
+import time
 
 import httpx
 
-from models import WorkInfoProfile
 from utils import build_upload_headers
+from constants import BASE_URL
 
 
-from constants import (
-    BASE_URL
-)
-
-async def api_save_work_info(
+async def api_get_person_info(
     client: httpx.AsyncClient,
     token: str,
     tmp_secret: str,
-    body: WorkInfoProfile,
+    applyid: str,
+    t_ms: Optional[int] = None,
 ) -> tuple[bool, dict[str, Any]]:
-    """POST ``WorkInfoProfile`` to ``{base_url}/SaveWorkInfo``.
+    """POST to ``{base_url}/api/cova-service/Visa/Apply/V1/GetPersonInfo`` (form-urlencoded).
 
     Returns ``(True, {status_code, response})`` on HTTP 200/201, else
-    ``(False, {status_code, error})``. Network/parsing errors return
+    ``(False, {status_code, error, response})``. Network/parsing errors return
     ``status_code`` -1 and the exception message as ``error``.
     """
     try:
-        url = f"{BASE_URL}/SaveWorkInfo"
-        headers = build_upload_headers(token, tmp_secret)
-        payload = asdict(body)
+        url = f"{BASE_URL}/GetPersonInfo"
 
-        resp = await client.post(url, headers=headers, json=payload)
+        headers = build_upload_headers(
+            token=token,
+            tmp_secret=tmp_secret,
+        )
+
+        if t_ms is None:
+            t_ms = int(time.time() * 1000)
+
+        form = {
+            "applyid": applyid,
+            "_t": str(t_ms),
+        }
+
+        resp = await client.post(url, headers=headers, data=form)
+
         data = (
             resp.json()
             if resp.headers.get("content-type", "").startswith("application/json")
             else {"raw": resp.text}
         )
+
         ok = resp.status_code in (200, 201)
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": data,
+                "error": "failedGetPersonInfo",
+                "response": data,
             }
 
         return True, {
@@ -51,4 +62,3 @@ async def api_save_work_info(
             "status_code": -1,
             "error": str(e),
         }
- 

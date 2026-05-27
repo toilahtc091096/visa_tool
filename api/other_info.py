@@ -55,7 +55,7 @@ async def api_save_other_info(
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": "failedSaveOtherInfo",
+                "error": data,
             }
 
         return True, {

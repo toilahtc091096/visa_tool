@@ -14,6 +14,8 @@ from .get_list_old_by_visa_number import api_list_online_applications
 from .get_work_by_app_id import api_get_work_info
 from .api_get_education_info_by_app_id import api_get_education_info
 from .api_get_family_info import api_get_family_info
+from .api_login import login, needs_relogin
+from .get_person_info import api_get_person_info
 
 __all__ = [
     "api_get_draft",
@@ -31,6 +33,9 @@ __all__ = [
     "api_list_online_applications",
     "api_get_work_info",
     "api_get_education_info",
-    "api_get_family_info"
+    "api_get_family_info",
+    "login",
+    "needs_relogin",
+    "api_get_person_info",
 ]
  

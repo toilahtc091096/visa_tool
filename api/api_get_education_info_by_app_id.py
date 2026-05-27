@@ -26,7 +26,6 @@ async def api_get_education_info(
         form = {
             "applyid": applyid,
         }
-
         resp = await client.post(url, headers=headers, data=form)
 
         data = (

@@ -74,3 +74,4 @@ def has_name(result: GetDraftListResult, inputname: str) -> bool:
         (it.name or "").strip().casefold() == target
         for it in result.Response.Data.list
     )
+ 

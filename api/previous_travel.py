@@ -37,7 +37,7 @@ async def api_save_previous_travel_info(
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": "failedSavePreviousTravelInfo",
+                "error": data,
             }
 
         return True, {

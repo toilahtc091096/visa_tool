@@ -37,6 +37,7 @@ async def api_save_apply_info(
             return False, {
                 "status_code": resp.status_code,
                 "error": "failedSaveApplyInfo",
+                "response": data,
             }
 
         return True, {
