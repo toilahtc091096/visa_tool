@@ -283,3 +283,6 @@ Check maritalsStatus theo cac truong hop,
 build server local, call qua URL 
 
 Tim cach dong goi Authentition
+
+
+api có cũ, cờ finger lỗi chưa chọn
