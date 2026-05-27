@@ -4,17 +4,35 @@ from utils import build_login_headers
 from models import LoginApiResponse
 from constants import (
     LOGIN_API_URL,
+    BASE_HEADERS
 )
 
-URL = LOGIN_API_URL
-
-
 def login(authorization: str, timeout: int = 30) -> LoginApiResponse:
-    r = requests.post(
-        URL, headers=build_login_headers(authorization), timeout=timeout
+    session = requests.Session()
+
+    session.get(
+        "https://bio.visaforchina.cn",
+        headers=BASE_HEADERS,
+        timeout=30,
+    )
+
+    authorization = authorization
+
+    referer = (
+        "https://bio.visaforchina.cn/onlineWeb/" "personalCenter/visa/historyForms"
+    )
+
+    r = session.post(
+        LOGIN_API_URL,
+        headers=build_login_headers(
+            authorization=authorization,
+            referer=referer,
+        ),
+        timeout=30,
     )
     r.raise_for_status()
     return LoginApiResponse.from_dict(r.json())
+
 
 def needs_relogin(parsed) -> bool:
     """
@@ -24,11 +42,5 @@ def needs_relogin(parsed) -> bool:
     if getattr(parsed, "message_includes", None) and parsed.message_includes("token"):
         return True
 
-    msg = (
-        (getattr(parsed, "raw", None) or {})
-        .get("response", {})
-        .get("message")
-    )
+    msg = (getattr(parsed, "raw", None) or {}).get("response", {}).get("message")
     return isinstance(msg, str) and ("token" in msg.casefold())
-
- 

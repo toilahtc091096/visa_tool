@@ -27,7 +27,6 @@ async def api_save_family_info(
         url = f"{BASE_URL}/SaveFamilyInfo"
         headers = build_upload_headers(token, tmp_secret)
         payload = asdict(body)
-
         resp = await client.post(url, headers=headers, json=payload)
         data = (
             resp.json()

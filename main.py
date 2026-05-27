@@ -15,13 +15,13 @@ def main() -> None:
     # 1) Auth (lay thu cong tu login do co captcha)
     # token = "NGY5YzY2ZjZmMWNhNDEyZjdkNmM2NDU3NWMxOGExYzQ1ZTgzYmViNGY0MDZhNDU1MmIyNjBhMWQwMjRjMTA5Ywx=="
     # tmp_secret = "vcenter_17097129405490_55b4fcb714cecfc1b1af4a2b79afc0a2_62351951_1779699846513_41f2f90fed8567941a94063e485c15fd"
-    authorization = "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiMTZlZTEzYzMtZjRmMy00MGVjLWJlNmMtYzI2N2E4NWZhY2YzIn0.XtBdkJfq69uSVamIhhrfHO54XACeIUOzEgrl-uH8a5y5yS05nUxQ6mmTmtgYBHxHerbocyOtU2fGRYzFOSEpMg"
+    authorization = "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOGM0ZGRiNzItMWU0OS00Mjk2LWFiNWQtNWVhOTk5MWE5MzkzIn0.GhGd1lcXPu2CvCdtiSrUezp2PWpREWOUaCV0ookhvQbToB3MUCad899EdLqLub2dm3ASo_kfQtMZKshOJtYbZg"
     # 2) Thong tin ho so co ban
     register_date = date.today() #date(2026, 5, 27)  # Ngay dau tien dang ky
 
     # 3) Thong tin cu tru / dinh danh (OCR khong lay duoc tu passport -> phai nhap tay)
-    province_city_code = "LAO CAI"  # Tinh/TP cua nguoi nop
-    id_card_number = "010300005345"  # So CCCD/CMND
+    province_city_code = "PHU THO"  # Tinh/TP cua nguoi nop
+    id_card_number = "132471134"  # So CCCD/CMND
 
     # 4) Lua chon visa cho API
     visa_type = "L15"

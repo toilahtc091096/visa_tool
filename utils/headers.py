@@ -1,4 +1,5 @@
 from typing import Dict
+import requests
 
 from constants import (
     DEFAULT_EMAIL,
@@ -12,15 +13,18 @@ from constants import (
     NORMAL_ACCEPT,
     DEFAULT_VI_LANGUAGE,
     LOGIN_DEFAULT_ORIGIN,
+    BASE_HEADERS
 )
 
 
-def build_login_headers(authorization: str) -> Dict[str, str]:
+def build_login_headers(
+    authorization: str,
+    referer: str,
+) -> Dict[str, str]:
     return {
-        "Accept": NORMAL_ACCEPT,
-        "Accept-Language": DEFAULT_VI_LANGUAGE,
+        **BASE_HEADERS,
         "Authorization": authorization,
-        "Origin": LOGIN_DEFAULT_ORIGIN,
+        "Referer": referer,
     }
 
 
@@ -90,4 +94,3 @@ def build_upload_headers(
         "user-agent": user_agent,
         "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOTc0ODNhMGMtNzU1YS00MjMzLWE2MmEtMmU1ODM0MzEzMzAyIn0.AXLhc5AC0pUxdu-IgUT1Mes3cBfcqExmnFqeAfOyphaFnJeJMlxbKIvb8cbAqac5rlqW-Ok35uIcWl60fxAI8w",
     }
- 

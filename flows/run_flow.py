@@ -1,5 +1,6 @@
 from datetime import date, datetime
 import httpx
+import random
 
 from generate_file import hotel_info, cv_info
 from api import (
@@ -20,7 +21,7 @@ from api import (
     api_get_education_info,
     api_get_family_info,
     api_login,
-    api_get_person_info
+    api_get_person_info,
 )
 from constants import (
     HOTEL_DATA,
@@ -88,7 +89,7 @@ from utils import (
     get_today_parts,
     load_login_payload,
     save_login_data,
-    get_passport_file_path
+    get_passport_file_path,
 )
 
 
@@ -137,7 +138,7 @@ async def run_flow(
     tmp_secret = login_payload.get("tmpSecret", "")
     first_letter_visa_type = visa_type[0]
     last_letter_visa_type = visa_type[1:]
-    first_applyid=""
+    first_applyid = ""
     if (
         visa_type not in MY_VISA_TYPE
         or first_letter_visa_type not in SERVICE_VISA_TYPE
@@ -169,17 +170,18 @@ async def run_flow(
             # if api_login.needs_relogin(parsed):
             print("call login")
             login_response = api_login.login(authorization)
+            print(login_response)
             save_login_data(login_response.data)
         else:
             print("token ok ")
         step = "get ocr"
-        passport_file_path = get_passport_file_path();
-        if passport_file_path =="":
+        passport_file_path = get_passport_file_path()
+        if passport_file_path == "":
             await notify(
                 f"Flow FAILED at step={step}. status={meta.get('status_code')} "
                 f"err={meta.get('error')}"
             )
-            log_event({"step": step, "ok": False, **{"status":"not have file"}})
+            log_event({"step": step, "ok": False, **{"status": "not have file"}})
 
             return
 
@@ -228,11 +230,7 @@ async def run_flow(
             # todo: api create new
             step = "save_personal_information_first"
             body_save_person_infor = build_person_profile(
-                "",
-                ocr_data.Response.Data,
-                province_city_code,
-                id_card_number,
-                {}
+                "", ocr_data.Response.Data, province_city_code, id_card_number, {}
             )
             ok2, meta2 = await api_save_person_info(
                 client, token, tmp_secret, body_save_person_infor
@@ -256,8 +254,8 @@ async def run_flow(
         if first_applyid is None or first_applyid == "":
             first_applyid = obj.applyid if obj else ""
         print("applyid=", first_applyid)
-        hotel_type = int(first_applyid[-5:-2]) % len(HOTEL_DATA[visa_type]["hotel"])
-        flight_ticket = int(first_applyid[-6:-3]) % 2
+        hotel_type = random.randint(0, 100) % len(HOTEL_DATA[visa_type]["hotel"])
+        flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[visa_type])
         if not first_applyid:
             log_event(
                 {
@@ -273,29 +271,31 @@ async def run_flow(
         step = "get_current_draft_personal_information"
         data_obj = {}
         if first_applyid is None or first_applyid == "":
-            ok, result = await api_get_person_info(client, token, tmp_secret, first_applyid)
-            if  ok:
+            ok, result = await api_get_person_info(
+                client, token, tmp_secret, first_applyid
+            )
+            if ok:
                 parsed = person_info_result_from_dict(result.get("response") or {})
                 data_obj = parsed.Response.Data
 
-        step = "save_personal_information"
-        body_save_person_infor = build_person_profile(
-            first_applyid,
-            ocr_data.Response.Data,
-            province_city_code,
-            id_card_number,
-            data_obj,
-        )
-        ok2, meta2 = await api_save_person_info(
-            client, token, tmp_secret, body_save_person_infor
-        )
-        log_event({"step": step, "ok": ok2, **meta2})
-        if not ok2:
-            await notify(
-                f"Flow FAILED at step={step}. status={meta2.get('status_code')} "
-                f"err={meta2.get('error')}"
-            )
-            return
+        # step = "save_personal_information"
+        # body_save_person_infor = build_person_profile(
+        #     first_applyid,
+        #     ocr_data.Response.Data,
+        #     province_city_code,
+        #     id_card_number,
+        #     data_obj,
+        # )
+        # ok2, meta2 = await api_save_person_info(
+        #     client, token, tmp_secret, body_save_person_infor
+        # )
+        # log_event({"step": step, "ok": ok2, **meta2})
+        # if not ok2:
+        #     await notify(
+        #         f"Flow FAILED at step={step}. status={meta2.get('status_code')} "
+        #         f"err={meta2.get('error')}"
+        #     )
+        #     return
 
         step = "save_type_of_visa"
         body_save_apply_info = build_apply_info_profile(

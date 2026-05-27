@@ -55,7 +55,7 @@ from models import (
     OnlineApplicationRow,
     WorkExperienceItem,
     EducationExperienceItem,
-    PersonInfoData
+    PersonInfoData,
 )
 
 
@@ -135,13 +135,13 @@ def build_person_profile(
         "passportNumber": ocr.passportNumber if ocr else None,
         "expirationDate": ocr.dateOfExpiration if ocr else None,
         "issueCountry": ocr.issuingCountry if ocr else None,
-        "maritalStatus": random.choice(["706001", "706003"]),
+        "maritalStatus": random.choice(["706002", "706003"]),
         "passport": random.choice(["707001", "707002"]),
         "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
         "photoPath": photo_path,
         "photoUrl": photo_url,
         "passportPath": passport_path,
-        "photoDetectionResult":photo_detection_result,
+        "photoDetectionResult": photo_detection_result,
         "passportUrl": passport_url,
         "birthplaceProvince": province_city_code,
         "birthplaceCity": province_city_code,
@@ -348,20 +348,16 @@ def _parent_birthday(main_account_birth_date: date) -> str:
 
 def _empty_spouse_entry() -> dict[str, Any]:
     return {
-        "address": "",
-        "birthCity": "",
-        "birthCountry": "",
-        "birthCounty": "",
-        "familyName": "czxcxz",
-        "firstName": "czxcxz zxcxzc",
+        "sort": "1",
+        "familyName": "",
+        "firstName": "",
         "nationalityCountry": "",
         "profession": "",
-        "birthday": "",
-        "sort": 1,
-        "country": "",
-        "province": "",
-        "city": "",
-        "county": "",
+        "otherSpecify": "",
+        "birthCountry": "",
+        "birthCity": "",
+        "birthCounty": "",
+        "address": "",
     }
 
 
@@ -436,7 +432,7 @@ def build_family_info_profile(
                 "remark": "",
             }
         )
-        spouses_info = []
+        spouses_info = [_empty_spouse_entry()]
     else:
         spouses_info = [_empty_spouse_entry()]
 
@@ -715,7 +711,7 @@ def getL15TravelInfo(
         emergency_first=emergency_first,
     )
     addr = (L_15_HOTEL_INFO[hotel_type].get("address") or "").strip()
-    addr_100=""
+    addr_100 = ""
     if len(addr) > 100:
         cut = addr[:100]
         # nếu ký tự thứ 100 đang nằm giữa 1 từ thì lùi về khoảng trắng gần nhất
