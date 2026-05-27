@@ -277,3 +277,9 @@ fix 2 anh api 1
   lay getPersonInfo => lay thong tin 4 field => dua vao payload
 Check tại sao family hay lỗi 
 API tạo draft thay cho việc tự tạo
+
+Check maritalsStatus theo cac truong hop, 
+
+build server local, call qua URL 
+
+Tim cach dong goi Authentition
