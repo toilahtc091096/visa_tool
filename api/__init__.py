@@ -18,8 +18,8 @@ from .api_login import login, needs_relogin
 from .get_person_info import api_get_person_info
 
 __all__ = [
-    "api_get_draft",
     "api_passport_ocr",
+    "api_get_draft",
     "api_save_apply_info",
     "api_save_education_info",
     "api_save_family_info",

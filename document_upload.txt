@@ -286,3 +286,32 @@ Tim cach dong goi Authentition
 
 
 api có cũ, cờ finger lỗi chưa chọn
+2 ảnh khi update lại chưa đúng 
+
+Logic L30: 
+Sửa logic của ( Information on travel, 2 file hotel và máy bay cần sửa, Thêm 1 file Itinerary in China ( Tạo ra thêm 1 vài template???, 
+File CV cần sửa, thêm vài người, Có thêm 1 file other cần re check )
+
+
+Cần nhóm 4 nguoi
+
+Hotel ( ghép từ 3 hotel, Ghép theo Thứ tự Tỉnh đến và về (Cần khớp với vé máy bay), nếu thêm hotel khác thuộc cùng tỉnh đi
+có thể thay thế chúng với nhau, sau đó ghép vào thành 1 file gồm 3 hotel theo lịch trình thứ tự ở trên) 
+
+Vé máy bay ( Cần lấy tỉnh đến và đi theo hotel đã ghép ở trên, ngày đến và đi cũng cần tính lại.) 
+
+Check folder của file Itinerary in China 
+
+======================================================================
+Thêm 1 folder vào template, chưa 1 file json các thông tin và thôgn tin Authentition
+main lấy từ json đó => Chỉ cần đẩy file 
+=> Lấy authen và info từ json là đủ 
+=> sau đó call api chạy
+
+2026-05-27 Thangs 8
+
+
+Làm L30 xong => test => tạo server. Sử dụng server thay cho chạy code 
+
+Phân tách thành các step, gọi server theo các step cần
+Ví dụ không lỗi gì => Chỉ cần đẩy travel_info và file 

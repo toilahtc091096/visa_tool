@@ -11,7 +11,6 @@ from utils import (
     notify,
 )
 
-from constants import PASSPORT_FILE_FOLDER
 def get_files(folder_path, x):
     base = Path(__file__).resolve().parent / ".." / "resources"
 
@@ -53,8 +52,8 @@ async def api_upload_file_common(
 
 from pathlib import Path
 
-def get_passport_file_path()-> str :
-    folder = Path(PASSPORT_FILE_FOLDER)
+def get_passport_file_path(passport_folder: str)-> str :
+    folder = Path(passport_folder)
 
     first_file = next((p for p in folder.iterdir() if p.is_file()), None)
 

@@ -37,6 +37,7 @@ from constants import (
     FAMILY_PARENT_RELATION_FATHER,
     GIVEN_MALE_VIETNAMESE_NAMES,
     VIETNAM_ADMIN,
+    L_30_HOTEL_INFO,
 )
 from models import (
     ApplyInfoProfile,
@@ -759,14 +760,76 @@ def getL15TravelInfo(
     return travel_json
 
 
+def getL30TravelInfo(
+    *,
+    applyid: str,
+    emergency_family: str,
+    emergency_first: str,
+    arrival_str: str,
+    leave_str: str,
+    arrivalVehicleType: str,
+    leaveVehicleType: str,
+) -> Dict[str, Any]:
+    """
+    Full travel_json = #same + specific (hotel/flight/date) part.
+    """
+    travel_json: Dict[str, Any] = getTravelCommonInfo(
+        applyid=applyid,
+        emergency_family=emergency_family,
+        emergency_first=emergency_first,
+    )
+    addr = (L_30_HOTEL_INFO[0].get("address") or "").strip()
+    addr_100 = ""
+    if len(addr) > 100:
+        cut = addr[:100]
+        # nếu ký tự thứ 100 đang nằm giữa 1 từ thì lùi về khoảng trắng gần nhất
+        last_space = cut.rfind(" ")
+        addr_100 = cut[:last_space].rstrip() if last_space != -1 else cut.rstrip()
+    else:
+        addr_100 = addr
+    travel_json.update(
+        {
+            "invitationNumber": "",
+            "inviteCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
+            "inviteCounty": "",
+            "inviteEmail": "",
+            "inviteName": L_30_HOTEL_INFO[0].get("name"),
+            "invitePhoneNumber": mobile_utils.generate_supervisor_tel("15920187600"),
+            "inviteProvince": L_30_HOTEL_INFO[0].get("inviteProvince"),
+            "inviteRelation": L_30_HOTEL_INFO[0].get("relationship"),
+            "inviteZipCode": "",
+            "travelCompanion": [],
+            "notApplyItems": [],
+            "arrivalVehicleType": arrivalVehicleType,
+            "arrivalCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
+            "arrivalCounty": L_30_HOTEL_INFO[0].get("arrivalCounty"),
+            "stayCity": "",
+            "stayCounty": "",
+            "travelAddr": "",
+            "stayInfo": [
+                {
+                    "sort": 1,
+                    "stayCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
+                    "stayCounty": L_30_HOTEL_INFO[0].get("arrivalCounty"),
+                    "travelAddr": addr_100,
+                    "arrivalDate": arrival_str,
+                    "leaveDate": leave_str,
+                }
+            ],
+            "leaveCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
+            "leaveCounty": "",
+            "leaveDate": leave_str,
+            "leaveVehicleType": leaveVehicleType,
+            "arrivalDate": arrival_str,
+        }
+    )
+
+    return travel_json
+
+
 def build_travel_info_profile(
     visa_type: str,
     applyid: str,
-    dob: str,
-    fatherFamilyName: str,
-    fatherGivenName: str,
-    motherFamilyName: str,
-    motherGivenName: str,
     payName: str,
     payMobile: str,
     arrival_date: date,
@@ -791,7 +854,15 @@ def build_travel_info_profile(
             leaveVehicleType=leaveVehicleType,
         )
     elif visa_type == "L30":
-        travel_json = {}
+        travel_json: dict[str, Any] = getL30TravelInfo(
+            applyid=applyid,
+            emergency_family=emergency_family,
+            emergency_first=emergency_first,
+            arrival_str=arrival_str,
+            leave_str=leave_str,
+            arrivalVehicleType=arrivalVehicleType,
+            leaveVehicleType=leaveVehicleType,
+        )
     else:
         travel_json = {}
 
@@ -1102,3 +1173,11 @@ def build_signature_body(
     )
 
     return profile
+
+
+def build_L30_guest_names(guest_name: list[str], vietnamese_name: str) -> list[str]:
+    if guest_name == []:
+        guest_name = [vietnamese_name]
+    while (len(guest_name) < 4):
+        guest_name.append(random.choice(VIETNAMESE_NAMES).upper())
+    return guest_name

@@ -27,12 +27,12 @@ def work_experience_end_date() -> str:
     return year_month_str(date.today())
 
 
-def monday_and_friday_skip_4_weeks(d: date):
+def monday_and_friday_skip_x_weeks(d: date, x: int):
     # Monday of the week that contains d
     monday = d - timedelta(days=d.weekday())   # weekday(): Mon=0..Sun=6
     # Skip 4 weeks forward
-    monday += timedelta(weeks=4)
-    friday = monday + timedelta(days=4)
+    monday += timedelta(weeks=x)
+    friday = monday + timedelta(days=x)
     return monday, friday
 
 def parse_date(date_str: str):

@@ -1,3 +1,5 @@
+import random
+
 """Shared constants for API headers and site defaults."""
 
 BASE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
@@ -5,7 +7,7 @@ CHECK_OLD_LIST_BASE_URL = "https://bio.visaforchina.cn/staging-api"
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
-PASSPORT_FILE_FOLDER="resources\\L15"
+PASSPORT_FILE_FOLDER = {"L15": "resources\\L15", "L30": "resources\\L30"}
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
 OLD_APPLY_STATUS_APPROVED = "审核通过"
@@ -38,6 +40,16 @@ HOTEL_DATA = {
                 # "Nanxing_hotel.docx",
                 "L_Magic_Design_hotel.docx",
                 "hantao_hotel.docx",
+                "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
+            ]
+        }
+    ),
+    "L30": (
+        {
+            "hotel": [
+                "GreenTree_Inn_Beejin.docx",
+                "Holiday_Inn_Express_ShangHai.docx",
+                "Lanvande_Hotel_GzuangChau.docx",
             ]
         }
     ),
@@ -446,19 +458,6 @@ L_30_HOTEL_INFO = [
         "inviteProvince": "440105",
         "documentName": "Lanvande_Hotel_GzuangChau.docx",
     },
-    {
-        "place_city": "BEIJING",
-        "iata_code": "CAN",
-        "name": "GreenTree Inn Beijing East Yizhuang District Second Kechuang Street Express Hotel",
-        "address": "16th Floor, Reception Room, Huijin International Financial Center, Trung Quốc",
-        "city": "CAN1",
-        "arrivalCounty": "440100",
-        "relationship": "KHACH SAN",
-        "districtCounty": "",
-        "invitePhoneNumber": "113751794679",
-        "inviteProvince": "440100",
-        "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
-    },
 ]
 L_15_HOTEL_OUTPUT_PATH = "L15\\chung\\khach_san"
 L_15_TICKET_OUTPUT_PATH = "L15\\chung\\ve_may_bay"
@@ -491,7 +490,41 @@ L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "L15\\duoi_18_tuoi\\giay_to_cho_nguoi_duoi
 
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "L15\\duoi_18_tuoi\\giay_uy_quyen"
 
+L_30_HOTEL_OUTPUT_PATH = "L30\\chung\\khach_san"
+L_30_TICKET_OUTPUT_PATH = "L30\\chung\\ve_may_bay"
+L_30_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "L30\\chung\\2_trang_ho_chieu_trang"
+
+L_30_HOTEL_OUTPUT_PATH = "L30\\chung\\khach_san"
+
+L_30_TICKET_OUTPUT_PATH = "L30\\chung\\ve_may_bay"
+
+L_30_BANK_STATEMENT_OUTPUT_PATH = "L30\\chung\\sao_ke_ngan_hang"
+
+L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "L30\\chung\\xac_nhan_tu_trung_tam_visa"
+
+L_30_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
+    "L30\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
+)
+L_30_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
+    "L30\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
+)
+
+L_30_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
+    "L30\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
+)
+
+L_30_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
+    "L30\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
+)
+
+L_30_UNDER_18_DOCUMENTS_OUTPUT_PATH = "L30\\duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
+
+L_30_AUTHORIZATION_LETTER_OUTPUT_PATH = "L30\\duoi_18_tuoi\\giay_uy_quyen"
+
+WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
+
 L_15_HOTEL_INFO = [
+    # Pazhou Exhibition
     # {
     #     "place_city": "GUANGZHOU",
     #     "iata_code": "CAN",
@@ -526,12 +559,26 @@ L_15_HOTEL_INFO = [
         "name": "Hantao AI Select International Apartment",
         "address": "Room 1018 Zhongdingminghui (Middle Tower), No 76 Feng Le Road, Huangpu District, Guangzhou, Guangdong, China, Huang Pu, Guangzhou, 510799, China",
         "city": "CAN",
-        "arrivalCounty": "440100",
+        "arrivalCounty": "440112",
         "relationship": "KHACH SAN",
         "districtCounty": "",
         "invitePhoneNumber": "115920187600",
-        "inviteProvince": "440100",
+        "inviteProvince": "GD",
         "documentName": "hantao_hotel.docx",
+        "citySelectedBox": "CAN1",
+    },
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Pazhou Exhibition",
+        "address": " 16th Floor, Reception Room, Huijin International Financial Center, Guangzhou City, Guangdong",
+        "city": "CAN",
+        "arrivalCounty": "440100",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "113751794679",
+        "inviteProvince": "440100",
+        "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
         "citySelectedBox": "CAN1",
     },
 ]
@@ -544,7 +591,15 @@ FLIGHT_TEMPLATE = {
             "prefix_number": "83",
         },
         {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
-    ]
+    ],
+    "L30": [
+        {
+            "name": "VE_MAY_BAY_L15_B_Jet.docx",
+            "prefix_flight_text": "CZ",
+            "prefix_number": "83",
+        },
+        {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
+    ],
 }
 
 UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
@@ -854,7 +909,7 @@ SEX_MAP = {
 NATIONALITY_MAP = {
     "VNM": "Viet Nam",
 }
- 
+
 BASE_HEADERS = {
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "vi-VN",
