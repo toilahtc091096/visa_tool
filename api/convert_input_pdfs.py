@@ -3,6 +3,8 @@ from typing import Any
 
 import fitz
 
+from .r2_download import api_download_r2_object
+
 
 def _convert_pdf_to_pngs(pdf_path: Path) -> list[Path]:
     output_paths: list[Path] = []
@@ -17,7 +19,10 @@ def _convert_pdf_to_pngs(pdf_path: Path) -> list[Path]:
     return output_paths
 
 
-def api_convert_input_pdfs(input_dir: str | Path | None = None) -> dict[str, Any]:
+def api_convert_input_pdfs(
+    input_dir: str | Path | None = None,
+    download_key: str | None = None,
+) -> dict[str, Any]:
     base_dir = Path(__file__).resolve().parent.parent / "resources"
     resolved_input_dir = Path(input_dir) if input_dir is not None else base_dir / "input"
 
@@ -28,6 +33,16 @@ def api_convert_input_pdfs(input_dir: str | Path | None = None) -> dict[str, Any
             "reason": "resources/input does not exist",
             "input_dir": str(resolved_input_dir),
         }
+
+    download_result = None
+    if download_key not in (None, ""):
+        download_result = api_download_r2_object(download_key, resolved_input_dir)
+        if not download_result.get("ok"):
+            return {
+                "ok": False,
+                "input_dir": str(resolved_input_dir),
+                "download": download_result,
+            }
 
     converted: list[dict[str, Any]] = []
     pdf_paths = sorted(
@@ -48,6 +63,7 @@ def api_convert_input_pdfs(input_dir: str | Path | None = None) -> dict[str, Any
     return {
         "ok": True,
         "input_dir": str(resolved_input_dir),
+        "download": download_result,
         "converted": converted,
         "pdf_count": len(pdf_paths),
     }

@@ -20,6 +20,7 @@ _EXPORTS = {
     "api_get_education_info": ("api_get_education_info_by_app_id", "api_get_education_info"),
     "api_get_family_info": ("api_get_family_info", "api_get_family_info"),
     "api_convert_input_pdfs": ("convert_input_pdfs", "api_convert_input_pdfs"),
+    "api_download_r2_object": ("r2_download", "api_download_r2_object"),
     "login": ("api_login", "login"),
     "needs_relogin": ("api_login", "needs_relogin"),
     "api_get_person_info": ("get_person_info", "api_get_person_info"),

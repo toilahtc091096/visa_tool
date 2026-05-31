@@ -31,7 +31,11 @@ async def convert_input_pdfs(request: Request):
     except json.JSONDecodeError:
         body_json = None
 
-    result = api_convert_input_pdfs()
+    download_key = ""
+    if isinstance(body_json, dict):
+        download_key = str(body_json.get("key", "")).strip()
+
+    result = api_convert_input_pdfs(download_key=download_key)
     result["request"] = {
         "method": request.method,
         "body_text": body_text,

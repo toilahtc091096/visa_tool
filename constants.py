@@ -1,3 +1,5 @@
+import env_loader  # noqa: F401
+import os
 import random
 
 """Shared constants for API headers and site defaults."""
@@ -5,6 +7,10 @@ import random
 BASE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
 BASE_STATE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/State/V1"
 CHECK_OLD_LIST_BASE_URL = "https://bio.visaforchina.cn/staging-api"
+R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "https://522ae3a4b22b1889539177ef851c51ba.r2.cloudflarestorage.com")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "visa-data")
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
