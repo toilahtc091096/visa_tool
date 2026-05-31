@@ -13,7 +13,7 @@ def _convert_pdf_bytes_to_png_uploads(pdf_name: str, pdf_bytes: bytes) -> dict[s
         for page_index in range(len(doc)):
             page = doc.load_page(page_index)
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-            png_key = f"converted/{Path(pdf_name).stem}/{Path(pdf_name).stem}_page_{page_index + 1}.png"
+            png_key = f"/{Path(pdf_name).stem}_page_{page_index + 1}.png"
             upload_result = api_upload_r2_object(
                 png_key,
                 pix.tobytes("png"),
