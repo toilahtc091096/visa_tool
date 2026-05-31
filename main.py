@@ -1,75 +1,174 @@
 import asyncio
 from datetime import date
+import unicodedata
+from typing import Any
+
 from flows import run_flow
-import json
 
 
-def load_case(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+DEFAULT_CASE: dict[str, Any] = {
+    "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiMTQzMDZlMDEtNzdiMi00YzlkLTk5OTctOTc3MzU2Y2NkZWQ3In0.2GRdpq7PVqIKun3Tj7db7JVsVGCJMMfHzV_sP67q2VH11sM5r9DOxZdv76IyXS8FCA8DVhCAD-PA-6mSDHl5Qw",
+    "first_applyid": "",
+    "is_update_info": False,
+    "upload_config_keys": [],
+    "province_city_code": "",
+    "id_card_number": "",
+    "register_date": "",
+    "visa_type": "L15",
+    "entries_type": "S",
+    "type_of_visa_sub_value": "I",
+    "service_type": "N",
+    "arrivedChinaFlag": False,
+    "ct08_province_city_code": "",
+    "haveChinaVisaFlag": False,
+    "old_visaType": "",
+    "old_visaNumber": "",
+    "old_issueDate": "",
+    "old_issuePlace": "",
+    "haveOtherVisaFlag": False,
+    "old_otherVisas": [],
+    "old_otherCountries": [],
+    "guest_name": [],
+    "ticket_names": [],
+    "haveSpouseFlag": False,
+    "haveChildFlag": False,
+    "childFamilyName": "",
+    "childGivenName": "",
+    "childNationality": "",
+    "childBirthDate": "",
+    "fatherFamilyName": "",
+    "fatherGivenName": "",
+    "fatherNationality": "",
+    "fatherBirthDate": "",
+    "motherFamilyName": "",
+    "motherGivenName": "",
+    "motherNationality": "",
+    "motherBirthDate": "",
+    "payName": "",
+    "payMobile": "",
+}
 
-    if "register_date" not in data or data["register_date"] in (None, ""):
-        data["register_date"] = date.today()
-    elif isinstance(data["register_date"], str):
-        y, m, d = map(int, data["register_date"].split("-"))
-        data["register_date"] = date(y, m, d)
 
-    return data
+def _normalize_register_date(value: Any) -> date:
+    if value in (None, ""):
+        return date.today()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        y, m, d = map(int, value.split("-"))
+        return date(y, m, d)
+    return date.today()
 
-#need param
-case = load_case("resources/l_info.json")
-__all__ = ["run_flow", "main"]
+
+def _normalize_province_city_code(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip().upper()
+    return "".join(
+        ch
+        for ch in unicodedata.normalize("NFD", text)
+        if unicodedata.category(ch) != "Mn"
+    )
 
 
-def main() -> None:
+def _normalize_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return bool(value)
+
+
+def _normalize_upload_config_keys(value: Any) -> list[str]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, str):
+        items = value.split(",")
+    elif isinstance(value, (list, tuple, set)):
+        items = list(value)
+    else:
+        return []
+    return [str(item).strip().upper() for item in items if str(item).strip()]
+
+
+def build_case(case: dict[str, Any] | None = None) -> dict[str, Any]:
+    merged = dict(DEFAULT_CASE)
+    if case:
+        merged.update(case)
+    merged["register_date"] = _normalize_register_date(merged.get("register_date"))
+    merged["province_city_code"] = _normalize_province_city_code(
+        merged.get("province_city_code")
+    )
+    merged["ct08_province_city_code"] = _normalize_province_city_code(
+        merged.get("ct08_province_city_code")
+    )
+    merged["is_update_info"] = _normalize_bool(merged.get("is_update_info"))
+    merged["upload_config_keys"] = _normalize_upload_config_keys(
+        merged.get("upload_config_keys")
+    )
+    return merged
+
+
+__all__ = ["run_flow", "main", "build_case", "DEFAULT_CASE"]
+
+
+def main(
+    case: dict[str, Any] | None = None,
+    first_applyid: str | None = None,
+    is_update_info: bool | None = None,
+    upload_config_keys: list[str] | None = None,
+) -> None:
+    data = build_case(case)
+    if first_applyid is not None:
+        data["first_applyid"] = str(first_applyid).strip()
+    if is_update_info is not None:
+        data["is_update_info"] = _normalize_bool(is_update_info)
+    if upload_config_keys is not None:
+        data["upload_config_keys"] = _normalize_upload_config_keys(upload_config_keys)
     asyncio.run(
         run_flow(
-            case["authorization"],
-            # common
-            case["visa_type"],
-            case["register_date"],
-            case["guest_name"],
-            case["ticket_names"],
-            case["province_city_code"],
-            case["id_card_number"],
-            case["entries_type"],
-            case["type_of_visa_sub_value"],
-            case["service_type"],
-            # family
-            case["haveSpouseFlag"],
-            case["ct08_province_city_code"],
-            case["haveChildFlag"],
-            case["childFamilyName"],
-            case["childGivenName"],
-            case["childNationality"],
-            case["childBirthDate"],
-            # father
-            case["fatherFamilyName"],
-            case["fatherGivenName"],
-            case["fatherNationality"],
-            case["fatherBirthDate"],
-            # mother
-            case["motherFamilyName"],
-            case["motherGivenName"],
-            case["motherNationality"],
-            case["motherBirthDate"],
-            # travel info
-            case["arrivedChinaFlag"],
-            case["haveChinaVisaFlag"],
-            case["old_visaType"],
-            case["old_visaNumber"],
-            case["old_issueDate"],
-            case["old_issuePlace"],
-            case["haveOtherVisaFlag"],
-            case["old_otherVisas"],
-            case["old_otherCountries"],
-            # payer
-            case["payMobile"],
-            case["payName"],
+            data["authorization"],
+            data["visa_type"],
+            data["register_date"],
+            data["guest_name"],
+            data["ticket_names"],
+            data["province_city_code"],
+            data["id_card_number"],
+            data["entries_type"],
+            data["type_of_visa_sub_value"],
+            data["service_type"],
+            data["haveSpouseFlag"],
+            data["ct08_province_city_code"],
+            data["haveChildFlag"],
+            data["childFamilyName"],
+            data["childGivenName"],
+            data["childNationality"],
+            data["childBirthDate"],
+            data["fatherFamilyName"],
+            data["fatherGivenName"],
+            data["fatherNationality"],
+            data["fatherBirthDate"],
+            data["motherFamilyName"],
+            data["motherGivenName"],
+            data["motherNationality"],
+            data["motherBirthDate"],
+            data["arrivedChinaFlag"],
+            data["haveChinaVisaFlag"],
+            data["old_visaType"],
+            data["old_visaNumber"],
+            data["old_issueDate"],
+            data["old_issuePlace"],
+            data["haveOtherVisaFlag"],
+            data["old_otherVisas"],
+            data["old_otherCountries"],
+            data["payMobile"],
+            data["payName"],
+            data["first_applyid"],
+            data["is_update_info"],
+            data["upload_config_keys"],
         )
     )
 
 
 if __name__ == "__main__":
     main()
- 

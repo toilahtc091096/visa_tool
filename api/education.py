@@ -51,4 +51,3 @@ async def api_save_education_info(
             "status_code": -1,
             "error": str(e),
         }
- 

@@ -1,34 +1,28 @@
-from dataclasses import asdict
 from typing import Any
 
 import httpx
 
-from models import WorkInfoProfile
+from constants import BASE_STATE_URL
 from utils import build_upload_headers
 
 
-from constants import (
-    BASE_URL
-)
-
-async def api_save_work_info(
+async def api_remove_upload_file(
     client: httpx.AsyncClient,
     token: str,
     tmp_secret: str,
-    body: WorkInfoProfile,
+    category_code: str,
+    material_code: str,
+    business_id: str,
 ) -> tuple[bool, dict[str, Any]]:
-    """POST ``WorkInfoProfile`` to ``{base_url}/SaveWorkInfo``.
-
-    Returns ``(True, {status_code, response})`` on HTTP 200/201, else
-    ``(False, {status_code, error})``. Network/parsing errors return
-    ``status_code`` -1 and the exception message as ``error``.
-    """
     try:
-        url = f"{BASE_URL}/SaveWorkInfo"
+        url = f"{BASE_STATE_URL}/RemoveApMaterial"
         headers = build_upload_headers(token, tmp_secret)
-        payload = asdict(body)
-
-        resp = await client.post(url, headers=headers, json=payload)
+        files = {
+            "categoryCode": (None, category_code),
+            "materialCode": (None, material_code),
+            "businessId": (None, business_id),
+        }
+        resp = await client.post(url, headers=headers, files=files)
         data = (
             resp.json()
             if resp.headers.get("content-type", "").startswith("application/json")
@@ -38,14 +32,13 @@ async def api_save_work_info(
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": data,
+                "error": "failedRemoveApMaterial",
+                "response": data,
             }
-
         return True, {
             "status_code": resp.status_code,
             "response": data,
         }
-
     except Exception as e:
         return False, {
             "status_code": -1,

@@ -1,16 +1,30 @@
-# server.py
+from typing import Any
+
 from fastapi import FastAPI
-from tool import main  # tool.py đã expose main từ main.py
+
+from api import api_convert_input_pdfs
+from main import build_case, main
 
 app = FastAPI()
 
-#GetID by passportNUmber
 
 @app.get("/health")
 def health():
     return {"ok": True}
 
-@app.get("/run")
-def run():
-    main()
-    return {"ok": True}
+
+@app.post("/run")
+def run(payload: dict[str, Any] | None = None):
+    case = build_case(payload)
+    main(
+        case,
+        first_applyid=case.get("first_applyid", ""),
+        is_update_info=case.get("is_update_info", False),
+        upload_config_keys=case.get("upload_config_keys", []),
+    )
+    return {"ok": True, "received": payload is not None}
+
+
+@app.api_route("/convert-input-pdfs", methods=["GET", "POST"])
+def convert_input_pdfs():
+    return api_convert_input_pdfs()

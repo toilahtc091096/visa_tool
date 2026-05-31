@@ -16,7 +16,7 @@ async def api_save_person_info(
     tmp_secret: str,
     body: PersonInfoProfile,
 ) -> tuple[bool, dict[str, Any]]:
-    url = f"{BASE_URL}/SavePersonInfo"  # đổi path cho đúng API của bạn
+    url = f"{BASE_URL}/SavePersonInfo"  # Ä‘á»•i path cho Ä‘Ãºng API cá»§a báº¡n
     headers = build_get_draft_headers(token, tmp_secret)
     if is_dataclass(body):
         payload = asdict(body)
@@ -63,4 +63,3 @@ async def api_save_person_info(
                 "json": payload,
             },
         }
- 

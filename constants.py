@@ -3,6 +3,7 @@ import random
 """Shared constants for API headers and site defaults."""
 
 BASE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
+BASE_STATE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/State/V1"
 CHECK_OLD_LIST_BASE_URL = "https://bio.visaforchina.cn/staging-api"
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
@@ -40,7 +41,7 @@ HOTEL_DATA = {
                 # "Nanxing_hotel.docx",
                 "L_Magic_Design_hotel.docx",
                 "hantao_hotel.docx",
-                "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
+                # "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
             ]
         }
     ),
@@ -461,16 +462,10 @@ L_30_HOTEL_INFO = [
 ]
 L_15_HOTEL_OUTPUT_PATH = "L15\\chung\\khach_san"
 L_15_TICKET_OUTPUT_PATH = "L15\\chung\\ve_may_bay"
-L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "L15\\chung\\2_trang_ho_chieu_trang"
-
-L_15_HOTEL_OUTPUT_PATH = "L15\\chung\\khach_san"
-
-L_15_TICKET_OUTPUT_PATH = "L15\\chung\\ve_may_bay"
-
-L_15_BANK_STATEMENT_OUTPUT_PATH = "L15\\chung\\sao_ke_ngan_hang"
-
 L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "L15\\chung\\xac_nhan_tu_trung_tam_visa"
 
+L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "L15\\chung\\2_trang_ho_chieu_trang"
+L_15_BANK_STATEMENT_OUTPUT_PATH = "L15\\chung\\sao_ke_ngan_hang"
 L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
     "L15\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
 )
@@ -567,20 +562,20 @@ L_15_HOTEL_INFO = [
         "documentName": "hantao_hotel.docx",
         "citySelectedBox": "CAN1",
     },
-    {
-        "place_city": "GUANGZHOU",
-        "iata_code": "CAN",
-        "name": "Pazhou Exhibition",
-        "address": " 16th Floor, Reception Room, Huijin International Financial Center, Guangzhou City, Guangdong",
-        "city": "CAN",
-        "arrivalCounty": "440100",
-        "relationship": "KHACH SAN",
-        "districtCounty": "",
-        "invitePhoneNumber": "113751794679",
-        "inviteProvince": "440100",
-        "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
-        "citySelectedBox": "CAN1",
-    },
+    # {
+    #     "place_city": "GUANGZHOU",
+    #     "iata_code": "CAN",
+    #     "name": "Pazhou Exhibition",
+    #     "address": " 16th Floor, Reception Room, Huijin International Financial Center, Guangzhou City, Guangdong",
+    #     "city": "CAN",
+    #     "arrivalCounty": "440100",
+    #     "relationship": "KHACH SAN",
+    #     "districtCounty": "",
+    #     "invitePhoneNumber": "113751794679",
+    #     "inviteProvince": "440100",
+    #     "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
+    #     "citySelectedBox": "CAN1",
+    # },
 ]
 
 FLIGHT_TEMPLATE = {
