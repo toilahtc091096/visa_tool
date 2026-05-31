@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+import json
+from fastapi import FastAPI, Request
 from typing import Any
 from api import api_convert_input_pdfs
 from main import build_case, main
@@ -22,5 +23,18 @@ def run(payload: dict[str, Any] | None = None):
 
 
 @app.api_route("/convert-input-pdfs", methods=["GET", "POST"])
-def convert_input_pdfs():
-    return api_convert_input_pdfs()
+async def convert_input_pdfs(request: Request):
+    raw_body = await request.body()
+    body_text = raw_body.decode("utf-8", errors="replace") if raw_body else ""
+    try:
+        body_json = json.loads(body_text) if body_text else None
+    except json.JSONDecodeError:
+        body_json = None
+
+    result = api_convert_input_pdfs()
+    result["request"] = {
+        "method": request.method,
+        "body_text": body_text,
+        "body_json": body_json,
+    }
+    return result
