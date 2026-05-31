@@ -52,6 +52,7 @@ def api_convert_input_pdfs(
     )
     for pdf_path in pdf_paths:
         png_paths = _convert_pdf_to_pngs(pdf_path)
+        print(png_paths)
         converted.append(
             {
                 "pdf": pdf_path.name,
