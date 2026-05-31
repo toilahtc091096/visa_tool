@@ -1,12 +1,20 @@
-from typing import Any
+print("1")
 
 from fastapi import FastAPI
 
+print("2")
+
 from api import api_convert_input_pdfs
+
+print("3")
+
 from main import build_case, main
+
+print("4")
 
 app = FastAPI()
 
+print("5")
 
 @app.get("/health")
 def health():
