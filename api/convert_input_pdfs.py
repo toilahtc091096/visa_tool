@@ -4,19 +4,44 @@ from typing import Any
 import fitz
 
 from .r2_download import api_download_r2_object
+from .r2_upload import api_upload_r2_object
 
 
-def _convert_pdf_to_pngs(pdf_path: Path) -> list[Path]:
-    output_paths: list[Path] = []
+def _convert_pdf_to_pngs_and_upload(pdf_path: Path) -> dict[str, Any]:
+    uploaded_pngs: list[dict[str, Any]] = []
     with fitz.open(pdf_path) as doc:
         for page_index in range(len(doc)):
             page = doc.load_page(page_index)
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
-            output_path = pdf_path.with_name(f"{pdf_path.stem}_page_{page_index + 1}.png")
-            pix.save(output_path)
-            output_paths.append(output_path)
+            png_key = f"converted/{pdf_path.stem}/{pdf_path.stem}_page_{page_index + 1}.png"
+            upload_result = api_upload_r2_object(
+                png_key,
+                pix.tobytes("png"),
+                content_type="image/png",
+            )
+            if not upload_result.get("ok"):
+                return {
+                    "ok": False,
+                    "pdf": pdf_path.name,
+                    "uploaded_pngs": uploaded_pngs,
+                    "failed": {
+                        "key": png_key,
+                        "upload": upload_result,
+                    },
+                }
+            uploaded_pngs.append(
+                {
+                    "key": png_key,
+                    "upload": upload_result,
+                }
+            )
     pdf_path.unlink(missing_ok=True)
-    return output_paths
+    return {
+        "ok": True,
+        "pdf": pdf_path.name,
+        "uploaded_pngs": uploaded_pngs,
+        "page_count": len(uploaded_pngs),
+    }
 
 
 def api_convert_input_pdfs(
@@ -51,13 +76,20 @@ def api_convert_input_pdfs(
         if path.is_file() and path.suffix.lower() == ".pdf"
     )
     for pdf_path in pdf_paths:
-        png_paths = _convert_pdf_to_pngs(pdf_path)
-        print(png_paths)
+        upload_result = _convert_pdf_to_pngs_and_upload(pdf_path)
+        if not upload_result.get("ok"):
+            return {
+                "ok": False,
+                "input_dir": str(resolved_input_dir),
+                "download": download_result,
+                "failed_pdf": upload_result,
+                "pdf_count": len(pdf_paths),
+            }
         converted.append(
             {
                 "pdf": pdf_path.name,
-                "png_files": [path.name for path in png_paths],
-                "page_count": len(png_paths),
+                "uploaded_pngs": upload_result["uploaded_pngs"],
+                "page_count": upload_result["page_count"],
             }
         )
 
