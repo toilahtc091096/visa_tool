@@ -65,7 +65,7 @@ async def upload_html_to_pdf(file: UploadFile = File(...)):
 
         html_content = await file.read()
         pdf_path = convert_html_to_pdf(html_content)
-        r2_key = upload_pdf_to_r2(pdf_path)
+        r2_key = upload_pdf_to_r2(pdf_path, "data/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/")
 
         return {"message": "Upload thanh cong", "file_key": r2_key}
 

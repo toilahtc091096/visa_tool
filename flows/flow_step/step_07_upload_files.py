@@ -1,6 +1,6 @@
 from api import api_remove_upload_file
 from constants import UPLOAD_CONFIG, UPLOAD_FILE_CODE_BY_VISA_TYPE
-from utils import api_upload_file_common, get_files
+from utils import api_upload_file_common, ensure_data_folder_downloaded, get_files
 from utils import log_event, notify
 
 
@@ -11,6 +11,7 @@ async def upload_files(
     upload_config_keys=None,
 ) -> bool:
     ctx.step = "Step 9 Upload File"
+    ensure_data_folder_downloaded()
     cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[ctx.visa_type]
     selected_upload_keys = set(upload_config_keys or [])
 

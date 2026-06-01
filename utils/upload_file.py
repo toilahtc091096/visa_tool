@@ -5,19 +5,32 @@ from flows.flow_payloads import (
 from api import (
     api_upload_file,
 )
+from utils.download_r2 import download_r2_folder
 
 from utils import (
     log_event,
     notify,
 )
 
-def get_files(folder_path, x):
-    base = Path(__file__).resolve().parent / ".." / "resources"
+DATA_LOCAL_DIR = Path(__file__).resolve().parent / ".." / "data"
+DATA_R2_PREFIX = "data/"
+_DATA_DOWNLOADED = False
 
-    folder = base / folder_path.lstrip("/")
+
+def ensure_data_folder_downloaded() -> None:
+    global _DATA_DOWNLOADED
+    if _DATA_DOWNLOADED and DATA_LOCAL_DIR.exists():
+        return
+    download_r2_folder(prefix=DATA_R2_PREFIX, local_dir=str(DATA_LOCAL_DIR))
+    _DATA_DOWNLOADED = True
+
+
+def get_files(folder_path, x):
+    folder = DATA_LOCAL_DIR / folder_path.lstrip("/\\")
+    if not folder.exists() or not folder.is_dir():
+        return []
 
     files = [f for f in folder.iterdir() if f.is_file()]
-
     return files[:x]
 
 async def api_upload_file_common(
@@ -50,12 +63,16 @@ async def api_upload_file_common(
         )
         return
 
-from pathlib import Path
-
-def get_passport_file_path(passport_folder: str)-> str :
-    folder = Path(passport_folder)
+def get_passport_file_path(passport_folder: str) -> str | None:
+    folder_name = str(passport_folder or "").strip().lstrip("/\\")
+    if not folder_name or folder_name.lower() == "data":
+        folder = DATA_LOCAL_DIR
+    else:
+        folder = DATA_LOCAL_DIR / folder_name
+    if not folder.exists() or not folder.is_dir():
+        return None
 
     first_file = next((p for p in folder.iterdir() if p.is_file()), None)
 
     file_path = str(first_file) if first_file else None
-    return(file_path)
+    return file_path

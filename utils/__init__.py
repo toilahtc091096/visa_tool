@@ -15,6 +15,7 @@ _EXPORTS = {
     "get_files": ("upload_file", "get_files"),
     "api_upload_file_common": ("upload_file", "api_upload_file_common"),
     "get_passport_file_path": ("upload_file", "get_passport_file_path"),
+    "ensure_data_folder_downloaded": ("upload_file", "ensure_data_folder_downloaded"),
     "generate_phone_pair": ("mobile_utils", "generate_phone_pair"),
     "format_date": ("date_util", "format_date"),
     "get_today_parts": ("date_util", "get_today_parts"),

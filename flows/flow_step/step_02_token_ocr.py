@@ -27,7 +27,7 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
         return False
 
     passport_file_path = get_passport_file_path(PASSPORT_FILE_FOLDER.get(ctx.visa_type))
-    if passport_file_path == "":
+    if not passport_file_path:
         await notify(
             f"Flow FAILED at step={ctx.step}. status={getattr(ctx, 'status_code', '')} "
             f"err={getattr(ctx, 'error', '')}"

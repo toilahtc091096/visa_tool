@@ -14,7 +14,7 @@ R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "visa-data")
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
-PASSPORT_FILE_FOLDER = {"L15": "resources\\L15", "L30": "resources\\L30"}
+PASSPORT_FILE_FOLDER = {"L15": "data", "L30": "data"}
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
 OLD_APPLY_STATUS_APPROVED = "审核通过"
@@ -466,61 +466,61 @@ L_30_HOTEL_INFO = [
         "documentName": "Lanvande_Hotel_GzuangChau.docx",
     },
 ]
-L_15_HOTEL_OUTPUT_PATH = "L15\\chung\\khach_san"
-L_15_TICKET_OUTPUT_PATH = "L15\\chung\\ve_may_bay"
-L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "L15\\chung\\xac_nhan_tu_trung_tam_visa"
+L_15_HOTEL_OUTPUT_PATH = "chung\\khach_san"
+L_15_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
+L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "chung\\xac_nhan_tu_trung_tam_visa"
 
-L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "L15\\chung\\2_trang_ho_chieu_trang"
-L_15_BANK_STATEMENT_OUTPUT_PATH = "L15\\chung\\sao_ke_ngan_hang"
+L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "chung\\2_trang_ho_chieu_trang"
+L_15_BANK_STATEMENT_OUTPUT_PATH = "chung\\sao_ke_ngan_hang"
 L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
-    "L15\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
+    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
 )
 L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
-    "L15\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
+    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
 )
 
 L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
-    "L15\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
+    "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
 )
 
 L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
-    "L15\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
+    "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
 )
 
-L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "L15\\duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
+L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 
-L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "L15\\duoi_18_tuoi\\giay_uy_quyen"
+L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 
-L_30_HOTEL_OUTPUT_PATH = "L30\\chung\\khach_san"
-L_30_TICKET_OUTPUT_PATH = "L30\\chung\\ve_may_bay"
-L_30_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "L30\\chung\\2_trang_ho_chieu_trang"
+L_30_HOTEL_OUTPUT_PATH = "chung\\khach_san"
+L_30_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
+L_30_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "chung\\2_trang_ho_chieu_trang"
 
-L_30_HOTEL_OUTPUT_PATH = "L30\\chung\\khach_san"
+L_30_HOTEL_OUTPUT_PATH = "chung\\khach_san"
 
-L_30_TICKET_OUTPUT_PATH = "L30\\chung\\ve_may_bay"
+L_30_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
 
-L_30_BANK_STATEMENT_OUTPUT_PATH = "L30\\chung\\sao_ke_ngan_hang"
+L_30_BANK_STATEMENT_OUTPUT_PATH = "chung\\sao_ke_ngan_hang"
 
-L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "L30\\chung\\xac_nhan_tu_trung_tam_visa"
+L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "chung\\xac_nhan_tu_trung_tam_visa"
 
 L_30_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
-    "L30\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
+    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
 )
 L_30_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
-    "L30\\lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
+    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
 )
 
 L_30_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
-    "L30\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
+    "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
 )
 
 L_30_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
-    "L30\\lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
+    "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
 )
 
-L_30_UNDER_18_DOCUMENTS_OUTPUT_PATH = "L30\\duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
+L_30_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 
-L_30_AUTHORIZATION_LETTER_OUTPUT_PATH = "L30\\duoi_18_tuoi\\giay_uy_quyen"
+L_30_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
 
