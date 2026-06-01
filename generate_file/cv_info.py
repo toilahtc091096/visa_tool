@@ -23,11 +23,10 @@ async def render_docx_template_output_pdf(
     file_name: str = payload.get("file_name")
     names: list[str] = payload.get("names", [])
 
-    base = (
-        Path(__file__).resolve().parent / ".." / "resources"
-    )  # folder relative to this .py
-    src = (base / file_name).resolve()
-    out_dir = (base / output_path).resolve()  # ./output next to this .py
+    templates_base = Path(__file__).resolve().parent / ".." / "resources"
+    output_base = Path(__file__).resolve().parent / ".." / "data"
+    src = (templates_base / file_name).resolve()
+    out_dir = (output_base / output_path).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if not src.exists():
