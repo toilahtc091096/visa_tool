@@ -18,6 +18,7 @@ from utils import load_login_payload, log_event
 async def run_flow(
     authorization: str,
     visa_type: str,
+    passport_type_code: str,
     register_date: date,
     guest_name: list[str],
     ticket_names: list[str],
@@ -63,6 +64,7 @@ async def run_flow(
     ctx = build_flow_context(
         authorization=authorization,
         visa_type=visa_type,
+        passport_type_code=passport_type_code,
         register_date=register_date,
         guest_name=guest_name,
         ticket_names=ticket_names,
@@ -130,3 +132,4 @@ def get_in(d, *keys, default=None):
     from flows.flow_step.common import get_in as _get_in
 
     return _get_in(d, *keys, default=default)
+ 

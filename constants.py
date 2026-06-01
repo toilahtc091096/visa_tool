@@ -921,3 +921,26 @@ BASE_HEADERS = {
         "Chrome/148.0.0.0 Safari/537.36"
     ),
 }
+
+
+
+# Mapping loại hộ chiếu -> mã
+PASSPORT_TYPE_CODE = {
+    "Ordinary": "707001",
+    "Service": "707002",
+    "Diplomatic": "707003",
+    "Official": "707004",
+    "Special": "707005",
+    "Other": "707006",
+}
+
+# Mapping ký hiệu passport -> loại
+PASSPORT_SYMBOL_MAP = {
+    "P": "Ordinary",     # Phổ thông
+    "S": "Service",      # Công vụ
+    "D": "Diplomatic",   # Ngoại giao
+    "O": "Official",     # Official / Công vụ
+    "SP": "Special",     # Đặc biệt (nếu có)
+    "X": "Other",        # Khác / fallback
+}
+ 

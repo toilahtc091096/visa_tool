@@ -1,9 +1,22 @@
 import json
-from fastapi import FastAPI, Request
+import os
+import traceback
 from typing import Any
+
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
+
 from api import api_convert_input_pdfs
 from main import build_case, main
+from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
+
 app = FastAPI()
+
+
+def _is_debug_enabled() -> bool:
+    value = os.getenv("DEBUG", "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
 
 @app.get("/health")
 def health():
@@ -42,3 +55,34 @@ async def convert_input_pdfs(request: Request):
         "body_json": body_json,
     }
     return result
+
+
+@app.post("/upload-html-to-pdf")
+async def upload_html_to_pdf(file: UploadFile = File(...)):
+    try:
+        if not file.filename.endswith(".html"):
+            raise HTTPException(status_code=400, detail="File must be .html")
+
+        html_content = await file.read()
+        pdf_path = convert_html_to_pdf(html_content)
+        r2_key = upload_pdf_to_r2(pdf_path)
+
+        return {"message": "Upload thanh cong", "file_key": r2_key}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb)
+        log_exception(e, {"path": "/upload-html-to-pdf", "filename": file.filename})
+        if _is_debug_enabled():
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "ok": False,
+                    "error": type(e).__name__,
+                    "message": str(e),
+                    "traceback": tb,
+                },
+            )
+        raise HTTPException(status_code=500, detail=str(e))

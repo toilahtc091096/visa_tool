@@ -10,6 +10,7 @@ async def save_person_and_apply(ctx, client) -> bool:
         ctx.ocr_data.Response.Data,
         ctx.province_city_code,
         ctx.id_card_number,
+        ctx.passport_type_code,
         ctx.data_obj,
     )
     ok2, meta2 = await api_save_person_info(
@@ -51,3 +52,4 @@ async def save_person_and_apply(ctx, client) -> bool:
         return False
 
     return True
+ 

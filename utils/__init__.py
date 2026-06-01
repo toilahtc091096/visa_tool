@@ -6,9 +6,9 @@ _EXPORTS = {
     "build_get_draft_headers": ("headers", "build_get_draft_headers"),
     "build_login_headers": ("headers", "build_login_headers"),
     "build_upload_headers": ("headers", "build_upload_headers"),
-    "log_event": ("logging", "log_event"),
-    "notify": ("logging", "notify"),
-    "log_exception": ("logging", "log_exception"),
+    "log_event": ("app_logging", "log_event"),
+    "notify": ("app_logging", "notify"),
+    "log_exception": ("app_logging", "log_exception"),
     "vnd": ("money_format", "vnd"),
     "cny": ("money_format", "cny"),
     "vnd_decimal": ("money_format", "vnd_decimal"),
@@ -22,6 +22,8 @@ _EXPORTS = {
     "save_token": ("token_store", "save_token"),
     "load_login_payload": ("token_store", "load_login_payload"),
     "save_login_data": ("token_store", "save_login_data"),
+    "convert_html_to_pdf":("pdf_helper","convert_html_to_pdf"),
+    "upload_pdf_to_r2":("upload_r2","upload_pdf_to_r2")
 }
 
 
@@ -36,3 +38,4 @@ def __getattr__(name: str) -> Any:
 
 
 __all__ = list(_EXPORTS)
+ 

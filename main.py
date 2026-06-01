@@ -7,19 +7,20 @@ from flows import run_flow
 
 
 DEFAULT_CASE: dict[str, Any] = {
-    "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiMTQzMDZlMDEtNzdiMi00YzlkLTk5OTctOTc3MzU2Y2NkZWQ3In0.2GRdpq7PVqIKun3Tj7db7JVsVGCJMMfHzV_sP67q2VH11sM5r9DOxZdv76IyXS8FCA8DVhCAD-PA-6mSDHl5Qw",
+    "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiZDYxOTU2NTYtNWQyMi00Y2RiLWIzNDItNmUzMDkwYmIwNTRiIn0.3w5oDuRWpHB5oThTPCofAASyD-YVIThT1f7rwWHHP4NvsL3Op5wTY8Vs-BhXKgkNDo3ccSNrs3LQvakyoWB0Yw",
     "first_applyid": "",
     "is_update_info": False,
     "upload_config_keys": [],
-    "province_city_code": "",
-    "id_card_number": "",
+    "province_city_code": "BAC NINH",
+    "id_card_number": "027198002344",
     "register_date": "",
     "visa_type": "L15",
+    "passport_type_code": "P",
     "entries_type": "S",
     "type_of_visa_sub_value": "I",
     "service_type": "N",
     "arrivedChinaFlag": False,
-    "ct08_province_city_code": "",
+    "ct08_province_city_code": "BAC NINH",
     "haveChinaVisaFlag": False,
     "old_visaType": "",
     "old_visaNumber": "",
@@ -129,6 +130,7 @@ def main(
         run_flow(
             data["authorization"],
             data["visa_type"],
+            data["passport_type_code"],
             data["register_date"],
             data["guest_name"],
             data["ticket_names"],
@@ -172,3 +174,4 @@ def main(
 
 if __name__ == "__main__":
     main()
+ 

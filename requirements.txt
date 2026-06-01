@@ -10,3 +10,6 @@ docxtpl
 python-docx
 
 docx2pdf
+
+weasyprint==68.1
+python-multipart==0.0.9

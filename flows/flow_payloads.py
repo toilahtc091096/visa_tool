@@ -38,6 +38,8 @@ from constants import (
     GIVEN_MALE_VIETNAMESE_NAMES,
     VIETNAM_ADMIN,
     L_30_HOTEL_INFO,
+    PASSPORT_SYMBOL_MAP,
+    PASSPORT_TYPE_CODE,
 )
 from models import (
     ApplyInfoProfile,
@@ -91,6 +93,7 @@ def build_person_profile(
     ocr: PassportOCRData | None,
     province_city_code: str,
     id_card_number: str,
+    passport_type_code: str,
     personInfoData: PersonInfoData | None,
 ) -> PersonInfoProfile:
     photo_path = getattr(personInfoData, "photoPath", None)
@@ -137,7 +140,7 @@ def build_person_profile(
         "expirationDate": ocr.dateOfExpiration if ocr else None,
         "issueCountry": ocr.issuingCountry if ocr else None,
         "maritalStatus": random.choice(["706002", "706003"]),
-        "passport": random.choice(["707001", "707002"]),
+        "passport": get_passport_code(passport_type_code),
         "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
         "photoPath": photo_path,
         "photoUrl": photo_url,
@@ -1181,3 +1184,12 @@ def build_L30_guest_names(guest_name: list[str], vietnamese_name: str) -> list[s
     while (len(guest_name) < 4):
         guest_name.append(random.choice(VIETNAMESE_NAMES).upper())
     return guest_name
+
+
+def get_passport_code(symbol: str) -> str:
+    passport_type = PASSPORT_SYMBOL_MAP.get(symbol)
+
+    if not passport_type:
+        return PASSPORT_TYPE_CODE["Ordinary"]
+
+    return PASSPORT_TYPE_CODE.get(passport_type, PASSPORT_TYPE_CODE["Ordinary"])
