@@ -64,15 +64,22 @@ async def api_upload_file_common(
         return
 
 def get_passport_file_path(passport_folder: str) -> str | None:
+    ensure_data_folder_downloaded()
+
     folder_name = str(passport_folder or "").strip().lstrip("/\\")
-    if not folder_name or folder_name.lower() == "data":
-        folder = DATA_LOCAL_DIR
-    else:
-        folder = DATA_LOCAL_DIR / folder_name
+    folder = DATA_LOCAL_DIR if not folder_name or folder_name.lower() == "data" else DATA_LOCAL_DIR / folder_name
     if not folder.exists() or not folder.is_dir():
         return None
 
-    first_file = next((p for p in folder.iterdir() if p.is_file()), None)
+    image_extensions = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
+    first_file = next(
+        (
+            p
+            for p in folder.rglob("*")
+            if p.is_file() and p.suffix.lower() in image_extensions
+        ),
+        None,
+    )
 
     file_path = str(first_file) if first_file else None
     return file_path
