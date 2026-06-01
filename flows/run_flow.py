@@ -12,7 +12,7 @@ from flows.flow_step import (
     upload_files,
     validate_initial_inputs,
 )
-from utils import load_login_payload, log_event
+from utils import cleanup_data_folder, load_login_payload, log_event
 
 
 async def run_flow(
@@ -107,25 +107,28 @@ async def run_flow(
     if not validate_initial_inputs(ctx):
         return
 
-    async with httpx.AsyncClient() as client:
-        if not await check_token_and_get_ocr(ctx, client):
-            return
-        if not await load_draft_and_prepare_person(ctx, client):
-            return
-        if not is_update_info:
-            if not await save_person_and_apply(ctx, client):
+    try:
+        async with httpx.AsyncClient() as client:
+            if not await check_token_and_get_ocr(ctx, client):
                 return
-            if not await save_family_work_education(ctx, client):
+            if not await load_draft_and_prepare_person(ctx, client):
                 return
-        if not await save_travel_and_generate_docs(ctx, client):
-            return
-        if not await upload_files(
-            ctx,
-            client,
-            is_update_info=is_update_info,
-            upload_config_keys=upload_config_keys or [],
-        ):
-            return
+            if not is_update_info:
+                if not await save_person_and_apply(ctx, client):
+                    return
+                if not await save_family_work_education(ctx, client):
+                    return
+            if not await save_travel_and_generate_docs(ctx, client):
+                return
+            if not await upload_files(
+                ctx,
+                client,
+                is_update_info=is_update_info,
+                upload_config_keys=upload_config_keys or [],
+            ):
+                return
+    finally:
+        cleanup_data_folder()
 
 
 def get_in(d, *keys, default=None):

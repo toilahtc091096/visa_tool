@@ -25,6 +25,18 @@ def ensure_data_folder_downloaded() -> None:
     _DATA_DOWNLOADED = True
 
 
+def cleanup_data_folder() -> None:
+    global _DATA_DOWNLOADED
+    if DATA_LOCAL_DIR.exists():
+        for path in sorted(DATA_LOCAL_DIR.rglob("*"), reverse=True):
+            if path.is_file() or path.is_symlink():
+                path.unlink(missing_ok=True)
+            elif path.is_dir():
+                path.rmdir()
+        DATA_LOCAL_DIR.rmdir()
+    _DATA_DOWNLOADED = False
+
+
 def get_files(folder_path, x):
     folder = DATA_LOCAL_DIR / folder_path.lstrip("/\\")
     if not folder.exists() or not folder.is_dir():
