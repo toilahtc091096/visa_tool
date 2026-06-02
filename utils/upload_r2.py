@@ -3,7 +3,7 @@ from pathlib import Path
 
 import boto3
 from botocore.config import Config
-from dotenv import load_dotenv
+from env_loader import load_dotenv
 
 
 def upload_pdf_to_r2(file_path: str, prefix: str = "data/") -> str:

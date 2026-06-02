@@ -2,7 +2,10 @@ from pathlib import Path
 import os
 
 
-def load_dotenv(path: str | Path = ".env") -> None:
+PROJECT_ROOT = Path(__file__).resolve().parent
+
+
+def load_dotenv(path: str | Path = PROJECT_ROOT / ".env") -> None:
     env_path = Path(path)
     if not env_path.exists():
         return
