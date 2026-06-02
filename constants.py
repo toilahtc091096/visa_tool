@@ -565,7 +565,7 @@ L_15_HOTEL_INFO = [
         "districtCounty": "",
         "invitePhoneNumber": "115920187600",
         "inviteProvince": "GD",
-        "documentName": "hantao_hotel_fixed.docx",
+        "documentName": "hantao_hotel.docx",
         "citySelectedBox": "CAN1",
     },
     # {
