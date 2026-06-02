@@ -2,13 +2,13 @@ from docxtpl import DocxTemplate
 import asyncio
 from datetime import date, timedelta
 from pathlib import Path
-from docx2pdf import convert
 from typing import Any
 import re
 from jinja2 import Environment
 from utils import vnd, cny, vnd_decimal
 from constants import UNIT_OF_HOTEL
 import random
+from generate_file.docx_to_pdf import convert_docx_to_pdf
 
 async def render_docx_template_output_pdf(
     payload: dict[str, Any], output_path: str = ""
@@ -128,7 +128,7 @@ async def render_docx_template_output_pdf(
 
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
-    convert(str(out), str(pdf_out))
+    convert_docx_to_pdf(str(out), str(pdf_out))
     out.unlink()  # same as os.remove(out)
     return str(pdf_out)  # return PDF, not DOCX
  

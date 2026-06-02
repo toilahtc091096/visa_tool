@@ -1,9 +1,9 @@
 from docxtpl import DocxTemplate
 from datetime import date, timedelta
 from pathlib import Path
-from docx2pdf import convert
 from typing import Any
 import re
+from generate_file.docx_to_pdf import convert_docx_to_pdf
 
 
 async def render_docx_template_output_pdf(
@@ -60,6 +60,6 @@ async def render_docx_template_output_pdf(
 
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
-    convert(str(out), str(pdf_out))
+    convert_docx_to_pdf(str(out), str(pdf_out))
     out.unlink()  # same as os.remove(out)
     return str(pdf_out)  # return PDF, not DOCX
