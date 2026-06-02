@@ -5,8 +5,26 @@ import os
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
+def _resolve_env_path(path: str | Path) -> Path:
+    candidate = Path(path)
+    if candidate.is_absolute():
+        return candidate
+
+    search_roots = [
+        PROJECT_ROOT,
+        PROJECT_ROOT.parent,
+        Path.cwd(),
+    ]
+    for base in search_roots:
+        resolved = (base / candidate).resolve()
+        if resolved.exists():
+            return resolved
+
+    return (PROJECT_ROOT / candidate).resolve()
+
+
 def load_dotenv(path: str | Path = PROJECT_ROOT / ".env") -> None:
-    env_path = Path(path)
+    env_path = _resolve_env_path(path)
     if not env_path.exists():
         return
 
