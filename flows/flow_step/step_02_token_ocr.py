@@ -18,6 +18,9 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
         login_response = login(ctx.authorization)
         print(login_response)
         save_login_data(login_response.data)
+        if login_response.data:
+            ctx.token = login_response.data.token
+            ctx.tmp_secret = login_response.data.tmpSecret
     else:
         print("token ok ")
 

@@ -7,7 +7,7 @@ from flows import run_flow
 
 
 DEFAULT_CASE: dict[str, Any] = {
-    "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiZDYxOTU2NTYtNWQyMi00Y2RiLWIzNDItNmUzMDkwYmIwNTRiIn0.3w5oDuRWpHB5oThTPCofAASyD-YVIThT1f7rwWHHP4NvsL3Op5wTY8Vs-BhXKgkNDo3ccSNrs3LQvakyoWB0Yw",
+    "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiNDMzY2I5YzktZmNlZC00MWQ0LThlMjMtZGVkOThjOTQ2ZGI4In0.qZWZxHGbeDNcDOmNKfV6xvDqwOHE7qATjzE3WvJX0TGrU7ytpMtvUD_hObuMBqV8C5rTdX8yZWPqQ2MDNUxcJA",
     "first_applyid": "",
     "is_update_info": False,
     "upload_config_keys": [],

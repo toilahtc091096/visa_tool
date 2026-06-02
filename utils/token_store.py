@@ -4,7 +4,7 @@ from typing import Optional
 from typing import Any, Dict
 from dataclasses import asdict
 
-TOKEN_FILE = Path("resources") / "token.json"
+TOKEN_FILE = Path(__file__).resolve().parents[1] / "resources" / "token.json"
 TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
 def load_token() -> str:
     if not TOKEN_FILE.exists():
@@ -39,5 +39,13 @@ def load_login_payload() -> Dict[str, Any]:
         return {}
 
 def save_login_data(login_data, path: Path = TOKEN_FILE) -> None:
-    path.write_text(json.dumps(asdict(login_data), ensure_ascii=False, indent=2), encoding="utf-8")
+    if login_data is None:
+        return
+
+    if isinstance(login_data, dict):
+        payload = login_data
+    else:
+        payload = asdict(login_data)
+
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
  
