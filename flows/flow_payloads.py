@@ -602,7 +602,11 @@ def build_family_info_profile(
         "streetAddr": (
             old_streetAddr
             if old_streetAddr != ""
-            else f"{random.choice(VIETNAM_ADMIN[province_city_code])}, {province_city_code}"
+            else (
+                f"{random.choice(VIETNAM_ADMIN[province_city_code])}, {province_city_code}"
+                if VIETNAM_ADMIN.get(province_city_code)
+                else province_city_code
+            )
         ),
         "notApplyItems": [_to_dict(i) for i in (notApplyItems_src or [])],
         "haveSpouseFlag": (

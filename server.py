@@ -3,7 +3,7 @@ import os
 import traceback
 from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body
 from fastapi.responses import JSONResponse
 
 from api import api_convert_input_pdfs
@@ -24,7 +24,7 @@ def health():
 
 
 @app.post("/run")
-def run(payload: dict[str, Any] | None = None):
+def run(payload: dict[str, Any] = Body(...)):
     case = build_case(payload)
     main(
         case,
