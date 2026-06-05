@@ -28,7 +28,6 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
     if PASSPORT_FILE_FOLDER.get(ctx.visa_type) in (None, ""):
         print("no passport file")
         return False
-
     passport_file_path = get_passport_file_path(PASSPORT_FILE_FOLDER.get(ctx.visa_type))
     if not passport_file_path:
         await notify(

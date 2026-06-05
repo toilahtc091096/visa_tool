@@ -714,13 +714,7 @@ UPLOAD_CONFIG = {
                 "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
                 "limit": 1,
             }
-        ],
-        "PREV_CHINESE_VISA": [
-            {
-                "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-                "limit": 1,
-            }
-        ],
+        ]
     }
 }
 
