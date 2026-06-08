@@ -1,0 +1,34 @@
+-- run_once_setup.sql
+
+DO $$
+BEGIN
+   IF NOT EXISTS (
+      SELECT 1 FROM pg_roles WHERE rolname = 'app_user'
+   ) THEN
+      CREATE ROLE app_user WITH LOGIN PASSWORD 'StrongPasswordHere';
+   END IF;
+END
+$$;
+
+DO $$
+BEGIN
+   IF NOT EXISTS (
+      SELECT 1 FROM pg_database WHERE datname = 'app_db'
+   ) THEN
+      CREATE DATABASE app_db OWNER app_user;
+   END IF;
+END
+$$;
+
+GRANT ALL PRIVILEGES ON DATABASE app_db TO app_user;
+
+\c app_db
+
+GRANT USAGE, CREATE ON SCHEMA public TO app_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO app_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO app_user;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO app_user;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO app_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO app_user;

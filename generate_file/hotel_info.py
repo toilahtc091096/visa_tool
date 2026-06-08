@@ -90,7 +90,7 @@ async def render_docx_template_output_pdf(
                     "%B"
                 ).upper(),
                 "names": names,
-                "unit_of_hotel": UNIT_OF_HOTEL,
+                "unit_of_hotel": UNIT_OF_HOTEL + random.randint(10000, 50000),
                 # xet lai, truong hop nay < 18 tuoi, nen lam rieng, 2 bien nay nen chuyen tu main
                 "adults_number": 1,
                 "child_number": 1,

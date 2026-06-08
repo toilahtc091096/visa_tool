@@ -47,7 +47,7 @@ HOTEL_DATA = {
                 # "Nanxing_hotel.docx",
                 "L_Magic_Design_hotel.docx",
                 "hantao_hotel.docx",
-                # "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
+                "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
             ]
         }
     ),
@@ -568,20 +568,20 @@ L_15_HOTEL_INFO = [
         "documentName": "hantao_hotel.docx",
         "citySelectedBox": "CAN1",
     },
-    # {
-    #     "place_city": "GUANGZHOU",
-    #     "iata_code": "CAN",
-    #     "name": "Pazhou Exhibition",
-    #     "address": " 16th Floor, Reception Room, Huijin International Financial Center, Guangzhou City, Guangdong",
-    #     "city": "CAN",
-    #     "arrivalCounty": "440100",
-    #     "relationship": "KHACH SAN",
-    #     "districtCounty": "",
-    #     "invitePhoneNumber": "113751794679",
-    #     "inviteProvince": "440100",
-    #     "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
-    #     "citySelectedBox": "CAN1",
-    # },
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Pazhou Exhibition",
+        "address": " 16th Floor, Reception Room, Huijin International Financial Center, Guangzhou City, Guangdong",
+        "city": "CAN",
+        "arrivalCounty": "440106",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "113751794679",
+        "inviteProvince": "GD",
+        "documentName": "Pazhou_Exhibition_Huanzpu_GzuangChau.docx",
+        "citySelectedBox": "CAN1",
+    },
 ]
 
 FLIGHT_TEMPLATE = {

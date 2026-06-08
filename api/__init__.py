@@ -16,6 +16,7 @@ _EXPORTS = {
     "api_save_other_info": ("other_info", "api_save_other_info"),
     "api_save_signature_info": ("signature", "api_save_signature_info"),
     "api_list_online_applications": ("get_list_old_by_visa_number", "api_list_online_applications"),
+    "api_get_online_application_list_by_passport": ("get_list_old_by_visa_number", "api_get_online_application_list_by_passport"),
     "api_get_work_info": ("get_work_by_app_id", "api_get_work_info"),
     "api_get_education_info": ("api_get_education_info_by_app_id", "api_get_education_info"),
     "api_get_family_info": ("api_get_family_info", "api_get_family_info"),

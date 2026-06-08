@@ -17,6 +17,11 @@ from constants import (
 )
 
 
+DEFAULT_UPLOAD_AUTHORIZATION = (
+    "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOTc0ODNhMGMtNzU1YS00MjMzLWE2MmEtMmU1ODM0MzEzMzAyIn0.AXLhc5AC0pUxdu-IgUT1Mes3cBfcqExmnFqeAfOyphaFnJeJMlxbKIvb8cbAqac5rlqW-Ok35uIcWl60fxAI8w"
+)
+
+
 def build_login_headers(
     authorization: str,
     referer: str,
@@ -65,6 +70,7 @@ def build_get_draft_headers(
 def build_upload_headers(
     token: str,
     tmp_secret: str,
+    authorization: str | None = None,
     email: str = DEFAULT_EMAIL,
     guid: str = DEFAULT_GUID,
     user_agent: str = USER_AGENT,
@@ -73,7 +79,7 @@ def build_upload_headers(
     Headers matching your Postman/cURL sample as close as possible.
     Note: sample has both 'access_token' and 'token' with same value.
     """
-    return {
+    headers = {
         "accept": "application/json, text/plain, */*",
         "accept-language": "en_US",
         "email": email,
@@ -92,6 +98,7 @@ def build_upload_headers(
         "token": token,
         "uid": DEFAULT_UID,
         "user-agent": user_agent,
-        "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiOTc0ODNhMGMtNzU1YS00MjMzLWE2MmEtMmU1ODM0MzEzMzAyIn0.AXLhc5AC0pUxdu-IgUT1Mes3cBfcqExmnFqeAfOyphaFnJeJMlxbKIvb8cbAqac5rlqW-Ok35uIcWl60fxAI8w",
     }
 
+    headers["authorization"] = authorization or DEFAULT_UPLOAD_AUTHORIZATION
+    return headers

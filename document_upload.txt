@@ -315,3 +315,80 @@ Làm L30 xong => test => tạo server. Sử dụng server thay cho chạy code
 
 Phân tách thành các step, gọi server theo các step cần
 Ví dụ không lỗi gì => Chỉ cần đẩy travel_info và file 
+
+ Cài DB :
+ Tải và download
+ pass 123456
+
+
+Add the PostgreSQL `bin` folder to your Windows `PATH`.
+
+**1) Find `psql.exe`**
+Typical location:
+```powershell
+C:\Program Files\PostgreSQL\16\bin
+```
+If your version is different, replace `16` with your installed version.
+
+You can check with:
+```powershell
+Get-ChildItem "C:\Program Files\PostgreSQL" -Recurse -Filter psql.exe
+```
+
+**2) Add it to PATH temporarily for the current PowerShell window**
+```powershell
+$env:Path += ";C:\Program Files\PostgreSQL\16\bin"
+```
+
+Then test:
+```powershell
+psql --version
+```
+
+**3) Add it permanently**
+Run PowerShell as normal user, then:
+```powershell
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  $env:Path + ";C:\Program Files\PostgreSQL\16\bin",
+  "User"
+)
+```
+
+Then:
+- close PowerShell
+- open a new PowerShell window
+- test again with:
+```powershell
+psql --version
+```
+
+**4) Alternative: use the full path directly**
+If you don’t want PATH changes yet:
+```powershell
+& "C:\Program Files\PostgreSQL\16\bin\psql.exe" --version
+```
+
+**5) If it still does not work**
+- Make sure the path really contains `psql.exe`
+- Make sure there is no typo in the version folder
+- Restart the terminal after changing PATH
+
+If you want, I can give you a ready-to-run `.ps1` script that auto-detects the PostgreSQL install folder and adds it to PATH for you.
+
+
+
+=======================
+Dang nhap postgres
+psql -U postgres -d postgres
+, tạo hoặc đổi password cho visa_user:
+CREATE ROLE visa_user WITH LOGIN PASSWORD 'YourPasswordHere';
+-- hoặc nếu user đã tồn tại
+ALTER ROLE visa_user WITH LOGIN PASSWORD 'YourPasswordHere';
+
+Tao db va cap quyen
+CREATE DATABASE visa_db OWNER visa_user;
+GRANT ALL PRIVILEGES ON DATABASE visa_db TO visa_user;
+
+test:
+psql -U visa_user -d visa_db -h localhost

@@ -8,6 +8,7 @@ from flows.flow_step import (
     load_draft_and_prepare_person,
     save_family_work_education,
     save_person_and_apply,
+    save_draft_visa_registration,
     save_travel_and_generate_docs,
     upload_files,
     validate_initial_inputs,
@@ -127,6 +128,7 @@ async def run_flow(
                 upload_config_keys=upload_config_keys or [],
             ):
                 return
+            save_draft_visa_registration(ctx)
     finally:
         cleanup_data_folder()
 

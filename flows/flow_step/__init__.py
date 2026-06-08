@@ -6,6 +6,7 @@ from .step_04_save_profile import save_person_and_apply
 from .step_05_save_family_work_education import save_family_work_education
 from .step_06_save_travel_docs import save_travel_and_generate_docs
 from .step_07_upload_files import upload_files
+from .step_08_save_visa_registration import save_draft_visa_registration
 
 __all__ = [
     "build_flow_context",
@@ -17,4 +18,5 @@ __all__ = [
     "save_family_work_education",
     "save_travel_and_generate_docs",
     "upload_files",
+    "save_draft_visa_registration",
 ]

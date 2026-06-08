@@ -1,21 +1,30 @@
 import json
 import os
 import traceback
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body
 from fastapi.responses import JSONResponse
 
 from api import api_convert_input_pdfs
+from database.connection import init_database
 from main import build_case, main
+from services import sync_draft_visa_registrations
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
-
-app = FastAPI()
-
 
 def _is_debug_enabled() -> bool:
     value = os.getenv("DEBUG", "").strip().lower()
     return value in {"1", "true", "yes", "on"}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_database()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health")
@@ -33,6 +42,19 @@ def run(payload: dict[str, Any] = Body(...)):
         upload_config_keys=case.get("upload_config_keys", []),
     )
     return {"ok": True, "received": payload is not None}
+
+
+@app.get("/visa-registrations/sync-draft-status")
+async def sync_draft_visa_status(
+    page_num: int = 1,
+    page_size: int = 10,
+    authorization: str = "",
+):
+    return await sync_draft_visa_registrations(
+        page_num=page_num,
+        page_size=page_size,
+        authorization=authorization,
+    )
 
 
 @app.api_route("/convert-input-pdfs", methods=["GET", "POST"])
