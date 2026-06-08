@@ -29,14 +29,13 @@ init_database()
 
 record_id = create_visa_registration(
     VisaRegistration(
+        first_applyid="2026060800721220240",
         full_name="Nguyen Van A",
         passport_number="P1234567",
         visa_type="L15",
-        nationality="Vietnam",
-        embassy="3001VNVNMA",
-        phone="0900000000",
-        email="a@example.com",
     )
 )
 print(record_id)
 ```
+
+`first_applyid` is treated as the unique key. If it already exists, the row is updated instead of inserted again.

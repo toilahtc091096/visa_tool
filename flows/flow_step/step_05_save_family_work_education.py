@@ -27,6 +27,7 @@ async def save_family_work_education(ctx, client) -> bool:
             ctx.token,
             ctx.tmp_secret,
             ctx.ocr_data.Response.Data.passportNumber,
+            authorization=getattr(ctx, "authorization", ""),
         )
         if okList:
             model = OnlineApplicationListResponse.from_dict(metaList["response"])

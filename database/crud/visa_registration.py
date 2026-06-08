@@ -11,7 +11,7 @@ from database.models.visa_registration import VisaRegistration
 def create_visa_registration(item: VisaRegistration) -> int:
     sql = """
         INSERT INTO visa_registrations (
-            application_code,
+            first_applyid,
             full_name,
             passport_number,
             visa_type,
@@ -19,6 +19,13 @@ def create_visa_registration(item: VisaRegistration) -> int:
             payload
         )
         VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (first_applyid) DO UPDATE
+        SET full_name = EXCLUDED.full_name,
+            passport_number = EXCLUDED.passport_number,
+            visa_type = EXCLUDED.visa_type,
+            status = EXCLUDED.status,
+            payload = EXCLUDED.payload,
+            updated_at = NOW()
         RETURNING id
     """
 
@@ -29,7 +36,7 @@ def create_visa_registration(item: VisaRegistration) -> int:
                 cursor.execute(
                     sql,
                     (
-                        item.application_code or None,
+                        item.first_applyid or None,
                         item.full_name,
                         item.passport_number,
                         item.visa_type,
@@ -39,6 +46,24 @@ def create_visa_registration(item: VisaRegistration) -> int:
                 )
                 row = cursor.fetchone()
                 return int(row[0])
+    finally:
+        conn.close()
+
+
+def get_visa_registration_by_first_applyid(first_applyid: str) -> dict[str, Any] | None:
+    sql = """
+        SELECT *
+        FROM visa_registrations
+        WHERE first_applyid = %s
+        LIMIT 1
+    """
+
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(sql, (first_applyid,))
+                return cursor.fetchone()
     finally:
         conn.close()
 

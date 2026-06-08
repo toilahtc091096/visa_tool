@@ -7,11 +7,11 @@ from typing import Any
 
 @dataclass
 class VisaRegistration:
+    first_applyid: str | None
     full_name: str
     passport_number: str
     visa_type: str = ""
     status: str = "draft"
-    application_code: str | None = None
     payload: dict[str, Any] = field(default_factory=dict)
     id: int | None = None
     created_at: datetime | None = None
@@ -21,7 +21,7 @@ class VisaRegistration:
     def from_dict(data: dict[str, Any]) -> "VisaRegistration":
         return VisaRegistration(
             id=data.get("id"),
-            application_code=data.get("application_code"),
+            first_applyid=data.get("first_applyid"),
             full_name=data.get("full_name", "") or "",
             passport_number=data.get("passport_number", "") or "",
             visa_type=data.get("visa_type", "") or "",
