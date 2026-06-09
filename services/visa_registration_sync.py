@@ -73,11 +73,11 @@ def _extract_remote_applyid(row: dict[str, Any]) -> str:
 
 async def sync_draft_visa_registrations(
     page_num: int = 1,
-    page_size: int = 10,
+    page_size: int = 1000,
     authorization: str = "",
     spreadsheet_url: str = "",
     worksheet_name: str = "sync_draft_visa_status",
-    sheet_mode: str = "append",
+    sheet_mode: str = "upsert",
 ) -> dict[str, Any]:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
@@ -160,7 +160,6 @@ async def sync_draft_visa_registrations(
                 remote_applyid = _extract_remote_applyid(remote_row)
                 if remote_applyid == first_applyid:
                     matched_row = remote_row
-                    break
 
             if matched_row is None:
                 summary["skipped"] += 1

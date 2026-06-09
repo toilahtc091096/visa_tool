@@ -40,7 +40,7 @@ async def _sync_draft_scheduler_loop() -> None:
     interval_seconds = _sync_scheduler_interval_seconds()
     spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
     worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "sync_draft_visa_status").strip()
-    sheet_mode = os.getenv("GOOGLE_SHEET_SYNC_MODE", "append").strip()
+    sheet_mode = os.getenv("GOOGLE_SHEET_SYNC_MODE", "upsert").strip()
 
     while True:
         try:
@@ -108,11 +108,11 @@ def run(payload: dict[str, Any] = Body(...)):
 @app.get("/visa-registrations/sync-draft-status")
 async def sync_draft_visa_status(
     page_num: int = 1,
-    page_size: int = 10,
+    page_size: int = 1000,
     authorization: str = "",
     spreadsheet_url: str = "",
     worksheet_name: str = "sync_draft_visa_status",
-    sheet_mode: str = "append",
+    sheet_mode: str = "upsert",
 ):
     if authorization.strip():
         append_authorization(authorization)

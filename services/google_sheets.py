@@ -41,7 +41,6 @@ def _load_service_account_client() -> gspread.Client:
 def _load_service_account_info() -> dict[str, Any]:
     credentials_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
     credentials_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
-
     if credentials_file:
         with open(credentials_file, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -156,7 +155,7 @@ def write_rows_to_google_sheet(
     spreadsheet_url: str,
     rows: list[Any],
     worksheet_name: str = "",
-    mode: str = "append",
+    mode: str = "upsert",
     header: list[str] | None = None,
 ) -> dict[str, Any]:
     spreadsheet_id = extract_spreadsheet_id(spreadsheet_url)
@@ -186,8 +185,8 @@ def write_rows_to_google_sheet(
         }
 
     normalized_mode = (mode or "append").strip().lower()
-    if normalized_mode not in {"append", "overwrite"}:
-        raise ValueError("mode must be append or overwrite")
+    if normalized_mode not in {"append", "overwrite", "upsert"}:
+        raise ValueError("mode must be append, overwrite or upsert")
 
     if normalized_mode == "overwrite":
         try:
@@ -202,6 +201,43 @@ def write_rows_to_google_sheet(
                     exc,
                 )
             ) from exc
+    elif normalized_mode == "upsert":
+        try:
+            all_values = worksheet.get_all_values()
+
+            # Header nằm ở dòng 1
+            existing = {}
+
+            for row_idx, row in enumerate(all_values[1:], start=2):
+                if len(row) >= 3:  # cột C = first_applyid
+                    existing[str(row[2]).strip()] = row_idx
+
+            for row in normalized_rows[1:]:  # bỏ header
+                first_applyid = str(row[2]).strip()
+
+                if first_applyid in existing:
+                    row_num = existing[first_applyid]
+
+                    worksheet.update(
+                        f"A{row_num}:H{row_num}",
+                        [row],
+                        value_input_option="RAW",
+                    )
+                else:
+                    worksheet.append_row(
+                        row,
+                        value_input_option="RAW",
+                    )
+
+        except Exception as exc:
+            raise PermissionError(
+                _build_permission_error_message(
+                    "upsert",
+                    spreadsheet_id,
+                    service_account_email,
+                    exc,
+                )
+            ) from exc    
     else:
         try:
             existing_values = worksheet.get_all_values()
@@ -216,7 +252,7 @@ def write_rows_to_google_sheet(
         except Exception as exc:
             raise PermissionError(
                 _build_permission_error_message(
-                    "append",
+                    "upsert",
                     spreadsheet_id,
                     service_account_email,
                     exc,
@@ -236,7 +272,7 @@ def write_sync_summary_to_google_sheet(
     summary: dict[str, Any],
     spreadsheet_url: str,
     worksheet_name: str = "sync_draft_visa_status",
-    mode: str = "append",
+    mode: str = "upsert",
 ) -> dict[str, Any]:
     items = summary.get("items")
     if not isinstance(items, list):
