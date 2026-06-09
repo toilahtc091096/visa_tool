@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import traceback
@@ -11,6 +12,7 @@ from api import api_convert_input_pdfs
 from database.connection import init_database
 from main import build_case, main
 from services import sync_draft_visa_registrations
+from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 
 def _is_debug_enabled() -> bool:
@@ -18,10 +20,67 @@ def _is_debug_enabled() -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
+def _is_sync_scheduler_enabled() -> bool:
+    value = os.getenv("SYNC_DRAFT_SCHEDULER_ENABLED", "1").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _sync_scheduler_interval_seconds() -> int:
+    raw_value = os.getenv("SYNC_DRAFT_SCHEDULER_INTERVAL_SECONDS", "").strip()
+    if not raw_value:
+        return 12 * 60 * 60
+    try:
+        return max(60, int(raw_value))
+    except ValueError:
+        return 12 * 60 * 60
+
+
+async def _sync_draft_scheduler_loop() -> None:
+    interval_seconds = _sync_scheduler_interval_seconds()
+    spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
+    worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "sync_draft_visa_status").strip()
+    sheet_mode = os.getenv("GOOGLE_SHEET_SYNC_MODE", "append").strip()
+    authorization = os.getenv("VISA_SYNC_AUTHORIZATION", "").strip()
+
+    while True:
+        try:
+            result = await sync_draft_visa_registrations(
+                authorization=authorization,
+                spreadsheet_url=spreadsheet_url,
+                worksheet_name=worksheet_name,
+                sheet_mode=sheet_mode,
+            )
+            print(
+                "[sync_draft_scheduler] completed "
+                f"matched={result.get('matched', 0)} "
+                f"updated={result.get('updated', 0)} "
+                f"skipped={result.get('skipped', 0)}"
+            )
+        except asyncio.CancelledError:
+            print("[sync_draft_scheduler] cancelled")
+            raise
+        except Exception as exc:
+            tb = traceback.format_exc()
+            print(f"[sync_draft_scheduler] failed: {type(exc).__name__}: {exc}")
+            print(tb)
+            log_exception(exc, {"path": "sync_draft_scheduler_loop"})
+
+        await asyncio.sleep(interval_seconds)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_database()
+    scheduler_task = None
+    if _is_sync_scheduler_enabled():
+        scheduler_task = asyncio.create_task(_sync_draft_scheduler_loop())
     yield
+    if scheduler_task is not None:
+        scheduler_task.cancel()
+        try:
+            await scheduler_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(lifespan=lifespan)
@@ -49,11 +108,29 @@ async def sync_draft_visa_status(
     page_num: int = 1,
     page_size: int = 10,
     authorization: str = "",
+    spreadsheet_url: str = "",
+    worksheet_name: str = "sync_draft_visa_status",
+    sheet_mode: str = "append",
 ):
     return await sync_draft_visa_registrations(
         page_num=page_num,
         page_size=page_size,
         authorization=authorization,
+        spreadsheet_url=spreadsheet_url,
+        worksheet_name=worksheet_name,
+        sheet_mode=sheet_mode,
+    )
+
+
+@app.post("/google-sheets/debug")
+def debug_google_sheets(payload: dict[str, Any] = Body(...)):
+    spreadsheet_url = str(payload.get("spreadsheet_url", "") or payload.get("url", "")).strip()
+    worksheet_name = str(payload.get("worksheet_name", "") or payload.get("sheet_name", "")).strip()
+    if not spreadsheet_url:
+        raise HTTPException(status_code=400, detail="spreadsheet_url is required")
+    return debug_google_sheet_access(
+        spreadsheet_url=spreadsheet_url,
+        worksheet_name=worksheet_name,
     )
 
 

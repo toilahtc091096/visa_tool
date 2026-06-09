@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from datetime import date, datetime
 from typing import Any
 
 import httpx
@@ -11,48 +10,8 @@ from database.crud import (
     list_visa_registrations_by_status,
     update_visa_registration_status_and_payload,
 )
+from services.google_sheets import write_sync_summary_to_google_sheet
 from utils import load_login_payload
-
-
-def _parse_remote_date(value: Any) -> date | None:
-    if value in (None, ""):
-        return None
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-
-    text = str(value).strip()
-    if not text:
-        return None
-
-    if text.isdigit():
-        try:
-            millis = int(text)
-            if len(text) >= 13:
-                return datetime.fromtimestamp(millis / 1000).date()
-            return datetime.fromtimestamp(millis).date()
-        except Exception:
-            return None
-
-    candidates = [text[:10], text.replace("Z", "+00:00")]
-    for candidate in candidates:
-        try:
-            return datetime.fromisoformat(candidate).date()
-        except Exception:
-            continue
-
-    for fmt in (
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%d %H:%M:%S.%f",
-        "%Y-%m-%dT%H:%M:%S.%f",
-    ):
-        try:
-            return datetime.strptime(text, fmt).date()
-        except Exception:
-            continue
-    return None
 
 
 def _extract_remote_rows(response: Any) -> list[dict[str, Any]]:
@@ -105,10 +64,20 @@ def _extract_remote_passport(row: dict[str, Any]) -> str:
     return ""
 
 
+def _extract_remote_applyid(row: dict[str, Any]) -> str:
+    value = row.get("applyid")
+    if value in (None, ""):
+        return ""
+    return str(value).strip()
+
+
 async def sync_draft_visa_registrations(
     page_num: int = 1,
     page_size: int = 10,
     authorization: str = "",
+    spreadsheet_url: str = "",
+    worksheet_name: str = "sync_draft_visa_status",
+    sheet_mode: str = "append",
 ) -> dict[str, Any]:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
@@ -116,6 +85,7 @@ async def sync_draft_visa_registrations(
     auth = authorization.strip() or os.getenv("ONLINE_LIST_AUTHORIZATION", "").strip()
 
     draft_rows = list_visa_registrations_by_status("draft")
+    under_review_rows = list_visa_registrations_by_status("under_review")
     summary: dict[str, Any] = {
         "ok": True,
         "draft_total": len(draft_rows),
@@ -124,17 +94,13 @@ async def sync_draft_visa_registrations(
         "skipped": 0,
         "items": [],
     }
+    total_rows = draft_rows + under_review_rows
 
     async with httpx.AsyncClient(timeout=60) as client:
-        for row in draft_rows:
+        for row in total_rows:
             record_id = row.get("id")
+            first_applyid = str(row.get("first_applyid") or "").strip()
             passport_number = str(row.get("passport_number") or "").strip()
-            local_created_at = row.get("created_at")
-            local_date = (
-                local_created_at.date()
-                if hasattr(local_created_at, "date")
-                else None
-            )
 
             if not passport_number:
                 summary["skipped"] += 1
@@ -144,6 +110,18 @@ async def sync_draft_visa_registrations(
                         "passport_number": passport_number,
                         "ok": False,
                         "reason": "missing_passport_number",
+                    }
+                )
+                continue
+
+            if not first_applyid:
+                summary["skipped"] += 1
+                summary["items"].append(
+                    {
+                        "id": record_id,
+                        "passport_number": passport_number,
+                        "ok": False,
+                        "reason": "missing_first_applyid",
                     }
                 )
                 continue
@@ -179,17 +157,8 @@ async def sync_draft_visa_registrations(
                 if remote_passport != passport_number:
                     continue
 
-                remote_date = _parse_remote_date(
-                    remote_row.get("createTime")
-                    or remote_row.get("createTimeLocal")
-                    or remote_row.get("submitTime")
-                    or remote_row.get("submitTimeLocal")
-                )
-                if (
-                    local_date is not None
-                    and remote_date is not None
-                    and remote_date == local_date
-                ):
+                remote_applyid = _extract_remote_applyid(remote_row)
+                if remote_applyid == first_applyid:
                     matched_row = remote_row
                     break
 
@@ -199,6 +168,7 @@ async def sync_draft_visa_registrations(
                     {
                         "id": record_id,
                         "passport_number": passport_number,
+                        "first_applyid": first_applyid,
                         "ok": False,
                         "reason": "no_matching_row",
                     }
@@ -216,6 +186,7 @@ async def sync_draft_visa_registrations(
                 payload={
                     **existing_payload,
                     "sync": {
+                        "first_applyid": first_applyid,
                         "passport_number": passport_number,
                         "matched_row": matched_row,
                         "api_response": response,
@@ -230,14 +201,28 @@ async def sync_draft_visa_registrations(
                 {
                     "id": record_id,
                     "passport_number": passport_number,
+                    "first_applyid": first_applyid,
                     "ok": updated,
-                    "local_created_at": local_created_at.isoformat()
-                    if hasattr(local_created_at, "isoformat")
-                    else str(local_created_at),
-                    "remote_createTime": matched_row.get("createTime"),
+                    "remote_applyid": _extract_remote_applyid(matched_row),
                     "remote_status": remote_status,
                     "internal_status": internal_status,
                 }
             )
+    sheet_url = spreadsheet_url.strip() or os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
+    if sheet_url:
+        try:
+            sheet_result = write_sync_summary_to_google_sheet(
+                summary=summary,
+                spreadsheet_url=sheet_url,
+                worksheet_name=worksheet_name,
+                mode=sheet_mode,
+            )
+            summary["google_sheet"] = sheet_result
+        except Exception as exc:
+            summary["google_sheet"] = {
+                "ok": False,
+                "error": type(exc).__name__,
+                "message": str(exc),
+            }
 
     return summary
