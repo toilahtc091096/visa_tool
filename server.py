@@ -14,6 +14,7 @@ from main import build_case, main
 from services import sync_draft_visa_registrations
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
+from utils.token_store import append_authorization
 
 def _is_debug_enabled() -> bool:
     value = os.getenv("DEBUG", "").strip().lower()
@@ -40,12 +41,10 @@ async def _sync_draft_scheduler_loop() -> None:
     spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
     worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "sync_draft_visa_status").strip()
     sheet_mode = os.getenv("GOOGLE_SHEET_SYNC_MODE", "append").strip()
-    authorization = os.getenv("VISA_SYNC_AUTHORIZATION", "").strip()
 
     while True:
         try:
             result = await sync_draft_visa_registrations(
-                authorization=authorization,
                 spreadsheet_url=spreadsheet_url,
                 worksheet_name=worksheet_name,
                 sheet_mode=sheet_mode,
@@ -93,6 +92,9 @@ def health():
 
 @app.post("/run")
 def run(payload: dict[str, Any] = Body(...)):
+    authorization = str(payload.get("authorization", "") or "").strip()
+    if authorization:
+        append_authorization(authorization)
     case = build_case(payload)
     main(
         case,
@@ -112,6 +114,8 @@ async def sync_draft_visa_status(
     worksheet_name: str = "sync_draft_visa_status",
     sheet_mode: str = "append",
 ):
+    if authorization.strip():
+        append_authorization(authorization)
     return await sync_draft_visa_registrations(
         page_num=page_num,
         page_size=page_size,

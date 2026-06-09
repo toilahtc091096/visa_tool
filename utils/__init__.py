@@ -23,6 +23,8 @@ _EXPORTS = {
     "load_token": ("token_store", "load_token"),
     "save_token": ("token_store", "save_token"),
     "load_login_payload": ("token_store", "load_login_payload"),
+    "load_authorization": ("token_store", "load_authorization"),
+    "append_authorization": ("token_store", "append_authorization"),
     "save_login_data": ("token_store", "save_login_data"),
     "convert_html_to_pdf":("pdf_helper","convert_html_to_pdf"),
     "upload_pdf_to_r2":("upload_r2","upload_pdf_to_r2")

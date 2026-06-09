@@ -4,16 +4,17 @@ import unicodedata
 from typing import Any
 
 from flows import run_flow
+from utils import load_authorization
 
 
 DEFAULT_CASE: dict[str, Any] = {
-    "authorization": "eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiNDMzY2I5YzktZmNlZC00MWQ0LThlMjMtZGVkOThjOTQ2ZGI4In0.qZWZxHGbeDNcDOmNKfV6xvDqwOHE7qATjzE3WvJX0TGrU7ytpMtvUD_hObuMBqV8C5rTdX8yZWPqQ2MDNUxcJA",
+    "authorization": "",
     "first_applyid": "",
     "is_update_info": False,
     "upload_config_keys": [],
-    "province_city_code": "HAI PHONG",
-    "id_card_number": "031302007574",
-    "register_date": "2026-06-01",
+    "province_city_code": "",
+    "id_card_number": "",
+    "register_date": "",
     "visa_type": "L15",
     "passport_type_code": "P",
     "entries_type": "S",
@@ -120,6 +121,8 @@ def main(
     upload_config_keys: list[str] | None = None,
 ) -> None:
     data = build_case(case)
+    if not str(data.get("authorization", "") or "").strip():
+        data["authorization"] = load_authorization()
     if first_applyid is not None:
         data["first_applyid"] = str(first_applyid).strip()
     if is_update_info is not None:

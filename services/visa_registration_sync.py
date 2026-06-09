@@ -11,7 +11,7 @@ from database.crud import (
     update_visa_registration_status_and_payload,
 )
 from services.google_sheets import write_sync_summary_to_google_sheet
-from utils import load_login_payload
+from utils import load_authorization, load_login_payload
 
 
 def _extract_remote_rows(response: Any) -> list[dict[str, Any]]:
@@ -82,7 +82,7 @@ async def sync_draft_visa_registrations(
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
     tmp_secret = login_payload.get("tmpSecret", "")
-    auth = authorization.strip() or os.getenv("ONLINE_LIST_AUTHORIZATION", "").strip()
+    auth = authorization.strip() or load_authorization().strip() or None
 
     draft_rows = list_visa_registrations_by_status("draft")
     under_review_rows = list_visa_registrations_by_status("under_review")
@@ -133,7 +133,7 @@ async def sync_draft_visa_registrations(
                 passportNo=passport_number,
                 pageNum=page_num,
                 pageSize=page_size,
-                authorization=auth or None,
+                authorization=auth,
             )
 
             if not ok:
