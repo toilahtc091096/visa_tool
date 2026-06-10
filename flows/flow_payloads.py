@@ -94,6 +94,7 @@ def build_person_profile(
     province_city_code: str,
     id_card_number: str,
     passport_type_code: str,
+    haveSpouseFlag: bool,
     personInfoData: PersonInfoData | None,
 ) -> PersonInfoProfile:
     photo_path = getattr(personInfoData, "photoPath", None)
@@ -139,7 +140,7 @@ def build_person_profile(
         "passportNumber": ocr.passportNumber if ocr else None,
         "expirationDate": ocr.dateOfExpiration if ocr else None,
         "issueCountry": ocr.issuingCountry if ocr else None,
-        "maritalStatus": random.choice(["706002", "706003"]),
+        "maritalStatus": "706001" if haveSpouseFlag else "706003",
         "passport": get_passport_code(passport_type_code),
         "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
         "photoPath": photo_path,
@@ -360,8 +361,30 @@ def _empty_spouse_entry() -> dict[str, Any]:
         "otherSpecify": "",
         "birthCountry": "",
         "birthCity": "",
-        "birthCounty": "",
+        "birthday": "",
         "address": "",
+    }
+
+
+def _infor_spouse_entry(
+    spouseFamilyName: str = "",
+    spouseFirstName: str = "",
+    spouseNationalityCountry: str = "",
+    spouseBirthday: str = "",
+    spouseBirthCountry: str = "",
+    spouseBirthCity: str = "",
+) -> dict[str, Any]:
+    return {
+        "sort": "1",
+        "familyName": spouseFamilyName,
+        "firstName": spouseFirstName,
+        "nationalityCountry": spouseNationalityCountry,
+        "profession": "",
+        "otherSpecify": "",
+        "birthCity": spouseBirthCity,
+        "birthCounty": spouseBirthCountry,
+        "address": spouseBirthCity,
+        "birthday":spouseBirthday,
     }
 
 
@@ -399,7 +422,13 @@ def build_family_info_profile(
     main_account_birth_date: date,
     family_nationality: str,
     haveSpouseFlag: bool,
-    haveChildFlag: bool,
+    spouseFamilyName: str = "",
+    spouseFirstName: str = "",
+    spouseNationalityCountry: str = "",
+    spouseBirthday: str = "",
+    spouseBirthCountry: str = "",
+    spouseBirthCity: str = "",
+    haveChildFlag: bool = False,
     childFamilyName: str = "",
     childGivenName: str = "",
     childNationality: str = "",
@@ -438,7 +467,16 @@ def build_family_info_profile(
         )
         spouses_info = [_empty_spouse_entry()]
     else:
-        spouses_info = [_empty_spouse_entry()]
+        spouses_info = [
+            _infor_spouse_entry(
+                spouseFamilyName,
+                spouseFirstName,
+                spouseNationalityCountry,
+                spouseBirthday,
+                spouseBirthCountry,
+                spouseBirthCity,
+            )
+        ]
 
     if haveChildFlag is not True:
         not_apply_items.append(
@@ -1185,7 +1223,7 @@ def build_signature_body(
 def build_L30_guest_names(guest_name: list[str], vietnamese_name: str) -> list[str]:
     if guest_name == []:
         guest_name = [vietnamese_name]
-    while (len(guest_name) < 4):
+    while len(guest_name) < 4:
         guest_name.append(random.choice(VIETNAMESE_NAMES).upper())
     return guest_name
 

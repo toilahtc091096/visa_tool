@@ -52,6 +52,12 @@ async def run_flow(
     haveOtherVisaFlag: bool = False,
     old_otherVisas: list[str] = [],
     old_otherCountries: list[str] = [],
+    spouseFamilyName: str = "",
+    spouseFirstName: str = "",
+    spouseNationalityCountry: str = "",
+    spouseBirthday: str = "",
+    spouseBirthCountry: str = "",
+    spouseBirthCity: str = "",
     payMobile: str = "",
     payName: str = "",
     first_applyid: str = "",
@@ -98,6 +104,12 @@ async def run_flow(
         haveOtherVisaFlag=haveOtherVisaFlag,
         old_otherVisas=old_otherVisas,
         old_otherCountries=old_otherCountries,
+        spouseFamilyName=spouseFamilyName,
+        spouseFirstName=spouseFirstName,
+        spouseNationalityCountry=spouseNationalityCountry,
+        spouseBirthday=spouseBirthday,
+        spouseBirthCountry=spouseBirthCountry,
+        spouseBirthCity=spouseBirthCity,
         payMobile=payMobile,
         payName=payName,
         first_applyid=first_applyid,
@@ -137,4 +149,3 @@ def get_in(d, *keys, default=None):
     from flows.flow_step.common import get_in as _get_in
 
     return _get_in(d, *keys, default=default)
- 

@@ -11,6 +11,7 @@ async def save_person_and_apply(ctx, client) -> bool:
         ctx.province_city_code,
         ctx.id_card_number,
         ctx.passport_type_code,
+        ctx.haveSpouseFlag,
         ctx.data_obj,
     )
     ok2, meta2 = await api_save_person_info(

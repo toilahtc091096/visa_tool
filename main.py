@@ -6,7 +6,6 @@ from typing import Any
 from flows import run_flow
 from utils import load_authorization
 
-
 DEFAULT_CASE: dict[str, Any] = {
     "authorization": "",
     "first_applyid": "",
@@ -46,6 +45,12 @@ DEFAULT_CASE: dict[str, Any] = {
     "motherGivenName": "",
     "motherNationality": "",
     "motherBirthDate": "",
+    "familyName": "",
+    "firstName": "",
+    "nationalityCountry": "",
+    "birthday": "",
+    "birthCountry": "",
+    "birthCity": "",
     "payName": "",
     "payMobile": "",
 }
@@ -166,6 +171,12 @@ def main(
             data["haveOtherVisaFlag"],
             data["old_otherVisas"],
             data["old_otherCountries"],
+            data["familyName"],
+            data["firstName"],
+            data["nationalityCountry"],
+            data["birthday"],
+            data["birthCountry"],
+            data["birthCity"],
             data["payMobile"],
             data["payName"],
             data["first_applyid"],
@@ -177,4 +188,3 @@ def main(
 
 if __name__ == "__main__":
     main()
- 
