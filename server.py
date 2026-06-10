@@ -29,11 +29,11 @@ def _is_sync_scheduler_enabled() -> bool:
 def _sync_scheduler_interval_seconds() -> int:
     raw_value = os.getenv("SYNC_DRAFT_SCHEDULER_INTERVAL_SECONDS", "").strip()
     if not raw_value:
-        return 2 * 60 * 60
+        return 1 * 60 * 60
     try:
         return max(60, int(raw_value))
     except ValueError:
-        return 2 * 60 * 60
+        return 1 * 60 * 60
 
 
 async def _sync_draft_scheduler_loop() -> None:
