@@ -9,6 +9,7 @@ from api import api_get_online_application_list_by_passport
 from database.crud import (
     list_visa_registrations_by_status,
     update_visa_registration_status_and_payload,
+    get_visa_registration_by_passport,
 )
 from services.google_sheets import write_sync_summary_to_google_sheet
 from utils import load_authorization, load_login_payload
@@ -86,6 +87,11 @@ async def sync_draft_visa_registrations(
 
     draft_rows = list_visa_registrations_by_status("draft")
     under_review_rows = list_visa_registrations_by_status("under_review")
+    pending_review_rows = list_visa_registrations_by_status("pending_review")
+    submitted_rows = list_visa_registrations_by_status("submitted")
+    approved_rows = list_visa_registrations_by_status("approved")
+    rejected_rows = list_visa_registrations_by_status("rejected")
+    cancelled_rows = list_visa_registrations_by_status("cancelled")
     summary: dict[str, Any] = {
         "ok": True,
         "draft_total": len(draft_rows),
@@ -94,7 +100,7 @@ async def sync_draft_visa_registrations(
         "skipped": 0,
         "items": [],
     }
-    total_rows = draft_rows + under_review_rows
+    total_rows = draft_rows + under_review_rows + pending_review_rows + submitted_rows + approved_rows +rejected_rows + cancelled_rows
 
     async with httpx.AsyncClient(timeout=60) as client:
         for row in total_rows:
@@ -178,7 +184,13 @@ async def sync_draft_visa_registrations(
                 row.get("status") or "draft"
             )
             internal_status = _map_apply_status_to_internal(remote_status)
-            existing_payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+            existing_payload = (
+                row.get("payload") if isinstance(row.get("payload"), dict) else {}
+            )
+            info_by_passport_number = get_visa_registration_by_passport(passport_number)
+            full_name = ""
+            if info_by_passport_number is not None:
+                full_name = info_by_passport_number.get("full_name")
             updated = update_visa_registration_status_and_payload(
                 record_id=record_id,
                 status=internal_status,
@@ -186,6 +198,7 @@ async def sync_draft_visa_registrations(
                     **existing_payload,
                     "sync": {
                         "first_applyid": first_applyid,
+                        "full_name": full_name,
                         "passport_number": passport_number,
                         "matched_row": matched_row,
                         "api_response": response,
@@ -199,6 +212,7 @@ async def sync_draft_visa_registrations(
             summary["items"].append(
                 {
                     "id": record_id,
+                    "full_name": full_name,
                     "passport_number": passport_number,
                     "first_applyid": first_applyid,
                     "ok": updated,
@@ -207,7 +221,9 @@ async def sync_draft_visa_registrations(
                     "internal_status": internal_status,
                 }
             )
-    sheet_url = spreadsheet_url.strip() or os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
+    sheet_url = (
+        spreadsheet_url.strip() or os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
+    )
     if sheet_url:
         try:
             sheet_result = write_sync_summary_to_google_sheet(

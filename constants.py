@@ -7,7 +7,10 @@ import random
 BASE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/Apply/V1"
 BASE_STATE_URL = "https://consular.mfa.gov.cn/VISA/api/cova-service/Visa/State/V1"
 CHECK_OLD_LIST_BASE_URL = "https://bio.visaforchina.cn/staging-api"
-R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "https://522ae3a4b22b1889539177ef851c51ba.r2.cloudflarestorage.com")
+R2_ENDPOINT_URL = os.getenv(
+    "R2_ENDPOINT_URL",
+    "https://522ae3a4b22b1889539177ef851c51ba.r2.cloudflarestorage.com",
+)
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
 R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "visa-data")
@@ -702,20 +705,18 @@ UPLOAD_CONFIG = {
             "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
             "limit": 1,
         },
-        "UNDER_18_DOCUMENTS": {
-            "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "UNDER_18_AUTHEN": {
-            "folder": L_15_AUTHORIZATION_LETTER_OUTPUT_PATH,
-            "limit": 1,
-        },
+        "UNDER_18": [
+            {
+                "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+                "limit": 5,
+            }
+        ],
         "OTHER_COUNTRY_VISAS": [
             {
                 "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-                "limit": 1,
+                "limit": 3,
             }
-        ]
+        ],
     }
 }
 
@@ -816,6 +817,18 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                 {
                     "categoryCode": "22025062114181968780924",
                     "materialCode": "mfa-039_2",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_3",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_4",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_5",
                 },
             ],
             "OTHER_COUNTRY_VISAS": [
@@ -918,7 +931,6 @@ BASE_HEADERS = {
 }
 
 
-
 # Mapping loại hộ chiếu -> mã
 PASSPORT_TYPE_CODE = {
     "Ordinary": "707001",
@@ -931,10 +943,10 @@ PASSPORT_TYPE_CODE = {
 
 # Mapping ký hiệu passport -> loại
 PASSPORT_SYMBOL_MAP = {
-    "P": "Ordinary",     # Phổ thông
-    "S": "Service",      # Công vụ
-    "D": "Diplomatic",   # Ngoại giao
-    "O": "Official",     # Official / Công vụ
-    "SP": "Special",     # Đặc biệt (nếu có)
-    "X": "Other",        # Khác / fallback
+    "P": "Ordinary",  # Phổ thông
+    "S": "Service",  # Công vụ
+    "D": "Diplomatic",  # Ngoại giao
+    "O": "Official",  # Official / Công vụ
+    "SP": "Special",  # Đặc biệt (nếu có)
+    "X": "Other",  # Khác / fallback
 }
