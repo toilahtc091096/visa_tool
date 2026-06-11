@@ -712,7 +712,7 @@ UPLOAD_CONFIG = {
         "OTHER_COUNTRY_VISAS": [
             {
                 "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-                "limit": 1,
+                "limit": 3,
             }
         ]
     }
