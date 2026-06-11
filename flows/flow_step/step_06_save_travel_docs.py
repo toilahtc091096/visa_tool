@@ -1,31 +1,79 @@
 import random
 
-from api import api_save_other_info, api_save_previous_travel_info, api_save_signature_info, api_save_travel_info
-from constants import FLIGHT_TEMPLATE, HOTEL_DATA, L_15_HOTEL_INFO, L_15_HOTEL_OUTPUT_PATH, L_15_TICKET_OUTPUT_PATH, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, L_30_HOTEL_INFO, L_30_HOTEL_OUTPUT_PATH, L_30_TICKET_OUTPUT_PATH, L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, CV_DATA, SEX_MAP, NATIONALITY_MAP, WEEK_SKIP_BY_TYPE
-from flows.flow_payloads import build_L30_guest_names, build_other_info, build_previous_travel_info_profile, build_signature_body, build_travel_info_profile
-from generate_file import cv_info, hotel_info
-from utils import date_util, format_date, generate_phone_pair, get_today_parts, log_event, log_exception, notify
+from api import (
+    api_save_other_info,
+    api_save_previous_travel_info,
+    api_save_signature_info,
+    api_save_travel_info,
+)
+from constants import (
+    FLIGHT_TEMPLATE,
+    HOTEL_DATA,
+    L_15_HOTEL_INFO,
+    L_15_HOTEL_OUTPUT_PATH,
+    L_15_TICKET_OUTPUT_PATH,
+    L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+    L_30_HOTEL_INFO,
+    L_30_HOTEL_OUTPUT_PATH,
+    L_30_TICKET_OUTPUT_PATH,
+    L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+    CV_DATA,
+    SEX_MAP,
+    NATIONALITY_MAP,
+    WEEK_SKIP_BY_TYPE,
+    VIETNAMESE_NAMES,
+)
+from flows.flow_payloads import (
+    build_L30_guest_names,
+    build_other_info,
+    build_previous_travel_info_profile,
+    build_signature_body,
+    build_travel_info_profile,
+)
+from generate_file import cv_info, hotel_info, flight_info
+from utils import (
+    date_util,
+    format_date,
+    generate_phone_pair,
+    get_today_parts,
+    log_event,
+    log_exception,
+    notify,
+)
 
 
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     if ctx.visa_type == "L15":
-        ctx.hotel_type = random.randint(0, 100) % len(HOTEL_DATA[ctx.visa_type]["hotel"])
+        ctx.hotel_type = random.randint(0, 100) % len(
+            HOTEL_DATA[ctx.visa_type]["hotel"]
+        )
+        ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
+            ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type), 4
+        )
     elif ctx.visa_type == "L30":
-        ctx.hotel_type = random.randint(0, 100) % len(HOTEL_DATA[ctx.visa_type]["hotel"])
-
+        ctx.hotel_type = random.randint(0, 100) % len(
+            HOTEL_DATA[ctx.visa_type]["hotel"]
+        )
+        ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
+            ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type), 6
+        )
     ctx.flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[ctx.visa_type])
-    ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
-        ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
-    )
+
     print(ctx.m, ctx.f)
-    ctx.prefix_flight_text = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_flight_text"]
+    ctx.prefix_flight_text = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket][
+        "prefix_flight_text"
+    ]
     ctx.arrive_flight_number, ctx.departure_flight_number = generate_phone_pair(
         FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_number"]
     )
 
     ctx.step = "save_travel_info"
-    arrive_flight_number_full_info = ctx.prefix_flight_text + " " + ctx.arrive_flight_number
-    departure_flight_number_full_info = ctx.prefix_flight_text + " " + ctx.departure_flight_number
+    arrive_flight_number_full_info = (
+        ctx.prefix_flight_text + " " + ctx.arrive_flight_number
+    )
+    departure_flight_number_full_info = (
+        ctx.prefix_flight_text + " " + ctx.departure_flight_number
+    )
     body_save_travel_info = build_travel_info_profile(
         ctx.visa_type,
         ctx.first_applyid,
@@ -126,28 +174,38 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "end": ctx.f,
                 "type": "hotel",
             }
-            await hotel_info.render_docx_template_output_pdf(
-                payload, L_15_HOTEL_OUTPUT_PATH
-            )
+            await hotel_info.render_docx_hotel_l15_pdf(payload, L_15_HOTEL_OUTPUT_PATH)
             log_event({"step": "genenrate hotel file", "ok": "ok"})
         except Exception as e:
             log_exception(e, {"event": "render_failed", "file": hotel})
             raise
     elif ctx.visa_type == "L30":
-        hotel = L_30_HOTEL_INFO[0].get("documentName")
         ctx.guest_name = build_L30_guest_names(ctx.guest_name, ctx.vietnamese_name)
+        if len(ctx.guest_name) < 4:
+            ctx.guest_name.append(random.choice(VIETNAMESE_NAMES).upper().split())
+        hotel_files = []
         try:
-            payload = {
-                "file_name": hotel,
-                "names": ctx.guest_name,
-                "first": ctx.m,
-                "end": ctx.f,
-                "type": "hotel",
-            }
-            await hotel_info.render_docx_template_output_pdf(
-                payload, L_30_HOTEL_OUTPUT_PATH
-            )
-            log_event({"step": "genenrate hotel file", "ok": "ok"})
+            skip = WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
+            for idx, hotel in enumerate(L_30_HOTEL_INFO):
+                payload = {
+                    "file_name": hotel.get("documentName"),
+                    "names": ctx.guest_name,
+                    "first": date_util.monday_and_friday_skip_x_weeks(
+                        ctx.m, skip + idx, 6
+                    ),
+                    "end": date_util.monday_and_friday_skip_x_weeks(
+                        ctx.m, skip + idx, 6
+                    ),
+                    "type": "hotel",
+                }
+                hotel_files.append(
+                    await hotel_info.render_docx_hotel_l30_pdf(
+                        payload, L_30_HOTEL_OUTPUT_PATH
+                    )
+                )
+                log_event({"step": "genenrate hotel file", "ok": "ok"})
+            print(hotel_files)
+            # Todo: tao 1 ham, nhan vao hotel_files => Gop 3 file theo thu tu => Tra ve pdf => Xoa all docx
         except Exception as e:
             log_exception(e, {"event": "render_failed", "file": hotel})
             raise
@@ -183,9 +241,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         log_event({"step": "genenrate flight ticket file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-    await hotel_info.render_docx_template_output_pdf(
-        payload, L_15_TICKET_OUTPUT_PATH if ctx.visa_type == "L15" else L_30_TICKET_OUTPUT_PATH
-    )
+    await flight_info.render_flight_ticket_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
 
     if ctx.ticket_names == []:
         ctx.ticket_names = [ctx.vietnamese_name]
@@ -201,19 +257,27 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             "submit_month_mm": today_mm,
             "submit_day_dd": today_dd,
             "sex": SEX_MAP.get(ctx.ocr_data.Response.Data.sex, ""),
-            "nationality": NATIONALITY_MAP.get(ctx.ocr_data.Response.Data.nationality, ""),
+            "nationality": NATIONALITY_MAP.get(
+                ctx.ocr_data.Response.Data.nationality, ""
+            ),
             "passportNo": ctx.ocr_data.Response.Data.passportNumber,
-            "birth_date_dd_mm_yyyy": format_date(ctx.ocr_data.Response.Data.dateOfBirth),
-            "expired_day_dd_mm_yyyy": format_date(ctx.ocr_data.Response.Data.dateOfExpiration),
+            "birth_date_dd_mm_yyyy": format_date(
+                ctx.ocr_data.Response.Data.dateOfBirth
+            ),
+            "expired_day_dd_mm_yyyy": format_date(
+                ctx.ocr_data.Response.Data.dateOfExpiration
+            ),
         }
         log_event({"step": "genenrate flight ticket file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-    await cv_info.render_docx_template_output_pdf(
+    await cv_info.render_docx_cv_pdf(
         payload,
-        L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
-        if ctx.visa_type == "L15"
-        else L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+        (
+            L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
+            if ctx.visa_type == "L15"
+            else L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
+        ),
     )
 
     return True

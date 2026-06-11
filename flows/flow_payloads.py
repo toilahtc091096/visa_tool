@@ -94,7 +94,6 @@ def build_person_profile(
     province_city_code: str,
     id_card_number: str,
     passport_type_code: str,
-    haveSpouseFlag: bool,
     personInfoData: PersonInfoData | None,
 ) -> PersonInfoProfile:
     photo_path = getattr(personInfoData, "photoPath", None)
@@ -140,7 +139,7 @@ def build_person_profile(
         "passportNumber": ocr.passportNumber if ocr else None,
         "expirationDate": ocr.dateOfExpiration if ocr else None,
         "issueCountry": ocr.issuingCountry if ocr else None,
-        "maritalStatus": "706001" if haveSpouseFlag else "706003",
+        "maritalStatus": random.choice(["706002", "706003"]),
         "passport": get_passport_code(passport_type_code),
         "issuePlace": random.choice(["CQLXNC", "CUC QUAN LY XNC"]),
         "photoPath": photo_path,
@@ -361,30 +360,9 @@ def _empty_spouse_entry() -> dict[str, Any]:
         "otherSpecify": "",
         "birthCountry": "",
         "birthCity": "",
-        "birthday": "",
+        "birthCounty": "",
         "address": "",
-    }
-
-
-def _infor_spouse_entry(
-    spouseFamilyName: str = "",
-    spouseFirstName: str = "",
-    spouseNationalityCountry: str = "",
-    spouseBirthday: str = "",
-    spouseBirthCountry: str = "",
-    spouseBirthCity: str = "",
-) -> dict[str, Any]:
-    return {
-        "sort": "1",
-        "familyName": spouseFamilyName,
-        "firstName": spouseFirstName,
-        "nationalityCountry": spouseNationalityCountry,
-        "profession": "",
-        "otherSpecify": "",
-        "birthCity": spouseBirthCity,
-        "birthCounty": spouseBirthCountry,
-        "address": spouseBirthCity,
-        "birthday":spouseBirthday,
+        "birthday":"",
     }
 
 
@@ -422,13 +400,7 @@ def build_family_info_profile(
     main_account_birth_date: date,
     family_nationality: str,
     haveSpouseFlag: bool,
-    spouseFamilyName: str = "",
-    spouseFirstName: str = "",
-    spouseNationalityCountry: str = "",
-    spouseBirthday: str = "",
-    spouseBirthCountry: str = "",
-    spouseBirthCity: str = "",
-    haveChildFlag: bool = False,
+    haveChildFlag: bool,
     childFamilyName: str = "",
     childGivenName: str = "",
     childNationality: str = "",
@@ -467,16 +439,7 @@ def build_family_info_profile(
         )
         spouses_info = [_empty_spouse_entry()]
     else:
-        spouses_info = [
-            _infor_spouse_entry(
-                spouseFamilyName,
-                spouseFirstName,
-                spouseNationalityCountry,
-                spouseBirthday,
-                spouseBirthCountry,
-                spouseBirthCity,
-            )
-        ]
+        spouses_info = [_empty_spouse_entry()]
 
     if haveChildFlag is not True:
         not_apply_items.append(
@@ -810,8 +773,7 @@ def getL30TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
-    arrival_str: str,
-    leave_str: str,
+    arrival_date: date,
     arrivalVehicleType: str,
     leaveVehicleType: str,
 ) -> Dict[str, Any]:
@@ -832,6 +794,18 @@ def getL30TravelInfo(
         addr_100 = cut[:last_space].rstrip() if last_space != -1 else cut.rstrip()
     else:
         addr_100 = addr
+        
+    stay_30_info = [
+        {
+            "sort": idx + 1,
+            "stayCity": hotel.get("citySelectedBox"),
+            "stayCounty": hotel.get("arrivalCounty"),
+            "travelAddr": addr_100,
+            "arrivalDate": arrival_str,
+            "leaveDate": leave_str,
+        }
+        for idx, hotel in enumerate(L_30_HOTEL_INFO)
+    ]    
     travel_json.update(
         {
             "invitationNumber": "",
@@ -845,27 +819,16 @@ def getL30TravelInfo(
             "inviteZipCode": "",
             "travelCompanion": [],
             "notApplyItems": [],
+            "arrivalDate": arrival_str,
             "arrivalVehicleType": arrivalVehicleType,
             "arrivalCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
             "arrivalCounty": L_30_HOTEL_INFO[0].get("arrivalCounty"),
-            "stayCity": "",
-            "stayCounty": "",
             "travelAddr": "",
-            "stayInfo": [
-                {
-                    "sort": 1,
-                    "stayCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
-                    "stayCounty": L_30_HOTEL_INFO[0].get("arrivalCounty"),
-                    "travelAddr": addr_100,
-                    "arrivalDate": arrival_str,
-                    "leaveDate": leave_str,
-                }
-            ],
-            "leaveCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
+            "stayInfo": stay_30_info,
+            "leaveCity": L_30_HOTEL_INFO[2].get("citySelectedBox"),
             "leaveCounty": "",
             "leaveDate": leave_str,
             "leaveVehicleType": leaveVehicleType,
-            "arrivalDate": arrival_str,
         }
     )
 
@@ -903,8 +866,7 @@ def build_travel_info_profile(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
-            arrival_str=arrival_str,
-            leave_str=leave_str,
+            arrival_date=arrival_date,
             arrivalVehicleType=arrivalVehicleType,
             leaveVehicleType=leaveVehicleType,
         )
@@ -1223,7 +1185,7 @@ def build_signature_body(
 def build_L30_guest_names(guest_name: list[str], vietnamese_name: str) -> list[str]:
     if guest_name == []:
         guest_name = [vietnamese_name]
-    while len(guest_name) < 4:
+    while (len(guest_name) < 4):
         guest_name.append(random.choice(VIETNAMESE_NAMES).upper())
     return guest_name
 

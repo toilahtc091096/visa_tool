@@ -431,26 +431,26 @@ L_30_HOTEL_INFO = [
         "address": "No.17 Second Kechuang Street, Daxing District, Beijing, Daxing, Beijing, 100023, Trung Quốc",
         "city": "BJ",
         "arrivalCounty": "110115",
+        "citySelectedBox": "BJ",
         "relationship": "KHACH SAN",
         "districtCounty": "",
         "invitePhoneNumber": "15944417395",
         "inviteProvince": "110115",
-        "documentName": "GreenTree_Inn_Beejin.docx",
+        "documentName": "GreenTree_Inn_Beejin.docx"
     },
     {
         "place_city": "SHANGHAI",
         "iata_code": "SHA",
-        "arrive_id": 2,
-        "departure_id": 2,
         "name": "Holiday Inn Express Shanghai Pujiang Lianhang Road, an IHG Hotel",
         "address": "No. 618, Zhuyuan Road, Pujiang Zhen, Minhang District, Minhang, Shanghai, 200233, Trung Quốc",
         "city": "SH",
         "arrivalCounty": "310112",
+        "citySelectedBox": "SH",
         "relationship": "KHACH SAN",
         "districtCounty": "",
         "invitePhoneNumber": "12164117988",
         "inviteProvince": "310112",
-        "documentName": "Holiday_Inn_Express_ShangHai.docx",
+        "documentName": "Holiday_Inn_Express_ShangHai.docx"
     },
     {
         "place_city": "GUANGZHOU",
@@ -459,12 +459,13 @@ L_30_HOTEL_INFO = [
         "address": "No.713 Sorth South Jiang Nan Road Guangzhou, China, Hai Zhu, GuangZhou, 510000, Trung Quốc",
         "city": "CAN1",
         "arrivalCounty": "440105",
+        "citySelectedBox": "CAN1",
         "relationship": "KHACH SAN",
         "districtCounty": "",
         "invitePhoneNumber": "12083931111",
         "inviteProvince": "440105",
-        "documentName": "Lanvande_Hotel_GzuangChau.docx",
-    },
+        "documentName": "Lanvande_Hotel_GzuangChau.docx"
+    }
 ]
 L_15_HOTEL_OUTPUT_PATH = "chung\\khach_san"
 L_15_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
@@ -937,4 +938,3 @@ PASSPORT_SYMBOL_MAP = {
     "SP": "Special",     # Đặc biệt (nếu có)
     "X": "Other",        # Khác / fallback
 }
- 

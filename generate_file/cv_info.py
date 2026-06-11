@@ -6,7 +6,7 @@ import re
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 
 
-async def render_docx_template_output_pdf(
+async def render_docx_cv_pdf(
     payload: dict[str, Any], output_path: str = ""
 ) -> str:
     """
