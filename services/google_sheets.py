@@ -8,7 +8,6 @@ from typing import Any
 import gspread
 from gspread.exceptions import APIError
 
-
 _SPREADSHEET_ID_RE = re.compile(r"/spreadsheets/d/([a-zA-Z0-9-_]+)")
 
 
@@ -151,6 +150,58 @@ def _normalize_rows(
     raise ValueError("rows must be a list of dicts or a list of lists")
 
 
+def _normalize_header_name(value: Any) -> str:
+    return str(value or "").strip().casefold()
+
+
+def _find_sheet_header_row(
+    all_values: list[list[Any]],
+    expected_header: list[str],
+) -> tuple[int, list[str]] | tuple[None, None]:
+    expected_names = [_normalize_header_name(name) for name in expected_header]
+    expected_name_set = set(expected_names)
+    key_name = _normalize_header_name("first_applyid")
+
+    best_row_idx: int | None = None
+    best_row_values: list[str] | None = None
+    best_match_count = 0
+
+    for row_idx, row in enumerate(all_values, start=1):
+        normalized_row = [_normalize_header_name(cell) for cell in row]
+        match_count = sum(1 for cell in normalized_row if cell in expected_name_set)
+        if key_name not in normalized_row or match_count == 0:
+            continue
+
+        if (
+            best_row_idx is None
+            or match_count > best_match_count
+            or (match_count == best_match_count and row_idx < best_row_idx)
+        ):
+            best_row_idx = row_idx
+            best_row_values = [str(cell).strip() for cell in row]
+            best_match_count = match_count
+
+    if best_row_idx is None or best_row_values is None:
+        return None, None
+
+    return best_row_idx, best_row_values
+
+
+def _build_row_by_header(
+    row_header: list[str],
+    row_values: list[Any],
+    target_header: list[str],
+) -> list[Any]:
+    value_by_name = {
+        _normalize_header_name(name): row_values[idx]
+        for idx, name in enumerate(row_header)
+        if idx < len(row_values)
+    }
+    return [
+        value_by_name.get(_normalize_header_name(name), "") for name in target_header
+    ]
+
+
 def write_rows_to_google_sheet(
     spreadsheet_url: str,
     rows: list[Any],
@@ -163,7 +214,11 @@ def write_rows_to_google_sheet(
     service_account_email = _get_service_account_email()
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
-        worksheet = spreadsheet.worksheet(worksheet_name) if worksheet_name else spreadsheet.get_worksheet(0)
+        worksheet = (
+            spreadsheet.worksheet(worksheet_name)
+            if worksheet_name
+            else spreadsheet.get_worksheet(0)
+        )
     except Exception as exc:
         raise PermissionError(
             _build_permission_error_message(
@@ -206,26 +261,70 @@ def write_rows_to_google_sheet(
             all_values = worksheet.get_all_values()
 
             # Header nằm ở dòng 1
-            existing = {}
+            input_header = [str(name).strip() for name in normalized_rows[0]]
+            input_key_idx = next(
+                (
+                    idx
+                    for idx, name in enumerate(input_header)
+                    if _normalize_header_name(name) == "first_applyid"
+                ),
+                None,
+            )
+            if input_key_idx is None:
+                raise ValueError("first_applyid column is required for upsert")
 
-            for row_idx, row in enumerate(all_values[1:], start=2):
-                if len(row) >= 3:  # cột C = first_applyid
-                    existing[str(row[2]).strip()] = row_idx
+            sheet_header_row_idx, sheet_header_row = _find_sheet_header_row(
+                all_values,
+                input_header,
+            )
+            if sheet_header_row_idx is None or sheet_header_row is None:
+                sheet_header_row_idx = 1
+                sheet_header_row = input_header[:]
 
-            for row in normalized_rows[1:]:  # bỏ header
-                first_applyid = str(row[2]).strip()
+            sheet_key_idx = next(
+                (
+                    idx
+                    for idx, name in enumerate(sheet_header_row)
+                    if _normalize_header_name(name) == "first_applyid"
+                ),
+                None,
+            )
+            if sheet_key_idx is None:
+                raise ValueError("first_applyid column is required in sheet header")
 
+            existing: dict[str, int] = {}
+            for row_idx, row in enumerate(
+                all_values[sheet_header_row_idx:],
+                start=sheet_header_row_idx + 1,
+            ):
+                if len(row) > sheet_key_idx:
+                    key = str(row[sheet_key_idx]).strip()
+                    if key:
+                        existing[key] = row_idx
+
+            for row in normalized_rows[1:]:
+                first_applyid = str(row[input_key_idx]).strip()
+                if not first_applyid:
+                    continue
+
+                ordered_row = _build_row_by_header(
+                    row_header=input_header,
+                    row_values=row,
+                    target_header=sheet_header_row,
+                )
                 if first_applyid in existing:
                     row_num = existing[first_applyid]
 
                     worksheet.update(
-                        f"A{row_num}:H{row_num}",
-                        [row],
+                        f"A{row_num}",
+                        [ordered_row],
                         value_input_option="RAW",
                     )
                 else:
-                    worksheet.append_row(
-                        row,
+                    next_row = len(worksheet.get_all_values()) + 1
+                    worksheet.update(
+                        f"A{next_row}",
+                        [ordered_row],
                         value_input_option="RAW",
                     )
 
@@ -237,7 +336,7 @@ def write_rows_to_google_sheet(
                     service_account_email,
                     exc,
                 )
-            ) from exc    
+            ) from exc
     else:
         try:
             existing_values = worksheet.get_all_values()
@@ -263,7 +362,11 @@ def write_rows_to_google_sheet(
         "ok": True,
         "spreadsheet_id": spreadsheet_id,
         "worksheet": worksheet.title,
-        "written_rows": len(normalized_rows) - 1 if (header is not None or isinstance(rows[0], dict)) else len(normalized_rows),
+        "written_rows": (
+            len(normalized_rows) - 1
+            if (header is not None or isinstance(rows[0], dict))
+            else len(normalized_rows)
+        ),
         "mode": normalized_mode,
     }
 
@@ -285,24 +388,26 @@ def write_sync_summary_to_google_sheet(
         rows.append(
             {
                 "record_id": item.get("id", ""),
+                "full_name": item.get("full_name", ""),
                 "passport_number": item.get("passport_number", ""),
                 "first_applyid": item.get("first_applyid", ""),
                 "ok": item.get("ok", False),
                 "reason": item.get("reason", ""),
-                "remote_applyid": item.get("remote_applyid", ""),
-                "remote_status": item.get("remote_status", ""),
+                # "remote_applyid": item.get("remote_applyid", ""),
+                # "remote_status": item.get("remote_status", ""),
                 "internal_status": item.get("internal_status", ""),
             }
         )
 
     header = [
         "record_id",
+        "full_name",
         "passport_number",
         "first_applyid",
         "ok",
         "reason",
-        "remote_applyid",
-        "remote_status",
+        # "remote_applyid",
+        # "remote_status",
         "internal_status",
     ]
     return write_rows_to_google_sheet(
@@ -332,7 +437,11 @@ def debug_google_sheet_access(
 
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
-        worksheet = spreadsheet.worksheet(worksheet_name) if worksheet_name else spreadsheet.get_worksheet(0)
+        worksheet = (
+            spreadsheet.worksheet(worksheet_name)
+            if worksheet_name
+            else spreadsheet.get_worksheet(0)
+        )
         result.update(
             {
                 "ok": True,
