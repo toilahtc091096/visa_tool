@@ -185,6 +185,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "first": ctx.m,
                 "end": ctx.f,
                 "type": "hotel",
+                "is_under_18": ctx.is_under_18,
+                "haveChildFlag": ctx.haveChildFlag,
             }
             await hotel_info.render_docx_template_output_pdf(
                 payload, L_15_HOTEL_OUTPUT_PATH

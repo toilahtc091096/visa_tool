@@ -28,6 +28,8 @@ async def render_docx_template_output_pdf(
     names: list[str] = payload.get("names", [])
     first: date = payload.get("first")
     end: date | None = payload.get("end")
+    is_under_18: bool = payload.get("is_under_18", False)
+    haveChildFlag: bool = payload.get("haveChildFlag", False)
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = Path(__file__).resolve().parent / ".." / "data"
