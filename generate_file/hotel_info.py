@@ -95,7 +95,7 @@ async def render_docx_template_output_pdf(
                 "adults_number": 1,
                 "child_number": 1,
                 # end
-                "three_submit_number":  random.randint(100,999) if not (is_under_18 and haveChildFlag) else "231",)
+                "three_submit_number":  random.randint(100,999) if not (is_under_18 and haveChildFlag) else "231"
             },
             jinja_env=jinja_env,
         )
