@@ -31,7 +31,7 @@ from flows.flow_payloads import (
     build_signature_body,
     build_travel_info_profile,
 )
-from generate_file import cv_info, hotel_info
+from generate_file import cv_info, hotel_info, flight_info
 from utils import (
     date_util,
     format_date,
@@ -246,7 +246,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         log_event({"step": "genenrate flight ticket file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-    await hotel_info.render_docx_template_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
+    await flight_info.render_flight_ticket_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
 
     ctx.ticket_names = [ctx.vietnamese_name]
     try:

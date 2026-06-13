@@ -99,36 +99,12 @@ async def render_docx_template_output_pdf(
             },
             jinja_env=jinja_env,
         )
-    if payload.get("type") == "flight_ticket":
-        first: date = payload.get("first")
-        end: date | None = payload.get("end")
-        names: list[str] = payload.get("names", [])
-        doc.render(
-            {
-                "arrive_day": first.day,
-                "arrive_month_MMM": first.strftime("%b").upper(),
-                "arrive_year_yyyy": first.year,
-                "departure_day": end.day,
-                "departure_month_MMM": end.strftime("%b").upper(),
-                "departure_year_yyyy": end.year,
-                "arrvied_city": str(payload.get("arrvied_city")).upper(),
-                "names": names,
-                "arrive_day_name": first.strftime("%A").upper(),
-                "arrive_flight_number": payload.get("arrive_flight_number"),
-                "arrived_iata_code": str(payload.get("arrived_iata_code")).upper(),
-                "departure_day_name": end.strftime("%A").upper(),
-                "departure_flight_number": payload.get("departure_flight_number"),
-                "departure_iata_code": str(payload.get("departure_iata_code")),
-                "departure_city": str(payload.get("departure_city")),
-            },
-            jinja_env=jinja_env,
-        )
     doc.save(str(out))
     safe = safe or "NONAME"
 
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
     convert_docx_to_pdf(str(out), str(pdf_out))
-    # out.unlink()  # same as os.remove(out)
+    out.unlink()  # same as os.remove(out)
     return str(pdf_out)  # return PDF, not DOCX
  
