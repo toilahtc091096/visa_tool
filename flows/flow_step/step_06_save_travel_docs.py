@@ -167,7 +167,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         return False
 
     if ctx.visa_type == "L15":
-        if ctx.is_under_18:
+        if ctx.is_under_18 or ctx.haveChildFlag:
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
             adult = (
                 ctx.payName if ctx.payName else random.choice(VIETNAMESE_NAMES).upper()
@@ -205,6 +205,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "first": ctx.m,
                 "end": ctx.f,
                 "type": "hotel",
+                "is_under_18": ctx.is_under_18,
+                "haveChildFlag": ctx.haveChildFlag,
             }
             await hotel_info.render_docx_template_output_pdf(
                 payload, L_30_HOTEL_OUTPUT_PATH
@@ -235,8 +237,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
         payload = {
             "file_name": file_name,
-            "arrive_flight_number": ctx.arrive_flight_number if not (is_under_18 and ctx.haveChildFlag) else "31",
-            "departure_flight_number": ctx.departure_flight_number if not (is_under_18 and ctx.haveChildFlag) else "52",
+            "arrive_flight_number": ctx.arrive_flight_number if not (ctx.s_under_18 and ctx.haveChildFlag) else "31",
+            "departure_flight_number": ctx.departure_flight_number if not (ctx.is_under_18 and ctx.haveChildFlag) else "52",
             "arrvied_city": hotel_info_item.get("place_city"),
             "names": ctx.ticket_names,
             "arrived_iata_code": hotel_info_item.get("iata_code"),
