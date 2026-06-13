@@ -175,7 +175,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name, adult]
                 print(f"guest_name: {ctx.guest_name}")
-        if ctx.haveChildFlag:
+        elif ctx.haveChildFlag:
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
             child = (
                 f"{ctx.childFamilyName} {ctx.childGivenName}"
