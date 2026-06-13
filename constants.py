@@ -697,7 +697,7 @@ UPLOAD_CONFIG = {
         },
         "HOTEL_RESERVATION_WITH_PAYMENT": {
             "folder": L_15_HOTEL_OUTPUT_PATH,
-            "limit": 10,
+            "limit": 1,
         },
         "OTHER_MATERIALS": [
             {
@@ -711,7 +711,7 @@ UPLOAD_CONFIG = {
         ],
         "PREV_CHINESE_VISA": {
             "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-            "limit": 1,
+            "limit": 3,
         },
         "UNDER_18": [
             {
