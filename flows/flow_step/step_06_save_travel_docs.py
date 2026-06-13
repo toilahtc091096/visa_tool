@@ -167,13 +167,18 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         return False
 
     if ctx.visa_type == "L15":
-        if ctx.is_under_18 or ctx.haveChildFlag:
+        if ctx.is_under_18:
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
             adult = (
                 ctx.payName if ctx.payName else random.choice(VIETNAMESE_NAMES).upper()
             )
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name, adult]
+        if ctx.haveChildFlag:
+            hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
+            child = f"{ctx.childFamilyName} {ctx.childGivenName}" if (ctx.childGivenName and ctx.childFamilyName) else random.choice(VIETNAMESE_NAMES).upper()
+            if not ctx.guest_name:
+                ctx.guest_name = [ctx.vietnamese_name, child]
         else:
             hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
             if not ctx.guest_name:
@@ -222,6 +227,10 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         if ctx.is_under_18:
             ctx.ticket_names.append(
                 ctx.payName if ctx.payName else random.choice(VIETNAMESE_NAMES).upper()
+            )
+        if ctx.haveChildFlag:
+            ctx.ticket_names.append(
+                f"{ctx.childFamilyName} {ctx.childGivenName}" if (ctx.childGivenName and ctx.childFamilyName) else random.choice(VIETNAMESE_NAMES).upper()
             )
     try:
         if ctx.visa_type in FLIGHT_TEMPLATE:
