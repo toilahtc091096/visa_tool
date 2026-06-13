@@ -918,6 +918,7 @@ def build_travel_info_profile(
     arrivalVehicleType: str,
     leaveVehicleType: str,
 ) -> TravelInfoProfile:
+    print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
     if (
