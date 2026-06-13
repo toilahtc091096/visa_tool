@@ -53,3 +53,14 @@ def get_today_parts():
     today_dd = today.strftime("%d")
 
     return today_yyyy, today_mm, today_dd
+
+def is_under_18(date_str: str) -> bool:
+    birth_date = parse_date(date_str)
+
+    today = date.today()
+
+    age = today.year - birth_date.year
+    if (today.month, today.day) < (birth_date.month, birth_date.day):
+        age -= 1
+
+    return age < 18

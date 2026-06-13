@@ -40,6 +40,7 @@ from constants import (
     L_30_HOTEL_INFO,
     PASSPORT_SYMBOL_MAP,
     PASSPORT_TYPE_CODE,
+    UNDER_18_HOTEL_INFO,
 )
 from models import (
     ApplyInfoProfile,
@@ -228,6 +229,7 @@ def build_work_info_profile(
     province_city_code: str,
     job_type: str = "",
     experiences: list[WorkExperienceItem] = [],
+    is_under_18: bool = False,
 ) -> WorkInfoProfile:
     job_type_label = random.choice(PREFER_JOB_TYPE)
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
@@ -271,6 +273,14 @@ def build_work_info_profile(
             we_src = experiences if experiences != [] else work_experience
     else:
         we_src = work_experience
+    if is_under_18:
+        work_experience: list[dict[str, Any]] = []
+        not_apply_items = [
+            {
+                "notApplyCode": "workExperience",
+                "remark": "CON NHO",
+            }
+        ]
 
     work_info_json: dict[str, Any] = {
         "applyCountry": "",
@@ -317,9 +327,11 @@ def build_education_info_profile(
     applyid: str,
     province_city_code: str,
     educationExperience: list[EducationExperienceItem],
+    is_under_18: bool = False,
 ) -> EducationInfoProfile:
 
     we_src = []
+    not_apply_items = []
     if educationExperience != []:
         we_src = (
             educationExperience
@@ -328,6 +340,15 @@ def build_education_info_profile(
         )
     else:
         we_src = [_education_experience_entry(province_city_code)]
+
+    if is_under_18:
+        we_src = []
+        not_apply_items = [
+            {
+                "notApplyCode": "educationExperience",
+                "remark": "CON NHO",
+            }
+        ]
     education_json: dict[str, Any] = {
         "applyCountry": "",
         "finishedStep": 9,
@@ -335,7 +356,7 @@ def build_education_info_profile(
         "tempSaveFlag": False,
         "userId": "",
         "language": "",
-        "notApplyItems": [],
+        "notApplyItems": not_apply_items,
         "educationExperience": [_to_dict(i) for i in (we_src or [])],
         "applyid": applyid,
         "lang": DEFAULT_LANG,
@@ -384,7 +405,7 @@ def _infor_spouse_entry(
         "birthCity": spouseBirthCity,
         "birthCounty": spouseBirthCountry,
         "address": spouseBirthCity,
-        "birthday":spouseBirthday,
+        "birthday": spouseBirthday,
     }
 
 
@@ -742,6 +763,7 @@ def getL15TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    is_under_18: bool,
     hotel_type: str,
     arrival_str: str,
     leave_str: str,
@@ -756,7 +778,10 @@ def getL15TravelInfo(
         emergency_family=emergency_family,
         emergency_first=emergency_first,
     )
-    addr = (L_15_HOTEL_INFO[hotel_type].get("address") or "").strip()
+    item_travel = L_15_HOTEL_INFO[hotel_type]
+    if is_under_18:
+        item_travel = UNDER_18_HOTEL_INFO[0]
+    addr = (item_travel.get("address") or "").strip()
     addr_100 = ""
     if len(addr) > 100:
         cut = addr[:100]
@@ -768,33 +793,33 @@ def getL15TravelInfo(
     travel_json.update(
         {
             "invitationNumber": "",
-            "inviteCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
+            "inviteCity": item_travel.get("citySelectedBox"),
             "inviteCounty": "",
             "inviteEmail": "",
-            "inviteName": L_15_HOTEL_INFO[hotel_type].get("name"),
+            "inviteName": item_travel.get("name"),
             "invitePhoneNumber": mobile_utils.generate_supervisor_tel("15920187600"),
-            "inviteProvince": L_15_HOTEL_INFO[hotel_type].get("inviteProvince"),
-            "inviteRelation": L_15_HOTEL_INFO[hotel_type].get("relationship"),
+            "inviteProvince": item_travel.get("inviteProvince"),
+            "inviteRelation": item_travel.get("relationship"),
             "inviteZipCode": "",
             "travelCompanion": [],
             "notApplyItems": [],
             "arrivalVehicleType": arrivalVehicleType,
-            "arrivalCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
-            "arrivalCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
+            "arrivalCity": item_travel.get("citySelectedBox"),
+            "arrivalCounty": item_travel.get("arrivalCounty"),
             "stayCity": "",
             "stayCounty": "",
             "travelAddr": "",
             "stayInfo": [
                 {
                     "sort": 1,
-                    "stayCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
-                    "stayCounty": L_15_HOTEL_INFO[hotel_type].get("arrivalCounty"),
+                    "stayCity": item_travel.get("citySelectedBox"),
+                    "stayCounty": item_travel.get("arrivalCounty"),
                     "travelAddr": addr_100,
                     "arrivalDate": arrival_str,
                     "leaveDate": leave_str,
                 }
             ],
-            "leaveCity": L_15_HOTEL_INFO[hotel_type].get("citySelectedBox"),
+            "leaveCity": item_travel.get("citySelectedBox"),
             "leaveCounty": "",
             "leaveDate": leave_str,
             "leaveVehicleType": leaveVehicleType,
@@ -877,6 +902,11 @@ def build_travel_info_profile(
     applyid: str,
     payName: str,
     payMobile: str,
+    is_under_18: bool,
+    fatherFamilyName: str,
+    fatherGivenName: str,
+    motherFamilyName: str,
+    motherGivenName: str,
     arrival_date: date,
     leave_date: date,
     hotel_type: int,
@@ -885,13 +915,25 @@ def build_travel_info_profile(
 ) -> TravelInfoProfile:
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
-    emergency_family, emergency_first = _emergency_contact_names()
-
+    if (
+        fatherFamilyName == ""
+        and fatherGivenName == ""
+        and motherFamilyName == ""
+        and motherGivenName == ""
+    ):
+        emergency_family, emergency_first = _emergency_contact_names()
+    if fatherFamilyName != "" and fatherGivenName != "":
+        emergency_family = fatherFamilyName
+        emergency_first = fatherGivenName
+    if motherFamilyName != "" and motherGivenName != "":
+        emergency_family = motherFamilyName
+        emergency_first = motherGivenName
     if visa_type == "L15":
         travel_json: dict[str, Any] = getL15TravelInfo(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
+            is_under_18=is_under_18,
             hotel_type=hotel_type,
             arrival_str=arrival_str,
             leave_str=leave_str,

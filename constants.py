@@ -44,6 +44,13 @@ SEC_CH_UA = '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"'
 MY_VISA_TYPE = {"L15", "L30", "M", "Q"}
 
 HOTEL_DATA = {
+    "UNDER_18": (
+        {
+            "hotel": [
+                "Nanxing_hotel.docx",
+            ]
+        }
+    ),
     "L15": (
         {
             "hotel": [
@@ -213,7 +220,7 @@ TRAVEL_INVITE_PROVINCE = "GD"
 TRAVEL_PAY_FOR_SELF = "708001"
 TRAVEL_PAY_FOR_OTHER = "708002"
 TRAVEL_INVITE_RELATION_HOTEL = "KHACH SAN"
-TRAVEL_EMERGENCY_RELATION = "BAN BE"
+TRAVEL_EMERGENCY_RELATION = "NGUOI THAN"
 TRAVEL_INVITE_NAMES = ("Hantao AI Select International Apartment",)
 
 JOB_TYPE = (
@@ -527,22 +534,24 @@ L_30_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
 
+UNDER_18_HOTEL_INFO = [
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Nanxing Hotel (Nanxing Hotel)",
+        "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe",
+        "city": "CAN",
+        "arrivalCounty": "440106",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "118928746347",
+        "inviteProvince": "GD",
+        "documentName": "Nanxing_hotel.docx",
+        "citySelectedBox": "CAN1",
+    },
+]
 L_15_HOTEL_INFO = [
     # Pazhou Exhibition
-    # {
-    #     "place_city": "GUANGZHOU",
-    #     "iata_code": "CAN",
-    #     "name": "Nanxing Hotel (Nanxing Hotel)",
-    #     "address": "5th Floor, No. 158, Heguang Road, Tianhe District, Guangzhou City, Guangdong Province, Tianhe",
-    #     "city": "CAN",
-    #     "arrivalCounty": "440106",
-    #     "relationship": "KHACH SAN",
-    #     "districtCounty": "",
-    #     "invitePhoneNumber": "118928746347",
-    #     "inviteProvince": "GD",
-    #     "documentName": "Nanxing_hotel.docx",
-    #     "citySelectedBox": "CAN1",
-    # },
     {
         "place_city": "GUANGZHOU",
         "iata_code": "CAN",

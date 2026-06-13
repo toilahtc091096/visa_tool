@@ -66,6 +66,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
         ctx.job_type,
         ctx.experiences,
+        ctx.is_under_18
     )
     ok4, meta4 = await api_save_work_info(
         client,
@@ -101,6 +102,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.first_applyid,
         ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
         ctx.educationExperience,
+        ctx.is_under_18
     )
     ok5, meta5 = await api_save_education_info(
         client,
