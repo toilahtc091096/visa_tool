@@ -58,7 +58,6 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
             ctx.is_under_18 = date_util.is_under_18(
                 ctx.ocr_data.Response.Data.dateOfBirth
             )
-            print("is_under_18", ctx.is_under_18)
         return True
 
     await notify(

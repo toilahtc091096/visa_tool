@@ -57,7 +57,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
         ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
     )
-    print(ctx.m, ctx.f)
     ctx.prefix_flight_text = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket][
         "prefix_flight_text"
     ]
@@ -168,15 +167,21 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     if ctx.visa_type == "L15":
         if ctx.is_under_18:
+            print("under 18, generate hotel file with payName or random name")
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
             adult = (
                 ctx.payName if ctx.payName else random.choice(VIETNAMESE_NAMES).upper()
             )
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name, adult]
+                print(f"guest_name: {ctx.guest_name}")
         if ctx.haveChildFlag:
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
-            child = f"{ctx.childFamilyName} {ctx.childGivenName}" if (ctx.childGivenName and ctx.childFamilyName) else random.choice(VIETNAMESE_NAMES).upper()
+            child = (
+                f"{ctx.childFamilyName} {ctx.childGivenName}"
+                if (ctx.childGivenName and ctx.childFamilyName)
+                else random.choice(VIETNAMESE_NAMES).upper()
+            )
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name, child]
         else:
@@ -193,6 +198,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "is_under_18": ctx.is_under_18,
                 "haveChildFlag": ctx.haveChildFlag,
             }
+            print(f"payload for hotel file: {payload}")
             await hotel_info.render_docx_template_output_pdf(
                 payload, L_15_HOTEL_OUTPUT_PATH
             )
@@ -230,7 +236,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             )
         if ctx.haveChildFlag:
             ctx.ticket_names.append(
-                f"{ctx.childFamilyName} {ctx.childGivenName}" if (ctx.childGivenName and ctx.childFamilyName) else random.choice(VIETNAMESE_NAMES).upper()
+                f"{ctx.childFamilyName} {ctx.childGivenName}"
+                if (ctx.childGivenName and ctx.childFamilyName)
+                else random.choice(VIETNAMESE_NAMES).upper()
             )
     try:
         if ctx.visa_type in FLIGHT_TEMPLATE:
@@ -246,8 +254,16 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
         payload = {
             "file_name": file_name,
-            "arrive_flight_number": ctx.arrive_flight_number if not (ctx.is_under_18 and ctx.haveChildFlag) else "31",
-            "departure_flight_number": ctx.departure_flight_number if not (ctx.is_under_18 and ctx.haveChildFlag) else "52",
+            "arrive_flight_number": (
+                ctx.arrive_flight_number
+                if not (ctx.is_under_18 and ctx.haveChildFlag)
+                else "31"
+            ),
+            "departure_flight_number": (
+                ctx.departure_flight_number
+                if not (ctx.is_under_18 and ctx.haveChildFlag)
+                else "52"
+            ),
             "arrvied_city": hotel_info_item.get("place_city"),
             "names": ctx.ticket_names,
             "arrived_iata_code": hotel_info_item.get("iata_code"),
