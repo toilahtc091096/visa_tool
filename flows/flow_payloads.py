@@ -508,6 +508,7 @@ def build_family_info_profile(
         )
         child_info = []
     else:
+        print("have child")
         if childNationality == "":
             childNationality = family_nationality
         child_info = [
@@ -515,6 +516,7 @@ def build_family_info_profile(
                 childFamilyName, childGivenName, childNationality, childBirthDate
             )
         ]
+        print(child_info)
 
     if fatherFamilyName == "" and fatherGivenName == "":
         if random.randint(0, 9) < 3:
@@ -673,6 +675,7 @@ def build_family_info_profile(
             if old_haveSpouseFlag
             else ("" if haveSpouseFlag is not True else haveSpouseFlag)
         ),
+        "haveChildFlag": "" if haveSpouseFlag is not True else haveSpouseFlag,
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
         "children": [_to_dict(i) for i in (children_src or [])],
         "relatives": [_to_dict(i) for i in (relative_src or [])],
@@ -764,6 +767,7 @@ def getL15TravelInfo(
     emergency_family: str,
     emergency_first: str,
     is_under_18: bool,
+    haveChildFlag: bool,
     hotel_type: str,
     arrival_str: str,
     leave_str: str,
@@ -779,7 +783,7 @@ def getL15TravelInfo(
         emergency_first=emergency_first,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
-    if is_under_18:
+    if is_under_18 or haveChildFlag:
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
     addr_100 = ""
@@ -903,6 +907,7 @@ def build_travel_info_profile(
     payName: str,
     payMobile: str,
     is_under_18: bool,
+    haveChildFlag: bool,
     fatherFamilyName: str,
     fatherGivenName: str,
     motherFamilyName: str,
@@ -934,6 +939,7 @@ def build_travel_info_profile(
             emergency_family=emergency_family,
             emergency_first=emergency_first,
             is_under_18=is_under_18,
+            haveChildFlag=haveChildFlag,
             hotel_type=hotel_type,
             arrival_str=arrival_str,
             leave_str=leave_str,

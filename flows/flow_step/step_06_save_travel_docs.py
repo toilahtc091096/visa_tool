@@ -78,6 +78,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.payName,
         ctx.payMobile,
         ctx.is_under_18,
+        ctx.haveChildFlag,
         ctx.fatherFamilyName,
         ctx.fatherGivenName,
         ctx.motherFamilyName,
@@ -232,8 +233,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
         payload = {
             "file_name": file_name,
-            "arrive_flight_number": ctx.arrive_flight_number,
-            "departure_flight_number": ctx.departure_flight_number,
+            "arrive_flight_number": ctx.arrive_flight_number if not (is_under_18 and ctx.haveChildFlag) else "31",
+            "departure_flight_number": ctx.departure_flight_number if not (is_under_18 and ctx.haveChildFlag) else "52",
             "arrvied_city": hotel_info_item.get("place_city"),
             "names": ctx.ticket_names,
             "arrived_iata_code": hotel_info_item.get("iata_code"),
