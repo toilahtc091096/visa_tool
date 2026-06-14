@@ -77,8 +77,8 @@ async def api_upload_file_common(
         return
 
 
-def get_passport_file_path(passport_folder: str) -> str | None:
-    ensure_data_folder_downloaded()
+def get_passport_file_path(passport_folder: str, prefix: str) -> str | None:
+    ensure_data_folder_downloaded(prefix)
 
     folder_name = str(passport_folder or "").strip().lstrip("/\\")
     folder = (
