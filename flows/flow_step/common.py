@@ -19,6 +19,7 @@ def build_flow_context(**kwargs):
     ctx.first_letter_visa_type = kwargs.get("visa_type", "")[:1]
     ctx.last_letter_visa_type = kwargs.get("visa_type", "")[1:]
     ctx.first_applyid = kwargs.get("first_applyid", "")
+    ctx.passportNumber = kwargs.get("passportNumber", "")
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

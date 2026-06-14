@@ -32,7 +32,7 @@ async def render_docx_template_output_pdf(
     haveChildFlag: bool = payload.get("haveChildFlag", False)
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
-    output_base = Path(__file__).resolve().parent / ".." / "data"
+    output_base = Path(__file__).resolve().parent / ".." / "resources/data"
     src = (templates_base / file_name).resolve()
     out_dir = (output_base / output_path).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)

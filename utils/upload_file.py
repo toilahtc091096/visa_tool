@@ -83,7 +83,7 @@ def get_passport_file_path(passport_folder: str, prefix: str) -> str | None:
     folder_name = str(passport_folder or "").strip().lstrip("/\\")
     folder = (
         DATA_LOCAL_DIR
-        if not folder_name or folder_name.lower() == "data"
+        if not folder_name or folder_name.lower() == "resrouces/data"
         else DATA_LOCAL_DIR / folder_name
     )
     if not folder.exists() or not folder.is_dir():

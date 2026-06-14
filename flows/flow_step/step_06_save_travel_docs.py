@@ -301,6 +301,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             "expired_day_dd_mm_yyyy": format_date(
                 ctx.ocr_data.Response.Data.dateOfExpiration
             ),
+            "passportNumber": ctx.passportNumber,
         }
         log_event({"step": "genenrate flight ticket file", "ok": "ok"})
     except Exception as e:

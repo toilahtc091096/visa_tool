@@ -34,7 +34,6 @@ def upload_pdf_to_r2(file_path: str, prefix: str = "data/") -> str:
     prefix = prefix.lstrip("/")
     if prefix and not prefix.endswith("/"):
         prefix += "/"
-
     # init client
     s3 = boto3.client(
         "s3",
