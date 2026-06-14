@@ -12,7 +12,7 @@ from utils import (
     notify,
 )
 
-DATA_LOCAL_DIR = Path(__file__).resolve().parent / ".." / "data"
+DATA_LOCAL_DIR = Path(__file__).resolve().parent / ".." / "resources" / "data"
 DATA_R2_PREFIX = "data/"
 _DATA_DOWNLOADED = False
 
@@ -45,6 +45,7 @@ def get_files(folder_path, x):
     files = [f for f in folder.iterdir() if f.is_file()]
     return files[:x]
 
+
 async def api_upload_file_common(
     client: str,
     token: str,
@@ -75,15 +76,29 @@ async def api_upload_file_common(
         )
         return
 
+
 def get_passport_file_path(passport_folder: str) -> str | None:
     ensure_data_folder_downloaded()
 
     folder_name = str(passport_folder or "").strip().lstrip("/\\")
-    folder = DATA_LOCAL_DIR if not folder_name or folder_name.lower() == "data" else DATA_LOCAL_DIR / folder_name
+    folder = (
+        DATA_LOCAL_DIR
+        if not folder_name or folder_name.lower() == "data"
+        else DATA_LOCAL_DIR / folder_name
+    )
     if not folder.exists() or not folder.is_dir():
         return None
 
-    image_extensions = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
+    image_extensions = {
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".bmp",
+        ".gif",
+        ".tif",
+        ".tiff",
+    }
     first_file = next(
         (
             p

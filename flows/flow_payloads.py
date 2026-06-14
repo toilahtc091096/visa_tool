@@ -274,6 +274,7 @@ def build_work_info_profile(
     else:
         we_src = work_experience
     if is_under_18:
+        job_type_label = "Student"
         work_experience: list[dict[str, Any]] = []
         not_apply_items = [
             {

@@ -6,7 +6,9 @@ from botocore.config import Config
 from env_loader import load_dotenv
 
 
-def download_r2_folder(prefix: str = "data/", local_dir: str = "./data") -> int:
+def download_r2_folder(
+    prefix: str = "data/", local_dir: str = "./resources/data"
+) -> int:
     """
     Download tất cả object có prefix (vd: 'data/') từ Cloudflare R2 về local_dir.
     Trả về số file đã tải.
@@ -18,8 +20,16 @@ def download_r2_folder(prefix: str = "data/", local_dir: str = "./data") -> int:
     secret_access_key = os.getenv("R2_SECRET_ACCESS_KEY")
     bucket_name = os.getenv("R2_BUCKET_NAME")
 
-    missing = [k for k in ["R2_ENDPOINT_URL", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME"]
-               if not os.getenv(k)]
+    missing = [
+        k
+        for k in [
+            "R2_ENDPOINT_URL",
+            "R2_ACCESS_KEY_ID",
+            "R2_SECRET_ACCESS_KEY",
+            "R2_BUCKET_NAME",
+        ]
+        if not os.getenv(k)
+    ]
     if missing:
         raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
 
@@ -50,7 +60,7 @@ def download_r2_folder(prefix: str = "data/", local_dir: str = "./data") -> int:
                 continue  # bỏ qua folder marker
 
             # path local = local_dir + phần sau prefix
-            rel = key[len(prefix):] if key.startswith(prefix) else key
+            rel = key[len(prefix) :] if key.startswith(prefix) else key
             out_path = local_base / rel
             out_path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -17,7 +17,7 @@ R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "visa-data")
 BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
-PASSPORT_FILE_FOLDER = {"L15": "data", "L30": "data"}
+PASSPORT_FILE_FOLDER = "resrouces/data"
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
 OLD_APPLY_STATUS_APPROVED = "审核通过"
