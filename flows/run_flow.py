@@ -25,6 +25,7 @@ async def run_flow(
     ticket_names: list[str],
     province_city_code: str,
     id_card_number: str,
+    passportNumber: str,
     entries_type: str,
     type_of_visa_sub_value: str,
     service_type: str,
