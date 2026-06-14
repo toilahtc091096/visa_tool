@@ -25,6 +25,7 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
         print("token ok ")
 
     ctx.step = "get ocr"
+    ctx.passportNumber = ""
     if PASSPORT_FILE_FOLDER in (None, ""):
         print("no passport file")
         return False
@@ -58,6 +59,13 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
             ctx.is_under_18 = date_util.is_under_18(
                 ctx.ocr_data.Response.Data.dateOfBirth
             )
+        if (
+            ctx.ocr_data is not None
+            and ctx.ocr_data.Response is not None
+            and ctx.ocr_data.Response.Data is not None
+            and ctx.ocr_data.Response.Data.dateOfBirth is not None
+        ):
+            ctx.passportNumber = ctx.ocr_data.Response.Data.passportNumber
         return True
 
     await notify(

@@ -17,11 +17,11 @@ DATA_R2_PREFIX = "data/"
 _DATA_DOWNLOADED = False
 
 
-def ensure_data_folder_downloaded() -> None:
+def ensure_data_folder_downloaded(prefix: str = DATA_R2_PREFIX) -> None:
     global _DATA_DOWNLOADED
     if _DATA_DOWNLOADED and DATA_LOCAL_DIR.exists():
         return
-    download_r2_folder(prefix=DATA_R2_PREFIX, local_dir=str(DATA_LOCAL_DIR))
+    download_r2_folder(prefix=prefix, local_dir=str(DATA_LOCAL_DIR))
     _DATA_DOWNLOADED = True
 
 

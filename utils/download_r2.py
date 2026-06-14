@@ -72,6 +72,6 @@ def download_r2_folder(
     return total
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # download folder "data/" về thư mục local "./data"
-    download_r2_folder(prefix="data/", local_dir="./data")
+    # download_r2_folder(prefix=ctx.passportNumber, local_dir="./data")

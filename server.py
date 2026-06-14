@@ -5,7 +5,7 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form
 from fastapi.responses import JSONResponse
 
 from api import api_convert_input_pdfs
@@ -161,14 +161,15 @@ async def convert_input_pdfs(request: Request):
 
 
 @app.post("/upload-html-to-pdf")
-async def upload_html_to_pdf(file: UploadFile = File(...)):
+async def upload_html_to_pdf(file: UploadFile = File(...),
+    folderName: str = Form(...)):
     try:
         if not file.filename.endswith(".html"):
             raise HTTPException(status_code=400, detail="File must be .html")
 
         html_content = await file.read()
         pdf_path = convert_html_to_pdf(html_content)
-        r2_key = upload_pdf_to_r2(pdf_path, "data/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/")
+        r2_key = upload_pdf_to_r2(pdf_path, f"{folderName}/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/")
 
         return {"message": "Upload thanh cong", "file_key": r2_key}
 

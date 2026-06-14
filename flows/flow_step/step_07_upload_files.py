@@ -11,7 +11,7 @@ async def upload_files(
     upload_config_keys=None,
 ) -> bool:
     ctx.step = "Step 9 Upload File"
-    ensure_data_folder_downloaded()
+    ensure_data_folder_downloaded(ctx.passportNumber)
     cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[ctx.visa_type]
     selected_upload_keys = set(upload_config_keys or [])
 
