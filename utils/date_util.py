@@ -1,6 +1,7 @@
 import random
 from datetime import date, timedelta, datetime
 from typing import List, Dict, Union
+import re
 
 
 def year_month_str(d: date) -> str:
@@ -30,17 +31,19 @@ def work_experience_end_date() -> str:
 
 def monday_and_friday_skip_x_weeks(d: date, x: int):
     # Monday of the week that contains d
-    monday = d - timedelta(days=d.weekday())   # weekday(): Mon=0..Sun=6
+    monday = d - timedelta(days=d.weekday())  # weekday(): Mon=0..Sun=6
     # Skip 4 weeks forward
     monday += timedelta(weeks=x)
     friday = monday + timedelta(days=x)
     return monday, friday
+
 
 def parse_date(date_str: str):
     try:
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except (ValueError, TypeError):
         return None
+
 
 def format_date(date_text):
     return datetime.strptime(date_text, "%Y-%m-%d").strftime("%d.%m.%Y")
@@ -55,6 +58,7 @@ def get_today_parts():
 
     return today_yyyy, today_mm, today_dd
 
+
 def is_under_18(date_str: str) -> bool:
     birth_date = parse_date(date_str)
 
@@ -66,8 +70,10 @@ def is_under_18(date_str: str) -> bool:
 
     return age < 18
 
+
 # đang ở trong utils/date_util.py (hoặc module utils có date_util),
 # nên gọi thẳng iso_date_str(...) không cần truyền date_util vào.
+
 
 def build_three_stays(arrival_date: Union[date]) -> List[Dict[str, str]]:
     """
@@ -83,11 +89,36 @@ def build_three_stays(arrival_date: Union[date]) -> List[Dict[str, str]]:
     cur_arrival = arrival_date
     for i, n in enumerate(nights, start=1):
         cur_leave = cur_arrival + timedelta(days=n)
-        stays.append({
-            "sort": str(i),
-            "arrivalDate": iso_date_str(cur_arrival),
-            "leaveDate": iso_date_str(cur_leave),
-        })
+        stays.append(
+            {
+                "sort": str(i),
+                "arrivalDate": iso_date_str(cur_arrival),
+                "leaveDate": iso_date_str(cur_leave),
+            }
+        )
         cur_arrival = cur_leave
 
     return stays
+
+
+def get_end_date(start: date, duration: str) -> date:
+    """
+    duration ví dụ:
+    3W1D
+    2W6D
+    4W
+    10D
+    """
+
+    weeks = 0
+    days = 0
+
+    m = re.search(r"(\d+)W", duration)
+    if m:
+        weeks = int(m.group(1))
+
+    m = re.search(r"(\d+)D", duration)
+    if m:
+        days = int(m.group(1))
+
+    return start + timedelta(days=weeks * 7 + days)

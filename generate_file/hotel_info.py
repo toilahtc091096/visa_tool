@@ -1,5 +1,4 @@
 from docxtpl import DocxTemplate
-import asyncio
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -10,14 +9,10 @@ from constants import UNIT_OF_HOTEL, VIETNAMESE_NAMES, L_30_HOTEL_INFO
 import random
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from pathlib import Path
-from docx import Document
-from docxcompose.composer import Composer
-
-from pathlib import Path
-
 from PyPDF2 import PdfMerger
 from docx2pdf import convert
 
+from utils import pdf_helper
 
 async def render_docx_template_output_pdf(
     payload: dict[str, Any], output_path: str = ""
@@ -240,7 +235,7 @@ def merge_docx_files(
         pdf_path = docx_path.with_suffix(".pdf")
 
         convert(str(docx_path), str(pdf_path))
-        remove_last_blank_page(str(pdf_path))
+        pdf_helper.remove_last_blank_page(str(pdf_path))
 
         pdf_paths.append(pdf_path)
 
@@ -270,20 +265,3 @@ def merge_docx_files(
             except Exception:
                 pass
     return str(out_path)
-
-from pypdf import PdfReader, PdfWriter
-
-def remove_last_blank_page(pdf_path: str):
-    reader = PdfReader(pdf_path)
-
-    if len(reader.pages) <= 1:
-        return
-
-    writer = PdfWriter()
-
-    # giữ tất cả trang trừ trang cuối
-    for page in reader.pages[:-1]:
-        writer.add_page(page)
-
-    with open(pdf_path, "wb") as f:
-        writer.write(f)

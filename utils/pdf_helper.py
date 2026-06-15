@@ -54,3 +54,21 @@ def convert_html_to_pdf(html_content: bytes) -> str:
         HTML(filename=str(html_path), base_url=tmp_dir).write_pdf(pdf_path)
 
     return pdf_path
+
+
+from pypdf import PdfReader, PdfWriter
+
+def remove_last_blank_page(pdf_path: str):
+    reader = PdfReader(pdf_path)
+
+    if len(reader.pages) <= 1:
+        return
+
+    writer = PdfWriter()
+
+    # giữ tất cả trang trừ trang cuối
+    for page in reader.pages[:-1]:
+        writer.add_page(page)
+
+    with open(pdf_path, "wb") as f:
+        writer.write(f)

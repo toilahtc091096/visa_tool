@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 import re
 from constants import UNIT_OF_HOTEL
+from utils import pdf_helper
 from utils import date_util
 import random
 from generate_file.docx_to_pdf import convert_docx_to_pdf
@@ -51,6 +52,8 @@ async def render_flight_ticket_output_pdf(
     if payload.get("type") == "flight_ticket":
         first: date = payload.get("first")
         end: date | None = payload.get("end")
+        if visa_type == "L30":
+            end = date_util.get_end_date(first, "2W6D")
         names: list[str] = payload.get("names", [])
         doc.render(
             {
@@ -77,5 +80,6 @@ async def render_flight_ticket_output_pdf(
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
     convert_docx_to_pdf(str(out), str(pdf_out))
+    pdf_helper.remove_last_blank_page(str(pdf_out))
     out.unlink()  # same as os.remove(out)
     return str(pdf_out)  # return PDF, not DOCX
