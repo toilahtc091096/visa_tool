@@ -12,7 +12,7 @@ from database.crud import (
     get_visa_registration_by_passport,
 )
 from services.google_sheets import write_sync_summary_to_google_sheet
-from utils import load_authorization, load_login_payload
+from utils import load_authorization, load_login_payload, remove_r2
 
 
 def _extract_remote_rows(response: Any) -> list[dict[str, Any]]:
@@ -184,6 +184,8 @@ async def sync_draft_visa_registrations(
                 row.get("status") or "draft"
             )
             internal_status = _map_apply_status_to_internal(remote_status)
+            if internal_status == "approved": 
+                remove_r2.delete_r2_folder(passport_number)     
             existing_payload = (
                 row.get("payload") if isinstance(row.get("payload"), dict) else {}
             )

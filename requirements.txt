@@ -16,3 +16,6 @@ python-multipart==0.0.9
 psycopg2-binary>=2.9,<3.0
 gspread==6.1.4
 google-auth==2.33.0
+docxcompose
+PyPDF2
+pypdf

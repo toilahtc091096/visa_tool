@@ -206,7 +206,21 @@ FEMALE_VIETNAMESE_NAMES = (
 
 EDUCATION_DEGREE_TYPE = (("Technical_secondary", "714003", "THPT"),)
 
-EDUCATION_SCHOOL_NAMES = ("NGO QUYEN", "PHUNG HUNG", "TON THAT THUYET")
+EDUCATION_SCHOOL_NAMES = (
+    "NGO QUYEN", "PHUNG HUNG", "TON THAT THUYET",
+    "TRAN PHU", "LE QUY DON", "NGUYEN TRAI", "NGUYEN HUE", "CHU VAN AN",
+    "TRAN HUNG DAO", "LE HONG PHONG", "PHAN CHAU TRINH", "NGUYEN DU",
+    "PHAM VAN DONG", "VO THI SAU", "HA HUY TAP", "LUONG THE VINH",
+    "TRAN DAI NGHIA", "LE LAI", "TRAN NHAN TONG", "LY THUONG KIET",
+    "NGUYEN BINH KHIEM", "PHAN BOI CHAU", "HUYNH THUC KHANG", "NGUYEN TAT THANH",
+    "DONG DA", "BA TRIEU", "QUANG TRUNG", "HUNG VUONG",
+    "TRUONG CHINH", "TO HIEU", "PHAM NGU LAO", "NGO SI LIEN",
+    "PHAN DINH PHUNG", "NGUYEN THAI HOC", "MAC DINH CHI", "LE NGOC HAN",
+    "MAU THANH", "TAY SON", "AN DUONG VUONG", "DONG KHOI",
+    "THANH CONG", "HOANG HOA THAM", "DINH TIEN HOANG", "LE DAI HANH",
+    "TRUNG VUONG", "GIA LONG", "MINH MANG", "THIEU TRI", "TU DUC",
+    "PHU DONG", "VAN LANG", "AU LAC"
+)
 
 FAMILY_PARENT_RELATION_MOTHER = "727003"
 FAMILY_PARENT_RELATION_FATHER = "727002"
@@ -444,8 +458,9 @@ L_30_HOTEL_INFO = [
         "relationship": "KHACH SAN",
         "districtCounty": "",
         "invitePhoneNumber": "15944417395",
-        "inviteProvince": "110115",
+        "inviteProvince": "BJ",
         "documentName": "GreenTree_Inn_Beejin.docx",
+        "citySelectedBox": "BJ",
     },
     {
         "place_city": "SHANGHAI",
@@ -461,6 +476,7 @@ L_30_HOTEL_INFO = [
         "invitePhoneNumber": "12164117988",
         "inviteProvince": "310112",
         "documentName": "Holiday_Inn_Express_ShangHai.docx",
+        "citySelectedBox": "SH",
     },
     {
         "place_city": "GUANGZHOU",
@@ -474,6 +490,7 @@ L_30_HOTEL_INFO = [
         "invitePhoneNumber": "12083931111",
         "inviteProvince": "440105",
         "documentName": "Lanvande_Hotel_GzuangChau.docx",
+        "citySelectedBox": "CAN1",
     },
 ]
 L_15_HOTEL_OUTPUT_PATH = "chung\\khach_san"
@@ -500,37 +517,6 @@ L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
 L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
-
-L_30_HOTEL_OUTPUT_PATH = "chung\\khach_san"
-L_30_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
-L_30_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "chung\\2_trang_ho_chieu_trang"
-
-L_30_HOTEL_OUTPUT_PATH = "chung\\khach_san"
-
-L_30_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
-
-L_30_BANK_STATEMENT_OUTPUT_PATH = "chung\\sao_ke_ngan_hang"
-
-L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "chung\\xac_nhan_tu_trung_tam_visa"
-
-L_30_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
-    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_cac_nuoc_khac_anh_ho_chieu"
-)
-L_30_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
-    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
-)
-
-L_30_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
-    "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
-)
-
-L_30_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
-    "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
-)
-
-L_30_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
-
-L_30_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
 
@@ -725,11 +711,186 @@ UPLOAD_CONFIG = {
                 "limit": 3,
             }
         ],
+    },
+     "L30": {
+        "PASSPORT_BLANK_PAGES": {
+            "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+            "limit": 2,
+        },
+        "BANK_STATEMENT": {
+            "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
+            "limit": 2,
+        },
+        "HUKOU_OR_EMPLOYMENT_LETTER": {
+            "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+            "limit": 1,
+        },
+        "FLIGHT_TICKET": {
+            "folder": L_15_TICKET_OUTPUT_PATH,
+            "limit": 1,
+        },
+        "HOTEL_RESERVATION_WITH_PAYMENT": {
+            "folder": L_15_HOTEL_OUTPUT_PATH,
+            "limit": 1,
+        },
+        "OTHER_MATERIALS": [
+            {
+                "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+                "limit": 4,
+            },
+            {
+                "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+                "limit": 1,
+            },
+        ],
+        "PREV_CHINESE_VISA": {
+            "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+            "limit": 3,
+        },
+        "UNDER_18": [
+            {
+                "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+                "limit": 5,
+            }
+        ],
+        "OTHER_COUNTRY_VISAS": [
+            {
+                "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+                "limit": 3,
+            }
+        ],
     }
+
 }
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
+        "COMMON": {
+            "FLIGHT_TICKET": [
+                {
+                    "categoryCode": "12025062020000706552852",
+                    "materialCode": "mfa-003_1",
+                },
+            ],
+            "HOTEL_RESERVATION_WITH_PAYMENT": [
+                {
+                    "categoryCode": "12025063014542307352106",
+                    "materialCode": "mfa-002_1",
+                },
+                {
+                    "categoryCode": "12025063014542307352106",
+                    "materialCode": "mfa-002_2",
+                },
+                {
+                    "categoryCode": "12025063014542307352106",
+                    "materialCode": "mfa-002_3",
+                },
+            ],
+            "PASSPORT_BLANK_PAGES": [
+                {
+                    "categoryCode": "22025070216180808782737",
+                    "materialCode": "mfa-017_1",
+                },
+                {
+                    "categoryCode": "22025070216180808782737",
+                    "materialCode": "mfa-017_2",
+                },
+            ],
+            "BANK_STATEMENT": [
+                {
+                    "categoryCode": "12025062216413672273869",
+                    "materialCode": "mfa-007_1",
+                },
+                {
+                    "categoryCode": "12025062216413672273869",
+                    "materialCode": "mfa-007_2",
+                },
+                {
+                    "categoryCode": "12025062216413672273869",
+                    "materialCode": "mfa-007_3",
+                },
+                {
+                    "categoryCode": "12025062216413672273869",
+                    "materialCode": "mfa-007_4",
+                },
+            ],
+            "HUKOU_OR_EMPLOYMENT_LETTER": [
+                {
+                    "categoryCode": "22025062114073725280378",
+                    "materialCode": "mfa-030_1",
+                },
+            ],
+            "OTHER_MATERIALS": [
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_1",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_2",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_3",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_4",
+                },
+                {
+                    "categoryCode": "12025062114211484037531",
+                    "materialCode": "mfa-044_5",
+                },
+            ],
+            "PREV_CHINESE_VISA": [
+                {
+                    "categoryCode": "22025062114131912554297",
+                    "materialCode": "mfa-033_1",
+                },
+                {
+                    "categoryCode": "22025062114131912554297",
+                    "materialCode": "mfa-033_2",
+                },
+            ],
+            "UNDER_18": [
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_1",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_2",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_3",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_4",
+                },
+                {
+                    "categoryCode": "22025062114181968780924",
+                    "materialCode": "mfa-039_5",
+                },
+            ],
+            "OTHER_COUNTRY_VISAS": [
+                {
+                    "categoryCode": "12025062114213765489140",
+                    "materialCode": "mfa-011_1",
+                },
+                {
+                    "categoryCode": "12025062114213765489140",
+                    "materialCode": "mfa-011_2",
+                },
+                {
+                    "categoryCode": "12025062114213765489140",
+                    "materialCode": "mfa-011_3",
+                },
+            ],
+        },
+    },
+    "L30": {
         "COMMON": {
             "FLIGHT_TICKET": [
                 {

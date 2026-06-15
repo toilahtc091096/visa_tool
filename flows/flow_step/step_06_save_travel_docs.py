@@ -14,9 +14,6 @@ from constants import (
     L_15_TICKET_OUTPUT_PATH,
     L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
     L_30_HOTEL_INFO,
-    L_30_HOTEL_OUTPUT_PATH,
-    L_30_TICKET_OUTPUT_PATH,
-    L_30_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
     CV_DATA,
     SEX_MAP,
     NATIONALITY_MAP,
@@ -48,11 +45,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.hotel_type = random.randint(0, 100) % len(
             HOTEL_DATA[ctx.visa_type]["hotel"]
         )
-    elif ctx.visa_type == "L30":
-        ctx.hotel_type = random.randint(0, 100) % len(
-            HOTEL_DATA[ctx.visa_type]["hotel"]
-        )
-
     ctx.flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[ctx.visa_type])
     ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
         ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
@@ -207,24 +199,21 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             log_exception(e, {"event": "render_failed", "file": hotel})
             raise
     elif ctx.visa_type == "L30":
-        hotel = L_30_HOTEL_INFO[0].get("documentName")
         ctx.guest_name = build_L30_guest_names(ctx.guest_name, ctx.vietnamese_name)
         try:
             payload = {
-                "file_name": hotel,
                 "names": ctx.guest_name,
                 "first": ctx.m,
-                "end": ctx.f,
                 "type": "hotel",
                 "is_under_18": ctx.is_under_18,
                 "haveChildFlag": ctx.haveChildFlag,
             }
-            await hotel_info.render_docx_template_output_pdf(
-                payload, L_30_HOTEL_OUTPUT_PATH
+            await hotel_info.render_L30_hotel(
+                payload, L_15_HOTEL_OUTPUT_PATH
             )
             log_event({"step": "genenrate hotel file", "ok": "ok"})
         except Exception as e:
-            log_exception(e, {"event": "render_failed", "file": hotel})
+            log_exception(e, {"event": "render_failed_L30"})
             raise
 
     file_name = ""
@@ -250,6 +239,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             )
         if ctx.visa_type == "L30":
             hotel_info_item = L_30_HOTEL_INFO[0]
+            hotel_departure_info_item = L_30_HOTEL_INFO[-1]
         else:
             hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
         payload = {
@@ -267,12 +257,18 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             "arrvied_city": hotel_info_item.get("place_city"),
             "names": ctx.ticket_names,
             "arrived_iata_code": hotel_info_item.get("iata_code"),
+            "first": ctx.m,
             "departure_iata_code": hotel_info_item.get("iata_code"),
             "departure_city": hotel_info_item.get("place_city"),
-            "first": ctx.m,
             "end": ctx.f,
             "type": "flight_ticket",
+            "visa_type": ctx.visa_type,
         }
+        if ctx.visa_type == "L30":
+            payload.update({
+            "departure_iata_code": hotel_departure_info_item.get("iata_code"),
+            "departure_city": hotel_departure_info_item.get("place_city"),
+            })
         log_event({"step": "genenrate flight ticket file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})

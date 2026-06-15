@@ -1,5 +1,6 @@
 import random
 from datetime import date, timedelta, datetime
+from typing import List, Dict, Union
 
 
 def year_month_str(d: date) -> str:
@@ -64,3 +65,29 @@ def is_under_18(date_str: str) -> bool:
         age -= 1
 
     return age < 18
+
+# đang ở trong utils/date_util.py (hoặc module utils có date_util),
+# nên gọi thẳng iso_date_str(...) không cần truyền date_util vào.
+
+def build_three_stays(arrival_date: Union[date]) -> List[Dict[str, str]]:
+    """
+    Quy luật:
+      - Chặng 1: 6 đêm  -> leave = arrival + 6 ngày
+      - Chặng 2: 7 đêm  -> leave = arrival + 7 ngày
+      - Chặng 3: 7 đêm  -> leave = arrival + 7 ngày
+      - arrival chặng sau = leave chặng trước
+    """
+    nights = [6, 7, 7]
+    stays: List[Dict[str, str]] = []
+
+    cur_arrival = arrival_date
+    for i, n in enumerate(nights, start=1):
+        cur_leave = cur_arrival + timedelta(days=n)
+        stays.append({
+            "sort": str(i),
+            "arrivalDate": iso_date_str(cur_arrival),
+            "leaveDate": iso_date_str(cur_leave),
+        })
+        cur_arrival = cur_leave
+
+    return stays

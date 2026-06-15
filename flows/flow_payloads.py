@@ -840,8 +840,9 @@ def getL30TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
-    arrival_str: str,
-    leave_str: str,
+    is_under_18: bool,
+    haveChildFlag: bool,
+    arrival_date: date,
     arrivalVehicleType: str,
     leaveVehicleType: str,
 ) -> Dict[str, Any]:
@@ -853,20 +854,38 @@ def getL30TravelInfo(
         emergency_family=emergency_family,
         emergency_first=emergency_first,
     )
-    addr = (L_30_HOTEL_INFO[0].get("address") or "").strip()
-    addr_100 = ""
-    if len(addr) > 100:
-        cut = addr[:100]
-        # nếu ký tự thứ 100 đang nằm giữa 1 từ thì lùi về khoảng trắng gần nhất
-        last_space = cut.rfind(" ")
-        addr_100 = cut[:last_space].rstrip() if last_space != -1 else cut.rstrip()
-    else:
-        addr_100 = addr
+    
+
+    # arrival_str = date_util.build_three_stays(arrival_date)
+    stays = date_util.build_three_stays(arrival_date)
+
+    stayInfo = []
+    for i, hotel in enumerate(L_30_HOTEL_INFO):
+        addr = (L_30_HOTEL_INFO[i].get("address") or "").strip()
+        addr_100 = ""
+        if len(addr) > 100:
+            cut = addr[:100]
+            # nếu ký tự thứ 100 đang nằm giữa 1 từ thì lùi về khoảng trắng gần nhất
+            last_space = cut.rfind(" ")
+            addr_100 = cut[:last_space].rstrip() if last_space != -1 else cut.rstrip()
+        else:
+            addr_100 = addr
+        stayInfo.append(
+            {
+                "sort": i + 1,
+                "stayCity": hotel.get("citySelectedBox"),
+                "stayCounty": hotel.get("arrivalCounty"),
+                "travelAddr": hotel.get("travelAddr") or hotel.get("addr") or addr_100,
+                "arrivalDate": stays[i]["arrivalDate"],
+                "leaveDate": stays[i]["leaveDate"],
+            }
+        )
+
     travel_json.update(
         {
             "invitationNumber": "",
             "inviteCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
-            "inviteCounty": "",
+            "inviteCounty": L_30_HOTEL_INFO[0].get("arrivalCounty"),
             "inviteEmail": "",
             "inviteName": L_30_HOTEL_INFO[0].get("name"),
             "invitePhoneNumber": mobile_utils.generate_supervisor_tel("15920187600"),
@@ -881,21 +900,12 @@ def getL30TravelInfo(
             "stayCity": "",
             "stayCounty": "",
             "travelAddr": "",
-            "stayInfo": [
-                {
-                    "sort": 1,
-                    "stayCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
-                    "stayCounty": L_30_HOTEL_INFO[0].get("arrivalCounty"),
-                    "travelAddr": addr_100,
-                    "arrivalDate": arrival_str,
-                    "leaveDate": leave_str,
-                }
-            ],
-            "leaveCity": L_30_HOTEL_INFO[0].get("citySelectedBox"),
-            "leaveCounty": "",
-            "leaveDate": leave_str,
+            "stayInfo": stayInfo,
+            "leaveCity": L_30_HOTEL_INFO[-1].get("citySelectedBox"),
+            "leaveCounty": L_30_HOTEL_INFO[-1].get("arrivalCounty"),
+            "leaveDate": stays[-1]["leaveDate"],
             "leaveVehicleType": leaveVehicleType,
-            "arrivalDate": arrival_str,
+            "arrivalDate": stays[0]["arrivalDate"],
         }
     )
 
@@ -953,8 +963,9 @@ def build_travel_info_profile(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
-            arrival_str=arrival_str,
-            leave_str=leave_str,
+            is_under_18=is_under_18,
+            haveChildFlag=haveChildFlag,
+            arrival_date=arrival_date,
             arrivalVehicleType=arrivalVehicleType,
             leaveVehicleType=leaveVehicleType,
         )

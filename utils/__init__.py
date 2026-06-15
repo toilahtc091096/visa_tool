@@ -20,6 +20,7 @@ _EXPORTS = {
     "generate_phone_pair": ("mobile_utils", "generate_phone_pair"),
     "format_date": ("date_util", "format_date"),
     "get_today_parts": ("date_util", "get_today_parts"),
+    "build_three_stays": ("date_util", "build_three_stays"),
     "load_token": ("token_store", "load_token"),
     "save_token": ("token_store", "save_token"),
     "load_login_payload": ("token_store", "load_login_payload"),
@@ -42,4 +43,3 @@ def __getattr__(name: str) -> Any:
 
 
 __all__ = list(_EXPORTS)
- 
