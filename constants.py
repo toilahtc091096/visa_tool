@@ -207,19 +207,58 @@ FEMALE_VIETNAMESE_NAMES = (
 EDUCATION_DEGREE_TYPE = (("Technical_secondary", "714003", "THPT"),)
 
 EDUCATION_SCHOOL_NAMES = (
-    "NGO QUYEN", "PHUNG HUNG", "TON THAT THUYET",
-    "TRAN PHU", "LE QUY DON", "NGUYEN TRAI", "NGUYEN HUE", "CHU VAN AN",
-    "TRAN HUNG DAO", "LE HONG PHONG", "PHAN CHAU TRINH", "NGUYEN DU",
-    "PHAM VAN DONG", "VO THI SAU", "HA HUY TAP", "LUONG THE VINH",
-    "TRAN DAI NGHIA", "LE LAI", "TRAN NHAN TONG", "LY THUONG KIET",
-    "NGUYEN BINH KHIEM", "PHAN BOI CHAU", "HUYNH THUC KHANG", "NGUYEN TAT THANH",
-    "DONG DA", "BA TRIEU", "QUANG TRUNG", "HUNG VUONG",
-    "TRUONG CHINH", "TO HIEU", "PHAM NGU LAO", "NGO SI LIEN",
-    "PHAN DINH PHUNG", "NGUYEN THAI HOC", "MAC DINH CHI", "LE NGOC HAN",
-    "MAU THANH", "TAY SON", "AN DUONG VUONG", "DONG KHOI",
-    "THANH CONG", "HOANG HOA THAM", "DINH TIEN HOANG", "LE DAI HANH",
-    "TRUNG VUONG", "GIA LONG", "MINH MANG", "THIEU TRI", "TU DUC",
-    "PHU DONG", "VAN LANG", "AU LAC"
+    "NGO QUYEN",
+    "PHUNG HUNG",
+    "TON THAT THUYET",
+    "TRAN PHU",
+    "LE QUY DON",
+    "NGUYEN TRAI",
+    "NGUYEN HUE",
+    "CHU VAN AN",
+    "TRAN HUNG DAO",
+    "LE HONG PHONG",
+    "PHAN CHAU TRINH",
+    "NGUYEN DU",
+    "PHAM VAN DONG",
+    "VO THI SAU",
+    "HA HUY TAP",
+    "LUONG THE VINH",
+    "TRAN DAI NGHIA",
+    "LE LAI",
+    "TRAN NHAN TONG",
+    "LY THUONG KIET",
+    "NGUYEN BINH KHIEM",
+    "PHAN BOI CHAU",
+    "HUYNH THUC KHANG",
+    "NGUYEN TAT THANH",
+    "DONG DA",
+    "BA TRIEU",
+    "QUANG TRUNG",
+    "HUNG VUONG",
+    "TRUONG CHINH",
+    "TO HIEU",
+    "PHAM NGU LAO",
+    "NGO SI LIEN",
+    "PHAN DINH PHUNG",
+    "NGUYEN THAI HOC",
+    "MAC DINH CHI",
+    "LE NGOC HAN",
+    "MAU THANH",
+    "TAY SON",
+    "AN DUONG VUONG",
+    "DONG KHOI",
+    "THANH CONG",
+    "HOANG HOA THAM",
+    "DINH TIEN HOANG",
+    "LE DAI HANH",
+    "TRUNG VUONG",
+    "GIA LONG",
+    "MINH MANG",
+    "THIEU TRI",
+    "TU DUC",
+    "PHU DONG",
+    "VAN LANG",
+    "AU LAC",
 )
 
 FAMILY_PARENT_RELATION_MOTHER = "727003"
@@ -517,6 +556,8 @@ L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
 L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
+L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
+TRAVEL_PLAN_21D="Init_goc.docx"
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
 
@@ -712,7 +753,7 @@ UPLOAD_CONFIG = {
             }
         ],
     },
-     "L30": {
+    "L30": {
         "PASSPORT_BLANK_PAGES": {
             "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
             "limit": 2,
@@ -759,8 +800,14 @@ UPLOAD_CONFIG = {
                 "limit": 3,
             }
         ],
-    }
-
+        "ITINERARY_IN_CHINA": [
+            # {"categoryCode": "12025062019595907456262", "materialCode": "mfa-004_1"}
+            {
+                "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
+                "limit": 1,
+            },
+        ],
+    },
 }
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
@@ -1014,8 +1061,14 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "materialCode": "mfa-011_3",
                 },
             ],
+            "ITINERARY_IN_CHINA": [
+                {
+                    "categoryCode": "12025062019595907456262",
+                    "materialCode": "mfa-004_1",
+                },
+            ],
         },
-    }
+    },
 }
 
 UNIT_OF_HOTEL = 5870276

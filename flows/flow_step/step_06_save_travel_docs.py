@@ -20,6 +20,8 @@ from constants import (
     WEEK_SKIP_BY_TYPE,
     UNDER_18_HOTEL_INFO,
     VIETNAMESE_NAMES,
+    L_15_TRAVEL_PLAN_OUTPUT_PATH,
+    TRAVEL_PLAN_21D,
 )
 from flows.flow_payloads import (
     build_L30_guest_names,
@@ -28,7 +30,7 @@ from flows.flow_payloads import (
     build_signature_body,
     build_travel_info_profile,
 )
-from generate_file import cv_info, hotel_info, flight_info
+from generate_file import cv_info, hotel_info, flight_info, file_init_info
 from utils import (
     date_util,
     format_date,
@@ -208,9 +210,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "is_under_18": ctx.is_under_18,
                 "haveChildFlag": ctx.haveChildFlag,
             }
-            await hotel_info.render_L30_hotel(
-                payload, L_15_HOTEL_OUTPUT_PATH
-            )
+            await hotel_info.render_L30_hotel(payload, L_15_HOTEL_OUTPUT_PATH)
             log_event({"step": "genenrate hotel file", "ok": "ok"})
         except Exception as e:
             log_exception(e, {"event": "render_failed_L30"})
@@ -265,10 +265,12 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             "visa_type": ctx.visa_type,
         }
         if ctx.visa_type == "L30":
-            payload.update({
-            "departure_iata_code": hotel_departure_info_item.get("iata_code"),
-            "departure_city": hotel_departure_info_item.get("place_city"),
-            })
+            payload.update(
+                {
+                    "departure_iata_code": hotel_departure_info_item.get("iata_code"),
+                    "departure_city": hotel_departure_info_item.get("place_city"),
+                }
+            )
         log_event({"step": "genenrate flight ticket file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
@@ -304,6 +306,38 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
     await cv_info.render_docx_template_output_pdf(
         payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
+    )
+    ctx.ticket_names = [ctx.vietnamese_name]
+
+    try:
+        file_name = TRAVEL_PLAN_21D
+
+        payload = {
+            "file_name": file_name,
+            "names": ctx.ticket_names,
+            "first": ctx.m,
+        }
+
+        log_event(
+            {
+                "step": "generate travel itinerary file",
+                "ok": "ok",
+                "file": file_name,
+            }
+        )
+
+    except Exception as e:
+        log_exception(
+            e,
+            {
+                "event": "render_failed",
+                "file": file_name,
+            },
+        )
+
+    await file_init_info.render_init_pdf(
+        payload,
+        L_15_TRAVEL_PLAN_OUTPUT_PATH,
     )
 
     return True
