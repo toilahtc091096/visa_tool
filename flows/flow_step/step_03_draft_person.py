@@ -38,7 +38,7 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
         )
         ctx.step = "save_personal_information_first"
         body_save_person_infor = build_person_profile(
-            "", ctx.ocr_data.Response.Data, ctx.province_city_code, ctx.id_card_number, ctx.passport_type_code, ctx.haveSpouseFlag, {}
+            "", ctx.ocr_data.Response.Data, ctx.province_city_code, ctx.id_card_number, ctx.passport_type_code, ctx.haveSpouseFlag, ctx.fileId, {}
         )
         ok2, meta2 = await api_save_person_info(
             client,
@@ -82,6 +82,7 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
     ctx.step = "get_current_draft_personal_information"
     ctx.data_obj = {}
     if ctx.first_applyid is None or ctx.first_applyid == "":
+        #todo: check it
         ok, result = await api_get_person_info(
             client, ctx.token, ctx.tmp_secret, ctx.first_applyid
         )

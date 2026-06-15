@@ -65,6 +65,14 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
             and ctx.ocr_data.Response.Data.dateOfBirth is not None
         ):
             ctx.passportNumber = ctx.ocr_data.Response.Data.passportNumber
+            
+        if (
+            ctx.ocr_data is not None
+            and ctx.ocr_data.Response is not None
+            and ctx.ocr_data.Response.Data is not None
+            and ctx.ocr_data.Response.Data.fileId is not None
+        ):
+            ctx.fileId = ctx.ocr_data.Response.Data.fileId
         return True
 
     await notify(

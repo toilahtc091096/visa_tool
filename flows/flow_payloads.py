@@ -96,6 +96,7 @@ def build_person_profile(
     id_card_number: str,
     passport_type_code: str,
     haveSpouseFlag: bool,
+    fileId: str,
     personInfoData: PersonInfoData | None,
 ) -> PersonInfoProfile:
     photo_path = getattr(personInfoData, "photoPath", None)
@@ -103,7 +104,8 @@ def build_person_profile(
     photo_detection_result = getattr(personInfoData, "photoDetectionResult", None)
     passport_path = getattr(personInfoData, "passportPath", None)
     passport_url = getattr(personInfoData, "passportUrl", None)
-
+    if passport_path is None or passport_path == "":
+        passport_path = fileId
     person_json: dict[str, Any] = {
         "applyid": applyid,
         "childrenFlag": False,
