@@ -6,6 +6,7 @@ import re
 from docxtpl import DocxTemplate
 
 from generate_file.docx_to_pdf import convert_docx_to_pdf
+from utils import pdf_helper
 
 
 def build_itinerary(first: date) -> list[dict]:
@@ -223,6 +224,7 @@ async def render_init_pdf(
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
     convert_docx_to_pdf(str(out), str(pdf_out))
+    pdf_helper.remove_last_blank_page(str(pdf_out))
 
     out.unlink()
 
