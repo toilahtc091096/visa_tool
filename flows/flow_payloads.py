@@ -856,7 +856,6 @@ def getL30TravelInfo(
         emergency_family=emergency_family,
         emergency_first=emergency_first,
     )
-    
 
     # arrival_str = date_util.build_three_stays(arrival_date)
     stays = date_util.build_three_stays(arrival_date)
