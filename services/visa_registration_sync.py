@@ -107,6 +107,7 @@ async def sync_draft_visa_registrations(
             record_id = row.get("id")
             first_applyid = str(row.get("first_applyid") or "").strip()
             passport_number = str(row.get("passport_number") or "").strip()
+            visa_type = str(row.get("visa_type") or "").strip()
 
             if not passport_number:
                 summary["skipped"] += 1
@@ -175,7 +176,7 @@ async def sync_draft_visa_registrations(
                         "passport_number": passport_number,
                         "first_applyid": first_applyid,
                         "ok": False,
-                        "reason": "no_matching_row",
+                        "reason": "api need new token",
                     }
                 )
                 continue
@@ -202,6 +203,7 @@ async def sync_draft_visa_registrations(
                         "first_applyid": first_applyid,
                         "full_name": full_name,
                         "passport_number": passport_number,
+                        "visa_type": visa_type,
                         "matched_row": matched_row,
                         "api_response": response,
                         "apply_status": remote_status,
@@ -216,6 +218,7 @@ async def sync_draft_visa_registrations(
                     "id": record_id,
                     "full_name": full_name,
                     "passport_number": passport_number,
+                    "visa_type": visa_type,
                     "first_applyid": first_applyid,
                     "ok": updated,
                     "remote_applyid": _extract_remote_applyid(matched_row),
