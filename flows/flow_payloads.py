@@ -41,6 +41,8 @@ from constants import (
     PASSPORT_SYMBOL_MAP,
     PASSPORT_TYPE_CODE,
     UNDER_18_HOTEL_INFO,
+    EMERGENCY_RELATION_FATHER,
+    EMERGENCY_RELATION_MOTHER
 )
 from models import (
     ApplyInfoProfile,
@@ -716,6 +718,7 @@ def getTravelCommonInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    emergency_relation: str,
 ) -> Dict[str, Any]:
     """
     Build the common (#same) part of travel_json.
@@ -746,7 +749,7 @@ def getTravelCommonInfo(
         "emergencyEmail": "",
         "emergencyPhoneNumber": mobile_utils.generate_supervisor_tel("0964585356"),
         "emergencyProvince": "",
-        "emergencyRelation": TRAVEL_EMERGENCY_RELATION,
+        "emergencyRelation": TRAVEL_EMERGENCY_RELATION if emergency_relation == "" else emergency_relation,
         "emergencyStreetAddr": "",
         "emergencyZipCode": "",
         # todo: if under 10 ages, choose OTHER, and add parent information
@@ -769,6 +772,7 @@ def getL15TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    emergency_relation: str,
     is_under_18: bool,
     haveChildFlag: bool,
     hotel_type: str,
@@ -784,6 +788,7 @@ def getL15TravelInfo(
         applyid=applyid,
         emergency_family=emergency_family,
         emergency_first=emergency_first,
+        emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
     if is_under_18 or haveChildFlag:
@@ -842,6 +847,7 @@ def getL30TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    emergency_relation: str,
     is_under_18: bool,
     haveChildFlag: bool,
     arrival_date: date,
@@ -855,6 +861,7 @@ def getL30TravelInfo(
         applyid=applyid,
         emergency_family=emergency_family,
         emergency_first=emergency_first,
+        emergency_relation=emergency_relation,
     )
 
     # arrival_str = date_util.build_three_stays(arrival_date)
@@ -943,14 +950,17 @@ def build_travel_info_profile(
     if fatherFamilyName != "" and fatherGivenName != "":
         emergency_family = fatherFamilyName
         emergency_first = fatherGivenName
+        emergency_relation = EMERGENCY_RELATION_FATHER
     if motherFamilyName != "" and motherGivenName != "":
         emergency_family = motherFamilyName
         emergency_first = motherGivenName
+        emergency_relation = EMERGENCY_RELATION_MOTHER
     if visa_type == "L15":
         travel_json: dict[str, Any] = getL15TravelInfo(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
+            emergency_relation=emergency_relation,
             is_under_18=is_under_18,
             haveChildFlag=haveChildFlag,
             hotel_type=hotel_type,
@@ -964,6 +974,7 @@ def build_travel_info_profile(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
+            emergency_relation=emergency_relation,
             is_under_18=is_under_18,
             haveChildFlag=haveChildFlag,
             arrival_date=arrival_date,

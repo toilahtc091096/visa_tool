@@ -1,13 +1,25 @@
 import random
 from datetime import datetime
 
-from api import api_get_education_info, api_get_family_info, api_get_work_info, api_list_online_applications, api_save_education_info, api_save_family_info, api_save_work_info
+from api import (
+    api_get_education_info,
+    api_get_family_info,
+    api_get_work_info,
+    api_list_online_applications,
+    api_save_education_info,
+    api_save_family_info,
+    api_save_work_info,
+)
 from constants import (
     OLD_APPLY_STATUS_APPROVED,
     HOTEL_DATA,
     WEEK_SKIP_BY_TYPE,
 )
-from flows.flow_payloads import build_education_info_profile, build_family_info_profile, build_work_info_profile
+from flows.flow_payloads import (
+    build_education_info_profile,
+    build_family_info_profile,
+    build_work_info_profile,
+)
 from models import (
     GetEducationInfoResponse,
     GetFamilyInfoResponse,
@@ -63,10 +75,14 @@ async def save_family_work_education(ctx, client) -> bool:
     body_save_work_info = build_work_info_profile(
         ctx.first_applyid,
         ctx.register_date,
-        ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
+        (
+            ctx.ct08_province_city_code
+            if ctx.ct08_province_city_code != ""
+            else ctx.province_city_code
+        ),
         ctx.job_type,
         ctx.experiences,
-        ctx.is_under_18
+        ctx.is_under_18,
     )
     ok4, meta4 = await api_save_work_info(
         client,
@@ -100,9 +116,13 @@ async def save_family_work_education(ctx, client) -> bool:
 
     body_save_education_info = build_education_info_profile(
         ctx.first_applyid,
-        ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
+        (
+            ctx.ct08_province_city_code
+            if ctx.ct08_province_city_code != ""
+            else ctx.province_city_code
+        ),
         ctx.educationExperience,
-        ctx.is_under_18
+        ctx.is_under_18,
     )
     ok5, meta5 = await api_save_education_info(
         client,
@@ -161,7 +181,11 @@ async def save_family_work_education(ctx, client) -> bool:
 
     body_save_family_info = build_family_info_profile(
         ctx.first_applyid,
-        ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
+        (
+            ctx.ct08_province_city_code
+            if ctx.ct08_province_city_code != ""
+            else ctx.province_city_code
+        ),
         datetime.strptime(ctx.ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
         ctx.ocr_data.Response.Data.nationality,
         ctx.haveSpouseFlag,
@@ -201,6 +225,19 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_family_info,
     )
+    parents = body_save_family_info.parents or []
+
+    father = next((p for p in parents if p.relation == "727002"), None)
+    mother = next((p for p in parents if p.relation == "727003"), None)
+
+    if not ctx.fatherFamilyName and not ctx.fatherGivenName and father:
+        ctx.fatherFamilyName = father.familyName
+        ctx.fatherGivenName = father.firstName
+
+    if not ctx.motherFamilyName and not ctx.motherGivenName and mother:
+        ctx.motherFamilyName = mother.familyName
+        ctx.motherGivenName = mother.firstName
+
     log_event({"step": ctx.step, "ok": ok6, **meta6})
     if not ok6:
         await notify(

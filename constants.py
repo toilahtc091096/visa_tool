@@ -1172,3 +1172,6 @@ PASSPORT_SYMBOL_MAP = {
     "SP": "Special",  # Đặc biệt (nếu có)
     "X": "Other",  # Khác / fallback
 }
+
+EMERGENCY_RELATION_FATHER = "BO"
+EMERGENCY_RELATION_MOTHER = "ME"
