@@ -65,6 +65,23 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     departure_flight_number_full_info = (
         ctx.prefix_flight_text + " " + ctx.departure_flight_number
     )
+
+    if ctx.is_under_18 or ctx.haveChildFlag:
+        ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(ctx.register_date, 5)
+        arrive_flight_number_full_info = (
+            ctx.prefix_flight_text
+            + " "
+            + FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_number"]
+            + "21"
+        )
+        departure_flight_number_full_info = (
+            ctx.prefix_flight_text
+            + " "
+            + FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_number"]
+            + "23"
+        )
+    ctx.arrive_flight_number = arrive_flight_number_full_info
+    ctx.departure_flight_number = departure_flight_number_full_info
     body_save_travel_info = build_travel_info_profile(
         ctx.visa_type,
         ctx.first_applyid,
@@ -242,18 +259,13 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             hotel_departure_info_item = L_30_HOTEL_INFO[-1]
         else:
             hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
+        if ctx.is_under_18 or ctx.haveChildFlag:
+            ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
+            ctx.departure_flight_number = ctx.departure_flight_number[-4:]
         payload = {
             "file_name": file_name,
-            "arrive_flight_number": (
-                ctx.arrive_flight_number
-                if not (ctx.is_under_18 and ctx.haveChildFlag)
-                else "31"
-            ),
-            "departure_flight_number": (
-                ctx.departure_flight_number
-                if not (ctx.is_under_18 and ctx.haveChildFlag)
-                else "52"
-            ),
+            "arrive_flight_number": ctx.arrive_flight_number,
+            "departure_flight_number": ctx.departure_flight_number,
             "arrvied_city": hotel_info_item.get("place_city"),
             "names": ctx.ticket_names,
             "arrived_iata_code": hotel_info_item.get("iata_code"),
