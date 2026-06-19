@@ -1064,6 +1064,8 @@ def build_previous_china_travel_body(
     haveOtherVisaFlag: str = "",
     old_otherVisas: str = "",
     old_otherCountries: str = "",
+    collectFingerprintFlag: bool = False,
+    chinaResidenceLicenseFlag: bool = False,
 ) -> dict[str, Any]:
     """Applicant has been to China before: fill prior-visit and visa fields."""
 
@@ -1094,10 +1096,10 @@ def build_previous_china_travel_body(
     return {
         **_previous_travel_base(applyid),
         "arrivedChinaFlag": True,
-        "chinaResidenceLicenseFlag": False,
+        "chinaResidenceLicenseFlag": chinaResidenceLicenseFlag,
         "collectFingerprintCountry": "",
         "collectFingerprintDate": "",
-        "collectFingerprintFlag": False,
+        "collectFingerprintFlag": collectFingerprintFlag,
         "collectFingerprintPlace": "",
         "lostChinaVisaDate": "",
         "lostChinaVisaFlag": False,
@@ -1141,6 +1143,8 @@ def build_previous_travel_info_profile(
     haveOtherVisaFlag: str = "",
     old_otherVisas: str = "",
     old_otherCountries: str = "",
+    collectFingerprintFlag: bool = False,
+    chinaResidenceLicenseFlag: bool = False,
 ) -> PreviousTravelInfoProfile:
     if not arrivedChinaFlag:
         previous_travel_json = _build_no_previous_china_travel_body(applyid)
@@ -1155,6 +1159,8 @@ def build_previous_travel_info_profile(
             haveOtherVisaFlag,
             old_otherVisas,
             old_otherCountries,
+            collectFingerprintFlag,
+            chinaResidenceLicenseFlag
         )
     return PreviousTravelInfoProfile.from_dict(previous_travel_json)
 

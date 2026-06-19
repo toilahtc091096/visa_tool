@@ -126,6 +126,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.haveOtherVisaFlag,
         ctx.old_otherVisas,
         ctx.old_otherCountries,
+        ctx.collectFingerprintFlag,
+        ctx.chinaResidenceLicenseFlag,
     )
     ok8, meta8 = await api_save_previous_travel_info(
         client,

@@ -64,6 +64,8 @@ async def run_flow(
     first_applyid: str = "",
     is_update_info: bool = False,
     upload_config_keys: list[str] | None = None,
+    chinaResidenceLicenseFlag: bool = False,
+    collectFingerprintFlag: bool = False,
 ) -> None:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
@@ -117,6 +119,8 @@ async def run_flow(
         first_applyid=first_applyid,
         token=token,
         tmp_secret=tmp_secret,
+        chinaResidenceLicenseFlag=chinaResidenceLicenseFlag,
+        collectFingerprintFlag=collectFingerprintFlag,
     )
 
     if not validate_initial_inputs(ctx):

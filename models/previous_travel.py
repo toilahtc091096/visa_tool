@@ -10,10 +10,10 @@ class PreviousTravelInfoProfile:
     tempSaveFlag: bool
     userId: str
     arrivedChinaFlag: bool
-    chinaResidenceLicenseFlag: str
+    chinaResidenceLicenseFlag: bool
     collectFingerprintCountry: str
     collectFingerprintDate: str
-    collectFingerprintFlag: str
+    collectFingerprintFlag: bool
     collectFingerprintPlace: str
     haveChinaVisaFlag: bool
     haveOtherVisaFlag: bool
@@ -46,10 +46,10 @@ class PreviousTravelInfoProfile:
             tempSaveFlag=bool(d.get("tempSaveFlag", False)),
             userId=d.get("userId", "") or "",
             arrivedChinaFlag=bool(d.get("arrivedChinaFlag", False)),
-            chinaResidenceLicenseFlag=d.get("chinaResidenceLicenseFlag", "") or "",
+            chinaResidenceLicenseFlag=d.get("chinaResidenceLicenseFlag", False) or False,
             collectFingerprintCountry=d.get("collectFingerprintCountry", "") or "",
             collectFingerprintDate=d.get("collectFingerprintDate", "") or "",
-            collectFingerprintFlag=d.get("collectFingerprintFlag", "") or "",
+            collectFingerprintFlag=d.get("collectFingerprintFlag", False) or False,
             collectFingerprintPlace=d.get("collectFingerprintPlace", "") or "",
             haveChinaVisaFlag=bool(d.get("haveChinaVisaFlag", False)),
             haveOtherVisaFlag=bool(d.get("haveOtherVisaFlag", False)),
