@@ -80,8 +80,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             + FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_number"]
             + "23"
         )
-    ctx.arrive_flight_number = arrive_flight_number_full_info
-    ctx.departure_flight_number = departure_flight_number_full_info
+        ctx.arrive_flight_number = arrive_flight_number_full_info
+        ctx.departure_flight_number = departure_flight_number_full_info
     body_save_travel_info = build_travel_info_profile(
         ctx.visa_type,
         ctx.first_applyid,

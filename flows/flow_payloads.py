@@ -42,7 +42,7 @@ from constants import (
     PASSPORT_TYPE_CODE,
     UNDER_18_HOTEL_INFO,
     EMERGENCY_RELATION_FATHER,
-    EMERGENCY_RELATION_MOTHER
+    EMERGENCY_RELATION_MOTHER,
 )
 from models import (
     ApplyInfoProfile,
@@ -759,7 +759,11 @@ def getTravelCommonInfo(
         "emergencyEmail": "",
         "emergencyPhoneNumber": mobile_utils.generate_supervisor_tel("0964585356"),
         "emergencyProvince": "",
-        "emergencyRelation": TRAVEL_EMERGENCY_RELATION if emergency_relation == "" else emergency_relation,
+        "emergencyRelation": (
+            TRAVEL_EMERGENCY_RELATION
+            if emergency_relation == ""
+            else emergency_relation
+        ),
         "emergencyStreetAddr": "",
         "emergencyZipCode": "",
         # todo: if under 10 ages, choose OTHER, and add parent information
@@ -950,6 +954,7 @@ def build_travel_info_profile(
     print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
+    emergency_relation = TRAVEL_EMERGENCY_RELATION
     if (
         fatherFamilyName == ""
         and fatherGivenName == ""
