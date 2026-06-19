@@ -54,6 +54,9 @@ DEFAULT_CASE: dict[str, Any] = {
     "birthCity": "",
     "payName": "",
     "payMobile": "",
+    "chinaResidenceLicenseFlag": False,
+    "collectFingerprintFlag": False,
+    "is_private": False,
 }
 
 
@@ -184,6 +187,9 @@ def main(
             data["first_applyid"],
             data["is_update_info"],
             data["upload_config_keys"],
+            data.get("chinaResidenceLicenseFlag", False),
+            data.get("collectFingerprintFlag", False),
+            data["is_private"],
         )
     )
 

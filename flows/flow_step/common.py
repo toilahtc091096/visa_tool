@@ -20,8 +20,9 @@ def build_flow_context(**kwargs):
     ctx.last_letter_visa_type = kwargs.get("visa_type", "")[1:]
     ctx.first_applyid = kwargs.get("first_applyid", "")
     ctx.passportNumber = kwargs.get("passportNumber", "")
-    ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", "")
-    ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", "")
+    ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", False)
+    ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", False)
+    ctx.is_private = kwargs.get("is_private", False)
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

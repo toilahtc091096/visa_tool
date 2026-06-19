@@ -82,7 +82,6 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
     ctx.step = "get_current_draft_personal_information"
     ctx.data_obj = {}
     if ctx.first_applyid is None or ctx.first_applyid == "":
-        #todo: check it
         ok, result = await api_get_person_info(
             client, ctx.token, ctx.tmp_secret, ctx.first_applyid
         )

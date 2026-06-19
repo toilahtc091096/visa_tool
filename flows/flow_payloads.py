@@ -766,7 +766,6 @@ def getTravelCommonInfo(
         ),
         "emergencyStreetAddr": "",
         "emergencyZipCode": "",
-        # todo: if under 10 ages, choose OTHER, and add parent information
         "payForTravel": TRAVEL_PAY_FOR_SELF,
         "payForTravelName": "",
         "payForTravelPhoneNumber": "",
@@ -794,6 +793,7 @@ def getL15TravelInfo(
     leave_str: str,
     arrivalVehicleType: str,
     leaveVehicleType: str,
+    is_private: bool,
 ) -> Dict[str, Any]:
     """
     Full travel_json = #same + specific (hotel/flight/date) part.
@@ -805,7 +805,9 @@ def getL15TravelInfo(
         emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
-    if is_under_18 or haveChildFlag:
+    if (
+        is_under_18 or (haveChildFlag and not is_private)
+    ):  # todo: them and is_private  (haveChildFlag and is_private)
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
     addr_100 = ""
@@ -867,6 +869,7 @@ def getL30TravelInfo(
     arrival_date: date,
     arrivalVehicleType: str,
     leaveVehicleType: str,
+    is_private: bool,
 ) -> Dict[str, Any]:
     """
     Full travel_json = #same + specific (hotel/flight/date) part.
@@ -950,6 +953,7 @@ def build_travel_info_profile(
     hotel_type: int,
     arrivalVehicleType: str,
     leaveVehicleType: str,
+    is_private: bool,
 ) -> TravelInfoProfile:
     print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
@@ -983,6 +987,7 @@ def build_travel_info_profile(
             leave_str=leave_str,
             arrivalVehicleType=arrivalVehicleType,
             leaveVehicleType=leaveVehicleType,
+            is_private=is_private,
         )
     elif visa_type == "L30":
         travel_json: dict[str, Any] = getL30TravelInfo(
@@ -995,6 +1000,7 @@ def build_travel_info_profile(
             arrival_date=arrival_date,
             arrivalVehicleType=arrivalVehicleType,
             leaveVehicleType=leaveVehicleType,
+            is_private=is_private,
         )
     else:
         travel_json = {}
@@ -1160,7 +1166,7 @@ def build_previous_travel_info_profile(
             old_otherVisas,
             old_otherCountries,
             collectFingerprintFlag,
-            chinaResidenceLicenseFlag
+            chinaResidenceLicenseFlag,
         )
     return PreviousTravelInfoProfile.from_dict(previous_travel_json)
 

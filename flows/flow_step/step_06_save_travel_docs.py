@@ -66,7 +66,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.prefix_flight_text + " " + ctx.departure_flight_number
     )
 
-    if ctx.is_under_18 or ctx.haveChildFlag:
+    if ctx.is_under_18 or (ctx.haveChildFlag and not ctx.is_private): #todo: them and is_private  (haveChildFlag and is_private)
         ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(ctx.register_date, 5)
         arrive_flight_number_full_info = (
             ctx.prefix_flight_text
@@ -98,6 +98,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.hotel_type,
         arrive_flight_number_full_info,
         departure_flight_number_full_info,
+        ctx.is_private,
     )
     ok7, meta7 = await api_save_travel_info(
         client,
@@ -188,7 +189,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name, adult]
                 print(f"guest_name: {ctx.guest_name}")
-        elif ctx.haveChildFlag:
+        elif (ctx.haveChildFlag and not ctx.is_private): #todo: them and is_private  (haveChildFlag and is_private)
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
             child = (
                 f"{ctx.childFamilyName} {ctx.childGivenName}"
@@ -242,7 +243,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             ctx.ticket_names.append(
                 ctx.payName if ctx.payName else random.choice(VIETNAMESE_NAMES).upper()
             )
-        if ctx.haveChildFlag:
+        if (ctx.haveChildFlag and not ctx.is_private): #todo: them and is_private  (haveChildFlag and is_private)
             ctx.ticket_names.append(
                 f"{ctx.childFamilyName} {ctx.childGivenName}"
                 if (ctx.childGivenName and ctx.childFamilyName)
@@ -261,7 +262,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             hotel_departure_info_item = L_30_HOTEL_INFO[-1]
         else:
             hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
-        if ctx.is_under_18 or ctx.haveChildFlag:
+        if ctx.is_under_18 or (ctx.haveChildFlag and not ctx.is_private): #todo: them and is_private  (haveChildFlag and is_private)
             ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
             ctx.departure_flight_number = ctx.departure_flight_number[-4:]
         payload = {
