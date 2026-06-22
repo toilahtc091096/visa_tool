@@ -32,6 +32,8 @@ DEFAULT_CASE: dict[str, Any] = {
     "old_otherCountries": [],
     "guest_name": [],
     "ticket_names": [],
+    "addition_adults": [],
+    "addition_child": [],
     "haveSpouseFlag": False,
     "haveChildFlag": False,
     "childFamilyName": "",
@@ -102,6 +104,18 @@ def _normalize_upload_config_keys(value: Any) -> list[str]:
     return [str(item).strip().upper() for item in items if str(item).strip()]
 
 
+def _normalize_name_list(value: Any) -> list[str]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, str):
+        items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        items = list(value)
+    else:
+        return []
+    return [str(item).strip() for item in items if str(item).strip()]
+
+
 def build_case(case: dict[str, Any] | None = None) -> dict[str, Any]:
     merged = dict(DEFAULT_CASE)
     if case:
@@ -128,6 +142,8 @@ def main(
     first_applyid: str | None = None,
     is_update_info: bool | None = None,
     upload_config_keys: list[str] | None = None,
+    addition_adults: list[str] | None = None,
+    addition_child: list[str] | None = None,
 ) -> None:
     data = build_case(case)
     if not str(data.get("authorization", "") or "").strip():
@@ -138,6 +154,10 @@ def main(
         data["is_update_info"] = _normalize_bool(is_update_info)
     if upload_config_keys is not None:
         data["upload_config_keys"] = _normalize_upload_config_keys(upload_config_keys)
+    if addition_adults is not None:
+        data["addition_adults"] = _normalize_name_list(addition_adults)
+    if addition_child is not None:
+        data["addition_child"] = _normalize_name_list(addition_child)
     asyncio.run(
         run_flow(
             data["authorization"],
@@ -187,6 +207,8 @@ def main(
             data["first_applyid"],
             data["is_update_info"],
             data["upload_config_keys"],
+            data["addition_adults"],
+            data["addition_child"],
             data.get("chinaResidenceLicenseFlag", False),
             data.get("collectFingerprintFlag", False),
             data["is_private"],

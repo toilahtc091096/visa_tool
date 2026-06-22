@@ -16,6 +16,18 @@ from flows.flow_step import (
 from utils import cleanup_data_folder, load_login_payload, log_event
 
 
+def _normalize_name_list(value) -> list[str]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, str):
+        items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        items = list(value)
+    else:
+        return []
+    return [str(item).strip() for item in items if str(item).strip()]
+
+
 async def run_flow(
     authorization: str,
     visa_type: str,
@@ -64,6 +76,8 @@ async def run_flow(
     first_applyid: str = "",
     is_update_info: bool = False,
     upload_config_keys: list[str] | None = None,
+    addition_adults: list[str] | None = None,
+    addition_child: list[str] | None = None,
     chinaResidenceLicenseFlag: bool = False,
     collectFingerprintFlag: bool = False,
     is_private: bool = False,
@@ -120,9 +134,11 @@ async def run_flow(
         first_applyid=first_applyid,
         token=token,
         tmp_secret=tmp_secret,
+        addition_adults=_normalize_name_list(addition_adults),
+        addition_child=_normalize_name_list(addition_child),
         chinaResidenceLicenseFlag=chinaResidenceLicenseFlag,
         collectFingerprintFlag=collectFingerprintFlag,
-        is_private=is_private
+        is_private=is_private,
     )
 
     if not validate_initial_inputs(ctx):

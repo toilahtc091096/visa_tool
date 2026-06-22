@@ -23,6 +23,8 @@ def build_flow_context(**kwargs):
     ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", False)
     ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", False)
     ctx.is_private = kwargs.get("is_private", False)
+    ctx.addition_adults = kwargs.get("addition_adults", [])
+    ctx.addition_child = kwargs.get("addition_child", [])
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

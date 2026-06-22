@@ -32,6 +32,8 @@ async def render_docx_template_output_pdf(
     names: list[str] = payload.get("names", [])
     first: date = payload.get("first")
     end: date | None = payload.get("end")
+    adults_number: int = payload.get("adults_number")
+    child_number: int = payload.get("child_number")
     is_under_18: bool = payload.get("is_under_18", False)
     haveChildFlag: bool = payload.get("haveChildFlag", False)
 
@@ -98,8 +100,8 @@ async def render_docx_template_output_pdf(
                 "names": names,
                 "unit_of_hotel": int(UNIT_OF_HOTEL) + random.randint(10000, 50000),
                 # xet lai, truong hop nay < 18 tuoi, nen lam rieng, 2 bien nay nen chuyen tu main
-                "adults_number": 1,
-                "child_number": 1,
+                "adults_number": adults_number,
+                "child_number": child_number,
                 # end
                 "three_submit_number": (
                     random.randint(100, 999)
