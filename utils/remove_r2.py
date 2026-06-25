@@ -70,6 +70,6 @@ def delete_r2_folder(folder_name: str) -> int:
         errors = resp.get("Errors", [])
         if errors:
             raise RuntimeError(f"Delete errors: {errors}")
-
-    print(f"Deleted {deleted_count} objects under r2://{bucket_name}/{prefix}")
+    if deleted_count != 0:
+        print(f"Deleted {deleted_count} objects under r2://{bucket_name}/{prefix}")
     return deleted_count 

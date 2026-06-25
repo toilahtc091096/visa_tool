@@ -39,7 +39,7 @@ def _sync_scheduler_interval_seconds() -> int:
 async def _sync_draft_scheduler_loop() -> None:
     interval_seconds = _sync_scheduler_interval_seconds()
     spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
-    worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "sync_draft_visa_status").strip()
+    worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "hai").strip()
     sheet_mode = os.getenv("GOOGLE_SHEET_SYNC_MODE", "upsert").strip()
 
     while True:
@@ -111,7 +111,7 @@ async def sync_draft_visa_status(
     page_size: int = 1000,
     authorization: str = "",
     spreadsheet_url: str = "",
-    worksheet_name: str = "sync_draft_visa_status",
+    worksheet_name: str = "hai",
     sheet_mode: str = "upsert",
 ):
     if authorization.strip():

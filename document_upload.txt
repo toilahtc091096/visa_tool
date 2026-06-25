@@ -267,7 +267,7 @@ Bước 6: check các api tiếp theo sau khi nhập và file xong hết
 
 Lỗi: 
   API 1 đang thiếu 2 ảnh 
-  Ve tao lai file may bay va file nha phong ok 
+  Ve tao lai file may bay va file nha hai ok 
 
 
 

@@ -189,6 +189,45 @@ def update_visa_registration_status_and_payload(
         conn.close()
 
 
+def batch_update_visa_registration_status_and_payload(
+    updates: list[dict[str, Any]],
+) -> int:
+    if not updates:
+        return 0
+
+    sql = """
+        UPDATE visa_registrations
+        SET status = %s,
+            payload = %s,
+            updated_at = NOW()
+        WHERE id = %s
+    """
+    params: list[tuple[Any, Any, Any]] = []
+    for item in updates:
+        record_id = item.get("record_id")
+        status = item.get("status")
+        payload = item.get("payload")
+        if record_id is None or status is None:
+            continue
+        params.append((status, Json(payload or {}), record_id))
+
+    if not params:
+        return 0
+
+    updated_count = 0
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                for status, payload, record_id in params:
+                    cursor.execute(sql, (status, payload, record_id))
+                    if cursor.rowcount > 0:
+                        updated_count += 1
+        return updated_count
+    finally:
+        conn.close()
+
+
 def delete_visa_registration(record_id: int) -> bool:
     sql = """
         DELETE FROM visa_registrations
@@ -201,5 +240,25 @@ def delete_visa_registration(record_id: int) -> bool:
             with conn.cursor() as cursor:
                 cursor.execute(sql, (record_id,))
                 return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_visa_registrations_by_passport_except_status(
+    passport_number: str,
+    status: str,
+) -> int:
+    sql = """
+        DELETE FROM visa_registrations
+        WHERE passport_number = %s
+          AND status <> %s
+    """
+
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (passport_number, status))
+                return cursor.rowcount
     finally:
         conn.close()

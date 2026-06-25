@@ -202,6 +202,12 @@ def _build_row_by_header(
     ]
 
 
+def _chunked(values: list[Any], chunk_size: int) -> list[list[Any]]:
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be greater than 0")
+    return [values[i : i + chunk_size] for i in range(0, len(values), chunk_size)]
+
+
 def write_rows_to_google_sheet(
     spreadsheet_url: str,
     rows: list[Any],
@@ -260,7 +266,25 @@ def write_rows_to_google_sheet(
         try:
             all_values = worksheet.get_all_values()
 
-            # Header nằm ở dòng 1
+            if not all_values:
+                worksheet.batch_update(
+                    [
+                        {
+                            "range": "A1",
+                            "values": normalized_rows,
+                        }
+                    ],
+                    value_input_option="RAW",
+                )
+                return {
+                    "ok": True,
+                    "spreadsheet_id": spreadsheet_id,
+                    "worksheet": worksheet.title,
+                    "written_rows": len(normalized_rows) - 1,
+                    "mode": normalized_mode,
+                }
+
+            # The first row in the input is treated as the header.
             input_header = [str(name).strip() for name in normalized_rows[0]]
             input_key_idx = next(
                 (
@@ -302,6 +326,8 @@ def write_rows_to_google_sheet(
                     if key:
                         existing[key] = row_idx
 
+            batch_updates: list[dict[str, Any]] = []
+            rows_to_append: list[list[Any]] = []
             for row in normalized_rows[1:]:
                 first_applyid = str(row[input_key_idx]).strip()
                 if not first_applyid:
@@ -314,19 +340,26 @@ def write_rows_to_google_sheet(
                 )
                 if first_applyid in existing:
                     row_num = existing[first_applyid]
-
-                    worksheet.update(
-                        f"A{row_num}",
-                        [ordered_row],
-                        value_input_option="RAW",
+                    batch_updates.append(
+                        {
+                            "range": f"A{row_num}",
+                            "values": [ordered_row],
+                        }
                     )
                 else:
-                    next_row = len(worksheet.get_all_values()) + 1
-                    worksheet.update(
-                        f"A{next_row}",
-                        [ordered_row],
-                        value_input_option="RAW",
-                    )
+                    rows_to_append.append(ordered_row)
+
+            for chunk in _chunked(batch_updates, 100):
+                worksheet.batch_update(
+                    chunk,
+                    value_input_option="RAW",
+                )
+
+            if rows_to_append:
+                worksheet.append_rows(
+                    rows_to_append,
+                    value_input_option="RAW",
+                )
 
         except Exception as exc:
             raise PermissionError(
@@ -374,7 +407,7 @@ def write_rows_to_google_sheet(
 def write_sync_summary_to_google_sheet(
     summary: dict[str, Any],
     spreadsheet_url: str,
-    worksheet_name: str = "sync_draft_visa_status",
+    worksheet_name: str = "hai",
     mode: str = "upsert",
 ) -> dict[str, Any]:
     items = summary.get("items")

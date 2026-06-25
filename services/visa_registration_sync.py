@@ -7,8 +7,9 @@ import httpx
 
 from api import api_get_online_application_list_by_passport
 from database.crud import (
+    batch_update_visa_registration_status_and_payload,
+    delete_visa_registrations_by_passport_except_status,
     list_visa_registrations_by_status,
-    update_visa_registration_status_and_payload,
     get_visa_registration_by_passport,
 )
 from services.google_sheets import write_sync_summary_to_google_sheet
@@ -77,7 +78,7 @@ async def sync_draft_visa_registrations(
     page_size: int = 1000,
     authorization: str = "",
     spreadsheet_url: str = "",
-    worksheet_name: str = "sync_draft_visa_status",
+    worksheet_name: str = "hai",
     sheet_mode: str = "upsert",
 ) -> dict[str, Any]:
     login_payload = load_login_payload()
@@ -185,8 +186,6 @@ async def sync_draft_visa_registrations(
                 row.get("status") or "draft"
             )
             internal_status = _map_apply_status_to_internal(remote_status)
-            if internal_status == "approved": 
-                remove_r2.delete_r2_folder(passport_number)     
             existing_payload = (
                 row.get("payload") if isinstance(row.get("payload"), dict) else {}
             )
@@ -194,38 +193,47 @@ async def sync_draft_visa_registrations(
             full_name = ""
             if info_by_passport_number is not None:
                 full_name = info_by_passport_number.get("full_name")
-            updated = update_visa_registration_status_and_payload(
-                record_id=record_id,
-                status=internal_status,
-                payload={
-                    **existing_payload,
-                    "sync": {
-                        "first_applyid": first_applyid,
-                        "full_name": full_name,
-                        "passport_number": passport_number,
-                        "visa_type": visa_type,
-                        "matched_row": matched_row,
-                        "api_response": response,
-                        "apply_status": remote_status,
-                        "internal_status": internal_status,
-                    },
-                },
+            updated = batch_update_visa_registration_status_and_payload(
+                [
+                    {
+                        "record_id": record_id,
+                        "status": internal_status,
+                        "payload": {
+                            **existing_payload,
+                            "sync": {
+                                "first_applyid": first_applyid,
+                                "full_name": full_name,
+                                "passport_number": passport_number,
+                                "visa_type": visa_type,
+                                "matched_row": matched_row,
+                                "api_response": response,
+                                "apply_status": remote_status,
+                                "internal_status": internal_status,
+                            },
+                        },
+                    }
+                ]
             )
+            item = {
+                "id": record_id,
+                "full_name": full_name,
+                "passport_number": passport_number,
+                "visa_type": visa_type,
+                "first_applyid": first_applyid,
+                "ok": updated > 0,
+                "remote_applyid": _extract_remote_applyid(matched_row),
+                "remote_status": remote_status,
+                "internal_status": internal_status,
+            }
+            if internal_status == "approved":
+                remove_r2.delete_r2_folder(passport_number)
+                item["deleted_others"] = delete_visa_registrations_by_passport_except_status(
+                    passport_number=passport_number,
+                    status="approved",
+                )
             summary["matched"] += 1
-            summary["updated"] += 1 if updated else 0
-            summary["items"].append(
-                {
-                    "id": record_id,
-                    "full_name": full_name,
-                    "passport_number": passport_number,
-                    "visa_type": visa_type,
-                    "first_applyid": first_applyid,
-                    "ok": updated,
-                    "remote_applyid": _extract_remote_applyid(matched_row),
-                    "remote_status": remote_status,
-                    "internal_status": internal_status,
-                }
-            )
+            summary["updated"] += updated
+            summary["items"].append(item)
     sheet_url = (
         spreadsheet_url.strip() or os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
     )

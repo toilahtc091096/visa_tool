@@ -7,6 +7,8 @@ from database.crud.visa_registration import (
     get_visa_registration_by_passport,
     list_visa_registrations,
     list_visa_registrations_by_status,
+    delete_visa_registrations_by_passport_except_status,
+    batch_update_visa_registration_status_and_payload,
     update_visa_registration_status,
     update_visa_registration_status_and_payload,
 )
@@ -23,6 +25,8 @@ __all__ = [
     "init_database",
     "list_visa_registrations",
     "list_visa_registrations_by_status",
+    "delete_visa_registrations_by_passport_except_status",
+    "batch_update_visa_registration_status_and_payload",
     "update_visa_registration_status",
     "update_visa_registration_status_and_payload",
 ]
