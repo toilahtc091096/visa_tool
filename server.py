@@ -5,12 +5,17 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
 from fastapi.responses import JSONResponse
 
 from api import api_convert_input_pdfs
 from database.connection import init_database
 from main import build_case, main
+from services.han_approval import (
+    list_han_approval_jobs,
+    process_han_approval_inbox,
+    retry_han_approval_jobs,
+)
 from services import sync_draft_visa_registrations
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
@@ -158,6 +163,33 @@ async def convert_input_pdfs(request: Request):
         "body_json": body_json,
     }
     return result
+
+
+@app.get("/han-approval/process")
+async def han_approval_process(
+    start_scan: str = Query("", alias="start-scan"),
+):
+    return await process_han_approval_inbox(start_scan=start_scan)
+
+
+@app.get("/han-approval/jobs")
+def han_approval_jobs(limit: int = 100, offset: int = 0):
+    return list_han_approval_jobs(limit=limit, offset=offset)
+
+
+@app.patch("/han-approval/retry")
+def han_approval_retry(payload: dict[str, Any] = Body(...)):
+    record_ids = payload.get("record_ids") or payload.get("ids") or []
+    han_codes = payload.get("han_codes") or payload.get("codes") or []
+    if not record_ids and not han_codes:
+        raise HTTPException(
+            status_code=400,
+            detail="record_ids or han_codes is required",
+        )
+    return retry_han_approval_jobs(
+        record_ids=record_ids,
+        han_codes=han_codes,
+    )
 
 
 @app.post("/upload-html-to-pdf")

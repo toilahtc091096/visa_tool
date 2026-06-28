@@ -1,394 +1,100 @@
-Other materials
-categoryCode
-12025062114211484037531
-materialCode
-mfa-044_1 -> mfa-044_5
-Bankstatement
-categoryCode
-12025062216413672273869
-materialCode
-mfa-007_1 - mfa-007_4
-valid or previous visas for other countries
-categoryCode
-12025062114213765489140 #2026051411041876690
-materialCode
-mfa-011_1 - mfa-011_3
-Itinerary in China
-categoryCode
-12025062019595907456262
-materialCode
-mfa-004_1
+curl.exe -X GET "http://127.0.0.1:8000/han-approval/process"
 
-Round trip air tickets
-categoryCode
-12025062020000706552852
-materialCode
-mfa-003_1
-Hotel reservation with payment
-categoryCode
-12025063014542307352106
-materialCode
-mfa-002_1 - 3
-Applicants under 18 years old
-22025062114181968780924
-mfa-039_1 - 5
-Photocopy of previous Chinese passports or previous Chinese visas(applicable for those who were Chinese citizens and have obtained foreign citizenship
-22025062418014204043091
-mfa-036_1 - 4
-Photocopy of previous Chinese visas (applicable for those who have obtained Chinese visas before)
-22025062114131912554297
-mfa-033_1- 3
-The blank pages of the passport
-22025070216180808782737
-mfa-017_1 - 2
-Proof of legal stay or residence status (applicable to those not applying for the visa in their country of citizenship)
-22025062114095544389381
-mfa-031_1 - 2
-Residential certificate/”Hukou” certificate or employment letter
-22025062114073725280378
-mfa-030_1
+Có, nhưng **không thể đính kèm trực tiếp một thư mục (folder) vào email** theo chuẩn SMTP/MIME. Bạn có một số lựa chọn:
 
+### Cách 1: Nén folder thành file ZIP (phổ biến nhất)
 
-visaPurpose
-: 
-"709002"
-visaType
-: 
-"710004"
-Hạng Q thăm thân :
-Cần các thông tin đặc thù như: tên người thân, quan hệ, id number, kiểu đi ( single, double hay multiple)
+Giả sử cấu trúc:
 
-L30 khác phần khai 6. dài hơn và thêm 1 file lịch trình du lịch
-chưa biết file cư trú dùng khi hộ chiếu chưa có 1 cái gì
-
-================================
-API VISA_TYPE
-L => visaPurpose: 709001, visaType: 710001, visaType: 710002
-M => visaPurpose: 709002, visaType: +3 
-visaPurpose
-: 
-"709002"
-visaType
-: 
-"710003"
-================================
-API previous cần call thử đã qua chinna thì sẽ thể nào  => build API
-build API otherinfor, signature, api upload file và cấu trúc tự động cho file
-GBR là mã quốc gia ISO 3166-1 alpha-3 của Vương quốc Anh (United Kingdom / UK – Anh).
-
-================================
-20/05 todo:
-L15: chỉ cần 1 hotel
-L30: cần ghép 3 hotel
-  Cần hỏi lịch trình xem có thể đảo không hay cố định
-Từ lịch trình   => Chọn nơi đến ( 1 trong 3 tỉnh ở 3 hotel)   => Tạo file vé máy bay 
-                                => Tạo file hotel theo vé máy bay
-Mapping Tỉnh và các hotel và thông tin để đẩy vào param 2 method tạo hotel và vé máy bay 
-Đối với L30 cần ghép file
-Cần tạo logic tạo ngày cho L15 và L30  ( L30 => Cần tạo 3 lịch)
-================================
-Viết 1 hàm để gửi all file theo visa_type 
-resources/
-  L15/
-    chung/
-      2_trang_ho_chieu_trang/
-      khach_san/
-      ve_may_bay/
-      sao_ke_ngan_hang/
-      xac_nhan_tu_trung_tam_visa/
-
-    lich_su_xuat_canh/
-      da_tung_di_nuoc_ngoai/
-        visa_cac_nuoc_khac_anh_ho_chieu/
-      chua_tung_di_ho_chieu_trang/
-        giay_cu_tru/
-
-    duoi_18_tuoi/
-      giay_to_cho_nguoi_duoi_18/
-      giay_uy_quyen/
-
-    xuat_file/
-      upload_len_hiraku.zip
-
-Liệt kê các file cần gửi cho L15 để test
-Test 
-=================================
-API Family cần cho nhập thêm từ input 
-  + Father ( 2 names, quoc tich, ngay sinh)
-  + Mother ( 2 names, quoc tich, ngay sinh)
-  + Children ( 2 names, quoc tich, ngay sinh)
-Neu thong tin nay có => Không random 
-Đối với xxx tuổi thì thông tin này có  => Can hoi lai + work va education
-Phuong thuc thanh toan = Other, cha me 
-Cần lọc thêm các thông tin khác ( Đưa ra input, và nếu để trống thì random )
-cờ spouses 
-Thông tin cha mẹ trong trường hợp khác
-==================================
-Lam file ve may bay, xem lai cac truong hop may bay va hotel 
-
-tach rieng truong hop duoi 18 tuoi 
-  file hotel 
-  cac param di kem 
-  education va work ?
-  test 1 truogn hop
-
-Thu test 1 case full
-  Xac dinh cac buoc can phai tu lam 
-  xac dinh ra ro cac truong hop ( noi chuyen )
-    Xac dinh cac param phai dien  trong cac truong hop ( noi chuyen )
-    Xac dinh file can phai co cho moi loai 
-
-Truong hop L15 
-  (tren 18 tuoi, chua qua trung quoc, chua co visa khac, chua co khach san va ve may bay, 
-  khong co thong tin chong, con, cha me, thong tin nguoi tra tien)
-  Dưới đây là hướng dẫn chuẩn hoá “kiểu trường hợp L15 – tối giản thông tin” để bạn dùng làm rule nhận diện + bộ câu hỏi phân loại + yêu cầu file/folder. Mình viết theo hướng bạn có thể đưa thẳng vào tài liệu đặc tả input_json.
-  Bộ câu hỏi để xác định đúng trường hợp này (Decision questions)
-  Mục tiêu: hỏi tối thiểu để phân loại “L15 tối giản” vs các biến thể “có người thân/đã đi TQ/có visa khác/có booking…”.
-  Bạn có thể dùng dạng checklist sau (có thứ tự ưu tiên):
-
-  Nhóm 0 — Xác định case & điều kiện tuổi
-    Khách xin loại visa nào? (L15 / loại khác)  
-
-    Khách đủ 18 tuổi trở lên chưa? (Có/Không)
-
-
-  Nhóm 1 — Trung Quốc (để loại các case có lịch sử TQ)
-    Khách đã từng đến Trung Quốc chưa? (Có/Chưa)
-
-      Nếu Có → không phải case này (rẽ nhánh sang case “đã đến TQ”)
-    Khách đã từng có visa Trung Quốc chưa? (Có/Không)
-      Nếu Có → cung cấp thông tin cũ:
-      Loại visa : 
-      số visa: 
-      ngày cấp:
-      nơi cấp:
-
-  Nhóm 2 — Visa nước khác/du lịch gần đây (để loại case có visa khác)
-    Khách có visa nước khác (không phải Trung Quốc) không? (Có/Không)
-      Nếu Có → hỏi danh sách nước (mã quốc gia) 
-      Cần file ảnh chụp trên visa 
-        File: (PDF/JPG/PNG)
-        Lưu vào: y/ 
-    Trong 12 tháng gần nhất khách đã đi nước nào? (Nếu không đi/không nhớ → bỏ trống)
-      Nếu có danh sách → thường là case khác hoặc case “có lịch sử du lịch”
-      Cần file ảnh chụp trên visa 
-        File: (PDF/JPG/PNG)
-        Lưu vào: y/ 
-
-  Nhóm 3 — Khách có cung cấp được vé máy bay hoặc xác nhận đặt vé, và/hoặc xác nhận đặt khách sạn không? (Có/Không)
-    Chưa làm trường hợp có => Bỏ qua bộ nhóm 3 này 
-    Nếu Không  → có thể bỏ qua ( hệ thống sẽ tự làm ) 
-      nếu có: a) Vé máy bay / Itinerary
-            File: (PDF/JPG/PNG)
-            Lưu vào: x/ 
-          b) Khách sạn / Booking confirmation
-            File: (PDF/JPG/PNG)
-            Lưu vào: y/ 
-
-  Nhóm 4 — Người thân (để tách case có/không có thông tin gia đình)
-    Khách có cung cấp thông tin người thân để khai vào hồ sơ không? (Có/Không)
-      Nếu Có → chuyển sang Câu hỏi 4.2 và yêu cầu khách điền form bên dưới.
-        Hãy cung cấp họ tên vợ/chồng của khách.
-        Quốc tịch vợ/chồng của khách là gì?(Nếu là Việt Nam thì nhập “VNM”)
-        Ngày sinh vợ/chồng của khách (theo dạng YYYY-MM-DD)?
-
-
-  Nhóm 5 — Người trả tiền (tách case có pay info)
-    Khách sẽ tự trả phí hay có người khác trả hộ?
-      Nếu Có
-        Tên người trả là gì, số điện thoại người trả là gì
-
-  Nhóm 6 — Trường bắt buộc do OCR không lấy được (để tạo input_json)
-    Tỉnh/Thành phố khách đang cư trú là gì? (ví dụ: HAI PHONG, HA NOI, …) (để map province_city_code)  
-    Số CCCD/CMND của khách là gì? (để điền id_card_number)  
-    Chọn loại dịch vụ:
-    Khách có yêu cầu chọn loại dịch vụ khác mặc định không?, nếu không thì bỏ qua 
-    nếu có :
-      Khách muốn nhập cảnh mấy lần: 1 lần, 2 lần hay nhiều lần?
-      Khách nộp hồ sơ đi cá nhân hay theo đoàn?
-      Khách chọn dịch vụ thường hay nhanh?
-
-    Ngày bắt đầu đăng ký: register_date (YYYY-MM-DD) #Là ngày khách require
-
-  Ví dụ 
-
-  Nhóm 0 — Xác định case & điều kiện tuổi
-    Khách xin loại visa nào? (L15 / loại khác)  
-    L15 
-    Khách đủ 18 tuổi trở lên chưa? (Có/Chưa)
-    Có 
-
-  Nhóm 1 — Trung Quốc (để loại các case có lịch sử TQ)
-    Khách đã từng đến Trung Quốc chưa? (Có/Chưa)
-      Chưa
-    Khách đã từng có visa Trung Quốc chưa? (Có/Chưa)
-      Chưa
-  Nhóm 2 — Visa nước khác/du lịch gần đây (để loại case có visa khác)
-    Khách có visa nước khác (không phải Trung Quốc) không? (Có/Không)
-      Không 
-    Trong 12 tháng gần nhất khách đã đi nước nào? (Nếu không đi/không nhớ → bỏ trống)
-      Không 
-
-  Nhóm 3 — Khách có cung cấp được vé máy bay hoặc xác nhận đặt vé, và/hoặc xác nhận đặt khách sạn không? (Có/Không)
-    Chưa làm trường hợp có => Bỏ qua bộ nhóm 3 này 
-    Nếu Không  → có thể bỏ qua ( hệ thống sẽ tự làm ) 
-      nếu có: a) Vé máy bay / Itinerary
-            File: (PDF/JPG/PNG)
-            Lưu vào: x/ 
-          b) Khách sạn / Booking confirmation
-            File: (PDF/JPG/PNG)
-            Lưu vào: y/ 
-
-  Nhóm 4 — Người thân (để tách case có/không có thông tin gia đình)
-    Khách có cung cấp thông tin người thân để khai vào hồ sơ không? (Có/Không)
-      Không 
-
-  Nhóm 5 — Người trả tiền (tách case có pay info)
-    Khách sẽ tự trả phí hay có người khác trả hộ?
-      Tự trả
-
-  Nhóm 6 — Trường bắt buộc do OCR không lấy được (để tạo input_json)
-    Tỉnh/Thành phố khách đang cư trú là gì? (ví dụ: HAI PHONG, HA NOI, …) (để map province_city_code)  
-    Số CCCD/CMND của khách là gì? (để điền id_card_number)  
-    Chọn loại dịch vụ:
-      Mặc định: Nhập cảnh 1 lần, đi cá nhân, dịch vụ thường.
-
-
-Bước 1: tạo folder, đẩy file 
-Bước 2: Tách nền trắng cho ảnh chân dung 
-Bước 3: upload ảnh chân dung, pass port lên 
-Bước 4: save tạo draft 
-Bước 5: điền thông tin API,tìm thông tin CT08 , call API 
-
-Bước 6: check các api tiếp theo sau khi nhập và file xong hết 
-  => Tự động call hay chờ? 
-
-
-
-Lỗi: 
-  API 1 đang thiếu 2 ảnh 
-  Ve tao lai file may bay va file nha hai ok 
-
-
-
-fix api tao file CV ok 
-todo: 
-fix 2 anh api 1 
-  lay getPersonInfo => lay thong tin 4 field => dua vao payload
-Check tại sao family hay lỗi 
-API tạo draft thay cho việc tự tạo
-
-Check maritalsStatus theo cac truong hop, 
-
-build server local, call qua URL 
-
-Tim cach dong goi Authentition
-
-
-api có cũ, cờ finger lỗi chưa chọn
-2 ảnh khi update lại chưa đúng 
-
-Logic L30: 
-Sửa logic của ( Information on travel, 2 file hotel và máy bay cần sửa, Thêm 1 file Itinerary in China ( Tạo ra thêm 1 vài template???, 
-File CV cần sửa, thêm vài người, Có thêm 1 file other cần re check )
-
-
-Cần nhóm 4 nguoi
-
-Hotel ( ghép từ 3 hotel, Ghép theo Thứ tự Tỉnh đến và về (Cần khớp với vé máy bay), nếu thêm hotel khác thuộc cùng tỉnh đi
-có thể thay thế chúng với nhau, sau đó ghép vào thành 1 file gồm 3 hotel theo lịch trình thứ tự ở trên) 
-
-Vé máy bay ( Cần lấy tỉnh đến và đi theo hotel đã ghép ở trên, ngày đến và đi cũng cần tính lại.) 
-
-Check folder của file Itinerary in China 
-
-======================================================================
-Thêm 1 folder vào template, chưa 1 file json các thông tin và thôgn tin Authentition
-main lấy từ json đó => Chỉ cần đẩy file 
-=> Lấy authen và info từ json là đủ 
-=> sau đó call api chạy
-
-2026-05-27 Thangs 8
-
-
-Làm L30 xong => test => tạo server. Sử dụng server thay cho chạy code 
-
-Phân tách thành các step, gọi server theo các step cần
-Ví dụ không lỗi gì => Chỉ cần đẩy travel_info và file 
-
- Cài DB :
- Tải và download
- pass 123456
-
-
-Add the PostgreSQL `bin` folder to your Windows `PATH`.
-
-**1) Find `psql.exe`**
-Typical location:
-```powershell
-C:\Program Files\PostgreSQL\16\bin
 ```
-If your version is different, replace `16` with your installed version.
-
-You can check with:
-```powershell
-Get-ChildItem "C:\Program Files\PostgreSQL" -Recurse -Filter psql.exe
+documents/
+├── A/
+│   ├── a1.pdf
+│   └── a2.pdf
+├── B/
+│   └── b1.pdf
+└── C/
+    └── c1.pdf
 ```
 
-**2) Add it to PATH temporarily for the current PowerShell window**
-```powershell
-$env:Path += ";C:\Program Files\PostgreSQL\16\bin"
+Bạn nén:
+
+```
+documents.zip
 ```
 
-Then test:
-```powershell
-psql --version
-```
+và gửi `documents.zip` làm file đính kèm.
 
-**3) Add it permanently**
-Run PowerShell as normal user, then:
-```powershell
-[Environment]::SetEnvironmentVariable(
-  "Path",
-  $env:Path + ";C:\Program Files\PostgreSQL\16\bin",
-  "User"
+Python:
+
+```python
+import shutil
+
+shutil.make_archive(
+    "documents",   # tên file zip
+    "zip",
+    "documents"    # folder cần nén
 )
 ```
 
-Then:
-- close PowerShell
-- open a new PowerShell window
-- test again with:
-```powershell
-psql --version
+Sau đó đính kèm:
+
+```python
+attachments = ["documents.zip"]
 ```
 
-**4) Alternative: use the full path directly**
-If you don’t want PATH changes yet:
-```powershell
-& "C:\Program Files\PostgreSQL\16\bin\psql.exe" --version
+---
+
+### Cách 2: Đính kèm toàn bộ PDF trong folder và folder con
+
+Nếu không muốn nén, bạn có thể duyệt đệ quy và đính kèm từng PDF.
+
+```python
+from pathlib import Path
+
+attachments = []
+
+for pdf in Path("documents").rglob("*.pdf"):
+    attachments.append(pdf)
 ```
 
-**5) If it still does not work**
-- Make sure the path really contains `psql.exe`
-- Make sure there is no typo in the version folder
-- Restart the terminal after changing PATH
+hoặc
 
-If you want, I can give you a ready-to-run `.ps1` script that auto-detects the PostgreSQL install folder and adds it to PATH for you.
+```python
+for file in attachments:
+    print(file)
+```
 
+Kết quả:
 
+```
+documents/A/a1.pdf
+documents/A/a2.pdf
+documents/B/b1.pdf
+documents/C/c1.pdf
+```
 
-=======================
-Dang nhap postgres
-psql -U postgres -d postgres
-, tạo hoặc đổi password cho visa_user:
-CREATE ROLE visa_user WITH LOGIN PASSWORD 'YourPasswordHere';
--- hoặc nếu user đã tồn tại
-ALTER ROLE visa_user WITH LOGIN PASSWORD 'YourPasswordHere';
+Sau đó lần lượt attach từng file.
 
-Tao db va cap quyen
-CREATE DATABASE visa_db OWNER visa_user;
-GRANT ALL PRIVILEGES ON DATABASE visa_db TO visa_user;
+---
 
-test:
-psql -U visa_user -d visa_db -h localhost
+### Cách 3: Giữ nguyên cấu trúc thư mục
+
+Nếu muốn người nhận vẫn thấy cấu trúc:
+
+```
+documents/
+    A/
+    B/
+    C/
+```
+
+thì **bắt buộc phải nén (ZIP/RAR/7z)**. Chuẩn email không hỗ trợ gửi một cây thư mục.
+
+---
+
+## Khuyến nghị
+
+* Nếu chỉ có vài file PDF → đính kèm từng file.
+* Nếu có nhiều folder con và muốn giữ nguyên cấu trúc → nén thành ZIP rồi gửi.
+* Nếu tổng dung lượng lớn (20–25 MB trở lên, tùy nhà cung cấp email) → nên tải lên dịch vụ lưu trữ (Google Drive, OneDrive, Dropbox...) và gửi liên kết thay vì đính kèm trực tiếp.

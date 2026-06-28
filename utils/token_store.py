@@ -15,6 +15,15 @@ def load_token() -> str:
     except Exception:
         return ""
 
+def load_tmpSecret() -> str:
+    if not TOKEN_FILE.exists():
+        return ""
+    try:
+        data = json.loads(TOKEN_FILE.read_text(encoding="utf-8"))
+        return data.get("tmpSecret", "") or ""
+    except Exception:
+        return ""
+    
 def save_token(token: str) -> None:
     payload = load_login_payload()
     payload["token"] = token

@@ -56,3 +56,45 @@ async def api_list_online_applications(
 
 
 api_get_online_application_list_by_passport = api_list_online_applications
+
+
+async def api_get_list_by_han_code(
+    client: httpx.AsyncClient,
+    token: str,
+    tmp_secret: str,
+    han_code: str,
+    pageNum: int = 1,
+    pageSize: int = 10,
+    authorization: str | None = None,
+) -> tuple[bool, dict[str, Any]]:
+    """POST to ``{base_url}/application/online/list?pageNum=&pageSize=`` using ``applicationNo``."""
+    try:
+        url = f"{CHECK_OLD_LIST_BASE_URL}/application/online/list"
+        params = {"pageNum": pageNum, "pageSize": pageSize}
+        headers = build_upload_headers(token, tmp_secret, authorization=authorization)
+        payload = {"applicationNo": str(han_code).strip()}
+        resp = await client.post(url, params=params, headers=headers, json=payload)
+        data = (
+            resp.json()
+            if resp.headers.get("content-type", "").startswith("application/json")
+            else {"raw": resp.text}
+        )
+        ok = resp.status_code in (200, 201)
+        if not ok:
+            return False, {
+                "status_code": resp.status_code,
+                "error": "failedListByHanCode",
+                "response": data,
+            }
+        return True, {
+            "status_code": resp.status_code,
+            "response": data,
+        }
+
+    except Exception as e:
+        return False, {
+            "status_code": -1,
+            "error": str(e),
+        }
+
+api_get_list_by_han_code = api_get_list_by_han_code
