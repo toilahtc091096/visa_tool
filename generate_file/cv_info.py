@@ -66,6 +66,5 @@ async def render_docx_template_output_pdf(
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
     convert_docx_to_pdf(str(out), str(pdf_out))
-    breakpoint()
     out.unlink()  # same as os.remove(out)
     return str(pdf_out)  # return PDF, not DOCX
