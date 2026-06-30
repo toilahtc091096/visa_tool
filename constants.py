@@ -1181,26 +1181,26 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
         ],
         "OTHER_MATERIALS": [
             {
-                "categoryCode": "12025062114211484037531",
-                "materialCode": "mfa-044_1",
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_2",
             },
             {
-                "categoryCode": "12025062114211484037531",
-                "materialCode": "mfa-044_2",
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_3",
             },
             {
-                "categoryCode": "12025062114211484037531",
-                "materialCode": "mfa-044_3",
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_4",
             },
             {
-                "categoryCode": "12025062114211484037531",
-                "materialCode": "mfa-044_4",
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_5",
             },
         ],
         "VISA_CENTER_CONFIRMATION": [
             {
-                "categoryCode": "12025062114211484037531",
-                "materialCode": "mfa-044_5",
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_1",
             },
         ],
         "PREV_CHINESE_VISA": [
