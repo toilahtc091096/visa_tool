@@ -21,8 +21,7 @@ async def render_docx_template_output_pdf(
         Path to saved output file
     """
     file_name: str = payload.get("file_name")
-    names: list[str] = payload.get("names", [])
-    output_folder: str = payload.get("passportNumber")
+    name: str = payload.get("names", "")
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = Path(__file__).resolve().parent / ".." / "resources/data"
@@ -44,7 +43,7 @@ async def render_docx_template_output_pdf(
         {
             "passengers": [
                 {
-                    "names": names,
+                    "name": name,
                     "visa_type_first": payload.get("visa_type_first"),
                     "visa_type_number": payload.get("visa_type_number"),
                     "submit_year_yyyy": payload.get("submit_year_yyyy"),
