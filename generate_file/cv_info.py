@@ -1,3 +1,5 @@
+from os import name
+
 from docxtpl import DocxTemplate
 from datetime import date, timedelta
 from pathlib import Path
@@ -34,6 +36,8 @@ async def render_docx_template_output_pdf(
 
     if src.suffix.lower() != ".docx":
         raise ValueError(f"Not a .docx file: {src}")
+    if isinstance(name, list):
+        name = "_".join(name)
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
 
     out = out_dir / (Path(file_name).stem + ".docx")
