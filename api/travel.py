@@ -28,7 +28,6 @@ async def api_save_travel_info(
         url = f"{BASE_URL}/SaveTravelInfo"
         headers = build_upload_headers(token, tmp_secret)
         payload = asdict(body)
-
         resp = await client.post(url, headers=headers, json=payload)
         data = (
             resp.json()

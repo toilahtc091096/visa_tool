@@ -41,7 +41,7 @@ USER_AGENT = (
 
 SEC_CH_UA = '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"'
 
-MY_VISA_TYPE = {"L15", "L30", "M", "Q"}
+MY_VISA_TYPE = {"L15", "L30", "M", "M90", "Q"}
 
 HOTEL_DATA = {
     "UNDER_18": (
@@ -88,7 +88,7 @@ VISA_TYPE_VALUE = {
     }
 }
 APPLY_VISA_VALIDITY = {"L": 3, "M": 3}
-VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO"})}
+VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
 VIETNAMESE_NAMES = (
@@ -565,6 +565,7 @@ L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
 TRAVEL_PLAN_21D="Init_goc.docx"
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
+WEEK_SKIP_BY_TYPE["M90"] = WEEK_SKIP_BY_TYPE["L30"]
 
 UNDER_18_HOTEL_INFO = [
     {
@@ -646,6 +647,7 @@ FLIGHT_TEMPLATE = {
         {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
     ],
 }
+FLIGHT_TEMPLATE["M90"] = FLIGHT_TEMPLATE["L30"]
 
 UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
     "FLIGHT_TICKET": [
@@ -814,6 +816,7 @@ UPLOAD_CONFIG = {
         ],
     },
 }
+UPLOAD_CONFIG["M90"] = UPLOAD_CONFIG["L30"]
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
@@ -1075,6 +1078,7 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
         },
     },
 }
+UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = UPLOAD_FILE_CODE_BY_VISA_TYPE["L30"]
 
 UNIT_OF_HOTEL = 5870276
 

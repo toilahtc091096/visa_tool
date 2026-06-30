@@ -5,7 +5,7 @@ import traceback
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form
+from fastapi import Body, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from api import api_convert_input_pdfs
@@ -197,16 +197,11 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
                 },
             )
         raise HTTPException(status_code=500, detail=str(e))
-
-
-from fastapi import FastAPI, UploadFile, File
 from pdf2image import convert_from_bytes
 import boto3
 import uuid
 import io
 import os
-
-app = FastAPI()
 
 s3 = boto3.client(
     "s3",

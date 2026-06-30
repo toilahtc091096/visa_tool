@@ -1,5 +1,6 @@
 import os
 import random
+import unicodedata
 from datetime import date
 from typing import Any, Dict
 from utils import date_util, log_event, notify, mobile_utils
@@ -212,18 +213,23 @@ def _work_experience_entry(
     province_city_code: str,
     job_position: str,
     job_duty: str,
+    job_name: str | None = None,
+    job_addr: str | None = None,
+    job_tel: str | None = None,
+    supervisor_name: str | None = None,
+    supervisor_tel: str | None = None,
 ) -> dict[str, Any]:
     return {
         "sort": "1",
         "beginDate": begin_date,
         "endDate": end_date,
-        "jobName": random.choice(VIETNAMESE_NAMES).upper(),
-        "jobAddr": province_city_code,
-        "jobTel": mobile_utils.generate_job_tel(),
+        "jobName": job_name or random.choice(VIETNAMESE_NAMES).upper(),
+        "jobAddr": job_addr or province_city_code,
+        "jobTel": job_tel or mobile_utils.generate_job_tel(),
         "jobPosition": job_position,
         "jobDuty": job_duty,
-        "supervisorName": random.choice(VIETNAMESE_NAMES).upper(),
-        "supervisorTel": mobile_utils.generate_supervisor_tel(),
+        "supervisorName": supervisor_name or random.choice(VIETNAMESE_NAMES).upper(),
+        "supervisorTel": supervisor_tel or mobile_utils.generate_supervisor_tel(),
     }
 
 
@@ -234,11 +240,36 @@ def build_work_info_profile(
     job_type: str = "",
     experiences: list[WorkExperienceItem] = [],
     is_under_18: bool = False,
+    visa_type: str = "",
+    companyNameVi: str = "",
+    companyAddressUpperNoAccent: str = "",
+    companyPhone: str = "",
+    managerName: str = "",
 ) -> WorkInfoProfile:
+    def _normalize_ascii_upper(value: str) -> str:
+        if not value:
+            return ""
+        normalized = unicodedata.normalize("NFD", value.upper())
+        return "".join(
+            ch for ch in normalized if unicodedata.category(ch) != "Mn"
+        )
+
+    def _build_company_job_name(value: str) -> str:
+        text = _normalize_ascii_upper(value)
+        if not text:
+            return ""
+        text = text.replace("(VIET NAM)", "").replace("(VIETNAM)", "")
+        text = text.replace("CONG TY", "CT")
+        text = " ".join(text.replace("(", " ").replace(")", " ").split())
+        return text.strip()
+
     job_type_label = random.choice(PREFER_JOB_TYPE)
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     work_begin_date = date_util.work_experience_begin_date(register_date)
     work_end_date = date_util.work_experience_end_date()
+    if visa_type == "M90":
+        job_type_label = "Company employee"
+        job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     if is_under_18:
         job_type_label = "Student"
         job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
@@ -251,6 +282,22 @@ def build_work_info_profile(
             }
         ]
         work_experience: list[dict[str, Any]] = []
+    elif visa_type == "M90":
+        not_apply_items = []
+        work_experience = [
+            _work_experience_entry(
+                work_begin_date,
+                work_end_date,
+                companyAddressUpperNoAccent or province_city_code,
+                "NHAN VIEN",
+                "NHAN VIEN",
+                job_name=_build_company_job_name(companyNameVi),
+                job_addr=companyAddressUpperNoAccent or province_city_code,
+                job_tel=companyPhone,
+                supervisor_name=_normalize_ascii_upper(managerName),
+                supervisor_tel=companyPhone,
+            )
+        ]
     elif job_type_label == "Self-employed":
         not_apply_items = []
         work_experience = [
@@ -282,7 +329,9 @@ def build_work_info_profile(
             )
         ]
     we_src = []
-    if experiences != []:
+    if visa_type == "M90":
+        we_src = work_experience
+    elif experiences != []:
         for experience in experiences:
             experience.endDate = work_end_date
             we_src = experiences if experiences != [] else work_experience
@@ -936,6 +985,80 @@ def getL30TravelInfo(
 
     return travel_json
 
+def _apply_m90_single_stay_overrides(
+    travel_json: dict[str, Any],
+    *,
+    inviteCompanyName: str = "",
+    company_address: str = "",
+    inviteProvince: str = "",
+    arrivalCity: str = "",
+    arrivalDistrict: str = "",
+    stayCity: str = "",
+    stayDistrict: str = "",
+    departureCity: str = "",
+    departureDistrict: str = "",
+    arrivalDate: date | str | None = None,
+    departureDate: date | str | None = None,
+) -> None:
+    travel_address = company_address or inviteCompanyName
+    arrival_date_str = (
+        date_util.iso_date_str(arrivalDate)
+        if isinstance(arrivalDate, date)
+        else str(arrivalDate).strip()
+        if arrivalDate is not None
+        else ""
+    )
+    departure_date_str = (
+        date_util.iso_date_str(departureDate)
+        if isinstance(departureDate, date)
+        else str(departureDate).strip()
+        if departureDate is not None
+        else ""
+    )
+    travel_json.update(
+        {
+            "inviteCompanyName": inviteCompanyName,
+            "inviteCity": arrivalCity or travel_json.get("inviteCity", ""),
+            "inviteCounty": arrivalDistrict or travel_json.get("inviteCounty", ""),
+            "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
+            "inviteName": inviteCompanyName or travel_json.get("inviteName", ""),
+            "inviteRelation": (
+                "CONG TY" if inviteCompanyName else travel_json.get("inviteRelation", "")
+            ),
+            "arrivalCity": arrivalDistrict or travel_json.get("arrivalCity", ""),
+            "arrivalCounty": arrivalCity or travel_json.get("arrivalCounty", ""),
+            "arrivalDistrict": arrivalDistrict or travel_json.get("arrivalDistrict", ""),
+            "stayCity": stayCity or arrivalDistrict or arrivalCity,
+            "stayCounty": stayDistrict or arrivalCity or arrivalDistrict,
+            "stayDistrict": stayDistrict or arrivalCity or arrivalDistrict,
+            "travelAddr": travel_address or travel_json.get("travelAddr", ""),
+            "leaveCity": departureDistrict or arrivalDistrict or arrivalCity,
+            "leaveCounty": departureCity or arrivalCity or arrivalDistrict,
+            "departureCity": departureDistrict or arrivalDistrict or arrivalCity,
+            "departureCounty": departureCity or arrivalCity or arrivalDistrict,
+            "departureDistrict": departureDistrict or arrivalDistrict,
+            "arrivalDate": arrival_date_str,
+            "leaveDate": departure_date_str,
+            "departureDate": departure_date_str,
+        }
+    )
+    travel_json["stayInfo"] = [
+        {
+            "sort": 1,
+            "stayCity": stayCity or arrivalCity,
+            "stayCounty": stayDistrict or arrivalDistrict,
+            "travelAddr": travel_address or travel_json.get("travelAddr", ""),
+            "arrivalDate": arrival_date_str,
+            "leaveDate": departure_date_str,
+        }
+    ]
+    if arrivalDate is not None:
+        if arrival_date_str:
+            travel_json["arrivalDate"] = arrival_date_str
+    if departureDate is not None and departure_date_str:
+        travel_json["leaveDate"] = departure_date_str
+        travel_json["departureDate"] = departure_date_str
+
 
 def build_travel_info_profile(
     visa_type: str,
@@ -954,6 +1077,15 @@ def build_travel_info_profile(
     arrivalVehicleType: str,
     leaveVehicleType: str,
     is_private: bool,
+    inviteCompanyName: str = "",
+    company_address: str = "",
+    inviteProvince: str = "",
+    arrivalCity: str = "",
+    arrivalDistrict: str = "",
+    stayCity: str = "",
+    stayDistrict: str = "",
+    departureCity: str = "",
+    departureDistrict: str = "",
 ) -> TravelInfoProfile:
     print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
@@ -1001,6 +1133,33 @@ def build_travel_info_profile(
             arrivalVehicleType=arrivalVehicleType,
             leaveVehicleType=leaveVehicleType,
             is_private=is_private,
+        )
+    elif visa_type == "M90":
+        travel_json = getL30TravelInfo(
+            applyid=applyid,
+            emergency_family=emergency_family,
+            emergency_first=emergency_first,
+            emergency_relation=emergency_relation,
+            is_under_18=is_under_18,
+            haveChildFlag=haveChildFlag,
+            arrival_date=arrival_date,
+            arrivalVehicleType=arrivalVehicleType,
+            leaveVehicleType=leaveVehicleType,
+            is_private=is_private,
+        )
+        _apply_m90_single_stay_overrides(
+            travel_json,
+            inviteCompanyName=inviteCompanyName,
+            company_address=company_address,
+            inviteProvince=inviteProvince,
+            arrivalCity=arrivalCity,
+            arrivalDistrict=arrivalDistrict,
+            stayCity=stayCity,
+            stayDistrict=stayDistrict,
+            departureCity=departureCity,
+            departureDistrict=departureDistrict,
+            arrivalDate=arrival_date,
+            departureDate=leave_date,
         )
     else:
         travel_json = {}

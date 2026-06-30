@@ -81,6 +81,21 @@ async def run_flow(
     chinaResidenceLicenseFlag: bool = False,
     collectFingerprintFlag: bool = False,
     is_private: bool = False,
+    arrivalDate: str = "",
+    departureDate: str = "",
+    inviteCompanyName: str = "",
+    company_address: str = "",
+    inviteProvince: str = "",
+    companyNameVi: str = "",
+    companyAddressUpperNoAccent: str = "",
+    companyPhone: str = "",
+    managerName: str = "",
+    arrivalCity: str = "",
+    arrivalDistrict: str = "",
+    stayCity: str = "",
+    stayDistrict: str = "",
+    departureCity: str = "",
+    departureDistrict: str = "",
 ) -> None:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
@@ -139,6 +154,21 @@ async def run_flow(
         chinaResidenceLicenseFlag=chinaResidenceLicenseFlag,
         collectFingerprintFlag=collectFingerprintFlag,
         is_private=is_private,
+        arrivalDate=arrivalDate,
+        departureDate=departureDate,
+        inviteCompanyName=inviteCompanyName,
+        company_address=company_address,
+        inviteProvince=inviteProvince,
+        companyNameVi=companyNameVi,
+        companyAddressUpperNoAccent=companyAddressUpperNoAccent,
+        companyPhone=companyPhone,
+        managerName=managerName,
+        arrivalCity=arrivalCity,
+        arrivalDistrict=arrivalDistrict,
+        stayCity=stayCity,
+        stayDistrict=stayDistrict,
+        departureCity=departureCity,
+        departureDistrict=departureDistrict,
     )
 
     if not validate_initial_inputs(ctx):
