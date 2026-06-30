@@ -1459,7 +1459,11 @@ def build_other_info(
 def build_signature_body(
     applyid: str,
 ) -> ContactInfoProfile:
-
+    agent_name = os.getenv("SIGNATURE_AGENT_NAME", "GIANG SON TRAVEL").strip()
+    agent_w2 = os.getenv("SIGNATURE_AGENT_W2", "752001").strip()
+    agent_relationship = os.getenv("SIGNATURE_RELATIONSHIP", "KHACH HANG").strip()
+    agent_addr = os.getenv("SIGNATURE_AGENT_ADDR", "HA NOI").strip()
+    agent_tel = os.getenv("SIGNATURE_AGENT_TEL", "0969588832").strip()
     profile = ContactInfoProfile(
         applyCountry="",
         finishedStep=9,
@@ -1467,11 +1471,11 @@ def build_signature_body(
         tempSaveFlag=False,
         userId="",
         agentFlag=False,
-        agentName="GIANG SON TRAVEL",
-        W2="752001",
-        relationship="KHACH HANG",
-        agentAddr="HA NOI",
-        agentTel="0969588832",
+        agentName=agent_name,
+        W2=agent_w2,
+        relationship=agent_relationship,
+        agentAddr=agent_addr,
+        agentTel=agent_tel,
         applyid=applyid,
         lang="en_US",
     )

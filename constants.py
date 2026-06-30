@@ -564,6 +564,10 @@ L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
 TRAVEL_PLAN_21D="Init_goc.docx"
 
+DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
+DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
+DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
+
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
 WEEK_SKIP_BY_TYPE["M90"] = WEEK_SKIP_BY_TYPE["L30"]
 
@@ -816,7 +820,64 @@ UPLOAD_CONFIG = {
         ],
     },
 }
-UPLOAD_CONFIG["M90"] = UPLOAD_CONFIG["L30"]
+UPLOAD_CONFIG["M90"] = {
+    "PASSPORT_BLANK_PAGES": {
+        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "BANK_STATEMENT": {
+        "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "HUKOU_OR_EMPLOYMENT_LETTER": {
+        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "OTHER_MATERIALS": [
+        {
+            "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+            "limit": 4,
+        },
+        {
+            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+            "limit": 1,
+        },
+    ],
+    "PREV_CHINESE_VISA": {
+        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+        "limit": 3,
+    },
+    "UNDER_18": [
+        {
+            "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+            "limit": 5,
+        }
+    ],
+    "OTHER_COUNTRY_VISAS": [
+        {
+            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+            "limit": 3,
+        }
+    ],
+    "ITINERARY_IN_CHINA": [
+        {
+            "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
+            "limit": 1,
+        },
+    ],
+    "THU_MOI": {
+        "folder": DOANH_NGHIEP_THU_MOI_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "QUYET_DINH": {
+        "folder": DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "DANG_KY_DOANH_NGHIEP": {
+        "folder": DOANH_NGHIEP_DANG_KY_OUTPUT_PATH,
+        "limit": 2,
+    },
+}
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
@@ -1078,7 +1139,140 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
         },
     },
 }
-UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = UPLOAD_FILE_CODE_BY_VISA_TYPE["L30"]
+UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
+    "COMMON": {
+        "PASSPORT_BLANK_PAGES": [
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_1",
+            },
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_2",
+            },
+        ],
+        "BANK_STATEMENT": [
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_1",
+            },
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_2",
+            },
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_3",
+            },
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_4",
+            },
+        ],
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
+            },
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062114211484037531",
+                "materialCode": "mfa-044_1",
+            },
+            {
+                "categoryCode": "12025062114211484037531",
+                "materialCode": "mfa-044_2",
+            },
+            {
+                "categoryCode": "12025062114211484037531",
+                "materialCode": "mfa-044_3",
+            },
+            {
+                "categoryCode": "12025062114211484037531",
+                "materialCode": "mfa-044_4",
+            },
+            {
+                "categoryCode": "12025062114211484037531",
+                "materialCode": "mfa-044_5",
+            },
+        ],
+        "PREV_CHINESE_VISA": [
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_1",
+            },
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_2",
+            },
+        ],
+        "UNDER_18": [
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_1",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_2",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_3",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_4",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_5",
+            },
+        ],
+        "OTHER_COUNTRY_VISAS": [
+            {
+                "categoryCode": "12025062114213765489140",
+                "materialCode": "mfa-011_1",
+            },
+            {
+                "categoryCode": "12025062114213765489140",
+                "materialCode": "mfa-011_2",
+            },
+            {
+                "categoryCode": "12025062114213765489140",
+                "materialCode": "mfa-011_3",
+            },
+        ],
+        "ITINERARY_IN_CHINA": [
+            {
+                "categoryCode": "12025062019595907456262",
+                "materialCode": "mfa-004_1",
+            },
+        ],
+        "THU_MOI": [
+            {
+                "categoryCode": "12025062114355815132681",
+                "materialCode": "mfa-049_1",
+            },
+        ],
+        "QUYET_DINH": [
+            {
+                "categoryCode": "12025062114271519280895",
+                "materialCode": "mfa-050_1",
+            },
+        ],
+        "DANG_KY_DOANH_NGHIEP": [
+            {
+                "categoryCode": "12025062114301276922307",
+                "materialCode": "mfa-051_1",
+            },
+            {
+                "categoryCode": "12025062114301276922307",
+                "materialCode": "mfa-051_2",
+            },
+        ],
+    }
+}
 
 UNIT_OF_HOTEL = 5870276
 
