@@ -34,7 +34,7 @@ async def render_docx_template_output_pdf(
 
     if src.suffix.lower() != ".docx":
         raise ValueError(f"Not a .docx file: {src}")
-    name_part = "_".join(names)
+    name_part = name
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name_part).strip("_")
 
     out = out_dir / (Path(file_name).stem + ".docx")
