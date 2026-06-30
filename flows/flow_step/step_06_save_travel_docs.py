@@ -390,7 +390,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             ),
             "passportNumber": ctx.passportNumber,
         }
-        log_event({"step": "genenrate flight ticket file", "ok": "ok"})
+        log_event({"step": "genenrate CV file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
     await cv_info.render_docx_template_output_pdf(
