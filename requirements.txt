@@ -19,3 +19,6 @@ google-auth==2.33.0
 docxcompose
 PyPDF2
 pypdf
+pdf2image 
+pillow 
+python-multipart

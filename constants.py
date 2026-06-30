@@ -80,9 +80,14 @@ VISA_TYPE_VALUE = {
     "L": {
         "I": ({"visaPurpose": 709001, "visaType": 710001}),
         "G": ({"visaPurpose": 709001, "visaType": 710002}),
+    },
+    "M" : {
+        "T": ({"visaPurpose": 709002, "visaType": 710003}),
+        "P": ({"visaPurpose": 709002, "visaType": 710004}),
+        "O": ({"visaPurpose": 709002, "visaType": 710005}),
     }
 }
-APPLY_VISA_VALIDITY = {"L": 3}
+APPLY_VISA_VALIDITY = {"L": 3, "M": 3}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 

@@ -16,6 +16,7 @@ from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.token_store import append_authorization
 
+
 def _is_debug_enabled() -> bool:
     value = os.getenv("DEBUG", "").strip().lower()
     return value in {"1", "true", "yes", "on"}
@@ -128,8 +129,12 @@ async def sync_draft_visa_status(
 
 @app.post("/google-sheets/debug")
 def debug_google_sheets(payload: dict[str, Any] = Body(...)):
-    spreadsheet_url = str(payload.get("spreadsheet_url", "") or payload.get("url", "")).strip()
-    worksheet_name = str(payload.get("worksheet_name", "") or payload.get("sheet_name", "")).strip()
+    spreadsheet_url = str(
+        payload.get("spreadsheet_url", "") or payload.get("url", "")
+    ).strip()
+    worksheet_name = str(
+        payload.get("worksheet_name", "") or payload.get("sheet_name", "")
+    ).strip()
     if not spreadsheet_url:
         raise HTTPException(status_code=400, detail="spreadsheet_url is required")
     return debug_google_sheet_access(
@@ -161,15 +166,17 @@ async def convert_input_pdfs(request: Request):
 
 
 @app.post("/upload-html-to-pdf")
-async def upload_html_to_pdf(file: UploadFile = File(...),
-    folderName: str = Form(...)):
+async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = Form(...)):
     try:
         if not file.filename.endswith(".html"):
             raise HTTPException(status_code=400, detail="File must be .html")
 
         html_content = await file.read()
         pdf_path = convert_html_to_pdf(html_content)
-        r2_key = upload_pdf_to_r2(pdf_path, f"{folderName}/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/")
+        r2_key = upload_pdf_to_r2(
+            pdf_path,
+            f"{folderName}/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/",
+        )
 
         return {"message": "Upload thanh cong", "file_key": r2_key}
 
@@ -190,3 +197,55 @@ async def upload_html_to_pdf(file: UploadFile = File(...),
                 },
             )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+from fastapi import FastAPI, UploadFile, File
+from pdf2image import convert_from_bytes
+import boto3
+import uuid
+import io
+import os
+
+app = FastAPI()
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url=os.getenv("R2_ENDPOINT_URL"),
+    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
+    region_name="auto",
+)
+
+BUCKET = os.getenv("R2_BUCKET_NAME")
+
+
+@app.post("/pdf-to-images")
+async def pdf_to_images(file: UploadFile = File(...)):
+    pdf_bytes = await file.read()
+
+    pages = convert_from_bytes(pdf_bytes, dpi=300)
+
+    images = []
+
+    for page_number, page in enumerate(pages, start=1):
+        buffer = io.BytesIO()
+        page.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        key = f"output/{uuid.uuid4()}_page_{page_number}.png"
+
+        s3.upload_fileobj(
+            buffer,
+            BUCKET,
+            key,
+            ExtraArgs={"ContentType": "image/png"},
+        )
+
+        PUBLIC_BASE = os.getenv("R2_PUBLIC_BASE")
+
+        images.append({"page": page_number, "key": key, "url": f"{PUBLIC_BASE}/{key}"})
+
+    return {
+        "count": len(images),
+        "images": images,
+    }
