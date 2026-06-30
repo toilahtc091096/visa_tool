@@ -1023,7 +1023,7 @@ def _apply_m90_single_stay_overrides(
             "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
             "inviteName": inviteCompanyName or travel_json.get("inviteName", ""),
             "inviteRelation": (
-                "CONG TY" if inviteCompanyName else travel_json.get("inviteRelation", "")
+                "DOI TAC" if inviteCompanyName else travel_json.get("inviteRelation", "")
             ),
             "arrivalCity": arrivalDistrict or travel_json.get("arrivalCity", ""),
             "arrivalCounty": arrivalCity or travel_json.get("arrivalCounty", ""),
