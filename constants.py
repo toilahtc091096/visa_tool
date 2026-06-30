@@ -838,11 +838,11 @@ UPLOAD_CONFIG["M90"] = {
             "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
             "limit": 4,
         },
-        {
-            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-            "limit": 1,
-        },
     ],
+    "VISA_CENTER_CONFIRMATION": {
+        "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+        "limit": 1,
+    },
     "PREV_CHINESE_VISA": {
         "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
         "limit": 3,
@@ -953,6 +953,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_4",
                 },
+            ],
+            "VISA_CENTER_CONFIRMATION": [
                 {
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_5",
@@ -1079,6 +1081,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_4",
                 },
+            ],
+            "VISA_CENTER_CONFIRMATION": [
                 {
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_5",
@@ -1192,6 +1196,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
                 "categoryCode": "12025062114211484037531",
                 "materialCode": "mfa-044_4",
             },
+        ],
+        "VISA_CENTER_CONFIRMATION": [
             {
                 "categoryCode": "12025062114211484037531",
                 "materialCode": "mfa-044_5",
