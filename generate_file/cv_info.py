@@ -42,17 +42,21 @@ async def render_docx_template_output_pdf(
     doc = DocxTemplate(str(src))
     doc.render(
         {
-            "names": names,
-            "visa_type_first": payload.get("visa_type_first"),
-            "visa_type_number": payload.get("visa_type_number"),
-            "submit_year_yyyy": payload.get("submit_year_yyyy"),
-            "submit_month_mm": payload.get("submit_month_mm"),
-            "submit_day_dd": payload.get("submit_day_dd"),
-            "sex": payload.get("sex"),
-            "nationality": payload.get("nationality"),
-            "passportNo": payload.get("passportNo"),
-            "birth_date_dd_mm_yyyy": payload.get("birth_date_dd_mm_yyyy"),
-            "expired_day_dd_mm_yyyy": payload.get("expired_day_dd_mm_yyyy"),
+            "passengers": [
+                {
+                    "names": names,
+                    "visa_type_first": payload.get("visa_type_first"),
+                    "visa_type_number": payload.get("visa_type_number"),
+                    "submit_year_yyyy": payload.get("submit_year_yyyy"),
+                    "submit_month_mm": payload.get("submit_month_mm"),
+                    "submit_day_dd": payload.get("submit_day_dd"),
+                    "sex": payload.get("sex"),
+                    "nationality": payload.get("nationality"),
+                    "passportNo": payload.get("passportNo"),
+                    "birth_date_dd_mm_yyyy": payload.get("birth_date_dd_mm_yyyy"),
+                    "expired_day_dd_mm_yyyy": payload.get("expired_day_dd_mm_yyyy"),
+                },
+            ],
         }
     )
 
@@ -62,5 +66,6 @@ async def render_docx_template_output_pdf(
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
 
     convert_docx_to_pdf(str(out), str(pdf_out))
+    breakpoint()
     out.unlink()  # same as os.remove(out)
     return str(pdf_out)  # return PDF, not DOCX
