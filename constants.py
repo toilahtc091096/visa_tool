@@ -72,7 +72,7 @@ HOTEL_DATA = {
     ),
 }
 
-CV_DATA = "CV.docx"
+CV_DATA = os.getenv("CV_DATA", "CV.docx").strip() or "CV.docx"
 
 ENTRIES_TYPE = {"S": "703001", "D": "703002", "M": "703003"}
 SERVICE_VISA_TYPE = {"L": ({"I", "G"}), "M": ({"MT", "MP", "MO"})}
