@@ -25,6 +25,8 @@ def build_flow_context(**kwargs):
     ctx.is_private = kwargs.get("is_private", False)
     ctx.arrivalDate = kwargs.get("arrivalDate", "")
     ctx.departureDate = kwargs.get("departureDate", "")
+    ctx.fixed_arrived = kwargs.get("fixed_arrived", "")
+    ctx.fixed_departure = kwargs.get("fixed_departure", "")
     ctx.inviteCompanyName = kwargs.get("inviteCompanyName", "")
     ctx.company_address = kwargs.get("company_address", "")
     ctx.inviteProvince = kwargs.get("inviteProvince", "")
