@@ -47,11 +47,6 @@ async def render_docx_template_output_pdf(
             "passengers": [
                 {
                     "name": name,
-                    "visa_type_first": payload.get("visa_type_first"),
-                    "visa_type_number": payload.get("visa_type_number"),
-                    "submit_year_yyyy": payload.get("submit_year_yyyy"),
-                    "submit_month_mm": payload.get("submit_month_mm"),
-                    "submit_day_dd": payload.get("submit_day_dd"),
                     "sex": payload.get("sex"),
                     "nationality": payload.get("nationality"),
                     "passportNo": payload.get("passportNo"),
@@ -59,6 +54,11 @@ async def render_docx_template_output_pdf(
                     "expired_day_dd_mm_yyyy": payload.get("expired_day_dd_mm_yyyy"),
                 },
             ],
+            "visa_type_first": payload.get("visa_type_first"),
+            "visa_type_number": payload.get("visa_type_number"),
+            "submit_year_yyyy": payload.get("submit_year_yyyy"),
+            "submit_month_mm": payload.get("submit_month_mm"),
+            "submit_day_dd": payload.get("submit_day_dd"),
         }
     )
 
