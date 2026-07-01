@@ -281,10 +281,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             log_exception(e, {"event": "render_failed", "file": hotel})
             raise
     elif ctx.visa_type == "L30":
-        ctx.guest_name = build_L30_guest_names(ctx.guest_name, ctx.vietnamese_name)
+        ctx.guest_name = build_L30_guest_names(
+            ctx.guest_name,
+            ctx.vietnamese_name,
+            ctx.addition_adults,
+            ctx.addition_child,
+        )
         try:
             payload = {
                 "names": ctx.guest_name,
+                "addition_adults": ctx.addition_adults,
+                "addition_child": ctx.addition_child,
                 "first": ctx.m,
                 "type": "hotel",
                 "is_under_18": ctx.is_under_18,

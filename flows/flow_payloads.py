@@ -1483,12 +1483,31 @@ def build_signature_body(
     return profile
 
 
-def build_L30_guest_names(guest_name: list[str], vietnamese_name: str) -> list[str]:
-    if guest_name == []:
-        guest_name = [vietnamese_name]
-    while len(guest_name) < 4:
-        guest_name.append(random.choice(VIETNAMESE_NAMES).upper())
-    return guest_name
+def build_L30_guest_names(
+    guest_name: list[str],
+    vietnamese_name: str,
+    addition_adults: list[str] | None = None,
+    addition_child: list[str] | None = None,
+) -> list[str]:
+    names: list[str] = []
+
+    def _append_unique(items: list[str] | None) -> None:
+        for item in items or []:
+            text = str(item).strip().upper()
+            if text and text not in names:
+                names.append(text)
+
+    _append_unique(guest_name)
+    _append_unique([vietnamese_name] if vietnamese_name else [])
+    _append_unique(addition_adults)
+    _append_unique(addition_child)
+
+    while len(names) < 4:
+        candidate = random.choice(VIETNAMESE_NAMES).upper()
+        if candidate not in names:
+            names.append(candidate)
+
+    return names[:4]
 
 
 def get_passport_code(symbol: str) -> str:

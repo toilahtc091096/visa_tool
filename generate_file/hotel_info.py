@@ -14,6 +14,32 @@ from docx2pdf import convert
 
 from utils import pdf_helper
 
+
+def _build_l30_names(
+    names: list[str],
+    addition_adults: list[str] | None = None,
+    addition_child: list[str] | None = None,
+) -> list[str]:
+    result: list[str] = []
+
+    def _append_unique(items: list[str] | None) -> None:
+        for item in items or []:
+            text = str(item).strip().upper()
+            if text and text not in result:
+                result.append(text)
+
+    _append_unique(names)
+    _append_unique(addition_adults)
+    _append_unique(addition_child)
+
+    while len(result) < 4:
+        candidate = random.choice(VIETNAMESE_NAMES).upper()
+        if candidate not in result:
+            result.append(candidate)
+
+    return result[:4]
+
+
 async def render_docx_template_output_pdf(
     payload: dict[str, Any], output_path: str = ""
 ) -> str:
@@ -133,12 +159,11 @@ async def render_L30_hotel(payload: dict[str, Any], output_path: str = "") -> st
     Returns:
         Path to saved output file
     """
-    names: list[str] = payload.get("names", [])
-
-    while len(names) < 4:
-        name = random.choice(VIETNAMESE_NAMES).upper()
-        if name not in names:
-            names.append(name)
+    names: list[str] = _build_l30_names(
+        payload.get("names", []),
+        payload.get("addition_adults", []),
+        payload.get("addition_child", []),
+    )
     first: date = payload.get("first")
 
     stays = date_util.build_three_stays(first)
