@@ -32,6 +32,7 @@ def build_flow_context(**kwargs):
     ctx.companyAddressUpperNoAccent = kwargs.get("companyAddressUpperNoAccent", "")
     ctx.companyPhone = kwargs.get("companyPhone", "")
     ctx.managerName = kwargs.get("managerName", "")
+    ctx.company_passport = kwargs.get("company_passport", "")
     ctx.arrivalCity = kwargs.get("arrivalCity", "")
     ctx.arrivalDistrict = kwargs.get("arrivalDistrict", "")
     ctx.stayCity = kwargs.get("stayCity", "")

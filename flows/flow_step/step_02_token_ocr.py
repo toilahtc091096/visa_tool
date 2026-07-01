@@ -1,7 +1,14 @@
 from api import api_get_education_info, api_passport_ocr, login
 from constants import OLD_APPLY_ID_FOR_TEST_TOKEN, PASSPORT_FILE_FOLDER
 from models import GetEducationInfoResponse, passport_ocr_result_from_dict
-from utils import get_passport_file_path, log_event, notify, save_login_data, date_util
+from utils import (
+    ensure_company_doanh_nghiep_downloaded,
+    get_passport_file_path,
+    log_event,
+    notify,
+    save_login_data,
+    date_util,
+)
 
 
 async def check_token_and_get_ocr(ctx, client) -> bool:
@@ -28,6 +35,13 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
     if PASSPORT_FILE_FOLDER in (None, ""):
         print("no passport file")
         return False
+    if str(getattr(ctx, "visa_type", "")).strip().upper().startswith("M"):
+        company_passport = str(getattr(ctx, "company_passport", "")).strip()
+        print(
+            f"[company_download] step_02 visa_type={getattr(ctx, 'visa_type', '')} "
+            f"company_passport={company_passport}"
+        )
+        ensure_company_doanh_nghiep_downloaded(company_passport)
     passport_file_path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=ctx.passportNumber)
     if not passport_file_path:
         await notify(

@@ -110,6 +110,7 @@ def run(payload: dict[str, Any] = Body(...)):
         first_applyid=case.get("first_applyid", ""),
         is_update_info=case.get("is_update_info", False),
         upload_config_keys=case.get("upload_config_keys", []),
+        company_passport=case.get("company_passport", ""),
     )
     return {"ok": True, "received": payload is not None}
 
