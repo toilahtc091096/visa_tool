@@ -27,9 +27,9 @@ NORMAL_ACCEPT = "application/json, text/plain, */*"
 DEFAULT_VI_LANGUAGE = "vi-VN"
 LOGIN_DEFAULT_ORIGIN = "https://bio.visaforchina.cn"
 
-DEFAULT_EMAIL = "dulichgiangson03@gmail.com"
-DEFAULT_GUID = "17097129405490"
-DEFAULT_UID = "b1faa1d7dbe749acbf94c6818cdebcb7"
+DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL", "dulichgiangson03@gmail.com").strip()
+DEFAULT_GUID = os.getenv("DEFAULT_GUID", "17097129405490").strip()
+DEFAULT_UID = os.getenv("DEFAULT_UID", "b1faa1d7dbe749acbf94c6818cdebcb7").strip()
 ORIGIN = "https://consular.mfa.gov.cn"
 REFERER = "https://consular.mfa.gov.cn/VISA/node"
 PLT = "vcenter"
