@@ -141,6 +141,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         getattr(ctx, "stayDistrict", ""),
         getattr(ctx, "departureCity", ""),
         getattr(ctx, "departureDistrict", ""),
+        getattr(ctx, "companyPhone", ""),
+        getattr(ctx, "managerName", ""),
     )
     ok7, meta7 = await api_save_travel_info(
         client,
