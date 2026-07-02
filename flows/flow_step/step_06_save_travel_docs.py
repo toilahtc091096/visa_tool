@@ -52,18 +52,34 @@ def _sorted_unique_names(additions: list[str] | None) -> list[str]:
     return sorted({name.strip() for name in (additions or []) if name and name.strip()})
 
 
+def _maybe_parse_date(value):
+    if hasattr(value, "year") and hasattr(value, "month") and hasattr(value, "day"):
+        return value
+    if isinstance(value, str) and value.strip():
+        return date_util.parse_date(value.strip())
+    return None
+
+
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     if ctx.visa_type == "L15":
-        
         ctx.hotel_type = random.randint(0, 100) % len(
             HOTEL_DATA[ctx.visa_type]["hotel"]
         )
     ctx.flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[ctx.visa_type])
     if ctx.is_under_18 or ctx.haveChildFlag:
         ctx.flight_ticket = 0
-    ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
-        ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
-    )
+    arrival_date_override = _maybe_parse_date(getattr(ctx, "arrivalDate", ""))
+    departure_date_override = _maybe_parse_date(getattr(ctx, "departureDate", ""))
+    if (
+        ctx.visa_type.startswith("M")
+        and arrival_date_override
+        and departure_date_override
+    ):
+        ctx.m, ctx.f = arrival_date_override, departure_date_override
+    else:
+        ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
+            ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
+        )
     ctx.prefix_flight_text = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket][
         "prefix_flight_text"
     ]
@@ -97,6 +113,12 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         )
         ctx.arrive_flight_number = arrive_flight_number_full_info
         ctx.departure_flight_number = departure_flight_number_full_info
+    fixed_arrived = _maybe_parse_date(getattr(ctx, "fixed_arrived", ""))
+    fixed_departure = _maybe_parse_date(getattr(ctx, "fixed_departure", ""))
+    if fixed_arrived is not None:
+        ctx.m = fixed_arrived
+    if fixed_departure is not None:
+        ctx.f = fixed_departure
     body_save_travel_info = build_travel_info_profile(
         ctx.visa_type,
         ctx.first_applyid,
@@ -114,6 +136,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         arrive_flight_number_full_info,
         departure_flight_number_full_info,
         ctx.is_private,
+        getattr(ctx, "inviteCompanyName", ""),
+        getattr(ctx, "company_address", ""),
+        getattr(ctx, "inviteProvince", ""),
+        getattr(ctx, "arrivalCity", ""),
+        getattr(ctx, "arrivalDistrict", ""),
+        getattr(ctx, "stayCity", ""),
+        getattr(ctx, "stayDistrict", ""),
+        getattr(ctx, "departureCity", ""),
+        getattr(ctx, "departureDistrict", ""),
+        getattr(ctx, "companyPhone", ""),
+        getattr(ctx, "managerName", ""),
     )
     ok7, meta7 = await api_save_travel_info(
         client,
@@ -198,8 +231,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     if ctx.is_under_18:
         child_number += 1
-    else:     
-        adult_number +=1
+    else:
+        adult_number += 1
     if ctx.visa_type == "L15":
         if ctx.is_under_18 or ctx.haveChildFlag:
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
@@ -260,10 +293,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             log_exception(e, {"event": "render_failed", "file": hotel})
             raise
     elif ctx.visa_type == "L30":
-        ctx.guest_name = build_L30_guest_names(ctx.guest_name, ctx.vietnamese_name)
+        ctx.guest_name = build_L30_guest_names(
+            ctx.guest_name,
+            ctx.vietnamese_name,
+            ctx.addition_adults,
+            ctx.addition_child,
+        )
         try:
             payload = {
                 "names": ctx.guest_name,
+                "addition_adults": ctx.addition_adults,
+                "addition_child": ctx.addition_child,
                 "first": ctx.m,
                 "type": "hotel",
                 "is_under_18": ctx.is_under_18,
@@ -284,7 +324,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             ctx.ticket_names = _sorted_unique_names(ctx.addition_adults)
             if ctx.vietnamese_name and ctx.vietnamese_name not in ctx.ticket_names:
                 ctx.ticket_names.append(ctx.vietnamese_name)
-            _extend_unique_names(ctx.ticket_names, _sorted_unique_names(ctx.addition_child))
+            _extend_unique_names(
+                ctx.ticket_names, _sorted_unique_names(ctx.addition_child)
+            )
         else:
             ctx.ticket_names = [ctx.vietnamese_name]
             if ctx.is_under_18:
@@ -301,47 +343,56 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if (ctx.childGivenName and ctx.childFamilyName)
                     else random.choice(VIETNAMESE_NAMES).upper()
                 )
-    try:
-        if ctx.visa_type in FLIGHT_TEMPLATE:
-            file_name = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["name"]
-        else:
+    if not ctx.visa_type.startswith("M"):
+        try:
+            if ctx.visa_type in FLIGHT_TEMPLATE:
+                file_name = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["name"]
+            else:
+                log_exception(
+                    KeyError(f"Key {ctx.visa_type} not found"),
+                    {"event": "not have ticket key ", "visa_type": ctx.visa_type},
+                )
+            if ctx.visa_type in {"L30"}:
+                hotel_info_item = L_30_HOTEL_INFO[0]
+                hotel_departure_info_item = L_30_HOTEL_INFO[-1]
+            else:
+                hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
+            if ctx.is_under_18 or (
+                ctx.haveChildFlag and not ctx.is_private
+            ):  # todo: them and is_private  (haveChildFlag and is_private)
+                ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
+                ctx.departure_flight_number = ctx.departure_flight_number[-4:]
+            payload = {
+                "file_name": file_name,
+                "arrive_flight_number": ctx.arrive_flight_number,
+                "departure_flight_number": ctx.departure_flight_number,
+                "arrvied_city": hotel_info_item.get("place_city"),
+                "names": ctx.ticket_names,
+                "arrived_iata_code": hotel_info_item.get("iata_code"),
+                "first": ctx.m,
+                "departure_iata_code": hotel_info_item.get("iata_code"),
+                "departure_city": hotel_info_item.get("place_city"),
+                "end": ctx.f,
+                "type": "flight_ticket",
+                "visa_type": ctx.visa_type,
+            }
+            if ctx.visa_type in {"L30"}:
+                payload.update(
+                    {
+                        "departure_iata_code": hotel_departure_info_item.get(
+                            "iata_code"
+                        ),
+                        "departure_city": hotel_departure_info_item.get("place_city"),
+                    }
+                )
+            log_event({"step": "genenrate flight ticket file", "ok": "ok"})
+        except Exception as e:
             log_exception(
-                KeyError(f"Key {ctx.visa_type} not found"),
-                {"event": "not have ticket key ", "visa_type": ctx.visa_type},
+                e, {"event": "render_failed", "file": payload.get("file_name")}
             )
-        if ctx.visa_type == "L30":
-            hotel_info_item = L_30_HOTEL_INFO[0]
-            hotel_departure_info_item = L_30_HOTEL_INFO[-1]
-        else:
-            hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
-        if ctx.is_under_18 or (ctx.haveChildFlag and not ctx.is_private): #todo: them and is_private  (haveChildFlag and is_private)
-            ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
-            ctx.departure_flight_number = ctx.departure_flight_number[-4:]
-        payload = {
-            "file_name": file_name,
-            "arrive_flight_number": ctx.arrive_flight_number,
-            "departure_flight_number": ctx.departure_flight_number,
-            "arrvied_city": hotel_info_item.get("place_city"),
-            "names": ctx.ticket_names,
-            "arrived_iata_code": hotel_info_item.get("iata_code"),
-            "first": ctx.m,
-            "departure_iata_code": hotel_info_item.get("iata_code"),
-            "departure_city": hotel_info_item.get("place_city"),
-            "end": ctx.f,
-            "type": "flight_ticket",
-            "visa_type": ctx.visa_type,
-        }
-        if ctx.visa_type == "L30":
-            payload.update(
-                {
-                    "departure_iata_code": hotel_departure_info_item.get("iata_code"),
-                    "departure_city": hotel_departure_info_item.get("place_city"),
-                }
-            )
-        log_event({"step": "genenrate flight ticket file", "ok": "ok"})
-    except Exception as e:
-        log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-    await flight_info.render_flight_ticket_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
+        await flight_info.render_flight_ticket_output_pdf(
+            payload, L_15_TICKET_OUTPUT_PATH
+        )
 
     ctx.ticket_names = [ctx.vietnamese_name]
     try:
@@ -368,41 +419,42 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             ),
             "passportNumber": ctx.passportNumber,
         }
-        log_event({"step": "genenrate flight ticket file", "ok": "ok"})
+        log_event({"step": "genenrate CV file", "ok": "ok"})
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
     await cv_info.render_docx_template_output_pdf(
         payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
     )
 
-    try:
-        file_name = TRAVEL_PLAN_21D
+    if ctx.visa_type == "L30":
+        try:
+            file_name = TRAVEL_PLAN_21D
 
-        payload = {
-            "file_name": file_name,
-            "first": ctx.m,
-        }
-
-        log_event(
-            {
-                "step": "generate travel itinerary file",
-                "ok": "ok",
-                "file": file_name,
+            payload = {
+                "file_name": file_name,
+                "first": ctx.m,
             }
-        )
 
-    except Exception as e:
-        log_exception(
-            e,
-            {
-                "event": "render_failed",
-                "file": file_name,
-            },
-        )
+            log_event(
+                {
+                    "step": "generate travel itinerary file",
+                    "ok": "ok",
+                    "file": file_name,
+                }
+            )
 
-    await file_init_info.render_init_pdf(
-        payload,
-        L_15_TRAVEL_PLAN_OUTPUT_PATH,
-    )
+        except Exception as e:
+            log_exception(
+                e,
+                {
+                    "event": "render_failed",
+                    "file": file_name,
+                },
+            )
+
+        await file_init_info.render_init_pdf(
+            payload,
+            L_15_TRAVEL_PLAN_OUTPUT_PATH,
+        )
 
     return True

@@ -1,11 +1,24 @@
 import json
+import os
 from pathlib import Path
 from typing import Optional
 from typing import Any, Dict
 from dataclasses import asdict
 
-TOKEN_FILE = Path(__file__).resolve().parents[1] / "resources" / "token.json"
+TOKEN_FILE_NAME = os.getenv("TOKEN_FILE_NAME", "token.json").strip() or "token.json"
+TOKEN_FILE = Path(__file__).resolve().parents[1] / "resources" / TOKEN_FILE_NAME
 TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _ensure_token_file() -> None:
+    if TOKEN_FILE.exists():
+        return
+    TOKEN_FILE.write_text("{}", encoding="utf-8")
+
+
+_ensure_token_file()
+
+
 def load_token() -> str:
     if not TOKEN_FILE.exists():
         return ""

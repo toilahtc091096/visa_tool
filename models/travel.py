@@ -78,11 +78,18 @@ class TravelInfoProfile:
     arrivalVehicleType: str
     arrivalCity: str
     arrivalCounty: str
+    arrivalDistrict: str
     stayCity: str
     stayCounty: str
+    stayDistrict: str
     travelAddr: str
     applyid: str
     arrivalDate: str
+    departureDate: str
+    departureCity: str
+    departureCounty: str
+    departureDistrict: str
+    inviteCompanyName: str
     lang: str
 
     travelCompanion: list[Any] = field(default_factory=list)
@@ -145,11 +152,18 @@ class TravelInfoProfile:
             arrivalVehicleType=d.get("arrivalVehicleType", "") or "",
             arrivalCity=d.get("arrivalCity", "") or "",
             arrivalCounty=d.get("arrivalCounty", "") or "",
+            arrivalDistrict=d.get("arrivalDistrict", "") or "",
             stayCity=d.get("stayCity", "") or "",
             stayCounty=d.get("stayCounty", "") or "",
+            stayDistrict=d.get("stayDistrict", "") or "",
             travelAddr=d.get("travelAddr", "") or "",
             applyid=d.get("applyid", "") or "",
             arrivalDate=d.get("arrivalDate", "") or "",
+            departureDate=d.get("departureDate", "") or "",
+            departureCity=d.get("departureCity", "") or "",
+            departureCounty=d.get("departureCounty", "") or "",
+            departureDistrict=d.get("departureDistrict", "") or "",
+            inviteCompanyName=d.get("inviteCompanyName", "") or "",
             lang=d.get("lang", "") or "",
             travelCompanion=list(d.get("travelCompanion") or []),
             notApplyItems=list(d.get("notApplyItems") or []),

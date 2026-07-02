@@ -66,7 +66,12 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
         ctx.job_type,
         ctx.experiences,
-        ctx.is_under_18
+        ctx.is_under_18,
+        ctx.visa_type,
+        getattr(ctx, "companyNameVi", ""),
+        getattr(ctx, "companyAddressUpperNoAccent", ""),
+        getattr(ctx, "companyPhone", ""),
+        getattr(ctx, "managerName", ""),
     )
     ok4, meta4 = await api_save_work_info(
         client,
@@ -195,6 +200,19 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.old_haveSpouseFlag,
         ctx.old_spouses,
     )
+    parents = body_save_family_info.parents or []
+
+    father = next((p for p in parents if p.relation == "727002"), None)
+    mother = next((p for p in parents if p.relation == "727003"), None)
+
+    if not ctx.fatherFamilyName and not ctx.fatherGivenName and father:
+        ctx.fatherFamilyName = father.familyName
+        ctx.fatherGivenName = father.firstName
+
+    if not ctx.motherFamilyName and not ctx.motherGivenName and mother:
+        ctx.motherFamilyName = mother.familyName
+        ctx.motherGivenName = mother.firstName
+
     ok6, meta6 = await api_save_family_info(
         client,
         ctx.token,

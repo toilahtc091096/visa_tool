@@ -16,6 +16,10 @@ _EXPORTS = {
     "api_upload_file_common": ("upload_file", "api_upload_file_common"),
     "get_passport_file_path": ("upload_file", "get_passport_file_path"),
     "ensure_data_folder_downloaded": ("upload_file", "ensure_data_folder_downloaded"),
+    "ensure_company_doanh_nghiep_downloaded": (
+        "upload_file",
+        "ensure_company_doanh_nghiep_downloaded",
+    ),
     "cleanup_data_folder": ("upload_file", "cleanup_data_folder"),
     "generate_phone_pair": ("mobile_utils", "generate_phone_pair"),
     "format_date": ("date_util", "format_date"),

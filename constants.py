@@ -27,9 +27,9 @@ NORMAL_ACCEPT = "application/json, text/plain, */*"
 DEFAULT_VI_LANGUAGE = "vi-VN"
 LOGIN_DEFAULT_ORIGIN = "https://bio.visaforchina.cn"
 
-DEFAULT_EMAIL = "dulichgiangson03@gmail.com"
-DEFAULT_GUID = "17097129405490"
-DEFAULT_UID = "b1faa1d7dbe749acbf94c6818cdebcb7"
+DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL", "dulichgiangson03@gmail.com").strip()
+DEFAULT_GUID = os.getenv("DEFAULT_GUID", "17097129405490").strip()
+DEFAULT_UID = os.getenv("DEFAULT_UID", "b1faa1d7dbe749acbf94c6818cdebcb7").strip()
 ORIGIN = "https://consular.mfa.gov.cn"
 REFERER = "https://consular.mfa.gov.cn/VISA/node"
 PLT = "vcenter"
@@ -41,7 +41,7 @@ USER_AGENT = (
 
 SEC_CH_UA = '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"'
 
-MY_VISA_TYPE = {"L15", "L30", "M", "Q"}
+MY_VISA_TYPE = {"L15", "L30", "M", "M90", "Q"}
 
 HOTEL_DATA = {
     "UNDER_18": (
@@ -72,7 +72,7 @@ HOTEL_DATA = {
     ),
 }
 
-CV_DATA = "CV.docx"
+CV_DATA = os.getenv("CV_DATA", "CV.docx").strip() or "CV.docx"
 
 ENTRIES_TYPE = {"S": "703001", "D": "703002", "M": "703003"}
 SERVICE_VISA_TYPE = {"L": ({"I", "G"}), "M": ({"MT", "MP", "MO"})}
@@ -80,10 +80,15 @@ VISA_TYPE_VALUE = {
     "L": {
         "I": ({"visaPurpose": 709001, "visaType": 710001}),
         "G": ({"visaPurpose": 709001, "visaType": 710002}),
-    }
+    },
+    "M": {
+        "T": ({"visaPurpose": 709002, "visaType": 710003}),
+        "P": ({"visaPurpose": 709002, "visaType": 710004}),
+        "O": ({"visaPurpose": 709002, "visaType": 710005}),
+    },
 }
-APPLY_VISA_VALIDITY = {"L": 3}
-VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO"})}
+APPLY_VISA_VALIDITY = {"L": 3, "M": 3}
+VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
 VIETNAMESE_NAMES = (
@@ -274,6 +279,7 @@ TRAVEL_PAY_FOR_SELF = "708001"
 TRAVEL_PAY_FOR_OTHER = "708002"
 TRAVEL_INVITE_RELATION_HOTEL = "KHACH SAN"
 TRAVEL_EMERGENCY_RELATION = "NGUOI THAN"
+TRAVEL_EMERGENCY_RELATION_MANAGER = "GIAM DOC"
 TRAVEL_INVITE_NAMES = ("Hantao AI Select International Apartment",)
 
 JOB_TYPE = (
@@ -557,9 +563,14 @@ L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
-TRAVEL_PLAN_21D="Init_goc.docx"
+TRAVEL_PLAN_21D = "Init_goc.docx"
+
+DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
+DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
+DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
+WEEK_SKIP_BY_TYPE["M90"] = WEEK_SKIP_BY_TYPE["L30"]
 
 UNDER_18_HOTEL_INFO = [
     {
@@ -641,6 +652,7 @@ FLIGHT_TEMPLATE = {
         {"name": "Ve_VN_Air.docx", "prefix_flight_text": "VN", "prefix_number": "05"},
     ],
 }
+FLIGHT_TEMPLATE["M90"] = FLIGHT_TEMPLATE["L30"]
 
 UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
     "FLIGHT_TICKET": [
@@ -809,6 +821,63 @@ UPLOAD_CONFIG = {
         ],
     },
 }
+UPLOAD_CONFIG["M90"] = {
+    "PASSPORT_BLANK_PAGES": {
+        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "BANK_STATEMENT": {
+        "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "HUKOU_OR_EMPLOYMENT_LETTER": {
+        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "OTHER_MATERIALS": [
+        {
+            "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
+            "limit": 4,
+        },
+        {
+            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+            "limit": 3,
+        },
+    ],
+    "VISA_CENTER_CONFIRMATION": {
+        "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "PREV_CHINESE_VISA": {
+        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+        "limit": 3,
+    },
+    "UNDER_18": [
+        {
+            "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+            "limit": 5,
+        }
+    ],
+    # "OTHER_COUNTRY_VISAS": [],
+    "ITINERARY_IN_CHINA": [
+        {
+            "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
+            "limit": 1,
+        },
+    ],
+    "THU_MOI": {
+        "folder": DOANH_NGHIEP_THU_MOI_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "QUYET_DINH": {
+        "folder": DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "DANG_KY_DOANH_NGHIEP": {
+        "folder": DOANH_NGHIEP_DANG_KY_OUTPUT_PATH,
+        "limit": 2,
+    },
+}
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
@@ -884,6 +953,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_4",
                 },
+            ],
+            "VISA_CENTER_CONFIRMATION": [
                 {
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_5",
@@ -1010,6 +1081,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_4",
                 },
+            ],
+            "VISA_CENTER_CONFIRMATION": [
                 {
                     "categoryCode": "12025062114211484037531",
                     "materialCode": "mfa-044_5",
@@ -1069,6 +1142,142 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
             ],
         },
     },
+}
+UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
+    "COMMON": {
+        "PASSPORT_BLANK_PAGES": [
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_1",
+            },
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_2",
+            },
+        ],
+        "BANK_STATEMENT": [
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_1",
+            },
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_2",
+            },
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_3",
+            },
+            {
+                "categoryCode": "12025062216413672273869",
+                "materialCode": "mfa-007_4",
+            },
+        ],
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
+            },
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_2",
+            },
+            {
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_3",
+            },
+            {
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_4",
+            },
+            {
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_5",
+            },
+        ],
+        "VISA_CENTER_CONFIRMATION": [
+            {
+                "categoryCode": "12025062114365564197636",
+                "materialCode": "mfa-053_1",
+            },
+        ],
+        "PREV_CHINESE_VISA": [
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_1",
+            },
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_2",
+            },
+        ],
+        "UNDER_18": [
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_1",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_2",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_3",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_4",
+            },
+            {
+                "categoryCode": "22025062114181968780924",
+                "materialCode": "mfa-039_5",
+            },
+        ],
+        "OTHER_COUNTRY_VISAS": [
+            {
+                "categoryCode": "12025062114213765489140",
+                "materialCode": "mfa-011_1",
+            },
+            {
+                "categoryCode": "12025062114213765489140",
+                "materialCode": "mfa-011_2",
+            },
+            {
+                "categoryCode": "12025062114213765489140",
+                "materialCode": "mfa-011_3",
+            },
+        ],
+        "ITINERARY_IN_CHINA": [
+            {
+                "categoryCode": "12025062019595907456262",
+                "materialCode": "mfa-004_1",
+            },
+        ],
+        "THU_MOI": [
+            {
+                "categoryCode": "12025062114355815132681",
+                "materialCode": "mfa-049_1",
+            },
+        ],
+        "QUYET_DINH": [
+            {
+                "categoryCode": "12025062114271519280895",
+                "materialCode": "mfa-050_1",
+            },
+        ],
+        "DANG_KY_DOANH_NGHIEP": [
+            {
+                "categoryCode": "12025062114301276922307",
+                "materialCode": "mfa-051_1",
+            },
+            {
+                "categoryCode": "12025062114301276922307",
+                "materialCode": "mfa-051_2",
+            },
+        ],
+    }
 }
 
 UNIT_OF_HOTEL = 5870276

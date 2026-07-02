@@ -23,7 +23,9 @@ def _resolve_env_path(path: str | Path) -> Path:
     return (PROJECT_ROOT / candidate).resolve()
 
 
-def load_dotenv(path: str | Path = PROJECT_ROOT / ".env") -> None:
+def load_dotenv(path: str | Path | None = None) -> None:
+    if path is None:
+        path = os.getenv("ENV_FILE", PROJECT_ROOT / ".env")
     env_path = _resolve_env_path(path)
     if not env_path.exists():
         return

@@ -1,3 +1,5 @@
+from os import name
+
 from docxtpl import DocxTemplate
 from datetime import date, timedelta
 from pathlib import Path
@@ -21,8 +23,7 @@ async def render_docx_template_output_pdf(
         Path to saved output file
     """
     file_name: str = payload.get("file_name")
-    names: list[str] = payload.get("names", [])
-    output_folder: str = payload.get("passportNumber")
+    name: str = payload.get("names", "")
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = Path(__file__).resolve().parent / ".." / "resources/data"
@@ -35,24 +36,29 @@ async def render_docx_template_output_pdf(
 
     if src.suffix.lower() != ".docx":
         raise ValueError(f"Not a .docx file: {src}")
-    name_part = "_".join(names)
-    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name_part).strip("_")
+    if isinstance(name, list):
+        name = "_".join(name)
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
 
     out = out_dir / (Path(file_name).stem + ".docx")
     doc = DocxTemplate(str(src))
     doc.render(
         {
-            "names": names,
+            "passengers": [
+                {
+                    "name": name,
+                    "sex": payload.get("sex"),
+                    "nationality": payload.get("nationality"),
+                    "passportNo": payload.get("passportNo"),
+                    "birth_date_dd_mm_yyyy": payload.get("birth_date_dd_mm_yyyy"),
+                    "expired_day_dd_mm_yyyy": payload.get("expired_day_dd_mm_yyyy"),
+                },
+            ],
             "visa_type_first": payload.get("visa_type_first"),
             "visa_type_number": payload.get("visa_type_number"),
             "submit_year_yyyy": payload.get("submit_year_yyyy"),
             "submit_month_mm": payload.get("submit_month_mm"),
             "submit_day_dd": payload.get("submit_day_dd"),
-            "sex": payload.get("sex"),
-            "nationality": payload.get("nationality"),
-            "passportNo": payload.get("passportNo"),
-            "birth_date_dd_mm_yyyy": payload.get("birth_date_dd_mm_yyyy"),
-            "expired_day_dd_mm_yyyy": payload.get("expired_day_dd_mm_yyyy"),
         }
     )
 
