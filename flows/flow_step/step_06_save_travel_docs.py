@@ -109,6 +109,12 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         )
         ctx.arrive_flight_number = arrive_flight_number_full_info
         ctx.departure_flight_number = departure_flight_number_full_info
+    fixed_arrived = _maybe_parse_date(getattr(ctx, "fixed_arrived", ""))
+    fixed_departure = _maybe_parse_date(getattr(ctx, "fixed_departure", ""))
+    if fixed_arrived is not None:
+        ctx.m = fixed_arrived
+    if fixed_departure is not None:
+        ctx.f = fixed_departure
     body_save_travel_info = build_travel_info_profile(
         ctx.visa_type,
         ctx.first_applyid,
@@ -135,6 +141,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         getattr(ctx, "stayDistrict", ""),
         getattr(ctx, "departureCity", ""),
         getattr(ctx, "departureDistrict", ""),
+        getattr(ctx, "companyPhone", ""),
+        getattr(ctx, "managerName", ""),
     )
     ok7, meta7 = await api_save_travel_info(
         client,

@@ -26,6 +26,7 @@ from constants import (
     TRAVEL_ARRIVAL_COUNTY,
     TRAVEL_CITY_CODE,
     TRAVEL_EMERGENCY_RELATION,
+    TRAVEL_EMERGENCY_RELATION_MANAGER,
     TRAVEL_INVITE_NAMES,
     TRAVEL_INVITE_PROVINCE,
     TRAVEL_INVITE_RELATION_HOTEL,
@@ -64,6 +65,13 @@ from models import (
     EducationExperienceItem,
     PersonInfoData,
 )
+
+
+def _normalize_ascii_upper(value: str) -> str:
+    if not value:
+        return ""
+    normalized = unicodedata.normalize("NFD", value.upper())
+    return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
 
 
 def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
@@ -775,6 +783,7 @@ def getTravelCommonInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    emergency_phone_number: str,
     emergency_relation: str,
 ) -> Dict[str, Any]:
     """
@@ -804,7 +813,11 @@ def getTravelCommonInfo(
         "emergencyCountry": "",
         "emergencyCounty": "",
         "emergencyEmail": "",
-        "emergencyPhoneNumber": mobile_utils.generate_supervisor_tel("0964585356"),
+        "emergencyPhoneNumber": (
+            emergency_phone_number
+            if emergency_phone_number
+            else mobile_utils.generate_supervisor_tel("0964585356")
+        ),
         "emergencyProvince": "",
         "emergencyRelation": (
             TRAVEL_EMERGENCY_RELATION
@@ -832,6 +845,7 @@ def getL15TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    emergency_phone_number: str,
     emergency_relation: str,
     is_under_18: bool,
     haveChildFlag: bool,
@@ -849,6 +863,7 @@ def getL15TravelInfo(
         applyid=applyid,
         emergency_family=emergency_family,
         emergency_first=emergency_first,
+        emergency_phone_number=emergency_phone_number,
         emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
@@ -910,6 +925,7 @@ def getL30TravelInfo(
     applyid: str,
     emergency_family: str,
     emergency_first: str,
+    emergency_phone_number: str,
     emergency_relation: str,
     is_under_18: bool,
     haveChildFlag: bool,
@@ -925,6 +941,7 @@ def getL30TravelInfo(
         applyid=applyid,
         emergency_family=emergency_family,
         emergency_first=emergency_first,
+        emergency_phone_number=emergency_phone_number,
         emergency_relation=emergency_relation,
     )
 
@@ -1090,11 +1107,14 @@ def build_travel_info_profile(
     stayDistrict: str = "",
     departureCity: str = "",
     departureDistrict: str = "",
+    companyPhone: str = "",
+    managerName: str = "",
 ) -> TravelInfoProfile:
     print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
     emergency_relation = TRAVEL_EMERGENCY_RELATION
+    emergency_phone_number = ""
     if (
         fatherFamilyName == ""
         and fatherGivenName == ""
@@ -1110,11 +1130,17 @@ def build_travel_info_profile(
         emergency_family = motherFamilyName
         emergency_first = motherGivenName
         emergency_relation = EMERGENCY_RELATION_MOTHER
+    if visa_type.startswith("M") and companyPhone.strip() and managerName.strip():
+        emergency_family = _normalize_ascii_upper(managerName)
+        emergency_first = ""
+        emergency_relation = TRAVEL_EMERGENCY_RELATION_MANAGER
+        emergency_phone_number = companyPhone.strip()
     if visa_type == "L15":
         travel_json: dict[str, Any] = getL15TravelInfo(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
+            emergency_phone_number=emergency_phone_number,
             emergency_relation=emergency_relation,
             is_under_18=is_under_18,
             haveChildFlag=haveChildFlag,
@@ -1130,6 +1156,7 @@ def build_travel_info_profile(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
+            emergency_phone_number=emergency_phone_number,
             emergency_relation=emergency_relation,
             is_under_18=is_under_18,
             haveChildFlag=haveChildFlag,
@@ -1143,6 +1170,7 @@ def build_travel_info_profile(
             applyid=applyid,
             emergency_family=emergency_family,
             emergency_first=emergency_first,
+            emergency_phone_number=emergency_phone_number,
             emergency_relation=emergency_relation,
             is_under_18=is_under_18,
             haveChildFlag=haveChildFlag,

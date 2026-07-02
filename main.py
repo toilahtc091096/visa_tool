@@ -18,6 +18,8 @@ DEFAULT_CASE: dict[str, Any] = {
     "visa_type": "L15",
     "arrivalDate": "",
     "departureDate": "",
+    "fixed_arrived": "",
+    "fixed_departure": "",
     "inviteCompanyName": "",
     "company_address": "",
     "inviteProvince": "",
@@ -25,6 +27,7 @@ DEFAULT_CASE: dict[str, Any] = {
     "companyAddressUpperNoAccent": "",
     "companyPhone": "",
     "managerName": "",
+    "company_passport": "",
     "arrivalCity": "",
     "arrivalDistrict": "",
     "stayCity": "",
@@ -161,6 +164,8 @@ def main(
     addition_child: list[str] | None = None,
     arrivalDate: str = "",
     departureDate: str = "",
+    fixed_arrived: str = "",
+    fixed_departure: str = "",
     inviteCompanyName: str = "",
     company_address: str = "",
     inviteProvince: str = "",
@@ -168,6 +173,7 @@ def main(
     companyAddressUpperNoAccent: str = "",
     companyPhone: str = "",
     managerName: str = "",
+    company_passport: str | None = None,
     arrivalCity: str = "",
     arrivalDistrict: str = "",
     stayCity: str = "",
@@ -184,6 +190,12 @@ def main(
         data["is_update_info"] = _normalize_bool(is_update_info)
     if upload_config_keys is not None:
         data["upload_config_keys"] = _normalize_upload_config_keys(upload_config_keys)
+    if company_passport is not None:
+        data["company_passport"] = str(company_passport).strip()
+    if fixed_arrived is not None:
+        data["fixed_arrived"] = str(fixed_arrived).strip()
+    if fixed_departure is not None:
+        data["fixed_departure"] = str(fixed_departure).strip()
     if addition_adults is not None:
         data["addition_adults"] = _normalize_name_list(addition_adults)
     if addition_child is not None:
@@ -244,6 +256,8 @@ def main(
             data["is_private"],
             data["arrivalDate"],
             data["departureDate"],
+            data["fixed_arrived"],
+            data["fixed_departure"],
             data["inviteCompanyName"],
             data["company_address"],
             data["inviteProvince"],
@@ -251,6 +265,7 @@ def main(
             data["companyAddressUpperNoAccent"],
             data["companyPhone"],
             data["managerName"],
+            data["company_passport"],
             data["arrivalCity"],
             data["arrivalDistrict"],
             data["stayCity"],
