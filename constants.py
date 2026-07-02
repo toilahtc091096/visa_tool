@@ -81,11 +81,11 @@ VISA_TYPE_VALUE = {
         "I": ({"visaPurpose": 709001, "visaType": 710001}),
         "G": ({"visaPurpose": 709001, "visaType": 710002}),
     },
-    "M" : {
+    "M": {
         "T": ({"visaPurpose": 709002, "visaType": 710003}),
         "P": ({"visaPurpose": 709002, "visaType": 710004}),
         "O": ({"visaPurpose": 709002, "visaType": 710005}),
-    }
+    },
 }
 APPLY_VISA_VALIDITY = {"L": 3, "M": 3}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
@@ -562,7 +562,7 @@ L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
-TRAVEL_PLAN_21D="Init_goc.docx"
+TRAVEL_PLAN_21D = "Init_goc.docx"
 
 DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
@@ -838,6 +838,10 @@ UPLOAD_CONFIG["M90"] = {
             "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
             "limit": 4,
         },
+        {
+            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
+            "limit": 3,
+        },
     ],
     "VISA_CENTER_CONFIRMATION": {
         "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
@@ -853,12 +857,7 @@ UPLOAD_CONFIG["M90"] = {
             "limit": 5,
         }
     ],
-    "OTHER_COUNTRY_VISAS": [
-        {
-            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-            "limit": 3,
-        }
-    ],
+    # "OTHER_COUNTRY_VISAS": [],
     "ITINERARY_IN_CHINA": [
         {
             "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
