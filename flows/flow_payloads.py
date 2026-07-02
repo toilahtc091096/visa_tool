@@ -273,7 +273,7 @@ def build_work_info_profile(
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     work_begin_date = date_util.work_experience_begin_date(register_date)
     work_end_date = date_util.work_experience_end_date()
-    if visa_type == "M90":
+    if visa_type.startswith("M"):
         job_type_label = "Company employee"
         job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     if is_under_18:
@@ -288,7 +288,7 @@ def build_work_info_profile(
             }
         ]
         work_experience: list[dict[str, Any]] = []
-    elif visa_type == "M90":
+    elif visa_type.startswith("M"):
         not_apply_items = []
         work_experience = [
             _work_experience_entry(
@@ -335,7 +335,7 @@ def build_work_info_profile(
             )
         ]
     we_src = []
-    if visa_type == "M90":
+    if visa_type.startswith("M"):
         we_src = work_experience
     elif experiences != []:
         for experience in experiences:
@@ -1165,7 +1165,7 @@ def build_travel_info_profile(
             leaveVehicleType=leaveVehicleType,
             is_private=is_private,
         )
-    elif visa_type == "M90":
+    elif visa_type.startswith("M"):
         travel_json = getL30TravelInfo(
             applyid=applyid,
             emergency_family=emergency_family,

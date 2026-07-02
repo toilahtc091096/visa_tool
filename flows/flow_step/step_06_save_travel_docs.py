@@ -70,7 +70,11 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.flight_ticket = 0
     arrival_date_override = _maybe_parse_date(getattr(ctx, "arrivalDate", ""))
     departure_date_override = _maybe_parse_date(getattr(ctx, "departureDate", ""))
-    if ctx.visa_type == "M90" and arrival_date_override and departure_date_override:
+    if (
+        ctx.visa_type.startswith("M")
+        and arrival_date_override
+        and departure_date_override
+    ):
         ctx.m, ctx.f = arrival_date_override, departure_date_override
     else:
         ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
@@ -227,8 +231,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     if ctx.is_under_18:
         child_number += 1
-    else:     
-        adult_number +=1
+    else:
+        adult_number += 1
     if ctx.visa_type == "L15":
         if ctx.is_under_18 or ctx.haveChildFlag:
             hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
@@ -320,7 +324,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             ctx.ticket_names = _sorted_unique_names(ctx.addition_adults)
             if ctx.vietnamese_name and ctx.vietnamese_name not in ctx.ticket_names:
                 ctx.ticket_names.append(ctx.vietnamese_name)
-            _extend_unique_names(ctx.ticket_names, _sorted_unique_names(ctx.addition_child))
+            _extend_unique_names(
+                ctx.ticket_names, _sorted_unique_names(ctx.addition_child)
+            )
         else:
             ctx.ticket_names = [ctx.vietnamese_name]
             if ctx.is_under_18:
@@ -337,7 +343,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if (ctx.childGivenName and ctx.childFamilyName)
                     else random.choice(VIETNAMESE_NAMES).upper()
                 )
-    if ctx.visa_type != "M90":
+    if not ctx.visa_type.startswith("M"):
         try:
             if ctx.visa_type in FLIGHT_TEMPLATE:
                 file_name = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["name"]
@@ -351,7 +357,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 hotel_departure_info_item = L_30_HOTEL_INFO[-1]
             else:
                 hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
-            if ctx.is_under_18 or (ctx.haveChildFlag and not ctx.is_private): #todo: them and is_private  (haveChildFlag and is_private)
+            if ctx.is_under_18 or (
+                ctx.haveChildFlag and not ctx.is_private
+            ):  # todo: them and is_private  (haveChildFlag and is_private)
                 ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
                 ctx.departure_flight_number = ctx.departure_flight_number[-4:]
             payload = {
@@ -371,14 +379,20 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             if ctx.visa_type in {"L30"}:
                 payload.update(
                     {
-                        "departure_iata_code": hotel_departure_info_item.get("iata_code"),
+                        "departure_iata_code": hotel_departure_info_item.get(
+                            "iata_code"
+                        ),
                         "departure_city": hotel_departure_info_item.get("place_city"),
                     }
                 )
             log_event({"step": "genenrate flight ticket file", "ok": "ok"})
         except Exception as e:
-            log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-        await flight_info.render_flight_ticket_output_pdf(payload, L_15_TICKET_OUTPUT_PATH)
+            log_exception(
+                e, {"event": "render_failed", "file": payload.get("file_name")}
+            )
+        await flight_info.render_flight_ticket_output_pdf(
+            payload, L_15_TICKET_OUTPUT_PATH
+        )
 
     ctx.ticket_names = [ctx.vietnamese_name]
     try:
@@ -412,7 +426,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
     )
 
-    if ctx.visa_type != "M90":
+    if ctx.visa_type == "L30":
         try:
             file_name = TRAVEL_PLAN_21D
 
