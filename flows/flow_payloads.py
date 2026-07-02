@@ -250,9 +250,7 @@ def build_work_info_profile(
         if not value:
             return ""
         normalized = unicodedata.normalize("NFD", value.upper())
-        return "".join(
-            ch for ch in normalized if unicodedata.category(ch) != "Mn"
-        )
+        return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
 
     def _build_company_job_name(value: str) -> str:
         text = _normalize_ascii_upper(value)
@@ -278,7 +276,7 @@ def build_work_info_profile(
         not_apply_items = [
             {
                 "notApplyCode": "workExperience",
-                "remark": "NOI TRO",
+                "remark": "CONG VIEC TU DO",
             }
         ]
         work_experience: list[dict[str, Any]] = []
@@ -583,7 +581,7 @@ def build_family_info_profile(
         print(child_info)
 
     if fatherFamilyName == "" and fatherGivenName == "":
-        if random.randint(0, 9) < 3:
+        if random.randint(0, 9) < 1:
             not_apply_items.append(
                 {
                     "notApplyCode": "father",
@@ -854,8 +852,8 @@ def getL15TravelInfo(
         emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
-    if (
-        is_under_18 or (haveChildFlag and not is_private)
+    if is_under_18 or (
+        haveChildFlag and not is_private
     ):  # todo: them and is_private  (haveChildFlag and is_private)
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
@@ -985,6 +983,7 @@ def getL30TravelInfo(
 
     return travel_json
 
+
 def _apply_m90_single_stay_overrides(
     travel_json: dict[str, Any],
     *,
@@ -1004,16 +1003,12 @@ def _apply_m90_single_stay_overrides(
     arrival_date_str = (
         date_util.iso_date_str(arrivalDate)
         if isinstance(arrivalDate, date)
-        else str(arrivalDate).strip()
-        if arrivalDate is not None
-        else ""
+        else str(arrivalDate).strip() if arrivalDate is not None else ""
     )
     departure_date_str = (
         date_util.iso_date_str(departureDate)
         if isinstance(departureDate, date)
-        else str(departureDate).strip()
-        if departureDate is not None
-        else ""
+        else str(departureDate).strip() if departureDate is not None else ""
     )
     travel_json.update(
         {
@@ -1023,20 +1018,29 @@ def _apply_m90_single_stay_overrides(
             "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
             "inviteName": inviteCompanyName or travel_json.get("inviteName", ""),
             "inviteRelation": (
-                "DOI TAC" if inviteCompanyName else travel_json.get("inviteRelation", "")
+                "DOI TAC"
+                if inviteCompanyName
+                else travel_json.get("inviteRelation", "")
             ),
             "arrivalCity": arrivalCity or travel_json.get("arrivalCity", ""),
             "arrivalCounty": arrivalDistrict or travel_json.get("arrivalCounty", ""),
-            "arrivalDistrict": arrivalDistrict or travel_json.get("arrivalDistrict", ""),
+            "arrivalDistrict": arrivalDistrict
+            or travel_json.get("arrivalDistrict", ""),
             "stayCity": stayCity or arrivalCity or travel_json.get("stayCity", ""),
-            "stayCounty": stayDistrict or arrivalDistrict or travel_json.get("stayCounty", ""),
-            "stayDistrict": stayDistrict or arrivalDistrict or travel_json.get("stayDistrict", ""),
+            "stayCounty": stayDistrict
+            or arrivalDistrict
+            or travel_json.get("stayCounty", ""),
+            "stayDistrict": stayDistrict
+            or arrivalDistrict
+            or travel_json.get("stayDistrict", ""),
             "travelAddr": travel_address or travel_json.get("travelAddr", ""),
             "leaveCity": departureCity or travel_json.get("leaveCity", ""),
             "leaveCounty": departureDistrict or travel_json.get("leaveCounty", ""),
             "departureCity": departureCity or travel_json.get("departureCity", ""),
-            "departureCounty": departureDistrict or travel_json.get("departureCounty", ""),
-            "departureDistrict": departureDistrict or travel_json.get("departureDistrict", ""),
+            "departureCounty": departureDistrict
+            or travel_json.get("departureCounty", ""),
+            "departureDistrict": departureDistrict
+            or travel_json.get("departureDistrict", ""),
             "arrivalDate": arrival_date_str,
             "leaveDate": departure_date_str,
             "departureDate": departure_date_str,
@@ -1143,8 +1147,8 @@ def build_travel_info_profile(
             is_under_18=is_under_18,
             haveChildFlag=haveChildFlag,
             arrival_date=arrival_date,
-            arrivalVehicleType=arrivalVehicleType,
-            leaveVehicleType=leaveVehicleType,
+            arrivalVehicleType="",
+            leaveVehicleType="",
             is_private=is_private,
         )
         _apply_m90_single_stay_overrides(
