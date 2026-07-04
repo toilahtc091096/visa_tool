@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS visa_registrations (
     id BIGSERIAL PRIMARY KEY,
     first_applyid VARCHAR(64),
+    application_code VARCHAR(64) NOT NULL DEFAULT '',
     full_name VARCHAR(255) NOT NULL,
     passport_number VARCHAR(64) NOT NULL,
     visa_type VARCHAR(32) NOT NULL DEFAULT '',
@@ -12,6 +13,9 @@ CREATE TABLE IF NOT EXISTS visa_registrations (
 
 ALTER TABLE visa_registrations
     ADD COLUMN IF NOT EXISTS first_applyid VARCHAR(64);
+
+ALTER TABLE visa_registrations
+    ADD COLUMN IF NOT EXISTS application_code VARCHAR(64) NOT NULL DEFAULT '';
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_visa_registrations_first_applyid
     ON visa_registrations (first_applyid);

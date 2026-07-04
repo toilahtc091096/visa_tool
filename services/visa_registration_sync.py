@@ -73,6 +73,13 @@ def _extract_remote_applyid(row: dict[str, Any]) -> str:
     return str(value).strip()
 
 
+def _extract_remote_application_code(row: dict[str, Any]) -> str:
+    value = row.get("alFormId")
+    if value in (None, ""):
+        return ""
+    return str(value).strip()
+
+
 async def sync_draft_visa_registrations(
     page_num: int = 1,
     page_size: int = 1000,
@@ -186,6 +193,7 @@ async def sync_draft_visa_registrations(
                 row.get("status") or "draft"
             )
             internal_status = _map_apply_status_to_internal(remote_status)
+            application_code = _extract_remote_application_code(matched_row)
             existing_payload = (
                 row.get("payload") if isinstance(row.get("payload"), dict) else {}
             )
@@ -198,10 +206,12 @@ async def sync_draft_visa_registrations(
                     {
                         "record_id": record_id,
                         "status": internal_status,
+                        "application_code": application_code,
                         "payload": {
                             **existing_payload,
                             "sync": {
                                 "first_applyid": first_applyid,
+                                "application_code": application_code,
                                 "full_name": full_name,
                                 "passport_number": passport_number,
                                 "visa_type": visa_type,
@@ -220,6 +230,7 @@ async def sync_draft_visa_registrations(
                 "passport_number": passport_number,
                 "visa_type": visa_type,
                 "first_applyid": first_applyid,
+                "application_code": application_code,
                 "ok": updated > 0,
                 "remote_applyid": _extract_remote_applyid(matched_row),
                 "remote_status": remote_status,

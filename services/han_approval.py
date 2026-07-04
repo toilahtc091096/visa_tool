@@ -29,6 +29,9 @@ from database.crud.approval_print_job import (
     update_approval_print_job_status_by_ids,
     upsert_approval_print_job_processing,
 )
+from database.crud.visa_registration import (
+    list_existing_visa_registration_application_codes,
+)
 from utils import log_exception, load_login_payload, log_event
 
 
@@ -147,6 +150,24 @@ def _extract_han_codes(text: str) -> list[str]:
             seen.add(item)
             ordered.append(item)
     return ordered
+
+
+def _extract_applyid_by_al_form_id(
+    list_result: dict[str, Any],
+    al_form_id: str,
+) -> str:
+    target = str(al_form_id or "").strip()
+    response = list_result.get("response") if isinstance(list_result, dict) else {}
+    rows = response.get("rows") if isinstance(response, dict) else None
+    if not target or not isinstance(rows, list):
+        return ""
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("alFormId") or "").strip() == target:
+            return str(row.get("applyid") or "").strip()
+    return ""
 
 
 def _subject_or_body_has_keyword(subject: str, body: str) -> bool:
@@ -370,7 +391,7 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
         "failed": 0,
         "items": [],
     }
-    inbox_folder = _env("EMAIL_IMAP_FOLDER", "INBOX")
+    inbox_folder = _env("EMAIL_IMAP_FOLDER", "completed")
     search_criteria = _env("EMAIL_IMAP_SEARCH_CRITERIA", "ALL")
     download_root = _download_root()
     download_root.mkdir(parents=True, exist_ok=True)
@@ -480,6 +501,26 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                 )
                 continue
 
+            existing_application_codes = list_existing_visa_registration_application_codes(
+                codes
+            )
+            matched_codes = [
+                code for code in codes if code in existing_application_codes
+            ]
+            if not matched_codes:
+                summary["skipped"] += 1
+                summary["items"].append(
+                    {
+                        "message_id": message_id,
+                        "subject": subject,
+                        "ok": False,
+                        "reason": "han_code_not_in_application_code",
+                        "han_codes": codes,
+                    }
+                )
+                continue
+            codes = matched_codes
+
             summary["matched_messages"] += 1
             log_event(
                 {
@@ -550,17 +591,32 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                         }
                     )
                     async with httpx.AsyncClient(timeout=60) as http_client:
-                        data = await get_list_old_by_visa_number.api_get_list_by_han_code(
-                            client=http_client,
-                            token=load_token(),
-                            tmp_secret=load_tmpSecret(),
-                            han_code=han_code,
+                        list_ok, list_result = (
+                            await get_list_old_by_visa_number.api_get_list_by_han_code(
+                                client=http_client,
+                                token=load_token(),
+                                tmp_secret=load_tmpSecret(),
+                                han_code=han_code,
+                            )
                         )
+                        if not list_ok:
+                            raise RuntimeError(
+                                f"get_list_by_han_code_failed: {list_result}"
+                            )
+
+                        applyid = _extract_applyid_by_al_form_id(
+                            list_result=list_result,
+                            al_form_id=han_code,
+                        )
+                        if not applyid:
+                            raise RuntimeError(
+                                f"applyid_not_found_for_alFormId: {han_code}"
+                            )
+
                         ok, application_form_result = (
                             await api_download_application_form(
                                 client=http_client,
-                                # applyid=han_code,
-                                applyid="2026062300463425720",
+                                applyid=applyid,
                                 credential_key=credential_key,
                                 output_dir=code_dir,
                             )

@@ -10,6 +10,7 @@ class VisaRegistration:
     first_applyid: str | None
     full_name: str
     passport_number: str
+    application_code: str = ""
     visa_type: str = ""
     status: str = "draft"
     payload: dict[str, Any] = field(default_factory=dict)
@@ -24,6 +25,7 @@ class VisaRegistration:
             first_applyid=data.get("first_applyid"),
             full_name=data.get("full_name", "") or "",
             passport_number=data.get("passport_number", "") or "",
+            application_code=data.get("application_code", "") or "",
             visa_type=data.get("visa_type", "") or "",
             status=data.get("status", "draft") or "draft",
             payload=dict(data.get("payload") or {}),
