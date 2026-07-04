@@ -30,6 +30,7 @@ from database.crud.approval_print_job import (
     upsert_approval_print_job_processing,
 )
 from database.crud.visa_registration import (
+    get_visa_registration_by_application_code,
     list_existing_visa_registration_application_codes,
 )
 from utils import log_exception, load_login_payload, log_event
@@ -576,6 +577,14 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                 code_dir.mkdir(parents=True, exist_ok=True)
 
                 try:
+                    visa_registration = get_visa_registration_by_application_code(
+                        han_code
+                    )
+                    applyid = (
+                        str(visa_registration.get("first_applyid") or "").strip()
+                        if visa_registration
+                        else ""
+                    )
                     attachment_paths = _save_email_attachments(
                         message, code_dir, han_code
                     )
@@ -591,23 +600,24 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                         }
                     )
                     async with httpx.AsyncClient(timeout=60) as http_client:
-                        list_ok, list_result = (
-                            await get_list_old_by_visa_number.api_get_list_by_han_code(
-                                client=http_client,
-                                token=load_token(),
-                                tmp_secret=load_tmpSecret(),
-                                han_code=han_code,
+                        if not applyid:
+                            list_ok, list_result = (
+                                await get_list_old_by_visa_number.api_get_list_by_han_code(
+                                    client=http_client,
+                                    token=load_token(),
+                                    tmp_secret=load_tmpSecret(),
+                                    han_code=han_code,
+                                )
                             )
-                        )
-                        if not list_ok:
-                            raise RuntimeError(
-                                f"get_list_by_han_code_failed: {list_result}"
-                            )
+                            if not list_ok:
+                                raise RuntimeError(
+                                    f"get_list_by_han_code_failed: {list_result}"
+                                )
 
-                        applyid = _extract_applyid_by_al_form_id(
-                            list_result=list_result,
-                            al_form_id=han_code,
-                        )
+                            applyid = _extract_applyid_by_al_form_id(
+                                list_result=list_result,
+                                al_form_id=han_code,
+                            )
                         if not applyid:
                             raise RuntimeError(
                                 f"applyid_not_found_for_alFormId: {han_code}"

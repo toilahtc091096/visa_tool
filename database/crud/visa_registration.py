@@ -110,6 +110,27 @@ def get_visa_registration_by_passport(passport_number: str) -> dict[str, Any] | 
         conn.close()
 
 
+def get_visa_registration_by_application_code(
+    application_code: str,
+) -> dict[str, Any] | None:
+    sql = """
+        SELECT *
+        FROM visa_registrations
+        WHERE application_code = %s
+        ORDER BY id DESC
+        LIMIT 1
+    """
+
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(sql, (application_code,))
+                return cursor.fetchone()
+    finally:
+        conn.close()
+
+
 def list_existing_visa_registration_application_codes(
     application_codes: list[str],
 ) -> set[str]:
