@@ -70,7 +70,8 @@ async def _sync_draft_scheduler_loop() -> None:
                 "[sync_draft_scheduler] completed "
                 f"matched={result.get('matched', 0)} "
                 f"updated={result.get('updated', 0)} "
-                f"skipped={result.get('skipped', 0)}"
+                f"skipped={result.get('skipped', 0)} "
+                f"display_only={result.get('display_only', 0)}"
             )
         except asyncio.CancelledError:
             print("[sync_draft_scheduler] cancelled")
@@ -161,6 +162,7 @@ async def sync_draft_visa_status(
         "[sync_draft_route] response "
         f"matched={result.get('matched', 0)} updated={result.get('updated', 0)} "
         f"skipped={result.get('skipped', 0)} "
+        f"display_only={result.get('display_only', 0)} "
         f"duration={time.perf_counter() - started_at:.2f}s",
         flush=True,
     )

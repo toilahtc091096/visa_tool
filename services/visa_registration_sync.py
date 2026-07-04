@@ -17,6 +17,18 @@ from services.google_sheets import write_sync_summary_to_google_sheet
 from utils import load_authorization, load_login_payload, remove_r2
 
 
+DEFAULT_SYNC_STATUSES = [
+    "draft",
+    "under_review",
+    "pending_review",
+    "submitted",
+    "approved",
+    "rejected",
+    "cancelled",
+]
+TERMINAL_STATUSES = {"approved", "rejected", "cancelled"}
+
+
 def _extract_remote_rows(response: Any) -> list[dict[str, Any]]:
     if isinstance(response, dict):
         rows = response.get("rows")
@@ -83,7 +95,7 @@ def _extract_remote_application_code(row: dict[str, Any]) -> str:
 
 def _parse_statuses(statuses: str | list[str] | None) -> list[str]:
     if statuses is None:
-        return ["draft", "under_review", "pending_review", "submitted"]
+        return DEFAULT_SYNC_STATUSES[:]
     if isinstance(statuses, str):
         parsed = [item.strip() for item in statuses.split(",")]
     else:
@@ -98,6 +110,23 @@ def _build_skipped_item(row: dict[str, Any], reason: str) -> dict[str, Any]:
         "first_applyid": str(row.get("first_applyid") or "").strip(),
         "ok": False,
         "reason": reason,
+    }
+
+
+def _build_display_only_item(row: dict[str, Any]) -> dict[str, Any]:
+    internal_status = str(row.get("status") or "").strip()
+    return {
+        "id": row.get("id"),
+        "full_name": str(row.get("full_name") or "").strip(),
+        "passport_number": str(row.get("passport_number") or "").strip(),
+        "visa_type": str(row.get("visa_type") or "").strip(),
+        "first_applyid": str(row.get("first_applyid") or "").strip(),
+        "application_code": str(row.get("application_code") or "").strip(),
+        "ok": True,
+        "reason": "display_only_no_api_sync",
+        "remote_applyid": "",
+        "remote_status": "",
+        "internal_status": internal_status,
     }
 
 
@@ -152,18 +181,25 @@ async def sync_draft_visa_registrations(
     summary: dict[str, Any] = {
         "ok": True,
         "statuses": selected_statuses,
+        "api_sync_statuses": [
+            status for status in selected_statuses if status not in TERMINAL_STATUSES
+        ],
+        "display_only_statuses": [
+            status for status in selected_statuses if status in TERMINAL_STATUSES
+        ],
         "total": len(total_rows),
         "draft_total": sum(1 for row in total_rows if row.get("status") == "draft"),
         "matched": 0,
         "updated": 0,
         "skipped": 0,
+        "display_only": 0,
         "concurrency": max(1, concurrency),
         "items": [],
     }
 
     semaphore = asyncio.Semaphore(max(1, concurrency))
     progress_lock = asyncio.Lock()
-    progress = {"done": 0, "matched": 0, "skipped": 0}
+    progress = {"done": 0, "matched": 0, "skipped": 0, "display_only": 0}
 
     async def process_row(
         client: httpx.AsyncClient,
@@ -174,14 +210,18 @@ async def sync_draft_visa_registrations(
         passport_number = str(row.get("passport_number") or "").strip()
         visa_type = str(row.get("visa_type") or "").strip()
         full_name = str(row.get("full_name") or "").strip()
+        current_status = str(row.get("status") or "").strip()
 
         async def finish(
             item: dict[str, Any],
             update: dict[str, Any] | None,
+            display_only: bool = False,
         ) -> tuple[dict[str, Any], dict[str, Any] | None]:
             async with progress_lock:
                 progress["done"] += 1
-                if update is None:
+                if display_only:
+                    progress["display_only"] += 1
+                elif update is None:
                     progress["skipped"] += 1
                 else:
                     progress["matched"] += 1
@@ -191,10 +231,19 @@ async def sync_draft_visa_registrations(
                     print(
                         "[sync_draft] api progress "
                         f"done={done}/{len(total_rows)} "
-                        f"matched={progress['matched']} skipped={progress['skipped']}",
+                        f"matched={progress['matched']} "
+                        f"skipped={progress['skipped']} "
+                        f"display_only={progress['display_only']}",
                         flush=True,
                     )
             return item, update
+
+        if current_status in TERMINAL_STATUSES:
+            return await finish(
+                _build_display_only_item(row),
+                None,
+                display_only=True,
+            )
 
         if not passport_number:
             return await finish(_build_skipped_item(row, "missing_passport_number"), None)
@@ -306,8 +355,15 @@ async def sync_draft_visa_registrations(
         return await finish(item, update)
 
     api_started_at = time.perf_counter()
+    api_expected = sum(
+        1
+        for row in total_rows
+        if str(row.get("status") or "").strip() not in TERMINAL_STATUSES
+    )
     print(
-        f"[sync_draft] api calls start total={len(total_rows)} concurrency={max(1, concurrency)}",
+        "[sync_draft] api calls start "
+        f"api_expected={api_expected} display_only={len(total_rows) - api_expected} "
+        f"total={len(total_rows)} concurrency={max(1, concurrency)}",
         flush=True,
     )
     async with httpx.AsyncClient(timeout=60) as client:
@@ -336,7 +392,10 @@ async def sync_draft_visa_registrations(
     successful_update_slots = updated_count
     for item, update in results:
         if update is None:
-            summary["skipped"] += 1
+            if item.get("reason") == "display_only_no_api_sync":
+                summary["display_only"] += 1
+            else:
+                summary["skipped"] += 1
             summary["items"].append(item)
             continue
 
@@ -410,6 +469,7 @@ async def sync_draft_visa_registrations(
         "[sync_draft] done "
         f"total={summary['total']} matched={summary['matched']} "
         f"updated={summary['updated']} skipped={summary['skipped']} "
+        f"display_only={summary['display_only']} "
         f"duration={time.perf_counter() - started_at:.2f}s",
         flush=True,
     )
