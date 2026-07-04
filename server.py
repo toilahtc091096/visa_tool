@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import time
 import traceback
 from contextlib import asynccontextmanager
 from typing import Any
@@ -129,17 +130,41 @@ async def sync_draft_visa_status(
     spreadsheet_url: str = "",
     worksheet_name: str = "hai",
     sheet_mode: str = "upsert",
+    statuses: str = "",
+    max_records: int | None = None,
+    concurrency: int = 5,
+    skip_google_sheet: bool = False,
 ):
+    started_at = time.perf_counter()
+    print(
+        "[sync_draft_route] request "
+        f"page_num={page_num} page_size={page_size} "
+        f"statuses={statuses or 'default'} max_records={max_records} "
+        f"concurrency={concurrency} skip_google_sheet={skip_google_sheet}",
+        flush=True,
+    )
     if authorization.strip():
         append_authorization(authorization)
-    return await sync_draft_visa_registrations(
+    result = await sync_draft_visa_registrations(
         page_num=page_num,
         page_size=page_size,
         authorization=authorization,
         spreadsheet_url=spreadsheet_url,
         worksheet_name=worksheet_name,
         sheet_mode=sheet_mode,
+        statuses=statuses or None,
+        max_records=max_records,
+        concurrency=concurrency,
+        skip_google_sheet=skip_google_sheet,
     )
+    print(
+        "[sync_draft_route] response "
+        f"matched={result.get('matched', 0)} updated={result.get('updated', 0)} "
+        f"skipped={result.get('skipped', 0)} "
+        f"duration={time.perf_counter() - started_at:.2f}s",
+        flush=True,
+    )
+    return result
 
 
 @app.post("/google-sheets/debug")
