@@ -130,6 +130,14 @@ def _build_display_only_item(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _should_sync_row_with_api(row: dict[str, Any]) -> bool:
+    status = str(row.get("status") or "").strip()
+    application_code = str(row.get("application_code") or "").strip()
+    if status == "approved":
+        return not application_code
+    return status not in TERMINAL_STATUSES
+
+
 async def sync_draft_visa_registrations(
     page_num: int = 1,
     page_size: int = 1000,
@@ -189,6 +197,12 @@ async def sync_draft_visa_registrations(
         ],
         "total": len(total_rows),
         "draft_total": sum(1 for row in total_rows if row.get("status") == "draft"),
+        "approved_missing_application_code": sum(
+            1
+            for row in total_rows
+            if str(row.get("status") or "").strip() == "approved"
+            and not str(row.get("application_code") or "").strip()
+        ),
         "matched": 0,
         "updated": 0,
         "skipped": 0,
@@ -210,7 +224,6 @@ async def sync_draft_visa_registrations(
         passport_number = str(row.get("passport_number") or "").strip()
         visa_type = str(row.get("visa_type") or "").strip()
         full_name = str(row.get("full_name") or "").strip()
-        current_status = str(row.get("status") or "").strip()
 
         async def finish(
             item: dict[str, Any],
@@ -238,7 +251,7 @@ async def sync_draft_visa_registrations(
                     )
             return item, update
 
-        if current_status in TERMINAL_STATUSES:
+        if not _should_sync_row_with_api(row):
             return await finish(
                 _build_display_only_item(row),
                 None,
@@ -358,7 +371,7 @@ async def sync_draft_visa_registrations(
     api_expected = sum(
         1
         for row in total_rows
-        if str(row.get("status") or "").strip() not in TERMINAL_STATUSES
+        if _should_sync_row_with_api(row)
     )
     print(
         "[sync_draft] api calls start "
