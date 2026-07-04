@@ -501,8 +501,8 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                 )
                 continue
 
-            existing_application_codes = list_existing_visa_registration_application_codes(
-                codes
+            existing_application_codes = (
+                list_existing_visa_registration_application_codes(codes)
             )
             matched_codes = [
                 code for code in codes if code in existing_application_codes
