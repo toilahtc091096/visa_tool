@@ -44,6 +44,14 @@ def _sync_scheduler_interval_seconds() -> int:
         return 12 * 60 * 60
 
 
+def _server_port() -> int:
+    raw_value = os.getenv("PORT", "10000").strip()
+    try:
+        return int(raw_value)
+    except ValueError:
+        return 10000
+
+
 async def _sync_draft_scheduler_loop() -> None:
     interval_seconds = _sync_scheduler_interval_seconds()
     spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
@@ -231,3 +239,14 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
                 },
             )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=_server_port(),
+        reload=False,
+    )
