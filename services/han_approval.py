@@ -5,9 +5,11 @@ import imaplib
 import mimetypes
 import os
 import re
+import shutil
 import smtplib
 import traceback
 import unicodedata
+import zipfile
 from datetime import datetime, time as dt_time, timedelta, timezone, tzinfo
 from email.header import decode_header, make_header
 from email.message import EmailMessage, Message
@@ -182,6 +184,60 @@ def _subject_or_body_has_keyword(subject: str, body: str) -> bool:
 def _download_root() -> Path:
     base = _env("HAN_DOWNLOAD_DIR", "").strip() or "resources/han_approval_downloads"
     return Path(base).resolve()
+
+
+def _zip_download_root(download_root: Path) -> Path:
+    zip_path = download_root.with_suffix(".zip")
+    if zip_path.exists():
+        zip_path.unlink()
+
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "download_folder_zip_start",
+            "download_root": str(download_root),
+            "zip_path": str(zip_path),
+        }
+    )
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for path in sorted(download_root.rglob("*")):
+            if path.is_file():
+                zip_file.write(path, path.relative_to(download_root))
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "download_folder_zip_done",
+            "download_root": str(download_root),
+            "zip_path": str(zip_path),
+            "byte_size": zip_path.stat().st_size if zip_path.exists() else 0,
+        }
+    )
+    return zip_path
+
+
+def _cleanup_download_artifacts(download_root: Path, zip_path: Path) -> None:
+    errors: list[str] = []
+    for path in (download_root, zip_path):
+        try:
+            if path.is_dir():
+                shutil.rmtree(path)
+            elif path.exists():
+                path.unlink()
+        except Exception as exc:
+            errors.append(f"{path}: {type(exc).__name__}: {exc}")
+
+    log_event(
+        {
+            "level": "error" if errors else "info",
+            "component": "han_approval",
+            "state": "download_artifacts_cleanup_done",
+            "download_root": str(download_root),
+            "zip_path": str(zip_path),
+            "errors": errors,
+        }
+    )
 
 
 def _get_local_timezone() -> tzinfo:
@@ -523,6 +579,7 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
         "failed": 0,
         "items": [],
     }
+    pending_email_items: list[dict[str, Any]] = []
     inbox_folder = _env("EMAIL_IMAP_FOLDER", "completed")
     search_criteria = _env("EMAIL_IMAP_SEARCH_CRITERIA", "ALL")
     download_root = _download_root()
@@ -806,64 +863,29 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                         {
                             "level": "info",
                             "component": "han_approval",
-                            "state": "email_send_prepare",
+                            "state": "email_batch_item_ready",
                             "han_code": han_code,
                             "attachment_paths": attachment_paths,
                             "application_form_path": application_form_path,
                         }
                     )
-                    notify_result = _smtp_send(
-                        subject=f"HAN {han_code} printed",
-                        body=(
-                            f"HAN code: {han_code}\n"
-                            f"Source email: {from_email}\n"
-                            f"Subject: {subject}\n"
-                            f"Attachment files:\n"
-                            + "\n".join(f"- {path}" for path in attachment_paths)
-                            + "\n"
-                            f"Application form: {application_form_path}\n"
-                        ),
-                        attachments=[*attachment_paths, application_form_path],
-                    )
-                    if not notify_result.get("ok"):
-                        raise RuntimeError(f"send_email_failed: {notify_result}")
-                    log_event(
-                        {
-                            "level": "info",
-                            "component": "han_approval",
-                            "state": "email_sent",
-                            "han_code": han_code,
-                            "recipients": notify_result.get("recipients", []),
-                        }
-                    )
-
-                    update_approval_print_job_by_han_code(
-                        han_code=han_code,
-                        status="printed",
-                        attachment_paths=attachment_paths,
-                        application_form_path=application_form_path,
-                        last_error="",
-                    )
-                    summary["printed"] += 1
-                    summary["processed"] += 1
-                    log_event(
-                        {
-                            "level": "info",
-                            "component": "han_approval",
-                            "state": "han_processing_done",
-                            "han_code": han_code,
-                            "status": "printed",
-                        }
-                    )
-                    summary["items"].append(
+                    pending_email_items.append(
                         {
                             "han_code": han_code,
-                            "ok": True,
-                            "status": "printed",
                             "record": processing_row,
+                            "source_email": from_email,
+                            "subject": subject,
                             "attachment_paths": attachment_paths,
                             "application_form_path": application_form_path,
-                            "email_sent_to": notify_result.get("recipients", []),
+                        }
+                    )
+                    log_event(
+                        {
+                            "level": "info",
+                            "component": "han_approval",
+                            "state": "han_processing_waiting_email_batch",
+                            "han_code": han_code,
+                            "status": "pending_email",
                         }
                     )
                 except Exception as exc:
@@ -898,6 +920,117 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                         exc,
                         {"path": "process_han_approval_inbox", "han_code": han_code},
                     )
+
+        if pending_email_items:
+            zip_path: Path | None = None
+            try:
+                zip_path = _zip_download_root(download_root)
+                han_codes = [str(item.get("han_code", "")) for item in pending_email_items]
+                log_event(
+                    {
+                        "level": "info",
+                        "component": "han_approval",
+                        "state": "email_batch_send_prepare",
+                        "han_codes": han_codes,
+                        "count": len(pending_email_items),
+                        "download_root": str(download_root),
+                        "zip_path": str(zip_path),
+                    }
+                )
+                notify_result = _smtp_send(
+                    subject=f"HAN approvals printed: {len(pending_email_items)}",
+                    body=(
+                        "HAN approval files are attached as one folder zip.\n\n"
+                        "HAN codes:\n"
+                        + "\n".join(f"- {code}" for code in han_codes)
+                        + "\n\n"
+                        f"Download folder: {download_root}\n"
+                        f"Zip file: {zip_path}\n"
+                    ),
+                    attachments=[str(zip_path)],
+                )
+                if not notify_result.get("ok"):
+                    raise RuntimeError(f"send_email_failed: {notify_result}")
+
+                for item in pending_email_items:
+                    han_code = str(item.get("han_code", ""))
+                    attachment_paths = item.get("attachment_paths")
+                    application_form_path = str(item.get("application_form_path", ""))
+                    update_approval_print_job_by_han_code(
+                        han_code=han_code,
+                        status="printed",
+                        attachment_paths=(
+                            attachment_paths if isinstance(attachment_paths, list) else []
+                        ),
+                        application_form_path=application_form_path,
+                        last_error="",
+                    )
+                    summary["printed"] += 1
+                    summary["processed"] += 1
+                    summary["items"].append(
+                        {
+                            "han_code": han_code,
+                            "ok": True,
+                            "status": "printed",
+                            "record": item.get("record"),
+                            "attachment_paths": attachment_paths,
+                            "application_form_path": application_form_path,
+                            "email_sent_to": notify_result.get("recipients", []),
+                            "email_attachment": str(zip_path),
+                        }
+                    )
+                    log_event(
+                        {
+                            "level": "info",
+                            "component": "han_approval",
+                            "state": "han_processing_done",
+                            "han_code": han_code,
+                            "status": "printed",
+                        }
+                    )
+
+                log_event(
+                    {
+                        "level": "info",
+                        "component": "han_approval",
+                        "state": "email_batch_sent",
+                        "recipients": notify_result.get("recipients", []),
+                        "han_codes": han_codes,
+                        "zip_path": str(zip_path),
+                    }
+                )
+                _cleanup_download_artifacts(download_root, zip_path)
+            except Exception as exc:
+                error_text = f"{type(exc).__name__}: {exc}"
+                log_event(
+                    {
+                        "level": "error",
+                        "component": "han_approval",
+                        "state": "email_batch_failed",
+                        "error": error_text,
+                        "zip_path": str(zip_path) if zip_path else "",
+                    }
+                )
+                for item in pending_email_items:
+                    han_code = str(item.get("han_code", ""))
+                    update_approval_print_job_by_han_code(
+                        han_code=han_code,
+                        status="not_print",
+                        attachment_paths=None,
+                        application_form_path=str(item.get("application_form_path", "")),
+                        last_error=error_text,
+                    )
+                    summary["failed"] += 1
+                    summary["items"].append(
+                        {
+                            "han_code": han_code,
+                            "ok": False,
+                            "status": "not_print",
+                            "record": item.get("record"),
+                            "error": error_text,
+                        }
+                    )
+                log_exception(exc, {"path": "process_han_approval_inbox_batch_email"})
     except Exception as exc:
         summary["ok"] = False
         summary["error"] = f"{type(exc).__name__}: {exc}"
