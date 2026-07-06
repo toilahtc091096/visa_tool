@@ -350,31 +350,6 @@ def write_rows_to_google_sheet(
                 raise ValueError("reason column is required in sheet header")
             sheet_reason_col = _column_number_to_letter(sheet_reason_idx + 1)
 
-            input_internal_status_idx = next(
-                (
-                    idx
-                    for idx, name in enumerate(input_header)
-                    if _normalize_header_name(name) == "internal_status"
-                ),
-                None,
-            )
-            if input_internal_status_idx is None:
-                raise ValueError("internal_status column is required for upsert")
-
-            sheet_internal_status_idx = next(
-                (
-                    idx
-                    for idx, name in enumerate(sheet_header_row)
-                    if _normalize_header_name(name) == "internal_status"
-                ),
-                None,
-            )
-            if sheet_internal_status_idx is None:
-                raise ValueError("internal_status column is required in sheet header")
-            sheet_internal_status_col = _column_number_to_letter(
-                sheet_internal_status_idx + 1
-            )
-
             existing: dict[str, int] = {}
             for row_idx, row in enumerate(
                 all_values[sheet_header_row_idx:],
@@ -400,17 +375,18 @@ def write_rows_to_google_sheet(
                 if first_applyid in existing:
                     row_num = existing[first_applyid]
                     reason = str(row[input_reason_idx]).strip()
-                    batch_updates.append(
-                        {
-                            "range": f"{sheet_reason_col}{row_num}",
-                            "values": [[reason]],
-                        }
-                    )
-                    if reason != "api need new token":
+                    if reason == "api need new token":
                         batch_updates.append(
                             {
-                                "range": f"{sheet_internal_status_col}{row_num}",
-                                "values": [[row[input_internal_status_idx]]],
+                                "range": f"{sheet_reason_col}{row_num}",
+                                "values": [[reason]],
+                            }
+                        )
+                    else:
+                        batch_updates.append(
+                            {
+                                "range": f"A{row_num}",
+                                "values": [ordered_row],
                             }
                         )
                 else:
