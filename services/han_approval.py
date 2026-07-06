@@ -762,7 +762,21 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                                 output_dir=code_dir,
                             )
                         )
-                    if not ok or not application_form_result.get("ok"):
+                    log_event(
+                        {
+                            "level": "info",
+                            "component": "han_approval",
+                            "state": "application_form_download_result",
+                            "han_code": han_code,
+                            "applyid": applyid,
+                            "ok": ok,
+                            "status_code": application_form_result.get("status_code"),
+                            "content_type": application_form_result.get("content_type", ""),
+                            "file_path": application_form_result.get("file_path", ""),
+                            "error": application_form_result.get("error", ""),
+                        }
+                    )
+                    if not ok:
                         safe_application_form_result = {
                             key: value
                             for key, value in application_form_result.items()
