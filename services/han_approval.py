@@ -286,13 +286,40 @@ def _smtp_send(
     body: str,
     attachments: list[str] | None = None,
 ) -> dict[str, Any]:
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "smtp_prepare_start",
+            "subject": subject,
+            "attachment_count": len(attachments or []),
+        }
+    )
     smtp_host = _env("EMAIL_SMTP_HOST")
     smtp_user = _env("EMAIL_SMTP_USER")
     smtp_password = _env("EMAIL_SMTP_PASSWORD")
     if not smtp_host or not smtp_user or not smtp_password:
+        missing = [
+            name
+            for name, value in (
+                ("EMAIL_SMTP_HOST", smtp_host),
+                ("EMAIL_SMTP_USER", smtp_user),
+                ("EMAIL_SMTP_PASSWORD", smtp_password),
+            )
+            if not value
+        ]
+        log_event(
+            {
+                "level": "error",
+                "component": "han_approval",
+                "state": "smtp_missing_env",
+                "missing": missing,
+            }
+        )
         return {
             "ok": False,
             "error": "missing_smtp_env",
+            "missing": missing,
         }
 
     smtp_port = _env_int("EMAIL_SMTP_PORT", 465)
@@ -301,6 +328,13 @@ def _smtp_send(
     email_from = _env("EMAIL_SMTP_FROM", smtp_user)
     email_to = _env("EMAIL_TO")
     if not email_to:
+        log_event(
+            {
+                "level": "error",
+                "component": "han_approval",
+                "state": "smtp_missing_email_to",
+            }
+        )
         return {
             "ok": False,
             "error": "missing_email_to",
@@ -312,15 +346,29 @@ def _smtp_send(
     if not recipients:
         recipients = [email_to]
 
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "smtp_recipients_resolved",
+            "from": email_from,
+            "recipients": recipients,
+            "raw_email_to": email_to,
+        }
+    )
+
     msg = EmailMessage()
     msg["From"] = email_from
     msg["To"] = ", ".join(recipients)
     msg["Subject"] = subject
     msg.set_content(body)
 
+    attached_files: list[str] = []
+    missing_attachments: list[str] = []
     for attachment_path in attachments or []:
         path = Path(attachment_path)
         if not path.exists() or not path.is_file():
+            missing_attachments.append(str(path))
             continue
         mime_type, _ = mimetypes.guess_type(path.name)
         maintype, subtype = (mime_type or "application/octet-stream").split("/", 1)
@@ -330,24 +378,107 @@ def _smtp_send(
             subtype=subtype,
             filename=path.name,
         )
+        attached_files.append(str(path))
 
-    if use_ssl:
-        client: smtplib.SMTP | smtplib.SMTP_SSL = smtplib.SMTP_SSL(smtp_host, smtp_port)
-    else:
-        client = smtplib.SMTP(smtp_host, smtp_port)
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "smtp_attachments_prepared",
+            "attached_count": len(attached_files),
+            "missing_count": len(missing_attachments),
+            "attached_files": attached_files,
+            "missing_attachments": missing_attachments,
+        }
+    )
+
+    client: smtplib.SMTP | smtplib.SMTP_SSL | None = None
     try:
+        log_event(
+            {
+                "level": "info",
+                "component": "han_approval",
+                "state": "smtp_connect_start",
+                "host": smtp_host,
+                "port": smtp_port,
+                "use_ssl": use_ssl,
+                "use_starttls": use_starttls,
+            }
+        )
+        if use_ssl:
+            client = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            client = smtplib.SMTP(smtp_host, smtp_port)
         client.ehlo()
         if use_starttls and not use_ssl:
+            log_event(
+                {
+                    "level": "info",
+                    "component": "han_approval",
+                    "state": "smtp_starttls_start",
+                    "host": smtp_host,
+                    "port": smtp_port,
+                }
+            )
             client.starttls()
             client.ehlo()
+        log_event(
+            {
+                "level": "info",
+                "component": "han_approval",
+                "state": "smtp_login_start",
+                "host": smtp_host,
+                "user": smtp_user,
+            }
+        )
         client.login(smtp_user, smtp_password)
+        log_event(
+            {
+                "level": "info",
+                "component": "han_approval",
+                "state": "smtp_send_start",
+                "from": email_from,
+                "recipients": recipients,
+                "subject": subject,
+                "attached_count": len(attached_files),
+            }
+        )
         client.send_message(msg)
+        log_event(
+            {
+                "level": "info",
+                "component": "han_approval",
+                "state": "smtp_send_done",
+                "recipients": recipients,
+                "subject": subject,
+            }
+        )
+    except Exception as exc:
+        log_event(
+            {
+                "level": "error",
+                "component": "han_approval",
+                "state": "smtp_send_failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "host": smtp_host,
+                "port": smtp_port,
+                "use_ssl": use_ssl,
+                "use_starttls": use_starttls,
+                "from": email_from,
+                "recipients": recipients,
+            }
+        )
+        raise
     finally:
-        client.quit()
+        if client is not None:
+            client.quit()
 
     return {
         "ok": True,
         "recipients": recipients,
+        "attached_count": len(attached_files),
+        "missing_attachments": missing_attachments,
     }
 
 
@@ -655,6 +786,16 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                             "state": "application_form_downloaded",
                             "han_code": han_code,
                             "file_path": application_form_path,
+                        }
+                    )
+                    log_event(
+                        {
+                            "level": "info",
+                            "component": "han_approval",
+                            "state": "email_send_prepare",
+                            "han_code": han_code,
+                            "attachment_paths": attachment_paths,
+                            "application_form_path": application_form_path,
                         }
                     )
                     notify_result = _smtp_send(
