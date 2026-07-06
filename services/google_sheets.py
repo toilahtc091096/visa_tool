@@ -202,6 +202,17 @@ def _build_row_by_header(
     ]
 
 
+def _column_number_to_letter(column_number: int) -> str:
+    if column_number <= 0:
+        raise ValueError("column_number must be greater than 0")
+
+    letters = ""
+    while column_number:
+        column_number, remainder = divmod(column_number - 1, 26)
+        letters = chr(65 + remainder) + letters
+    return letters
+
+
 def _chunked(values: list[Any], chunk_size: int) -> list[list[Any]]:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be greater than 0")
@@ -316,6 +327,29 @@ def write_rows_to_google_sheet(
             if sheet_key_idx is None:
                 raise ValueError("first_applyid column is required in sheet header")
 
+            input_reason_idx = next(
+                (
+                    idx
+                    for idx, name in enumerate(input_header)
+                    if _normalize_header_name(name) == "reason"
+                ),
+                None,
+            )
+            if input_reason_idx is None:
+                raise ValueError("reason column is required for upsert")
+
+            sheet_reason_idx = next(
+                (
+                    idx
+                    for idx, name in enumerate(sheet_header_row)
+                    if _normalize_header_name(name) == "reason"
+                ),
+                None,
+            )
+            if sheet_reason_idx is None:
+                raise ValueError("reason column is required in sheet header")
+            sheet_reason_col = _column_number_to_letter(sheet_reason_idx + 1)
+
             existing: dict[str, int] = {}
             for row_idx, row in enumerate(
                 all_values[sheet_header_row_idx:],
@@ -342,8 +376,8 @@ def write_rows_to_google_sheet(
                     row_num = existing[first_applyid]
                     batch_updates.append(
                         {
-                            "range": f"A{row_num}",
-                            "values": [ordered_row],
+                            "range": f"{sheet_reason_col}{row_num}",
+                            "values": [[row[input_reason_idx]]],
                         }
                     )
                 else:
