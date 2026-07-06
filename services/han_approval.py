@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import email
 import imaplib
 import mimetypes
@@ -543,10 +544,16 @@ def _save_email_attachments(
     code_dir: Path,
     han_code: str,
 ) -> list[str]:
+    return _save_pdf_attachments(list(_iter_pdf_attachments(message)), code_dir, han_code)
+
+
+def _save_pdf_attachments(
+    pdf_attachments: list[tuple[str, bytes]],
+    code_dir: Path,
+    han_code: str,
+) -> list[str]:
     saved_paths: list[str] = []
-    for index, (_filename, content) in enumerate(
-        _iter_pdf_attachments(message), start=1
-    ):
+    for index, (_filename, content) in enumerate(pdf_attachments, start=1):
         if index == 1:
             target_name = f"{han_code}.pdf"
         else:
@@ -580,6 +587,7 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
         "items": [],
     }
     pending_email_items: list[dict[str, Any]] = []
+    han_jobs: list[dict[str, Any]] = []
     inbox_folder = _env("EMAIL_IMAP_FOLDER", "completed")
     search_criteria = _env("EMAIL_IMAP_SEARCH_CRITERIA", "ALL")
     download_root = _download_root()
@@ -722,12 +730,13 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                     "han_codes": codes,
                 }
             )
+            pdf_attachments = list(_iter_pdf_attachments(message))
             for han_code in codes:
                 log_event(
                     {
                         "level": "info",
                         "component": "han_approval",
-                        "state": "han_processing_start",
+                        "state": "han_job_queued",
                         "han_code": han_code,
                     }
                 )
@@ -755,171 +764,230 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                     )
                     continue
 
-                processing_row = upsert_approval_print_job_processing(
-                    han_code=han_code,
-                    source_email=from_email,
-                    message_id=message_id,
-                    subject=subject,
+                han_jobs.append(
+                    {
+                        "han_code": han_code,
+                        "from_email": from_email,
+                        "message_id": message_id,
+                        "subject": subject,
+                        "pdf_attachments": pdf_attachments,
+                    }
                 )
-                code_dir = download_root / han_code
-                code_dir.mkdir(parents=True, exist_ok=True)
 
-                try:
-                    visa_registration = get_visa_registration_by_application_code(
-                        han_code
-                    )
-                    applyid = (
-                        str(visa_registration.get("first_applyid") or "").strip()
-                        if visa_registration
-                        else ""
-                    )
-                    attachment_paths = _save_email_attachments(
-                        message, code_dir, han_code
-                    )
-                    if not attachment_paths:
-                        raise RuntimeError("No pdf attachment found")
+        if han_jobs:
+            concurrency = max(1, _env_int("HAN_APPROVAL_CONCURRENCY", 5))
+            semaphore = asyncio.Semaphore(concurrency)
+            log_event(
+                {
+                    "level": "info",
+                    "component": "han_approval",
+                    "state": "han_jobs_parallel_start",
+                    "count": len(han_jobs),
+                    "concurrency": concurrency,
+                }
+            )
+
+            async def process_han_job(job: dict[str, Any]) -> dict[str, Any]:
+                han_code = str(job.get("han_code") or "")
+                processing_row: dict[str, Any] | None = None
+                async with semaphore:
                     log_event(
                         {
                             "level": "info",
                             "component": "han_approval",
-                            "state": "attachments_saved",
+                            "state": "han_processing_start",
                             "han_code": han_code,
-                            "count": len(attachment_paths),
                         }
                     )
-                    async with httpx.AsyncClient(timeout=60) as http_client:
-                        if not applyid:
-                            list_ok, list_result = (
-                                await get_list_old_by_visa_number.api_get_list_by_han_code(
-                                    client=http_client,
-                                    token=load_token(),
-                                    tmp_secret=load_tmpSecret(),
-                                    han_code=han_code,
+                    processing_row = upsert_approval_print_job_processing(
+                        han_code=han_code,
+                        source_email=str(job.get("from_email") or ""),
+                        message_id=str(job.get("message_id") or ""),
+                        subject=str(job.get("subject") or ""),
+                    )
+                    code_dir = download_root / han_code
+                    code_dir.mkdir(parents=True, exist_ok=True)
+
+                    try:
+                        visa_registration = get_visa_registration_by_application_code(
+                            han_code
+                        )
+                        applyid = (
+                            str(visa_registration.get("first_applyid") or "").strip()
+                            if visa_registration
+                            else ""
+                        )
+                        pdf_attachments = job.get("pdf_attachments")
+                        attachment_paths = _save_pdf_attachments(
+                            pdf_attachments if isinstance(pdf_attachments, list) else [],
+                            code_dir,
+                            han_code,
+                        )
+                        if not attachment_paths:
+                            raise RuntimeError("No pdf attachment found")
+                        log_event(
+                            {
+                                "level": "info",
+                                "component": "han_approval",
+                                "state": "attachments_saved",
+                                "han_code": han_code,
+                                "count": len(attachment_paths),
+                            }
+                        )
+                        async with httpx.AsyncClient(timeout=60) as http_client:
+                            if not applyid:
+                                list_ok, list_result = (
+                                    await get_list_old_by_visa_number.api_get_list_by_han_code(
+                                        client=http_client,
+                                        token=load_token(),
+                                        tmp_secret=load_tmpSecret(),
+                                        han_code=han_code,
+                                    )
                                 )
-                            )
-                            if not list_ok:
+                                if not list_ok:
+                                    raise RuntimeError(
+                                        f"get_list_by_han_code_failed: {list_result}"
+                                    )
+
+                                applyid = _extract_applyid_by_al_form_id(
+                                    list_result=list_result,
+                                    al_form_id=han_code,
+                                )
+                            if not applyid:
                                 raise RuntimeError(
-                                    f"get_list_by_han_code_failed: {list_result}"
+                                    f"applyid_not_found_for_alFormId: {han_code}"
                                 )
 
-                            applyid = _extract_applyid_by_al_form_id(
-                                list_result=list_result,
-                                al_form_id=han_code,
+                            ok, application_form_result = (
+                                await api_download_application_form(
+                                    client=http_client,
+                                    applyid=applyid,
+                                    credential_key=credential_key,
+                                    output_dir=code_dir,
+                                )
                             )
-                        if not applyid:
+                        log_event(
+                            {
+                                "level": "info",
+                                "component": "han_approval",
+                                "state": "application_form_download_result",
+                                "han_code": han_code,
+                                "applyid": applyid,
+                                "ok": ok,
+                                "status_code": application_form_result.get("status_code"),
+                                "content_type": application_form_result.get(
+                                    "content_type", ""
+                                ),
+                                "file_path": application_form_result.get("file_path", ""),
+                                "error": application_form_result.get("error", ""),
+                            }
+                        )
+                        if not ok:
+                            safe_application_form_result = {
+                                key: value
+                                for key, value in application_form_result.items()
+                                if key not in {"response"}
+                            }
                             raise RuntimeError(
-                                f"applyid_not_found_for_alFormId: {han_code}"
+                                f"download_application_form_failed: {safe_application_form_result}"
                             )
 
-                        ok, application_form_result = (
-                            await api_download_application_form(
-                                client=http_client,
-                                applyid=applyid,
-                                credential_key=credential_key,
-                                output_dir=code_dir,
+                        application_form_path = str(
+                            application_form_result.get("file_path", "")
+                        )
+                        if not application_form_path:
+                            raise RuntimeError(
+                                "download_application_form_missing_file_path"
                             )
+                        log_event(
+                            {
+                                "level": "info",
+                                "component": "han_approval",
+                                "state": "application_form_downloaded",
+                                "han_code": han_code,
+                                "file_path": application_form_path,
+                            }
                         )
-                    log_event(
-                        {
-                            "level": "info",
-                            "component": "han_approval",
-                            "state": "application_form_download_result",
-                            "han_code": han_code,
-                            "applyid": applyid,
-                            "ok": ok,
-                            "status_code": application_form_result.get("status_code"),
-                            "content_type": application_form_result.get("content_type", ""),
-                            "file_path": application_form_result.get("file_path", ""),
-                            "error": application_form_result.get("error", ""),
-                        }
-                    )
-                    if not ok:
-                        safe_application_form_result = {
-                            key: value
-                            for key, value in application_form_result.items()
-                            if key not in {"response"}
-                        }
-                        raise RuntimeError(
-                            f"download_application_form_failed: {safe_application_form_result}"
+                        log_event(
+                            {
+                                "level": "info",
+                                "component": "han_approval",
+                                "state": "email_batch_item_ready",
+                                "han_code": han_code,
+                                "attachment_paths": attachment_paths,
+                                "application_form_path": application_form_path,
+                            }
                         )
-
-                    application_form_path = str(
-                        application_form_result.get("file_path", "")
-                    )
-                    if not application_form_path:
-                        raise RuntimeError(
-                            "download_application_form_missing_file_path"
-                        )
-                    log_event(
-                        {
-                            "level": "info",
-                            "component": "han_approval",
-                            "state": "application_form_downloaded",
-                            "han_code": han_code,
-                            "file_path": application_form_path,
-                        }
-                    )
-                    log_event(
-                        {
-                            "level": "info",
-                            "component": "han_approval",
-                            "state": "email_batch_item_ready",
-                            "han_code": han_code,
-                            "attachment_paths": attachment_paths,
-                            "application_form_path": application_form_path,
-                        }
-                    )
-                    pending_email_items.append(
-                        {
+                        return {
+                            "ok": True,
                             "han_code": han_code,
                             "record": processing_row,
-                            "source_email": from_email,
-                            "subject": subject,
+                            "source_email": str(job.get("from_email") or ""),
+                            "subject": str(job.get("subject") or ""),
                             "attachment_paths": attachment_paths,
                             "application_form_path": application_form_path,
                         }
-                    )
+                    except Exception as exc:
+                        error_text = f"{type(exc).__name__}: {exc}"
+                        log_event(
+                            {
+                                "level": "error",
+                                "component": "han_approval",
+                                "state": "han_processing_failed",
+                                "han_code": han_code,
+                                "error": error_text,
+                            }
+                        )
+                        update_approval_print_job_by_han_code(
+                            han_code=han_code,
+                            status="not_print",
+                            attachment_paths=None,
+                            application_form_path="",
+                            last_error=error_text,
+                        )
+                        log_exception(
+                            exc,
+                            {
+                                "path": "process_han_approval_inbox",
+                                "han_code": han_code,
+                            },
+                        )
+                        return {
+                            "ok": False,
+                            "han_code": han_code,
+                            "status": "not_print",
+                            "record": processing_row,
+                            "error": error_text,
+                        }
+
+            han_results = await asyncio.gather(
+                *(process_han_job(job) for job in han_jobs)
+            )
+            for result in han_results:
+                if result.get("ok"):
+                    pending_email_items.append(result)
                     log_event(
                         {
                             "level": "info",
                             "component": "han_approval",
                             "state": "han_processing_waiting_email_batch",
-                            "han_code": han_code,
+                            "han_code": result.get("han_code"),
                             "status": "pending_email",
                         }
                     )
-                except Exception as exc:
-                    error_text = f"{type(exc).__name__}: {exc}"
-                    log_event(
-                        {
-                            "level": "error",
-                            "component": "han_approval",
-                            "state": "han_processing_failed",
-                            "han_code": han_code,
-                            "error": error_text,
-                        }
-                    )
-                    update_approval_print_job_by_han_code(
-                        han_code=han_code,
-                        status="not_print",
-                        attachment_paths=None,
-                        application_form_path="",
-                        last_error=error_text,
-                    )
+                else:
                     summary["failed"] += 1
-                    summary["items"].append(
-                        {
-                            "han_code": han_code,
-                            "ok": False,
-                            "status": "not_print",
-                            "record": processing_row,
-                            "error": error_text,
-                        }
-                    )
-                    log_exception(
-                        exc,
-                        {"path": "process_han_approval_inbox", "han_code": han_code},
-                    )
+                    summary["items"].append(result)
+
+            log_event(
+                {
+                    "level": "info",
+                    "component": "han_approval",
+                    "state": "han_jobs_parallel_done",
+                    "count": len(han_jobs),
+                    "ready_for_email": len(pending_email_items),
+                }
+            )
 
         if pending_email_items:
             zip_path: Path | None = None
