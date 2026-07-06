@@ -17,8 +17,17 @@ ALTER TABLE visa_registrations
 ALTER TABLE visa_registrations
     ADD COLUMN IF NOT EXISTS application_code VARCHAR(64) NOT NULL DEFAULT '';
 
+ALTER TABLE visa_registrations
+    DROP CONSTRAINT IF EXISTS visa_registrations_application_code_key;
+
+DROP INDEX IF EXISTS visa_registrations_application_code_key;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_visa_registrations_first_applyid
     ON visa_registrations (first_applyid);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_visa_registrations_application_code_not_blank
+    ON visa_registrations (application_code)
+    WHERE application_code <> '';
 
 CREATE INDEX IF NOT EXISTS idx_visa_registrations_passport_number
     ON visa_registrations (passport_number);
