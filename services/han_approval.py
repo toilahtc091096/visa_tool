@@ -34,6 +34,7 @@ from database.crud.approval_print_job import (
 )
 from database.crud.visa_registration import (
     get_visa_registration_by_application_code,
+    list_existing_visa_registration_application_codes,
 )
 from utils import log_exception, load_login_payload, log_event
 
