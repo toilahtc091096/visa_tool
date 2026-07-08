@@ -702,11 +702,7 @@ def build_family_info_profile(
     else:
         notApplyItems_src = not_apply_items
 
-    children_src = []
-    if old_children != []:
-        children_src = old_children if old_children != [] else child_info
-    else:
-        children_src = child_info
+    children_src = child_info if child_info else old_children
 
     spouses_src = []
     if old_spouses != []:
@@ -745,7 +741,7 @@ def build_family_info_profile(
             if old_haveSpouseFlag
             else ("" if haveSpouseFlag is not True else haveSpouseFlag)
         ),
-        "haveChildFlag": "" if haveSpouseFlag is not True else haveSpouseFlag,
+        "haveChildFlag": "" if haveChildFlag is not True else haveChildFlag,
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
         "children": [_to_dict(i) for i in (children_src or [])],
         "relatives": [_to_dict(i) for i in (relative_src or [])],
