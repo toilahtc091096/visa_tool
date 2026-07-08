@@ -12,42 +12,61 @@ from utils import (
     notify,
 )
 
-DATA_LOCAL_DIR = Path(__file__).resolve().parent / ".." / "resources" / "data"
+DATA_RESOURCE_DIR = Path(__file__).resolve().parent / ".." / "resources"
 DATA_R2_PREFIX = "data/"
 _DOWNLOADED_PREFIXES: set[str] = set()
 _DOWNLOADED_BUSINESS_FOLDERS: set[str] = set()
+_CURRENT_DATA_FOLDER: Path | None = None
+
+
+def _sanitize_folder_suffix(value: str) -> str:
+    text = str(value or "").strip().strip('"').strip("'")
+    text = "".join(ch for ch in text if ch.isalnum() or ch in {"_", "-"})
+    return text or "default"
+
+
+def _passport_data_dir(prefix: str) -> Path:
+    return DATA_RESOURCE_DIR / f"data_{_sanitize_folder_suffix(prefix)}"
 
 
 def ensure_data_folder_downloaded(
     prefix: str = DATA_R2_PREFIX,
     extra_prefixes: list[str] | tuple[str, ...] | None = None,
 ) -> None:
+    global _CURRENT_DATA_FOLDER
     prefixes = [prefix, *(extra_prefixes or [])]
     for item in prefixes:
         normalized = str(item or "").strip()
         if not normalized:
             continue
-        if normalized in _DOWNLOADED_PREFIXES and DATA_LOCAL_DIR.exists():
+        target_dir = _passport_data_dir(normalized)
+        if normalized in _DOWNLOADED_PREFIXES and target_dir.exists():
+            _CURRENT_DATA_FOLDER = target_dir
             continue
-        download_r2_folder(prefix=normalized, local_dir=str(DATA_LOCAL_DIR))
+        download_r2_folder(prefix=normalized, local_dir=str(target_dir))
         _DOWNLOADED_PREFIXES.add(normalized)
+        _CURRENT_DATA_FOLDER = target_dir
 
 
 def cleanup_data_folder() -> None:
     global _DOWNLOADED_PREFIXES, _DOWNLOADED_BUSINESS_FOLDERS
-    if DATA_LOCAL_DIR.exists():
-        for path in sorted(DATA_LOCAL_DIR.rglob("*"), reverse=True):
-            if path.is_file() or path.is_symlink():
-                path.unlink(missing_ok=True)
-            elif path.is_dir():
-                path.rmdir()
-        DATA_LOCAL_DIR.rmdir()
+    global _CURRENT_DATA_FOLDER
+    for path in sorted(DATA_RESOURCE_DIR.glob("data_*"), reverse=True):
+        if path.is_dir():
+            for item in sorted(path.rglob("*"), reverse=True):
+                if item.is_file() or item.is_symlink():
+                    item.unlink(missing_ok=True)
+                elif item.is_dir():
+                    item.rmdir()
+            path.rmdir()
     _DOWNLOADED_PREFIXES = set()
     _DOWNLOADED_BUSINESS_FOLDERS = set()
+    _CURRENT_DATA_FOLDER = None
 
 
 def get_files(folder_path, x):
-    folder = DATA_LOCAL_DIR / folder_path.lstrip("/\\")
+    folder_base = _CURRENT_DATA_FOLDER or DATA_RESOURCE_DIR
+    folder = folder_base / folder_path.lstrip("/\\")
     if not folder.exists() or not folder.is_dir():
         return []
 
@@ -91,9 +110,9 @@ def get_passport_file_path(passport_folder: str, prefix: str) -> str | None:
 
     folder_name = str(passport_folder or "").strip().lstrip("/\\")
     folder = (
-        DATA_LOCAL_DIR
+        _CURRENT_DATA_FOLDER
         if not folder_name or folder_name.lower() == "resrouces/data"
-        else DATA_LOCAL_DIR / folder_name
+        else (_CURRENT_DATA_FOLDER or DATA_RESOURCE_DIR) / folder_name
     )
     if not folder.exists() or not folder.is_dir():
         return None
@@ -134,11 +153,11 @@ def ensure_company_doanh_nghiep_downloaded(company_passport: str) -> None:
 
     print(
         f"[company_download] downloading prefix={normalized}/doanh-nghiep "
-        f"to local_dir={DATA_LOCAL_DIR / 'doanh-nghiep'}"
+        f"to local_dir={DATA_RESOURCE_DIR / 'doanh-nghiep'}"
     )
     download_r2_folder(
         prefix=f"{normalized}/doanh-nghiep",
-        local_dir=str(DATA_LOCAL_DIR / "doanh-nghiep"),
+        local_dir=str(DATA_RESOURCE_DIR / "doanh-nghiep"),
     )
     _DOWNLOADED_BUSINESS_FOLDERS.add(target_key)
     print(f"[company_download] done: {normalized}")
