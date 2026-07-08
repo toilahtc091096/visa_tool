@@ -211,10 +211,12 @@ async def convert_input_pdfs(request: Request):
 async def han_approval_process(
     start_scan: str = Query("", alias="start-scan"),
     end_scan: str = Query("", alias="end-scan"),
+    authorization: str = Query("", alias="authorization"),
 ):
     return await process_han_approval_inbox(
         start_scan=start_scan,
         end_scan=end_scan,
+        authorization=authorization,
     )
 
 

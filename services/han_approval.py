@@ -36,7 +36,7 @@ from database.crud.visa_registration import (
     get_visa_registration_by_application_code,
     list_existing_visa_registration_application_codes,
 )
-from utils import log_exception, load_login_payload, log_event
+from utils import append_authorization, log_exception, load_login_payload, log_event
 
 
 def _env(name: str, default: str = "") -> str:
@@ -639,12 +639,15 @@ def _save_pdf_attachments(
 async def process_han_approval_inbox(
     start_scan: str = "",
     end_scan: str = "",
+    authorization: str = "",
 ) -> dict[str, Any]:
     has_explicit_start = bool(str(start_scan or "").strip())
     start_scan_dt = _parse_start_scan(start_scan)
     scan_start_day = start_scan_dt.date()
     end_scan_day = _parse_scan_day(end_scan)
     scan_end_day = end_scan_day if has_explicit_start and end_scan_day else scan_start_day
+    if authorization.strip():
+        append_authorization(authorization)
     allowed_senders = _parse_allowed_sender_addresses()
     log_event(
         {
@@ -956,6 +959,7 @@ async def process_han_approval_inbox(
                                     client=http_client,
                                     applyid=applyid,
                                     credential_key=credential_key,
+                                    authorization=authorization,
                                     output_dir=code_dir,
                                 )
                             )

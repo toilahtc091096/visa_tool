@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 from typing import Any
@@ -7,8 +8,9 @@ from urllib.parse import urljoin
 
 import httpx
 
+from api.api_login import login
 from utils import build_upload_headers, log_event
-from utils.token_store import load_login_payload
+from utils.token_store import load_login_payload, save_login_data
 
 
 def _extract_candidate_link(data: Any) -> str:
@@ -45,6 +47,7 @@ async def api_download_application_form(
     client: httpx.AsyncClient,
     applyid: str,
     credential_key: str = "",
+    authorization: str = "",
     output_dir: str | Path | None = None,
 ) -> tuple[bool, dict[str, Any]]:
     applyid = str(applyid).strip()
@@ -111,37 +114,79 @@ async def api_download_application_form(
     # if credential_key:
     #     headers["x-credential-key"] = credential_key
 
-    resp = await client.post(
-        url,
-        headers=headers,
-        data={
-            "applyid": applyid,
-            "_t": str(int(time.time() * 1000)),
-        },
-    )
-    is_json = resp.headers.get("content-type", "").lower().startswith("application/json")
-    log_event(
-        {
-            "level": "info",
-            "component": "api_download_application_form",
-            "state": "response_received",
-            "applyid": applyid,
-            "status_code": resp.status_code,
-            "content_type": resp.headers.get("content-type", ""),
-        }
-    )
-    content_type = resp.headers.get("content-type", "").lower()
-    content_disposition = resp.headers.get("content-disposition", "")
-    data: dict[str, Any]
-    if is_json:
-        try:
-            data = resp.json()
-        except ValueError:
-            data = {"raw": ""}
-    else:
-        data = {}
+    async def _post_once() -> tuple[httpx.Response, dict[str, Any], str, str]:
+        resp = await client.post(
+            url,
+            headers=headers,
+            data={
+                "applyid": applyid,
+                "_t": str(int(time.time() * 1000)),
+            },
+        )
+        is_json = resp.headers.get("content-type", "").lower().startswith("application/json")
+        log_event(
+            {
+                "level": "info",
+                "component": "api_download_application_form",
+                "state": "response_received",
+                "applyid": applyid,
+                "status_code": resp.status_code,
+                "content_type": resp.headers.get("content-type", ""),
+            }
+        )
+        content_type_inner = resp.headers.get("content-type", "").lower()
+        content_disposition_inner = resp.headers.get("content-disposition", "")
+        if is_json:
+            try:
+                data_inner = resp.json()
+            except ValueError:
+                data_inner = {"raw": ""}
+        else:
+            data_inner = {}
+        return resp, data_inner, content_type_inner, content_disposition_inner
 
+    resp, data, content_type, content_disposition = await _post_once()
     ok = resp.status_code in (200, 201)
+
+    if not ok and authorization.strip():
+        log_event(
+            {
+                "level": "warn",
+                "component": "api_download_application_form",
+                "state": "request_failed_retry_login",
+                "applyid": applyid,
+                "status_code": resp.status_code,
+            }
+        )
+        try:
+            login_response = await asyncio.to_thread(login, authorization.strip())
+            if login_response.data is None:
+                raise RuntimeError("login_returned_empty_data")
+            save_login_data(login_response.data)
+            payload_after_login = load_login_payload()
+            token = str(payload_after_login.get("token", "") or "").strip()
+            tmp_secret = str(payload_after_login.get("tmpSecret", "") or "").strip()
+            email = str(payload_after_login.get("userEmail", "") or "").strip()
+            guid = str(payload_after_login.get("guid", "") or "").strip()
+            headers = build_upload_headers(
+                token=token,
+                tmp_secret=tmp_secret,
+                email=email,
+                guid=guid or "",
+            )
+            resp, data, content_type, content_disposition = await _post_once()
+            ok = resp.status_code in (200, 201)
+        except Exception as exc:
+            log_event(
+                {
+                    "level": "error",
+                    "component": "api_download_application_form",
+                    "state": "request_failed_retry_login_error",
+                    "applyid": applyid,
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            )
+
     result: dict[str, Any] = {
         "status_code": resp.status_code,
         "response": data,
