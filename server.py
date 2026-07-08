@@ -15,6 +15,7 @@ from main import build_case, main
 from services.han_approval import (
     list_han_approval_jobs,
     process_han_approval_inbox,
+    reset_han_approval_printed_status,
     retry_han_approval_jobs,
 )
 from services import sync_draft_visa_registrations
@@ -223,6 +224,14 @@ async def han_approval_process(
 @app.get("/han-approval/jobs")
 def han_approval_jobs(limit: int = 100, offset: int = 0):
     return list_han_approval_jobs(limit=limit, offset=offset)
+
+
+@app.patch("/han-approval/reset-printed-status")
+def han_approval_reset_printed_status(
+    start: str = Query("", alias="start"),
+    end: str = Query("", alias="end"),
+):
+    return reset_han_approval_printed_status(start=start, end=end)
 
 
 @app.patch("/han-approval/retry")

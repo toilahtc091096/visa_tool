@@ -19,6 +19,7 @@ from database.crud.approval_print_job import (
     update_approval_print_job_by_han_code,
     update_approval_print_job_status_by_codes,
     update_approval_print_job_status_by_ids,
+    reset_approval_print_jobs_by_printed_range,
     upsert_approval_print_job_processing,
 )
 
@@ -41,5 +42,6 @@ __all__ = [
     "update_approval_print_job_by_han_code",
     "update_approval_print_job_status_by_codes",
     "update_approval_print_job_status_by_ids",
+    "reset_approval_print_jobs_by_printed_range",
     "upsert_approval_print_job_processing",
 ]

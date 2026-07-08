@@ -163,6 +163,31 @@ def update_approval_print_job_status_by_codes(
         conn.close()
 
 
+def reset_approval_print_jobs_by_printed_range(
+    start_dt,
+    end_dt,
+) -> int:
+    sql = """
+        UPDATE han_approval_jobs
+        SET status = 'not_print',
+            last_error = '',
+            printed_at = NULL,
+            updated_at = NOW()
+        WHERE printed_at >= %s
+          AND printed_at < %s
+          AND status = 'printed'
+    """
+
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (start_dt, end_dt))
+                return cursor.rowcount
+    finally:
+        conn.close()
+
+
 def list_approval_print_jobs(limit: int = 100, offset: int = 0) -> list[dict[str, Any]]:
     sql = """
         SELECT *

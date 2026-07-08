@@ -27,6 +27,7 @@ from api import api_download_application_form
 from database.crud.approval_print_job import (
     get_approval_print_job_by_han_code,
     list_approval_print_jobs,
+    reset_approval_print_jobs_by_printed_range,
     update_approval_print_job_by_han_code,
     update_approval_print_job_status_by_codes,
     update_approval_print_job_status_by_ids,
@@ -311,6 +312,22 @@ def _parse_scan_day(value: str | None) -> date | None:
             except ValueError:
                 continue
     return None
+
+
+def _parse_range_start(value: str | None) -> datetime:
+    tz = _get_local_timezone()
+    day = _parse_scan_day(value)
+    if day is None:
+        return datetime.combine(datetime.now(tz).date(), dt_time.min, tzinfo=tz)
+    return datetime.combine(day, dt_time.min, tzinfo=tz)
+
+
+def _parse_range_end(value: str | None) -> datetime:
+    tz = _get_local_timezone()
+    day = _parse_scan_day(value)
+    if day is None:
+        return datetime.combine(datetime.now(tz).date(), dt_time.max, tzinfo=tz)
+    return datetime.combine(day + timedelta(days=1), dt_time.min, tzinfo=tz)
 
 
 def _get_local_timezone() -> tzinfo:
@@ -1288,4 +1305,19 @@ def list_han_approval_jobs(limit: int = 100, offset: int = 0) -> dict[str, Any]:
     return {
         "ok": True,
         "items": list_approval_print_jobs(limit=limit, offset=offset),
+    }
+
+
+def reset_han_approval_printed_status(
+    start: str = "",
+    end: str = "",
+) -> dict[str, Any]:
+    start_dt = _parse_range_start(start)
+    end_dt = _parse_range_end(end if end.strip() else start)
+    updated = reset_approval_print_jobs_by_printed_range(start_dt, end_dt)
+    return {
+        "ok": True,
+        "updated": updated,
+        "start": start_dt.isoformat(),
+        "end": end_dt.isoformat(),
     }
