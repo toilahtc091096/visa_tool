@@ -210,8 +210,12 @@ async def convert_input_pdfs(request: Request):
 @app.get("/han-approval/process")
 async def han_approval_process(
     start_scan: str = Query("", alias="start-scan"),
+    end_scan: str = Query("", alias="end-scan"),
 ):
-    return await process_han_approval_inbox(start_scan=start_scan)
+    return await process_han_approval_inbox(
+        start_scan=start_scan,
+        end_scan=end_scan,
+    )
 
 
 @app.get("/han-approval/jobs")

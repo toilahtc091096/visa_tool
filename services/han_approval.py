@@ -11,7 +11,7 @@ import smtplib
 import traceback
 import unicodedata
 import zipfile
-from datetime import datetime, time as dt_time, timedelta, timezone, tzinfo
+from datetime import date, datetime, time as dt_time, timedelta, timezone, tzinfo
 from email.header import decode_header, make_header
 from email.message import EmailMessage, Message
 from email.policy import default as email_default_policy
@@ -34,7 +34,6 @@ from database.crud.approval_print_job import (
 )
 from database.crud.visa_registration import (
     get_visa_registration_by_application_code,
-    list_existing_visa_registration_application_codes,
 )
 from utils import log_exception, load_login_payload, log_event
 
@@ -46,6 +45,10 @@ def _env(name: str, default: str = "") -> str:
 def _env_bool(name: str, default: bool = False) -> bool:
     value = _env(name, "1" if default else "0").lower()
     return value in {"1", "true", "yes", "on"}
+
+
+def _is_match_with_database_enabled() -> bool:
+    return _env_bool("IS_MATCH_WITH_DATABASE", False)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -218,6 +221,48 @@ def _zip_download_root(download_root: Path) -> Path:
     return zip_path
 
 
+def _zip_download_folders(download_root: Path, folder_names: list[str]) -> Path:
+    zip_path = download_root.with_suffix(".zip")
+    if zip_path.exists():
+        zip_path.unlink()
+
+    normalized_folder_names = [
+        str(folder_name).strip()
+        for folder_name in folder_names
+        if str(folder_name).strip()
+    ]
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "download_folder_batch_zip_start",
+            "download_root": str(download_root),
+            "zip_path": str(zip_path),
+            "folder_names": normalized_folder_names,
+        }
+    )
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for folder_name in normalized_folder_names:
+            folder_path = download_root / folder_name
+            if not folder_path.exists() or not folder_path.is_dir():
+                continue
+            for path in sorted(folder_path.rglob("*")):
+                if path.is_file():
+                    zip_file.write(path, path.relative_to(download_root))
+    log_event(
+        {
+            "level": "info",
+            "component": "han_approval",
+            "state": "download_folder_batch_zip_done",
+            "download_root": str(download_root),
+            "zip_path": str(zip_path),
+            "folder_count": len(normalized_folder_names),
+            "byte_size": zip_path.stat().st_size if zip_path.exists() else 0,
+        }
+    )
+    return zip_path
+
+
 def _cleanup_download_artifacts(download_root: Path, zip_path: Path) -> None:
     errors: list[str] = []
     for path in (download_root, zip_path):
@@ -239,6 +284,32 @@ def _cleanup_download_artifacts(download_root: Path, zip_path: Path) -> None:
             "errors": errors,
         }
     )
+
+
+def _chunked(items: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
+    if size <= 0:
+        return [items]
+    return [items[index : index + size] for index in range(0, len(items), size)]
+
+
+def _parse_scan_day(value: str | None) -> date | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+
+    raw = raw.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(raw)
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(_get_local_timezone())
+        return parsed.date()
+    except ValueError:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                return datetime.strptime(raw, fmt).date()
+            except ValueError:
+                continue
+    return None
 
 
 def _get_local_timezone() -> tzinfo:
@@ -564,8 +635,15 @@ def _save_pdf_attachments(
     return saved_paths
 
 
-async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
+async def process_han_approval_inbox(
+    start_scan: str = "",
+    end_scan: str = "",
+) -> dict[str, Any]:
+    has_explicit_start = bool(str(start_scan or "").strip())
     start_scan_dt = _parse_start_scan(start_scan)
+    scan_start_day = start_scan_dt.date()
+    end_scan_day = _parse_scan_day(end_scan)
+    scan_end_day = end_scan_day if has_explicit_start and end_scan_day else scan_start_day
     allowed_senders = _parse_allowed_sender_addresses()
     log_event(
         {
@@ -573,6 +651,7 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
             "component": "han_approval",
             "state": "process_start",
             "start_scan": start_scan_dt.isoformat(),
+            "end_scan": scan_end_day.isoformat() if scan_end_day else "",
             "allowed_senders": sorted(allowed_senders),
         }
     )
@@ -612,6 +691,18 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
 
         imap_search_terms = [term for term in search_criteria.split() if term]
         imap_search_terms.extend(["SINCE", _imap_date(start_scan_dt)])
+        imap_search_terms.extend(
+            [
+                "BEFORE",
+                _imap_date(
+                    datetime.combine(
+                        scan_end_day + timedelta(days=1),
+                        dt_time.min,
+                        tzinfo=_get_local_timezone(),
+                    )
+                ),
+            ]
+        )
         log_event(
             {
                 "level": "info",
@@ -698,25 +789,26 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
                 )
                 continue
 
-            existing_application_codes = (
-                list_existing_visa_registration_application_codes(codes)
-            )
-            matched_codes = [
-                code for code in codes if code in existing_application_codes
-            ]
-            if not matched_codes:
-                summary["skipped"] += 1
-                summary["items"].append(
-                    {
-                        "message_id": message_id,
-                        "subject": subject,
-                        "ok": False,
-                        "reason": "han_code_not_in_application_code",
-                        "han_codes": codes,
-                    }
+            if _is_match_with_database_enabled():
+                existing_application_codes = (
+                    list_existing_visa_registration_application_codes(codes)
                 )
-                continue
-            codes = matched_codes
+                matched_codes = [
+                    code for code in codes if code in existing_application_codes
+                ]
+                if not matched_codes:
+                    summary["skipped"] += 1
+                    summary["items"].append(
+                        {
+                            "message_id": message_id,
+                            "subject": subject,
+                            "ok": False,
+                            "reason": "han_code_not_in_application_code",
+                            "han_codes": codes,
+                        }
+                    )
+                    continue
+                codes = matched_codes
 
             summary["matched_messages"] += 1
             log_event(
@@ -990,115 +1082,153 @@ async def process_han_approval_inbox(start_scan: str = "") -> dict[str, Any]:
             )
 
         if pending_email_items:
-            zip_path: Path | None = None
-            try:
-                zip_path = _zip_download_root(download_root)
-                han_codes = [str(item.get("han_code", "")) for item in pending_email_items]
-                log_event(
-                    {
-                        "level": "info",
-                        "component": "han_approval",
-                        "state": "email_batch_send_prepare",
-                        "han_codes": han_codes,
-                        "count": len(pending_email_items),
-                        "download_root": str(download_root),
-                        "zip_path": str(zip_path),
-                    }
-                )
-                notify_result = _smtp_send(
-                    subject=f"HAN approvals printed: {len(pending_email_items)}",
-                    body=(
-                        "HAN approval files are attached as one folder zip.\n\n"
-                        "HAN codes:\n"
-                        + "\n".join(f"- {code}" for code in han_codes)
-                        + "\n\n"
-                        f"Download folder: {download_root}\n"
-                        f"Zip file: {zip_path}\n"
-                    ),
-                    attachments=[str(zip_path)],
-                )
-                if not notify_result.get("ok"):
-                    raise RuntimeError(f"send_email_failed: {notify_result}")
-
-                for item in pending_email_items:
-                    han_code = str(item.get("han_code", ""))
-                    attachment_paths = item.get("attachment_paths")
-                    application_form_path = str(item.get("application_form_path", ""))
-                    update_approval_print_job_by_han_code(
-                        han_code=han_code,
-                        status="printed",
-                        attachment_paths=(
-                            attachment_paths if isinstance(attachment_paths, list) else []
-                        ),
-                        application_form_path=application_form_path,
-                        last_error="",
-                    )
-                    summary["printed"] += 1
-                    summary["processed"] += 1
-                    summary["items"].append(
-                        {
-                            "han_code": han_code,
-                            "ok": True,
-                            "status": "printed",
-                            "record": item.get("record"),
-                            "attachment_paths": attachment_paths,
-                            "application_form_path": application_form_path,
-                            "email_sent_to": notify_result.get("recipients", []),
-                            "email_attachment": str(zip_path),
-                        }
+            batch_size = max(1, _env_int("HAN_APPROVAL_EMAIL_BATCH_SIZE", 10))
+            email_batches = _chunked(pending_email_items, batch_size)
+            log_event(
+                {
+                    "level": "info",
+                    "component": "han_approval",
+                    "state": "email_batch_split",
+                    "total_items": len(pending_email_items),
+                    "batch_size": batch_size,
+                    "batch_count": len(email_batches),
+                }
+            )
+            for batch_index, batch_items in enumerate(email_batches, start=1):
+                zip_path: Path | None = None
+                try:
+                    batch_han_codes = [str(item.get("han_code", "")) for item in batch_items]
+                    zip_path = _zip_download_folders(
+                        download_root,
+                        batch_han_codes,
                     )
                     log_event(
                         {
                             "level": "info",
                             "component": "han_approval",
-                            "state": "han_processing_done",
-                            "han_code": han_code,
-                            "status": "printed",
+                            "state": "email_batch_send_prepare",
+                            "batch_index": batch_index,
+                            "batch_count": len(email_batches),
+                            "han_codes": batch_han_codes,
+                            "count": len(batch_items),
+                            "download_root": str(download_root),
+                            "zip_path": str(zip_path),
                         }
                     )
+                    notify_result = _smtp_send(
+                        subject=(
+                            f"HAN approvals printed: "
+                            f"{len(batch_items)} (batch {batch_index}/{len(email_batches)})"
+                        ),
+                        body=(
+                            "HAN approval files are attached as one batch zip.\n\n"
+                            "HAN codes:\n"
+                            + "\n".join(f"- {code}" for code in batch_han_codes)
+                            + "\n\n"
+                            f"Download folder: {download_root}\n"
+                            f"Zip file: {zip_path}\n"
+                        ),
+                        attachments=[str(zip_path)],
+                    )
+                    if not notify_result.get("ok"):
+                        raise RuntimeError(f"send_email_failed: {notify_result}")
 
-                log_event(
-                    {
-                        "level": "info",
-                        "component": "han_approval",
-                        "state": "email_batch_sent",
-                        "recipients": notify_result.get("recipients", []),
-                        "han_codes": han_codes,
-                        "zip_path": str(zip_path),
-                    }
-                )
-                _cleanup_download_artifacts(download_root, zip_path)
-            except Exception as exc:
-                error_text = f"{type(exc).__name__}: {exc}"
-                log_event(
-                    {
-                        "level": "error",
-                        "component": "han_approval",
-                        "state": "email_batch_failed",
-                        "error": error_text,
-                        "zip_path": str(zip_path) if zip_path else "",
-                    }
-                )
-                for item in pending_email_items:
-                    han_code = str(item.get("han_code", ""))
-                    update_approval_print_job_by_han_code(
-                        han_code=han_code,
-                        status="not_print",
-                        attachment_paths=None,
-                        application_form_path=str(item.get("application_form_path", "")),
-                        last_error=error_text,
-                    )
-                    summary["failed"] += 1
-                    summary["items"].append(
+                    for item in batch_items:
+                        han_code = str(item.get("han_code", ""))
+                        attachment_paths = item.get("attachment_paths")
+                        application_form_path = str(item.get("application_form_path", ""))
+                        update_approval_print_job_by_han_code(
+                            han_code=han_code,
+                            status="printed",
+                            attachment_paths=(
+                                attachment_paths if isinstance(attachment_paths, list) else []
+                            ),
+                            application_form_path=application_form_path,
+                            last_error="",
+                        )
+                        summary["printed"] += 1
+                        summary["processed"] += 1
+                        summary["items"].append(
+                            {
+                                "han_code": han_code,
+                                "ok": True,
+                                "status": "printed",
+                                "record": item.get("record"),
+                                "attachment_paths": attachment_paths,
+                                "application_form_path": application_form_path,
+                                "email_sent_to": notify_result.get("recipients", []),
+                                "email_attachment": str(zip_path),
+                            }
+                        )
+                        log_event(
+                            {
+                                "level": "info",
+                                "component": "han_approval",
+                                "state": "han_processing_done",
+                                "han_code": han_code,
+                                "status": "printed",
+                                "batch_index": batch_index,
+                            }
+                        )
+
+                    log_event(
                         {
-                            "han_code": han_code,
-                            "ok": False,
-                            "status": "not_print",
-                            "record": item.get("record"),
-                            "error": error_text,
+                            "level": "info",
+                            "component": "han_approval",
+                            "state": "email_batch_sent",
+                            "batch_index": batch_index,
+                            "batch_count": len(email_batches),
+                            "recipients": notify_result.get("recipients", []),
+                            "han_codes": batch_han_codes,
+                            "zip_path": str(zip_path),
                         }
                     )
-                log_exception(exc, {"path": "process_han_approval_inbox_batch_email"})
+                except Exception as exc:
+                    error_text = f"{type(exc).__name__}: {exc}"
+                    log_event(
+                        {
+                            "level": "error",
+                            "component": "han_approval",
+                            "state": "email_batch_failed",
+                            "batch_index": batch_index,
+                            "error": error_text,
+                            "zip_path": str(zip_path) if zip_path else "",
+                        }
+                    )
+                    for item in batch_items:
+                        han_code = str(item.get("han_code", ""))
+                        update_approval_print_job_by_han_code(
+                            han_code=han_code,
+                            status="not_print",
+                            attachment_paths=None,
+                            application_form_path=str(item.get("application_form_path", "")),
+                            last_error=error_text,
+                        )
+                        summary["failed"] += 1
+                        summary["items"].append(
+                            {
+                                "han_code": han_code,
+                                "ok": False,
+                                "status": "not_print",
+                                "record": item.get("record"),
+                                "error": error_text,
+                            }
+                        )
+                    log_exception(
+                        exc,
+                        {
+                            "path": "process_han_approval_inbox_batch_email",
+                            "batch_index": batch_index,
+                        },
+                    )
+                    break
+                finally:
+                    if zip_path is not None and zip_path.exists():
+                        try:
+                            zip_path.unlink()
+                        except Exception:
+                            pass
+            _cleanup_download_artifacts(download_root, download_root.with_suffix(".zip"))
     except Exception as exc:
         summary["ok"] = False
         summary["error"] = f"{type(exc).__name__}: {exc}"
