@@ -1,17 +1,20 @@
+from __future__ import annotations
+
+import asyncio
 from typing import Any
 
 import httpx
 
-from utils import build_upload_headers
-
-
+from api.api_login import login
 from constants import CHECK_OLD_LIST_BASE_URL
+from utils import build_upload_headers
+from utils.token_store import load_login_payload, save_login_data
 
 
 async def api_list_online_applications(
     client: httpx.AsyncClient,
     token: str,
-    tmp_secret:str,
+    tmp_secret: str,
     passportNo: str,
     pageNum: int = 1,
     pageSize: int = 10,
@@ -25,11 +28,9 @@ async def api_list_online_applications(
     """
     try:
         url = f"{CHECK_OLD_LIST_BASE_URL}/application/online/list"
-        # url = "https://bio.visaforchina.cn/onlineWeb/personalCenter/visa/historyForms?centerId=HAN3&site=HAN3_VI&language=vi_VN&userType=02&token=eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiMDFlYjhhYzctYTYzMC00MWE4LTk0MGEtODBhZWVmMzZmNTZkIn0.1vbVdFaIC7lmLT3StJOMDlhju_ahqS1kMCX-K545DfAgjVVa3lF809bdN3SZKdRM5mr6oSZefsE11j--XntV8A&username=wmtravelvn@gmail.com&time=1779780433442&routerPath=/HAN3_VI/qianzhengyewu"
         params = {"pageNum": pageNum, "pageSize": pageSize}
         headers = build_upload_headers(token, tmp_secret, authorization=authorization)
         payload = {"passportNo": passportNo}
-        # eyJhbGciOiJIUzUxMiJ9.eyJ3ZWJzaXRlX2xvZ2luX3VzZXJfa2V5IjoiMDFlYjhhYzctYTYzMC00MWE4LTk0MGEtODBhZWVmMzZmNTZkIn0.1vbVdFaIC7lmLT3StJOMDlhju_ahqS1kMCX-K545DfAgjVVa3lF809bdN3SZKdRM5mr6oSZefsE11j--XntV8A
         resp = await client.post(url, params=params, headers=headers, json=payload)
         data = (
             resp.json()
@@ -69,6 +70,35 @@ async def api_get_list_by_han_code(
 ) -> tuple[bool, dict[str, Any]]:
     """POST to ``{base_url}/application/online/list?pageNum=&pageSize=`` using ``applicationNo``."""
     try:
+        token = str(token or "").strip()
+        tmp_secret = str(tmp_secret or "").strip()
+        auth = str(authorization or "").strip()
+
+        if not token or not tmp_secret:
+            if not auth:
+                return False, {
+                    "status_code": -1,
+                    "error": "missing_token_tmpSecret_and_authorization",
+                }
+
+            login_response = await asyncio.to_thread(login, auth)
+            if login_response.data is None:
+                return False, {
+                    "status_code": -1,
+                    "error": "login_returned_empty_data",
+                }
+
+            save_login_data(login_response.data)
+            payload = load_login_payload()
+            token = str(payload.get("token", "") or "").strip()
+            tmp_secret = str(payload.get("tmpSecret", "") or "").strip()
+
+            if not token or not tmp_secret:
+                return False, {
+                    "status_code": -1,
+                    "error": "missing_token_or_tmpSecret_after_login",
+                }
+
         url = f"{CHECK_OLD_LIST_BASE_URL}/application/online/list"
         params = {"pageNum": pageNum, "pageSize": pageSize}
         headers = build_upload_headers(token, tmp_secret, authorization=authorization)
@@ -96,5 +126,6 @@ async def api_get_list_by_han_code(
             "status_code": -1,
             "error": str(e),
         }
+
 
 api_get_list_by_han_code = api_get_list_by_han_code

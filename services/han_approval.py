@@ -1001,6 +1001,7 @@ async def process_han_approval_inbox(
                                         token=load_token(),
                                         tmp_secret=load_tmpSecret(),
                                         han_code=han_code,
+                                        authorization=authorization
                                     )
                                 )
                                 if not list_ok:

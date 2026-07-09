@@ -4,3 +4,5 @@ __pycache__/
 run.log
 resources/token.json
 .env.phong
+resources/phong_token.json
+resources/han_approval_downloads/
