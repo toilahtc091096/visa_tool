@@ -13,6 +13,7 @@ from PyPDF2 import PdfMerger
 from docx2pdf import convert
 
 from utils import pdf_helper
+from generate_file.path_utils import passport_data_dir
 
 
 def _build_l30_names(
@@ -41,7 +42,9 @@ def _build_l30_names(
 
 
 async def render_docx_template_output_pdf(
-    payload: dict[str, Any], output_path: str = ""
+    payload: dict[str, Any],
+    output_path: str = "",
+    passport_number: str = "",
 ) -> str:
     """
     Render a DOCX template with docxtpl asynchronously.
@@ -64,7 +67,7 @@ async def render_docx_template_output_pdf(
     haveChildFlag: bool = payload.get("haveChildFlag", False)
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
-    output_base = Path(__file__).resolve().parent / ".." / "resources/data"
+    output_base = passport_data_dir(passport_number)
     src = (templates_base / file_name).resolve()
     out_dir = (output_base / output_path).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -147,7 +150,11 @@ async def render_docx_template_output_pdf(
     return str(pdf_out)  # return PDF, not DOCX
 
 
-async def render_L30_hotel(payload: dict[str, Any], output_path: str = "") -> str:
+async def render_L30_hotel(
+    payload: dict[str, Any],
+    output_path: str = "",
+    passport_number: str = "",
+) -> str:
     """
     Render a DOCX template with docxtpl asynchronously.
 
@@ -172,7 +179,7 @@ async def render_L30_hotel(payload: dict[str, Any], output_path: str = "") -> st
     haveChildFlag: bool = payload.get("haveChildFlag", False)
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
-    output_base = Path(__file__).resolve().parent / ".." / "resources/data"
+    output_base = passport_data_dir(passport_number or payload.get("passportNumber", ""))
     srcs = []
     for i, hotel in enumerate(L_30_HOTEL_INFO):
         srcs.append(templates_base / hotel.get("documentName"))

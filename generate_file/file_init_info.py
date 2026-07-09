@@ -6,6 +6,7 @@ import re
 from docxtpl import DocxTemplate
 
 from generate_file.docx_to_pdf import convert_docx_to_pdf
+from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
 
 
@@ -175,13 +176,14 @@ Sau khi ăn sáng, quý khách trả phòng và về Hà Nội. Kết thúc hàn
 async def render_init_pdf(
     payload: dict[str, Any],
     output_path: str = "",
+    passport_number: str = "",
 ) -> str:
     file_name: str = payload.get("file_name")
     names: list[str] = payload.get("names", [])
     first: date = payload.get("first")
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
-    output_base = Path(__file__).resolve().parent / ".." / "resources" / "data"
+    output_base = passport_data_dir(passport_number)
 
     src = (templates_base / file_name).resolve()
 

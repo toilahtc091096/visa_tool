@@ -286,7 +286,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             }
             print(f"payload for hotel file: {payload}")
             await hotel_info.render_docx_template_output_pdf(
-                payload, L_15_HOTEL_OUTPUT_PATH
+                payload, L_15_HOTEL_OUTPUT_PATH, ctx.passportNumber
             )
             log_event({"step": "genenrate hotel file", "ok": "ok"})
         except Exception as e:
@@ -309,7 +309,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "is_under_18": ctx.is_under_18,
                 "haveChildFlag": ctx.haveChildFlag,
             }
-            await hotel_info.render_L30_hotel(payload, L_15_HOTEL_OUTPUT_PATH)
+            await hotel_info.render_L30_hotel(
+                payload, L_15_HOTEL_OUTPUT_PATH, ctx.passportNumber
+            )
             log_event({"step": "genenrate hotel file", "ok": "ok"})
         except Exception as e:
             log_exception(e, {"event": "render_failed_L30"})
@@ -391,7 +393,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 e, {"event": "render_failed", "file": payload.get("file_name")}
             )
         await flight_info.render_flight_ticket_output_pdf(
-            payload, L_15_TICKET_OUTPUT_PATH
+            payload, L_15_TICKET_OUTPUT_PATH, ctx.passportNumber
         )
 
     ctx.ticket_names = [ctx.vietnamese_name]
@@ -423,7 +425,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     except Exception as e:
         log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
     await cv_info.render_docx_template_output_pdf(
-        payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH
+        payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.passportNumber
     )
 
     if ctx.visa_type == "L30":
@@ -455,6 +457,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         await file_init_info.render_init_pdf(
             payload,
             L_15_TRAVEL_PLAN_OUTPUT_PATH,
+            ctx.passportNumber,
         )
 
     return True

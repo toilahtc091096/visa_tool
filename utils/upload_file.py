@@ -65,9 +65,20 @@ def cleanup_data_folder() -> None:
 
 
 def get_files(folder_path, x):
-    folder_base = _CURRENT_DATA_FOLDER or DATA_RESOURCE_DIR
-    folder = folder_base / folder_path.lstrip("/\\")
-    if not folder.exists() or not folder.is_dir():
+    relative_folder = folder_path.lstrip("/\\")
+    search_bases = []
+    if _CURRENT_DATA_FOLDER:
+        search_bases.append(_CURRENT_DATA_FOLDER)
+    search_bases.append(DATA_RESOURCE_DIR)
+
+    folder = None
+    for folder_base in search_bases:
+        candidate = folder_base / relative_folder
+        if candidate.exists() and candidate.is_dir():
+            folder = candidate
+            break
+
+    if folder is None:
         return []
 
     files = [f for f in folder.iterdir() if f.is_file()]

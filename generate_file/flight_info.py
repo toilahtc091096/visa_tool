@@ -9,9 +9,12 @@ from utils import pdf_helper
 from utils import date_util
 import random
 from generate_file.docx_to_pdf import convert_docx_to_pdf
+from generate_file.path_utils import passport_data_dir
 
 async def render_flight_ticket_output_pdf(
-    payload: dict[str, Any], output_path: str = ""
+    payload: dict[str, Any],
+    output_path: str = "",
+    passport_number: str = "",
 ) -> str:
     """
     Render a DOCX template with docxtpl asynchronously.
@@ -34,7 +37,7 @@ async def render_flight_ticket_output_pdf(
         end: date | None = date.fromisoformat(stays[-1]["leaveDate"])
     
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
-    output_base = Path(__file__).resolve().parent / ".." / "resources/data"
+    output_base = passport_data_dir(passport_number)
     src = (templates_base / file_name).resolve()
     out_dir = (output_base / output_path).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
