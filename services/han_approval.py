@@ -187,6 +187,17 @@ def _subject_or_body_has_keyword(subject: str, body: str) -> bool:
     return _normalize_text(keyword) in _normalize_text(combined)
 
 
+def _approval_from_label() -> str:
+    return _env("FROM_LABEL", "")
+
+
+def _approval_printed_subject_prefix() -> str:
+    from_label = _approval_from_label()
+    if from_label:
+        return f"HAN approvals printed from {from_label}"
+    return "HAN approvals printed"
+
+
 def _download_root() -> Path:
     base = _env("HAN_DOWNLOAD_DIR", "").strip() or "resources/han_approval_downloads"
     return Path(base).resolve()
@@ -1139,7 +1150,7 @@ async def process_han_approval_inbox(
                     )
                     notify_result = _smtp_send(
                         subject=(
-                            f"HAN approvals printed: "
+                            f"{_approval_printed_subject_prefix()}: "
                             f"{len(batch_items)} (batch {batch_index}/{len(email_batches)})"
                         ),
                         body=(
