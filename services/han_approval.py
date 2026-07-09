@@ -391,11 +391,35 @@ def _parse_allowed_sender_addresses() -> set[str]:
     }
 
 
+def _parse_allowed_to_addresses() -> set[str]:
+    raw = _env("TO_EMAIL", "")
+    if not raw:
+        return set()
+    return {
+        address.strip().casefold()
+        for _name, address in getaddresses([raw])
+        if address.strip()
+    }
+
+
 def _extract_sender_addresses(message: Message) -> set[str]:
     from_header = message.get("From", "") or ""
     return {
         address.strip().casefold()
         for _name, address in getaddresses([from_header])
+        if address.strip()
+    }
+
+
+def _extract_recipient_addresses(message: Message) -> set[str]:
+    to_header = message.get("To", "") or ""
+    cc_header = message.get("Cc", "") or ""
+    headers = [header for header in (to_header, cc_header) if header]
+    if not headers:
+        return set()
+    return {
+        address.strip().casefold()
+        for _name, address in getaddresses(headers)
         if address.strip()
     }
 
@@ -677,6 +701,7 @@ async def process_han_approval_inbox(
     if authorization.strip():
         append_authorization(authorization)
     allowed_senders = _parse_allowed_sender_addresses()
+    allowed_to = _parse_allowed_to_addresses()
     log_event(
         {
             "level": "info",
@@ -685,6 +710,7 @@ async def process_han_approval_inbox(
             "start_scan": start_scan_dt.isoformat(),
             "end_scan": scan_end_day.isoformat() if scan_end_day else "",
             "allowed_senders": sorted(allowed_senders),
+            "allowed_to": sorted(allowed_to),
         }
     )
     summary: dict[str, Any] = {
@@ -722,6 +748,10 @@ async def process_han_approval_inbox(
         )
 
         imap_search_terms = [term for term in search_criteria.split() if term]
+        for address in sorted(allowed_senders):
+            imap_search_terms.extend(["FROM", address])
+        for address in sorted(allowed_to):
+            imap_search_terms.extend(["TO", address])
         imap_search_terms.extend(["SINCE", _imap_date(start_scan_dt)])
         imap_search_terms.extend(
             [
@@ -797,6 +827,11 @@ async def process_han_approval_inbox(
             message_dt = _extract_message_datetime(message)
             sender_addresses = _extract_sender_addresses(message)
             if allowed_senders and not (sender_addresses & allowed_senders):
+                summary["skipped"] += 1
+                continue
+
+            recipient_addresses = _extract_recipient_addresses(message)
+            if allowed_to and not (recipient_addresses & allowed_to):
                 summary["skipped"] += 1
                 continue
 
