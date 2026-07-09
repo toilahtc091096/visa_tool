@@ -8,6 +8,10 @@ from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
 from fastapi.responses import JSONResponse
+from pdf2image import convert_from_bytes
+import boto3
+import io
+import uuid
 
 from api import api_convert_input_pdfs
 from database.connection import init_database
@@ -279,8 +283,54 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
                     "message": str(e),
                     "traceback": tb,
                 },
-            )
+        )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+_r2_s3_client = boto3.client(
+    "s3",
+    endpoint_url=os.getenv("R2_ENDPOINT_URL"),
+    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
+    region_name="auto",
+)
+
+_r2_bucket_name = os.getenv("R2_BUCKET_NAME")
+
+
+@app.post("/pdf-to-images")
+async def pdf_to_images(file: UploadFile = File(...)):
+    pdf_bytes = await file.read()
+    pages = convert_from_bytes(pdf_bytes, dpi=300)
+
+    images = []
+    public_base = os.getenv("R2_PUBLIC_BASE", "").rstrip("/")
+
+    for page_number, page in enumerate(pages, start=1):
+        buffer = io.BytesIO()
+        page.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        key = f"output/{uuid.uuid4()}_page_{page_number}.png"
+        _r2_s3_client.upload_fileobj(
+            buffer,
+            _r2_bucket_name,
+            key,
+            ExtraArgs={"ContentType": "image/png"},
+        )
+
+        images.append(
+            {
+                "page": page_number,
+                "key": key,
+                "url": f"{public_base}/{key}" if public_base else key,
+            }
+        )
+
+    return {
+        "count": len(images),
+        "images": images,
+    }
 
 
 if __name__ == "__main__":
