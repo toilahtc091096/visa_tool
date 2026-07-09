@@ -4,6 +4,7 @@ import unicodedata
 from typing import Any
 
 from flows import run_flow
+from flows.flow_step.common import normalize_visa_type
 from utils import load_authorization
 
 DEFAULT_CASE: dict[str, Any] = {
@@ -38,6 +39,7 @@ DEFAULT_CASE: dict[str, Any] = {
     "entries_type": "S",
     "type_of_visa_sub_value": "I",
     "service_type": "N",
+    "visa_duration": "",
     "arrivedChinaFlag": False,
     "ct08_province_city_code": "",
     "haveChinaVisaFlag": False,
@@ -138,6 +140,15 @@ def build_case(case: dict[str, Any] | None = None) -> dict[str, Any]:
     merged = dict(DEFAULT_CASE)
     if case:
         merged.update(case)
+    raw_visa_type = str(merged.get("visa_type", "") or "").strip().upper()
+    raw_visa_duration = str(merged.get("visa_duration", "") or "").strip().upper()
+    visa_type, visa_duration = normalize_visa_type(
+        raw_visa_type,
+        raw_visa_duration,
+    )
+    merged["visa_type_raw"] = raw_visa_type
+    merged["visa_type"] = raw_visa_type or merged.get("visa_type", "")
+    merged["visa_duration"] = raw_visa_duration or visa_duration
     merged["register_date"] = _normalize_register_date(merged.get("register_date"))
     merged["province_city_code"] = _normalize_province_city_code(
         merged.get("province_city_code")
@@ -166,6 +177,7 @@ def main(
     departureDate: str = "",
     fixed_arrived: str | None = None,
     fixed_departure: str | None = None,
+    visa_duration: str = "",
     inviteCompanyName: str = "",
     company_address: str = "",
     inviteProvince: str = "",
@@ -200,10 +212,13 @@ def main(
         data["addition_adults"] = _normalize_name_list(addition_adults)
     if addition_child is not None:
         data["addition_child"] = _normalize_name_list(addition_child)
+    if visa_duration not in (None, ""):
+        data["visa_duration"] = str(visa_duration).strip().upper()
     asyncio.run(
         run_flow(
             data["authorization"],
             data["visa_type"],
+            data.get("visa_duration", ""),
             data["passport_type_code"],
             data["register_date"],
             data["guest_name"],

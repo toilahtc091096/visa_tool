@@ -1,6 +1,27 @@
 from types import SimpleNamespace
 
 
+def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, str]:
+    raw_type = str(visa_type or "").strip().upper()
+    raw_duration = str(visa_duration or "").strip().upper()
+
+    if raw_type in {"M30", "M90"}:
+        return "M", raw_type[1:]
+
+    if raw_type == "M":
+        if raw_duration in {"30", "90"}:
+            return "M", raw_duration
+        return "M", "90"
+
+    if raw_type.startswith("L") and raw_type[1:] in {"15", "30"}:
+        return raw_type, raw_type[1:]
+
+    if raw_duration in {"15", "30", "90"}:
+        return raw_type, raw_duration
+
+    return raw_type, ""
+
+
 def get_in(d, *keys, default=None):
     cur = d
     for k in keys:
@@ -16,8 +37,15 @@ def build_flow_context(**kwargs):
     ctx = SimpleNamespace(**kwargs)
     ctx.token = kwargs.get("token", "")
     ctx.tmp_secret = kwargs.get("tmp_secret", "")
-    ctx.first_letter_visa_type = kwargs.get("visa_type", "")[:1]
-    ctx.last_letter_visa_type = kwargs.get("visa_type", "")[1:]
+    raw_visa_type = str(kwargs.get("visa_type", "") or "").strip().upper()
+    raw_visa_duration = str(kwargs.get("visa_duration", "") or "").strip().upper()
+    ctx.visa_type_raw = raw_visa_type
+    ctx.visa_type, ctx.visa_duration = normalize_visa_type(
+        raw_visa_type,
+        raw_visa_duration,
+    )
+    ctx.first_letter_visa_type = ctx.visa_type[:1]
+    ctx.last_letter_visa_type = ctx.visa_duration or ctx.visa_type[1:]
     ctx.first_applyid = kwargs.get("first_applyid", "")
     ctx.passportNumber = kwargs.get("passportNumber", "")
     ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", False)

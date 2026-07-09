@@ -23,7 +23,9 @@ def save_draft_visa_registration(ctx) -> int | None:
             getattr(ctx.ocr_data.Response.Data, "passportNumber", "") or ""
         ).strip()
 
-    visa_type = (getattr(ctx, "visa_type", "") or "").strip()
+    visa_type = (
+        (getattr(ctx, "visa_type_raw", "") or getattr(ctx, "visa_type", "")) or ""
+    ).strip()
 
     if not first_applyid or not full_name or not passport_number or not visa_type:
         log_event(

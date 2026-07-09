@@ -31,6 +31,7 @@ def _normalize_name_list(value) -> list[str]:
 async def run_flow(
     authorization: str,
     visa_type: str,
+    visa_duration: str,
     passport_type_code: str,
     register_date: date,
     guest_name: list[str],
@@ -107,6 +108,7 @@ async def run_flow(
     ctx = build_flow_context(
         authorization=authorization,
         visa_type=visa_type,
+        visa_duration=visa_duration,
         passport_type_code=passport_type_code,
         register_date=register_date,
         guest_name=guest_name,
