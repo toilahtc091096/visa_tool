@@ -87,6 +87,7 @@ def build_flow_context(**kwargs):
     ctx.old_relatives = []
     ctx.old_haveSpouseFlag = False
     ctx.old_spouses = []
+    ctx.fileId = ""
     ctx.hotel_type = 0
     ctx.flight_ticket = 0
     ctx.m = None
