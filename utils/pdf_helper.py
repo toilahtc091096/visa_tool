@@ -8,20 +8,28 @@ from env_loader import load_dotenv
 load_dotenv()
 
 _DEFAULT_DLL_DIRS = [
-    r"C:\msys64\mingw64\bin",
     r"C:\msys64\ucrt64\bin",
+    r"C:\msys64\mingw64\bin",
 ]
 
 
 def _configure_weasyprint_dll_search_path() -> None:
     dll_dirs_raw = os.environ.get("WEASYPRINT_DLL_DIRECTORIES", "")
     dll_dirs = [
-        directory.strip()
-        for directory in dll_dirs_raw.split(";")
-        if directory.strip()
+        directory.strip() for directory in dll_dirs_raw.split(";") if directory.strip()
     ]
     if not dll_dirs:
-        dll_dirs = [directory for directory in _DEFAULT_DLL_DIRS if Path(directory).exists()]
+        # Use one MSYS2 runtime at a time. Mixing ucrt64 and mingw64 can make
+        # Windows resolve transitive DLLs from the wrong runtime and fail with
+        # "cannot load library ... error 0x7e".
+        dll_dirs = next(
+            (
+                [directory]
+                for directory in _DEFAULT_DLL_DIRS
+                if Path(directory).exists()
+            ),
+            [],
+        )
         if dll_dirs:
             os.environ["WEASYPRINT_DLL_DIRECTORIES"] = ";".join(dll_dirs)
 
@@ -57,6 +65,7 @@ def convert_html_to_pdf(html_content: bytes) -> str:
 
 
 from pypdf import PdfReader, PdfWriter
+
 
 def remove_last_blank_page(pdf_path: str):
     reader = PdfReader(pdf_path)

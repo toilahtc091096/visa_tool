@@ -42,8 +42,9 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
             f"company_passport={company_passport}"
         )
         ensure_company_doanh_nghiep_downloaded(company_passport)
+    data_passport_number = getattr(ctx, "input_passportNumber", ctx.passportNumber)
     passport_file_path = get_passport_file_path(
-        PASSPORT_FILE_FOLDER, prefix=ctx.passportNumber
+        PASSPORT_FILE_FOLDER, prefix=data_passport_number
     )
     if not passport_file_path:
         await notify(
