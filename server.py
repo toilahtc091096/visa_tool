@@ -283,7 +283,7 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
                     "message": str(e),
                     "traceback": tb,
                 },
-        )
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
 
