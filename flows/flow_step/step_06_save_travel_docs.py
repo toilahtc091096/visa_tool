@@ -310,7 +310,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 "haveChildFlag": ctx.haveChildFlag,
             }
             await hotel_info.render_L30_hotel(
-                payload, L_15_HOTEL_OUTPUT_PATH, ctx.passportNumber
+                payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
             )
             log_event({"step": "genenrate hotel file", "ok": "ok"})
         except Exception as e:
