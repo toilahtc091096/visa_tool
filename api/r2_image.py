@@ -84,6 +84,70 @@ def _decode_base64_image(image_base64: str) -> bytes:
         raise ValueError("invalid_image_base64") from exc
 
 
+def api_delete_r2_objects(
+    *,
+    key: str = "",
+    prefix: str = "",
+) -> dict[str, Any]:
+    missing = _missing_r2_env_vars()
+    if missing:
+        return {"ok": False, "error": "missing_r2_env_vars", "missing": missing}
+
+    normalized_key = str(key or "").strip().lstrip("/")
+    normalized_prefix = str(prefix or "").strip().lstrip("/")
+
+    if not normalized_key and not normalized_prefix:
+        return {"ok": False, "error": "missing_key_or_prefix"}
+
+    client = _build_r2_client()
+
+    try:
+        if normalized_key:
+            client.delete_object(Bucket=R2_BUCKET_NAME, Key=normalized_key)
+            return {
+                "ok": True,
+                "mode": "delete_key",
+                "bucket": R2_BUCKET_NAME,
+                "key": normalized_key,
+                "deleted": 1,
+            }
+
+        prefix_value = normalized_prefix
+        if prefix_value and not prefix_value.endswith("/"):
+            prefix_value += "/"
+
+        paginator = client.get_paginator("list_objects_v2")
+        deleted_count = 0
+        for page in paginator.paginate(Bucket=R2_BUCKET_NAME, Prefix=prefix_value):
+            contents = page.get("Contents", [])
+            if not contents:
+                continue
+
+            keys = [{"Key": obj["Key"]} for obj in contents]
+            resp = client.delete_objects(
+                Bucket=R2_BUCKET_NAME,
+                Delete={"Objects": keys, "Quiet": True},
+            )
+            deleted_count += len(resp.get("Deleted", []))
+            errors = resp.get("Errors", [])
+            if errors:
+                return {
+                    "ok": False,
+                    "error": "delete_errors",
+                    "errors": errors,
+                }
+
+        return {
+            "ok": True,
+            "mode": "delete_prefix",
+            "bucket": R2_BUCKET_NAME,
+            "prefix": prefix_value,
+            "deleted": deleted_count,
+        }
+    except Exception as exc:
+        return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+
+
 def api_sign_and_push_image_to_r2(
     *,
     mode: str = "upload",

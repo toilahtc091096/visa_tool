@@ -14,6 +14,7 @@ import io
 import uuid
 
 from api import api_convert_input_pdfs
+from api import api_delete_r2_objects
 from api import api_sign_and_push_image_to_r2
 from database.connection import init_database
 from main import build_case, main
@@ -322,6 +323,20 @@ async def r2_images(
         "content_type": content_type,
         "expires_in": expires_in,
         "has_file": file is not None,
+    }
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@app.post("/r2/images/delete")
+def r2_images_delete(payload: dict[str, Any] = Body(...)):
+    key = str(payload.get("key", "") or "").strip()
+    prefix = str(payload.get("prefix", "") or "").strip()
+    result = api_delete_r2_objects(key=key, prefix=prefix)
+    result["request"] = {
+        "key": key,
+        "prefix": prefix,
     }
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result)
