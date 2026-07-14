@@ -14,6 +14,7 @@ import io
 import uuid
 
 from api import api_convert_input_pdfs
+from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
 from api import api_sign_and_push_image_to_r2
@@ -362,6 +363,27 @@ def r2_images_get(
     return Response(
         content=content,
         media_type=content_type,
+        headers=headers,
+    )
+
+
+@app.get("/r2/folders/download")
+def r2_folders_download(prefix: str = Query("")):
+    result = api_download_r2_folder_zip(prefix)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result)
+
+    content = result.get("content", b"")
+    prefix_text = str(result.get("prefix") or prefix or "").rstrip("/")
+    folder_name = prefix_text.rsplit("/", 1)[-1] if prefix_text else "r2-folder"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{folder_name}.zip"',
+        "X-R2-File-Count": str(result.get("file_count", 0)),
+        "X-R2-Total-Size": str(result.get("total_size", 0)),
+    }
+    return Response(
+        content=content,
+        media_type="application/zip",
         headers=headers,
     )
 

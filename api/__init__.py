@@ -28,6 +28,7 @@ _EXPORTS = {
     ),
     "api_download_r2_object": ("r2_download", "api_download_r2_object"),
     "api_download_r2_object_bytes": ("r2_download", "api_download_r2_object_bytes"),
+    "api_download_r2_folder_zip": ("r2_download", "api_download_r2_folder_zip"),
     "api_upload_r2_object": ("r2_upload", "api_upload_r2_object"),
     "api_delete_r2_objects": ("r2_image", "api_delete_r2_objects"),
     "api_sign_and_push_image_to_r2": ("r2_image", "api_sign_and_push_image_to_r2"),
