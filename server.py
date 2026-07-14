@@ -7,13 +7,14 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pdf2image import convert_from_bytes
 import boto3
 import io
 import uuid
 
 from api import api_convert_input_pdfs
+from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
 from api import api_sign_and_push_image_to_r2
 from database.connection import init_database
@@ -341,6 +342,28 @@ def r2_images_delete(payload: dict[str, Any] = Body(...)):
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result)
     return result
+
+
+@app.get("/r2/images/get")
+def r2_images_get(
+    key: str = Query(""),
+    download: bool = Query(False),
+):
+    result = api_download_r2_object_bytes(key)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result)
+
+    content = result.get("content", b"")
+    content_type = str(result.get("content_type") or "application/octet-stream")
+    filename = key.rsplit("/", 1)[-1] if key else "file"
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers=headers,
+    )
 
 
 _r2_s3_client = boto3.client(
