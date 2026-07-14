@@ -59,6 +59,16 @@ def cleanup_data_folder() -> None:
                 elif item.is_dir():
                     item.rmdir()
             path.rmdir()
+
+    business_dir = DATA_RESOURCE_DIR / "doanh-nghiep"
+    if business_dir.exists() and business_dir.is_dir():
+        for item in sorted(business_dir.rglob("*"), reverse=True):
+            if item.is_file() or item.is_symlink():
+                item.unlink(missing_ok=True)
+            elif item.is_dir():
+                item.rmdir()
+        business_dir.rmdir()
+
     _DOWNLOADED_PREFIXES = set()
     _DOWNLOADED_BUSINESS_FOLDERS = set()
     _CURRENT_DATA_FOLDER = None

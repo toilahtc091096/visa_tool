@@ -14,6 +14,7 @@ import io
 import uuid
 
 from api import api_convert_input_pdfs
+from api import api_sign_and_push_image_to_r2
 from database.connection import init_database
 from main import build_case, main
 from services.han_approval import (
@@ -285,6 +286,46 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
                 },
             )
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/r2/images")
+async def r2_images(
+    request: Request,
+    mode: str = Form("upload"),
+    folder: str = Form(""),
+    key: str = Form(""),
+    filename: str = Form(""),
+    content_type: str = Form(""),
+    expires_in: int = Form(900),
+    image_base64: str = Form(""),
+    file: UploadFile | None = File(None),
+):
+    file_bytes = await file.read() if file is not None else None
+    result = api_sign_and_push_image_to_r2(
+        mode=mode,
+        folder=folder,
+        key=key,
+        filename=filename,
+        content_type=content_type,
+        expires_in=expires_in,
+        image_base64=image_base64,
+        file_bytes=file_bytes,
+        file_name=file.filename if file is not None else "",
+        file_content_type=file.content_type if file is not None else "",
+    )
+    result["request"] = {
+        "method": request.method,
+        "mode": mode,
+        "folder": folder,
+        "key": key,
+        "filename": filename,
+        "content_type": content_type,
+        "expires_in": expires_in,
+        "has_file": file is not None,
+    }
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
 
 
 _r2_s3_client = boto3.client(
