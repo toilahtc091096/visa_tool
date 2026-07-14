@@ -283,7 +283,7 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
                     "message": str(e),
                     "traceback": tb,
                 },
-        )
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -301,7 +301,9 @@ _r2_bucket_name = os.getenv("R2_BUCKET_NAME")
 @app.post("/pdf-to-images")
 async def pdf_to_images(file: UploadFile = File(...)):
     pdf_bytes = await file.read()
-    pages = convert_from_bytes(pdf_bytes, dpi=300)
+    pages = convert_from_bytes(
+        pdf_bytes, dpi=300, poppler_path="C:/poppler-26.02.0/Library/bin"
+    )
 
     images = []
     public_base = os.getenv("R2_PUBLIC_BASE", "").rstrip("/")
