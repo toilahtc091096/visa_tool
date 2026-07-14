@@ -179,7 +179,9 @@ async def render_L30_hotel(
     haveChildFlag: bool = payload.get("haveChildFlag", False)
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
-    output_base = passport_data_dir(passport_number or payload.get("passportNumber", ""))
+    output_base = passport_data_dir(
+        passport_number or payload.get("passportNumber", "")
+    )
     srcs = []
     for i, hotel in enumerate(L_30_HOTEL_INFO):
         srcs.append(templates_base / hotel.get("documentName"))

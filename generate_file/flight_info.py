@@ -11,6 +11,7 @@ import random
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 
+
 async def render_flight_ticket_output_pdf(
     payload: dict[str, Any],
     output_path: str = "",
@@ -35,7 +36,7 @@ async def render_flight_ticket_output_pdf(
     if visa_type == "L30":
         stays = date_util.build_three_stays(first)
         end: date | None = date.fromisoformat(stays[-1]["leaveDate"])
-    
+
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = passport_data_dir(passport_number)
     src = (templates_base / file_name).resolve()

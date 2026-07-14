@@ -16,7 +16,8 @@ async def upload_files(
     upload_config_keys=None,
 ) -> bool:
     ctx.step = "Step 9 Upload File"
-    ensure_data_folder_downloaded(ctx.passportNumber)
+    data_passport_number = getattr(ctx, "input_passportNumber", ctx.passportNumber)
+    ensure_data_folder_downloaded(data_passport_number)
     if str(getattr(ctx, "visa_type", "")).strip().upper().startswith("M"):
         ensure_company_doanh_nghiep_downloaded(getattr(ctx, "company_passport", ""))
     cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[ctx.visa_type]
@@ -76,4 +77,3 @@ async def upload_files(
                     ctx.first_applyid,
                 )
     return True
- 

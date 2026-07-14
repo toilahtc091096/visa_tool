@@ -48,6 +48,7 @@ def build_flow_context(**kwargs):
     ctx.last_letter_visa_type = ctx.visa_duration or ctx.visa_type[1:]
     ctx.first_applyid = kwargs.get("first_applyid", "")
     ctx.passportNumber = kwargs.get("passportNumber", "")
+    ctx.input_passportNumber = ctx.passportNumber
     ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", False)
     ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", False)
     ctx.is_private = kwargs.get("is_private", False)
@@ -87,6 +88,7 @@ def build_flow_context(**kwargs):
     ctx.old_relatives = []
     ctx.old_haveSpouseFlag = False
     ctx.old_spouses = []
+    ctx.fileId = ""
     ctx.hotel_type = 0
     ctx.flight_ticket = 0
     ctx.m = None
