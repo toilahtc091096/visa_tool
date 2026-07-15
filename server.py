@@ -9,7 +9,6 @@ from typing import Any
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
 from fastapi.responses import JSONResponse, Response
 from pdf2image import convert_from_bytes
-import boto3
 import io
 import uuid
 
@@ -29,6 +28,7 @@ from services.han_approval import (
 from services import sync_draft_visa_registrations
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
+from utils.r2_env import build_r2_client
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -388,17 +388,6 @@ def r2_folders_download(prefix: str = Query("")):
     )
 
 
-_r2_s3_client = boto3.client(
-    "s3",
-    endpoint_url=os.getenv("R2_ENDPOINT_URL"),
-    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
-    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
-    region_name="auto",
-)
-
-_r2_bucket_name = os.getenv("R2_BUCKET_NAME")
-
-
 @app.post("/pdf-to-images")
 async def pdf_to_images(file: UploadFile = File(...)):
     pdf_bytes = await file.read()
@@ -408,6 +397,7 @@ async def pdf_to_images(file: UploadFile = File(...)):
 
     images = []
     public_base = os.getenv("R2_PUBLIC_BASE", "").rstrip("/")
+    _r2_s3_client, r2_config = build_r2_client(log=True)
 
     for page_number, page in enumerate(pages, start=1):
         buffer = io.BytesIO()
@@ -417,7 +407,7 @@ async def pdf_to_images(file: UploadFile = File(...)):
         key = f"output/{uuid.uuid4()}_page_{page_number}.png"
         _r2_s3_client.upload_fileobj(
             buffer,
-            _r2_bucket_name,
+            r2_config.bucket_name,
             key,
             ExtraArgs={"ContentType": "image/png"},
         )

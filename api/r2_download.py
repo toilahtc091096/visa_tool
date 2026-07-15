@@ -6,12 +6,7 @@ from typing import Any
 import boto3
 from botocore.config import Config
 
-from constants import (
-    R2_ACCESS_KEY_ID,
-    R2_BUCKET_NAME,
-    R2_ENDPOINT_URL,
-    R2_SECRET_ACCESS_KEY,
-)
+from utils.r2_env import get_active_r2_config
 
 
 def api_download_r2_object(key: str, target_dir: str | Path) -> dict[str, Any]:
@@ -28,17 +23,18 @@ def api_download_r2_object(key: str, target_dir: str | Path) -> dict[str, Any]:
     filename = Path(key).name
     local_path = target_path / filename
 
+    config = get_active_r2_config(log=True)
     client = boto3.client(
         "s3",
-        endpoint_url=R2_ENDPOINT_URL,
-        aws_access_key_id=R2_ACCESS_KEY_ID,
-        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        endpoint_url=config.endpoint_url,
+        aws_access_key_id=config.access_key_id,
+        aws_secret_access_key=config.secret_access_key,
         config=Config(signature_version="s3v4"),
     )
-    client.download_file(R2_BUCKET_NAME, key, str(local_path))
+    client.download_file(config.bucket_name, key, str(local_path))
     return {
         "ok": True,
-        "bucket": R2_BUCKET_NAME,
+        "bucket": config.bucket_name,
         "key": key,
         "local_path": str(local_path),
     }
@@ -52,18 +48,19 @@ def api_download_r2_object_bytes(key: str) -> dict[str, Any]:
             "error": "missing_key",
         }
 
+    config = get_active_r2_config(log=True)
     client = boto3.client(
         "s3",
-        endpoint_url=R2_ENDPOINT_URL,
-        aws_access_key_id=R2_ACCESS_KEY_ID,
-        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        endpoint_url=config.endpoint_url,
+        aws_access_key_id=config.access_key_id,
+        aws_secret_access_key=config.secret_access_key,
         config=Config(signature_version="s3v4"),
     )
-    resp = client.get_object(Bucket=R2_BUCKET_NAME, Key=key)
+    resp = client.get_object(Bucket=config.bucket_name, Key=key)
     body = resp["Body"].read()
     return {
         "ok": True,
-        "bucket": R2_BUCKET_NAME,
+        "bucket": config.bucket_name,
         "key": key,
         "content": body,
         "content_type": resp.get("ContentType", "application/pdf"),
@@ -82,11 +79,12 @@ def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
     if prefix and not prefix.endswith("/"):
         prefix += "/"
 
+    config = get_active_r2_config(log=True)
     client = boto3.client(
         "s3",
-        endpoint_url=R2_ENDPOINT_URL,
-        aws_access_key_id=R2_ACCESS_KEY_ID,
-        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        endpoint_url=config.endpoint_url,
+        aws_access_key_id=config.access_key_id,
+        aws_secret_access_key=config.secret_access_key,
         config=Config(signature_version="s3v4"),
     )
 
@@ -96,13 +94,13 @@ def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
     total_size = 0
 
     with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for page in paginator.paginate(Bucket=R2_BUCKET_NAME, Prefix=prefix):
+        for page in paginator.paginate(Bucket=config.bucket_name, Prefix=prefix):
             for obj in page.get("Contents", []):
                 key = str(obj.get("Key") or "").strip()
                 if not key or key.endswith("/"):
                     continue
 
-                resp = client.get_object(Bucket=R2_BUCKET_NAME, Key=key)
+                resp = client.get_object(Bucket=config.bucket_name, Key=key)
                 body = resp["Body"].read()
                 relative_name = key[len(prefix):].lstrip("/")
                 if not relative_name:
@@ -115,7 +113,7 @@ def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
     zip_buffer.seek(0)
     return {
         "ok": True,
-        "bucket": R2_BUCKET_NAME,
+        "bucket": config.bucket_name,
         "prefix": prefix,
         "content": zip_buffer.getvalue(),
         "content_type": "application/zip",

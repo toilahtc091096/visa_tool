@@ -10,35 +10,26 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import boto3
-from botocore.config import Config
-
-from constants import R2_ACCESS_KEY_ID, R2_BUCKET_NAME, R2_ENDPOINT_URL, R2_SECRET_ACCESS_KEY
+from utils.r2_env import build_r2_client
 
 
 _SAFE_SUFFIX_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 def _build_r2_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=R2_ENDPOINT_URL,
-        aws_access_key_id=R2_ACCESS_KEY_ID,
-        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-        region_name="auto",
-        config=Config(signature_version="s3v4"),
-    )
+    client, config = build_r2_client(log=True)
+    return client, config
 
 
 def _missing_r2_env_vars() -> list[str]:
     missing: list[str] = []
-    if not R2_ENDPOINT_URL:
+    if not os.getenv("R2_ENDPOINT_URL", "").strip():
         missing.append("R2_ENDPOINT_URL")
-    if not R2_ACCESS_KEY_ID:
+    if not os.getenv("R2_ACCESS_KEY_ID", "").strip():
         missing.append("R2_ACCESS_KEY_ID")
-    if not R2_SECRET_ACCESS_KEY:
+    if not os.getenv("R2_SECRET_ACCESS_KEY", "").strip():
         missing.append("R2_SECRET_ACCESS_KEY")
-    if not R2_BUCKET_NAME:
+    if not os.getenv("R2_BUCKET_NAME", "").strip():
         missing.append("R2_BUCKET_NAME")
     return missing
 
@@ -99,15 +90,14 @@ def api_delete_r2_objects(
     if not normalized_key and not normalized_prefix:
         return {"ok": False, "error": "missing_key_or_prefix"}
 
-    client = _build_r2_client()
-
     try:
+        client, config = _build_r2_client()
         if normalized_key:
-            client.delete_object(Bucket=R2_BUCKET_NAME, Key=normalized_key)
+            client.delete_object(Bucket=config.bucket_name, Key=normalized_key)
             return {
                 "ok": True,
                 "mode": "delete_key",
-                "bucket": R2_BUCKET_NAME,
+                "bucket": config.bucket_name,
                 "key": normalized_key,
                 "deleted": 1,
             }
@@ -118,14 +108,14 @@ def api_delete_r2_objects(
 
         paginator = client.get_paginator("list_objects_v2")
         deleted_count = 0
-        for page in paginator.paginate(Bucket=R2_BUCKET_NAME, Prefix=prefix_value):
+        for page in paginator.paginate(Bucket=config.bucket_name, Prefix=prefix_value):
             contents = page.get("Contents", [])
             if not contents:
                 continue
 
             keys = [{"Key": obj["Key"]} for obj in contents]
             resp = client.delete_objects(
-                Bucket=R2_BUCKET_NAME,
+                Bucket=config.bucket_name,
                 Delete={"Objects": keys, "Quiet": True},
             )
             deleted_count += len(resp.get("Deleted", []))
@@ -140,7 +130,7 @@ def api_delete_r2_objects(
         return {
             "ok": True,
             "mode": "delete_prefix",
-            "bucket": R2_BUCKET_NAME,
+            "bucket": config.bucket_name,
             "prefix": prefix_value,
             "deleted": deleted_count,
         }
@@ -165,7 +155,7 @@ def api_sign_and_push_image_to_r2(
     if missing:
         return {"ok": False, "error": "missing_r2_env_vars", "missing": missing}
 
-    client = _build_r2_client()
+    client, config = _build_r2_client()
 
     normalized_mode = str(mode or "upload").strip().lower()
     if normalized_mode not in {"upload", "presign"}:
@@ -183,7 +173,7 @@ def api_sign_and_push_image_to_r2(
             upload_url = client.generate_presigned_url(
                 ClientMethod="put_object",
                 Params={
-                    "Bucket": R2_BUCKET_NAME,
+                    "Bucket": config.bucket_name,
                     "Key": target_key,
                     "ContentType": _guess_content_type(
                         filename or file_name or target_key,
@@ -199,7 +189,7 @@ def api_sign_and_push_image_to_r2(
         return {
             "ok": True,
             "mode": "presign",
-            "bucket": R2_BUCKET_NAME,
+            "bucket": config.bucket_name,
             "key": target_key,
             "expires_in": max(60, int(expires_in)),
             "upload_url": upload_url,
@@ -225,7 +215,7 @@ def api_sign_and_push_image_to_r2(
     resolved_content_type = _guess_content_type(source_name, source_content_type)
     client.upload_fileobj(
         Fileobj=io.BytesIO(payload),
-        Bucket=R2_BUCKET_NAME,
+        Bucket=config.bucket_name,
         Key=target_key,
         ExtraArgs={"ContentType": resolved_content_type},
     )
@@ -234,7 +224,7 @@ def api_sign_and_push_image_to_r2(
     return {
         "ok": True,
         "mode": "upload",
-        "bucket": R2_BUCKET_NAME,
+        "bucket": config.bucket_name,
         "key": target_key,
         "size": len(payload),
         "content_type": resolved_content_type,
