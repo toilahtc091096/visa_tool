@@ -148,14 +148,29 @@ def get_passport_file_path(passport_folder: str, prefix: str) -> str | None:
         ".tif",
         ".tiff",
     }
-    first_file = next(
-        (
-            p
-            for p in folder.rglob("*")
-            if p.is_file() and p.suffix.lower() in image_extensions
-        ),
-        None,
-    )
+    search_roots = []
+    passport_dir = folder / "passport"
+    if passport_dir.exists() and passport_dir.is_dir():
+        search_roots.append(passport_dir)
+    search_roots.append(folder)
+
+    def _find_first_image(paths):
+        for root in paths:
+            for p in root.rglob("*"):
+                if p.is_file() and p.suffix.lower() in image_extensions:
+                    return p
+        return None
+
+    first_file = _find_first_image(search_roots)
+    if first_file is None:
+        first_file = next(
+            (
+                p
+                for p in folder.rglob("*")
+                if p.is_file() and p.suffix.lower() in image_extensions
+            ),
+            None,
+        )
 
     file_path = str(first_file) if first_file else None
     return file_path

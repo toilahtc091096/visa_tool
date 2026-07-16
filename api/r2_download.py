@@ -111,6 +111,15 @@ def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
 
     zip_size = zip_buffer.getbuffer().nbytes
     zip_buffer.seek(0)
+    if file_count == 0:
+        return {
+            "ok": False,
+            "error": "no_objects_found",
+            "bucket": config.bucket_name,
+            "prefix": prefix,
+            "file_count": 0,
+            "total_size": 0,
+        }
     return {
         "ok": True,
         "bucket": config.bucket_name,
