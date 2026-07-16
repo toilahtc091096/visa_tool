@@ -19,9 +19,14 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
 
     if os.name == "nt":
+        import pythoncom
         from docx2pdf import convert as docx2pdf_convert
 
-        docx2pdf_convert(str(source), str(target))
+        pythoncom.CoInitialize()
+        try:
+            docx2pdf_convert(str(source), str(target))
+        finally:
+            pythoncom.CoUninitialize()
         return
 
     soffice = shutil.which("soffice") or shutil.which("libreoffice")
