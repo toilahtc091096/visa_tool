@@ -35,6 +35,7 @@ from database.crud.approval_print_job import (
 )
 from database.crud.visa_registration import (
     get_visa_registration_by_application_code,
+    get_visa_registration_by_passport,
     list_existing_visa_registration_application_codes,
 )
 from utils import append_authorization, log_exception, load_login_payload, log_event
@@ -950,7 +951,38 @@ async def process_han_approval_inbox(
             concurrency = max(1, _env_int("HAN_APPROVAL_CONCURRENCY", 5))
             semaphore = asyncio.Semaphore(concurrency)
             passport_list_results: dict[str, tuple[bool, dict[str, Any]]] = {}
+            database_applyids_by_han_code: dict[str, str] = {}
             if passport_numbers:
+                passport_database_rows = await asyncio.gather(
+                    *(
+                        asyncio.to_thread(
+                            get_visa_registration_by_passport,
+                            passport_number,
+                        )
+                        for passport_number in passport_numbers
+                    )
+                )
+                for database_row in passport_database_rows:
+                    if not database_row:
+                        continue
+                    database_han_code = str(
+                        database_row.get("application_code") or ""
+                    ).strip()
+                    database_applyid = str(
+                        database_row.get("first_applyid") or ""
+                    ).strip()
+                    if database_han_code and database_applyid:
+                        database_applyids_by_han_code[database_han_code] = (
+                            database_applyid
+                        )
+
+            unresolved_han_codes = {
+                str(job.get("han_code") or "")
+                for job in han_jobs
+                if str(job.get("han_code") or "")
+                not in database_applyids_by_han_code
+            }
+            if passport_numbers and unresolved_han_codes:
                 async with httpx.AsyncClient(timeout=60) as passport_client:
                     lookup_results = await asyncio.gather(
                         *(
@@ -997,16 +1029,19 @@ async def process_han_approval_inbox(
                     code_dir.mkdir(parents=True, exist_ok=True)
 
                     try:
-                        visa_registration = (
-                            None
-                            if passport_numbers
-                            else get_visa_registration_by_application_code(han_code)
-                        )
-                        applyid = (
-                            str(visa_registration.get("first_applyid") or "").strip()
-                            if visa_registration
-                            else ""
-                        )
+                        if passport_numbers:
+                            applyid = database_applyids_by_han_code.get(han_code, "")
+                        else:
+                            visa_registration = (
+                                get_visa_registration_by_application_code(han_code)
+                            )
+                            applyid = (
+                                str(
+                                    visa_registration.get("first_applyid") or ""
+                                ).strip()
+                                if visa_registration
+                                else ""
+                            )
                         pdf_attachments = job.get("pdf_attachments")
                         attachment_paths = _save_pdf_attachments(
                             (
