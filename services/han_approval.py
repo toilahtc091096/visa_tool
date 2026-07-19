@@ -169,13 +169,16 @@ def _extract_applyid_by_al_form_id(
     target = str(al_form_id or "").strip()
     response = list_result.get("response") if isinstance(list_result, dict) else {}
     rows = response.get("rows") if isinstance(response, dict) else None
+    if not isinstance(rows, list) and isinstance(response, dict):
+        data = response.get("data")
+        rows = data.get("rows") if isinstance(data, dict) else None
     if not target or not isinstance(rows, list):
         return ""
 
     for row in rows:
         if not isinstance(row, dict):
             continue
-        if str(row.get("alFormId") or "").strip() == target:
+        if str(row.get("alFormId") or "").strip().upper() == target.upper():
             return str(row.get("applyid") or "").strip()
     return ""
 
