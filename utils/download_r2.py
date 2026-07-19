@@ -1,9 +1,8 @@
-import os
 from pathlib import Path
 
 import boto3
 from botocore.config import Config
-from env_loader import load_dotenv
+from utils.r2_env import get_active_r2_config
 
 
 def download_r2_folder(
@@ -13,25 +12,7 @@ def download_r2_folder(
     Download tất cả object có prefix (vd: 'data/') từ Cloudflare R2 về local_dir.
     Trả về số file đã tải.
     """
-    load_dotenv()
-
-    endpoint_url = os.getenv("R2_ENDPOINT_URL")
-    access_key_id = os.getenv("R2_ACCESS_KEY_ID")
-    secret_access_key = os.getenv("R2_SECRET_ACCESS_KEY")
-    bucket_name = os.getenv("R2_BUCKET_NAME")
-
-    missing = [
-        k
-        for k in [
-            "R2_ENDPOINT_URL",
-            "R2_ACCESS_KEY_ID",
-            "R2_SECRET_ACCESS_KEY",
-            "R2_BUCKET_NAME",
-        ]
-        if not os.getenv(k)
-    ]
-    if missing:
-        raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
+    config = get_active_r2_config(log=True)
 
     # chuẩn hoá prefix: bỏ / đầu và đảm bảo kết thúc bằng /
     prefix = prefix.lstrip("/")
@@ -40,15 +21,15 @@ def download_r2_folder(
 
     s3 = boto3.client(
         "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
+        endpoint_url=config.endpoint_url,
+        aws_access_key_id=config.access_key_id,
+        aws_secret_access_key=config.secret_access_key,
         region_name="auto",
         config=Config(signature_version="s3v4"),
     )
 
     paginator = s3.get_paginator("list_objects_v2")
-    pages = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
+    pages = paginator.paginate(Bucket=config.bucket_name, Prefix=prefix)
 
     local_base = Path(local_dir)
     total = 0
@@ -64,11 +45,11 @@ def download_r2_folder(
             out_path = local_base / rel
             out_path.parent.mkdir(parents=True, exist_ok=True)
 
-            s3.download_file(bucket_name, key, str(out_path))
+            s3.download_file(config.bucket_name, key, str(out_path))
             total += 1
-            print(f"Downloaded: r2://{bucket_name}/{key} -> {out_path}")
+            print(f"Downloaded: r2://{config.bucket_name}/{key} -> {out_path}", flush=True)
 
-    print(f"Done. Downloaded {total} files from '{prefix}' into '{local_dir}'.")
+    print(f"Done. Downloaded {total} files from '{prefix}' into '{local_dir}'.", flush=True)
     return total
 
 

@@ -7,13 +7,16 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pdf2image import convert_from_bytes
-import boto3
 import io
 import uuid
 
 from api import api_convert_input_pdfs
+from api import api_download_r2_folder_zip
+from api import api_download_r2_object_bytes
+from api import api_delete_r2_objects
+from api import api_sign_and_push_image_to_r2
 from database.connection import init_database
 from main import build_case, main
 from services.han_approval import (
@@ -25,6 +28,7 @@ from services.han_approval import (
 from services import sync_draft_visa_registrations
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
+from utils.r2_env import build_r2_client
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -321,24 +325,113 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
         raise HTTPException(status_code=500, detail=str(e))
 
 
-_r2_s3_client = boto3.client(
-    "s3",
-    endpoint_url=os.getenv("R2_ENDPOINT_URL"),
-    aws_access_key_id=os.getenv("R2_ACCESS_KEY_ID"),
-    aws_secret_access_key=os.getenv("R2_SECRET_ACCESS_KEY"),
-    region_name="auto",
-)
+@app.post("/r2/images")
+async def r2_images(
+    request: Request,
+    mode: str = Form("upload"),
+    folder: str = Form(""),
+    key: str = Form(""),
+    filename: str = Form(""),
+    content_type: str = Form(""),
+    expires_in: int = Form(900),
+    image_base64: str = Form(""),
+    file: UploadFile | None = File(None),
+):
+    file_bytes = await file.read() if file is not None else None
+    result = api_sign_and_push_image_to_r2(
+        mode=mode,
+        folder=folder,
+        key=key,
+        filename=filename,
+        content_type=content_type,
+        expires_in=expires_in,
+        image_base64=image_base64,
+        file_bytes=file_bytes,
+        file_name=file.filename if file is not None else "",
+        file_content_type=file.content_type if file is not None else "",
+    )
+    result["request"] = {
+        "method": request.method,
+        "mode": mode,
+        "folder": folder,
+        "key": key,
+        "filename": filename,
+        "content_type": content_type,
+        "expires_in": expires_in,
+        "has_file": file is not None,
+    }
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
 
-_r2_bucket_name = os.getenv("R2_BUCKET_NAME")
+
+@app.post("/r2/images/delete")
+def r2_images_delete(payload: dict[str, Any] = Body(...)):
+    key = str(payload.get("key", "") or "").strip()
+    prefix = str(payload.get("prefix", "") or "").strip()
+    result = api_delete_r2_objects(key=key, prefix=prefix)
+    result["request"] = {
+        "key": key,
+        "prefix": prefix,
+    }
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@app.get("/r2/images/get")
+def r2_images_get(
+    key: str = Query(""),
+    download: bool = Query(False),
+):
+    result = api_download_r2_object_bytes(key)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result)
+
+    content = result.get("content", b"")
+    content_type = str(result.get("content_type") or "application/octet-stream")
+    filename = key.rsplit("/", 1)[-1] if key else "file"
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers=headers,
+    )
+
+
+@app.get("/r2/folders/download")
+def r2_folders_download(prefix: str = Query("")):
+    result = api_download_r2_folder_zip(prefix)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result)
+
+    content = result.get("content", b"")
+    prefix_text = str(result.get("prefix") or prefix or "").rstrip("/")
+    folder_name = prefix_text.rsplit("/", 1)[-1] if prefix_text else "r2-folder"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{folder_name}.zip"',
+        "X-R2-File-Count": str(result.get("file_count", 0)),
+        "X-R2-Total-Size": str(result.get("total_size", 0)),
+    }
+    return Response(
+        content=content,
+        media_type="application/zip",
+        headers=headers,
+    )
 
 
 @app.post("/pdf-to-images")
 async def pdf_to_images(file: UploadFile = File(...)):
     pdf_bytes = await file.read()
-    pages = convert_from_bytes(pdf_bytes, dpi=300)
+    pages = convert_from_bytes(
+        pdf_bytes, dpi=300, poppler_path="C:/poppler-26.02.0/Library/bin"
+    )
 
     images = []
     public_base = os.getenv("R2_PUBLIC_BASE", "").rstrip("/")
+    _r2_s3_client, r2_config = build_r2_client(log=True)
 
     for page_number, page in enumerate(pages, start=1):
         buffer = io.BytesIO()
@@ -348,7 +441,7 @@ async def pdf_to_images(file: UploadFile = File(...)):
         key = f"output/{uuid.uuid4()}_page_{page_number}.png"
         _r2_s3_client.upload_fileobj(
             buffer,
-            _r2_bucket_name,
+            r2_config.bucket_name,
             key,
             ExtraArgs={"ContentType": "image/png"},
         )

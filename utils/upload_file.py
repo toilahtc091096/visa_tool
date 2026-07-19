@@ -59,6 +59,16 @@ def cleanup_data_folder() -> None:
                 elif item.is_dir():
                     item.rmdir()
             path.rmdir()
+
+    business_dir = DATA_RESOURCE_DIR / "doanh-nghiep"
+    if business_dir.exists() and business_dir.is_dir():
+        for item in sorted(business_dir.rglob("*"), reverse=True):
+            if item.is_file() or item.is_symlink():
+                item.unlink(missing_ok=True)
+            elif item.is_dir():
+                item.rmdir()
+        business_dir.rmdir()
+
     _DOWNLOADED_PREFIXES = set()
     _DOWNLOADED_BUSINESS_FOLDERS = set()
     _CURRENT_DATA_FOLDER = None
@@ -138,14 +148,29 @@ def get_passport_file_path(passport_folder: str, prefix: str) -> str | None:
         ".tif",
         ".tiff",
     }
-    first_file = next(
-        (
-            p
-            for p in folder.rglob("*")
-            if p.is_file() and p.suffix.lower() in image_extensions
-        ),
-        None,
-    )
+    search_roots = []
+    passport_dir = folder / "passport"
+    if passport_dir.exists() and passport_dir.is_dir():
+        search_roots.append(passport_dir)
+    search_roots.append(folder)
+
+    def _find_first_image(paths):
+        for root in paths:
+            for p in root.rglob("*"):
+                if p.is_file() and p.suffix.lower() in image_extensions:
+                    return p
+        return None
+
+    first_file = _find_first_image(search_roots)
+    if first_file is None:
+        first_file = next(
+            (
+                p
+                for p in folder.rglob("*")
+                if p.is_file() and p.suffix.lower() in image_extensions
+            ),
+            None,
+        )
 
     file_path = str(first_file) if first_file else None
     return file_path

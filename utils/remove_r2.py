@@ -1,39 +1,21 @@
 # utils/r2_util.py
-import os
 import boto3
 from botocore.config import Config
-from env_loader import load_dotenv
+from utils.r2_env import get_active_r2_config
 
 
 def _get_r2_client_and_bucket():
-    load_dotenv()
-
-    endpoint_url = os.getenv("R2_ENDPOINT_URL")
-    access_key_id = os.getenv("R2_ACCESS_KEY_ID")
-    secret_access_key = os.getenv("R2_SECRET_ACCESS_KEY")
-    bucket_name = os.getenv("R2_BUCKET_NAME")
-
-    missing = [
-        k for k in [
-            "R2_ENDPOINT_URL",
-            "R2_ACCESS_KEY_ID",
-            "R2_SECRET_ACCESS_KEY",
-            "R2_BUCKET_NAME",
-        ]
-        if not os.getenv(k)
-    ]
-    if missing:
-        raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
+    config = get_active_r2_config(log=True)
 
     s3 = boto3.client(
         "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key,
+        endpoint_url=config.endpoint_url,
+        aws_access_key_id=config.access_key_id,
+        aws_secret_access_key=config.secret_access_key,
         region_name="auto",
         config=Config(signature_version="s3v4"),
     )
-    return s3, bucket_name
+    return s3, config.bucket_name
 
 
 def delete_r2_folder(folder_name: str) -> int:
@@ -71,5 +53,5 @@ def delete_r2_folder(folder_name: str) -> int:
         if errors:
             raise RuntimeError(f"Delete errors: {errors}")
     if deleted_count != 0:
-        print(f"Deleted {deleted_count} objects under r2://{bucket_name}/{prefix}")
+        print(f"Deleted {deleted_count} objects under r2://{bucket_name}/{prefix}", flush=True)
     return deleted_count 
