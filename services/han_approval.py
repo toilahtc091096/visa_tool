@@ -692,7 +692,15 @@ async def process_han_approval_inbox(
     start_scan: str = "",
     end_scan: str = "",
     authorization: str = "",
+    passport_numbers: list[str] | None = None,
 ) -> dict[str, Any]:
+    passport_numbers = list(
+        dict.fromkeys(
+            str(passport_number or "").strip().upper()
+            for passport_number in (passport_numbers or [])
+            if str(passport_number or "").strip()
+        )
+    )
     has_explicit_start = bool(str(start_scan or "").strip())
     start_scan_dt = _parse_start_scan(start_scan)
     scan_start_day = start_scan_dt.date()
@@ -711,6 +719,7 @@ async def process_han_approval_inbox(
             "end_scan": scan_end_day.isoformat() if scan_end_day else "",
             "allowed_senders": sorted(allowed_senders),
             "allowed_to": sorted(allowed_to),
+            "passport_lookup_count": len(passport_numbers),
         }
     )
     summary: dict[str, Any] = {
@@ -936,6 +945,22 @@ async def process_han_approval_inbox(
         if han_jobs:
             concurrency = max(1, _env_int("HAN_APPROVAL_CONCURRENCY", 5))
             semaphore = asyncio.Semaphore(concurrency)
+            passport_list_results: dict[str, tuple[bool, dict[str, Any]]] = {}
+            if passport_numbers:
+                async with httpx.AsyncClient(timeout=60) as passport_client:
+                    lookup_results = await asyncio.gather(
+                        *(
+                            get_list_old_by_visa_number.api_get_online_application_list_by_passport(
+                                client=passport_client,
+                                token=load_token(),
+                                tmp_secret=load_tmpSecret(),
+                                passportNo=passport_number,
+                                authorization=authorization,
+                            )
+                            for passport_number in passport_numbers
+                        )
+                    )
+                passport_list_results = dict(zip(passport_numbers, lookup_results))
             log_event(
                 {
                     "level": "info",
@@ -968,8 +993,10 @@ async def process_han_approval_inbox(
                     code_dir.mkdir(parents=True, exist_ok=True)
 
                     try:
-                        visa_registration = get_visa_registration_by_application_code(
-                            han_code
+                        visa_registration = (
+                            None
+                            if passport_numbers
+                            else get_visa_registration_by_application_code(han_code)
                         )
                         applyid = (
                             str(visa_registration.get("first_applyid") or "").strip()
@@ -995,24 +1022,38 @@ async def process_han_approval_inbox(
                         )
                         async with httpx.AsyncClient(timeout=60) as http_client:
                             if not applyid:
-                                list_ok, list_result = (
-                                    await get_list_old_by_visa_number.api_get_list_by_han_code(
-                                        client=http_client,
-                                        token=load_token(),
-                                        tmp_secret=load_tmpSecret(),
-                                        han_code=han_code,
-                                        authorization=authorization
+                                if passport_numbers:
+                                    for passport_number in passport_numbers:
+                                        list_ok, list_result = passport_list_results[
+                                            passport_number
+                                        ]
+                                        if not list_ok:
+                                            continue
+                                        applyid = _extract_applyid_by_al_form_id(
+                                            list_result=list_result,
+                                            al_form_id=han_code,
+                                        )
+                                        if applyid:
+                                            break
+                                else:
+                                    list_ok, list_result = (
+                                        await get_list_old_by_visa_number.api_get_list_by_han_code(
+                                            client=http_client,
+                                            token=load_token(),
+                                            tmp_secret=load_tmpSecret(),
+                                            han_code=han_code,
+                                            authorization=authorization,
+                                        )
                                     )
-                                )
-                                if not list_ok:
-                                    raise RuntimeError(
-                                        f"get_list_by_han_code_failed: {list_result}"
-                                    )
+                                    if not list_ok:
+                                        raise RuntimeError(
+                                            f"get_list_by_han_code_failed: {list_result}"
+                                        )
 
-                                applyid = _extract_applyid_by_al_form_id(
-                                    list_result=list_result,
-                                    al_form_id=han_code,
-                                )
+                                    applyid = _extract_applyid_by_al_form_id(
+                                        list_result=list_result,
+                                        al_form_id=han_code,
+                                    )
                             if not applyid:
                                 raise RuntimeError(
                                     f"applyid_not_found_for_alFormId: {han_code}"

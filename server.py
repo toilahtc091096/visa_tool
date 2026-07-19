@@ -225,6 +225,40 @@ async def han_approval_process(
     )
 
 
+@app.post("/han-approval/process-by-passports")
+async def han_approval_process_by_passports(
+    payload: dict[str, Any] = Body(...),
+    start_scan: str = Query("", alias="start-scan"),
+    end_scan: str = Query("", alias="end-scan"),
+    authorization: str = Query("", alias="authorization"),
+):
+    raw_passport_numbers = payload.get("passport_numbers")
+    if isinstance(raw_passport_numbers, str):
+        raw_passport_numbers = raw_passport_numbers.split(",")
+    if not isinstance(raw_passport_numbers, list):
+        raise HTTPException(
+            status_code=400,
+            detail="passport_numbers must be an array or a comma-separated string",
+        )
+
+    passport_numbers = list(
+        dict.fromkeys(
+            str(passport_number or "").strip().upper()
+            for passport_number in raw_passport_numbers
+            if str(passport_number or "").strip()
+        )
+    )
+    if not passport_numbers:
+        raise HTTPException(status_code=400, detail="passport_numbers is required")
+
+    return await process_han_approval_inbox(
+        start_scan=start_scan,
+        end_scan=end_scan,
+        authorization=authorization,
+        passport_numbers=passport_numbers,
+    )
+
+
 @app.get("/han-approval/jobs")
 def han_approval_jobs(limit: int = 100, offset: int = 0):
     return list_han_approval_jobs(limit=limit, offset=offset)
