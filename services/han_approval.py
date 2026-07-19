@@ -668,7 +668,9 @@ def _save_email_attachments(
     code_dir: Path,
     han_code: str,
 ) -> list[str]:
-    return _save_pdf_attachments(list(_iter_pdf_attachments(message)), code_dir, han_code)
+    return _save_pdf_attachments(
+        list(_iter_pdf_attachments(message)), code_dir, han_code
+    )
 
 
 def _save_pdf_attachments(
@@ -705,7 +707,9 @@ async def process_han_approval_inbox(
     start_scan_dt = _parse_start_scan(start_scan)
     scan_start_day = start_scan_dt.date()
     end_scan_day = _parse_scan_day(end_scan)
-    scan_end_day = end_scan_day if has_explicit_start and end_scan_day else scan_start_day
+    scan_end_day = (
+        end_scan_day if has_explicit_start and end_scan_day else scan_start_day
+    )
     if authorization.strip():
         append_authorization(authorization)
     allowed_senders = _parse_allowed_sender_addresses()
@@ -1005,7 +1009,11 @@ async def process_han_approval_inbox(
                         )
                         pdf_attachments = job.get("pdf_attachments")
                         attachment_paths = _save_pdf_attachments(
-                            pdf_attachments if isinstance(pdf_attachments, list) else [],
+                            (
+                                pdf_attachments
+                                if isinstance(pdf_attachments, list)
+                                else []
+                            ),
                             code_dir,
                             han_code,
                         )
@@ -1027,6 +1035,15 @@ async def process_han_approval_inbox(
                                         list_ok, list_result = passport_list_results[
                                             passport_number
                                         ]
+                                        print(
+                                            "[passport_lookup_result]",
+                                            {
+                                                "passport_number": passport_number,
+                                                "list_ok": list_ok,
+                                                "list_result": list_result,
+                                            },
+                                            flush=True,
+                                        )
                                         if not list_ok:
                                             continue
                                         applyid = _extract_applyid_by_al_form_id(
@@ -1076,11 +1093,15 @@ async def process_han_approval_inbox(
                                 "han_code": han_code,
                                 "applyid": applyid,
                                 "ok": ok,
-                                "status_code": application_form_result.get("status_code"),
+                                "status_code": application_form_result.get(
+                                    "status_code"
+                                ),
                                 "content_type": application_form_result.get(
                                     "content_type", ""
                                 ),
-                                "file_path": application_form_result.get("file_path", ""),
+                                "file_path": application_form_result.get(
+                                    "file_path", ""
+                                ),
                                 "error": application_form_result.get("error", ""),
                             }
                         )
@@ -1207,7 +1228,9 @@ async def process_han_approval_inbox(
             for batch_index, batch_items in enumerate(email_batches, start=1):
                 zip_path: Path | None = None
                 try:
-                    batch_han_codes = [str(item.get("han_code", "")) for item in batch_items]
+                    batch_han_codes = [
+                        str(item.get("han_code", "")) for item in batch_items
+                    ]
                     zip_path = _zip_download_folders(
                         download_root,
                         batch_han_codes,
@@ -1246,12 +1269,16 @@ async def process_han_approval_inbox(
                     for item in batch_items:
                         han_code = str(item.get("han_code", ""))
                         attachment_paths = item.get("attachment_paths")
-                        application_form_path = str(item.get("application_form_path", ""))
+                        application_form_path = str(
+                            item.get("application_form_path", "")
+                        )
                         update_approval_print_job_by_han_code(
                             han_code=han_code,
                             status="printed",
                             attachment_paths=(
-                                attachment_paths if isinstance(attachment_paths, list) else []
+                                attachment_paths
+                                if isinstance(attachment_paths, list)
+                                else []
                             ),
                             application_form_path=application_form_path,
                             last_error="",
@@ -1311,7 +1338,9 @@ async def process_han_approval_inbox(
                             han_code=han_code,
                             status="not_print",
                             attachment_paths=None,
-                            application_form_path=str(item.get("application_form_path", "")),
+                            application_form_path=str(
+                                item.get("application_form_path", "")
+                            ),
                             last_error=error_text,
                         )
                         summary["failed"] += 1
@@ -1338,7 +1367,9 @@ async def process_han_approval_inbox(
                             zip_path.unlink()
                         except Exception:
                             pass
-            _cleanup_download_artifacts(download_root, download_root.with_suffix(".zip"))
+            _cleanup_download_artifacts(
+                download_root, download_root.with_suffix(".zip")
+            )
     except Exception as exc:
         summary["ok"] = False
         summary["error"] = f"{type(exc).__name__}: {exc}"
