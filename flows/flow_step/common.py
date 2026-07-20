@@ -5,16 +5,18 @@ def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, s
     raw_type = str(visa_type or "").strip().upper()
     raw_duration = str(visa_duration or "").strip().upper()
 
-    if raw_type in {"M30", "M90"}:
-        return "M", raw_type[1:]
+    if raw_type.startswith("M"):
+        if raw_type == "M":
+            if raw_duration in {"15", "30", "90", "MT", "MP", "MO"}:
+                return "M", raw_duration
+            return "M", "90"
+        return "M", raw_type[1:] or raw_duration
 
-    if raw_type == "M":
-        if raw_duration in {"30", "90"}:
-            return "M", raw_duration
-        return "M", "90"
-
-    if raw_type.startswith("L") and raw_type[1:] in {"15", "30"}:
-        return raw_type, raw_type[1:]
+    if raw_type.startswith("L"):
+        if raw_type[1:] in {"15", "30"}:
+            return raw_type, raw_type[1:]
+        if raw_duration in {"15", "30"}:
+            return f"L{raw_duration}", raw_duration
 
     if raw_duration in {"15", "30", "90"}:
         return raw_type, raw_duration
