@@ -92,11 +92,7 @@ def _upload_pdf_preserve_local(
         }
 
     normalized_prefix = _normalize_r2_prefix(prefix, "")
-    key = (
-        f"{normalized_prefix}/{relative_path}"
-        if normalized_prefix
-        else relative_path
-    )
+    key = f"{normalized_prefix}/{relative_path}" if normalized_prefix else relative_path
     result = api_upload_r2_object(
         key,
         path.read_bytes(),
@@ -306,7 +302,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     if ctx.visa_type == "L15":
         hotel = ""
         if not reuse_l_docs:
-            if ctx.is_under_18 or ctx.haveChildFlag:
+            if ctx.is_under_18 or (
+                ctx.haveChildFlag and not ctx.is_private
+            ):  # todo: them and is_private  (haveChildFlag and is_private)
                 hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
             else:
                 hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
@@ -528,8 +526,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 f"No PDF files found on R2 for prefix: {family_passport}"
             )
         print(
-            f"downloaded CV from R2 prefix={family_passport} "
-            f"into={passport_root}"
+            f"downloaded CV from R2 prefix={family_passport} " f"into={passport_root}"
         )
     else:
         try:
@@ -559,7 +556,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             }
             log_event({"step": "genenrate CV file", "ok": "ok"})
         except Exception as e:
-            log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
+            log_exception(
+                e, {"event": "render_failed", "file": payload.get("file_name")}
+            )
         cv_pdf_path = await cv_info.render_docx_template_output_pdf(
             payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
         )
