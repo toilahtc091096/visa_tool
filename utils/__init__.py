@@ -35,6 +35,7 @@ _EXPORTS = {
     "convert_html_to_pdf": ("pdf_helper", "convert_html_to_pdf"),
     "remove_last_blank_page": ("pdf_helper", "remove_last_blank_page"),
     "upload_pdf_to_r2": ("upload_r2", "upload_pdf_to_r2"),
+    "upload_pdf_to_r2_keep_local": ("upload_r2", "upload_pdf_to_r2_keep_local"),
 }
 
 

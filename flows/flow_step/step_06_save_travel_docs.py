@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 
 from api import (
     api_save_other_info,
@@ -23,6 +24,7 @@ from constants import (
     L_15_TRAVEL_PLAN_OUTPUT_PATH,
     TRAVEL_PLAN_21D,
 )
+from api import api_upload_r2_object
 from flows.flow_payloads import (
     build_L30_guest_names,
     build_other_info,
@@ -31,6 +33,7 @@ from flows.flow_payloads import (
     build_travel_info_profile,
 )
 from generate_file import cv_info, hotel_info, flight_info, file_init_info
+from generate_file.path_utils import passport_data_dir
 from utils import (
     date_util,
     format_date,
@@ -40,6 +43,7 @@ from utils import (
     log_exception,
     notify,
 )
+from utils.download_r2 import download_r2_folder
 
 
 def _extend_unique_names(names: list[str], additions: list[str] | None) -> None:
@@ -60,7 +64,73 @@ def _maybe_parse_date(value):
     return None
 
 
+def _normalize_r2_prefix(value: str, fallback: str) -> str:
+    text = str(value or "").strip().strip('"').strip("'")
+    if not text:
+        text = str(fallback or "").strip().strip('"').strip("'")
+    return text.lstrip("/")
+
+
+def _upload_pdf_preserve_local(
+    file_path: str | Path,
+    *,
+    local_root: Path,
+    prefix: str,
+) -> dict:
+    path = Path(file_path).resolve()
+    root = local_root.resolve()
+    if not path.exists():
+        return {"ok": False, "error": "missing_file", "file_path": str(path)}
+    try:
+        relative_path = path.relative_to(root).as_posix()
+    except ValueError as exc:
+        return {
+            "ok": False,
+            "error": f"file_outside_root: {exc}",
+            "file_path": str(path),
+            "local_root": str(root),
+        }
+
+    normalized_prefix = _normalize_r2_prefix(prefix, "")
+    key = (
+        f"{normalized_prefix}/{relative_path}"
+        if normalized_prefix
+        else relative_path
+    )
+    result = api_upload_r2_object(
+        key,
+        path.read_bytes(),
+        "application/pdf",
+    )
+    if not result.get("ok"):
+        return result
+    result["key"] = key
+    result["local_path"] = str(path)
+    return result
+
+
+def _download_pdf_tree_from_r2(
+    *,
+    prefix: str,
+    local_root: Path,
+) -> int:
+    normalized_prefix = _normalize_r2_prefix(prefix, "")
+    if not normalized_prefix:
+        return 0
+    return download_r2_folder(prefix=normalized_prefix, local_dir=str(local_root))
+
+
 async def save_travel_and_generate_docs(ctx, client) -> bool:
+    passport_root = passport_data_dir(ctx.input_passportNumber)
+    family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
+    reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
+    cache_l_docs = bool(
+        ctx.visa_type.startswith("L")
+        and (getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", []))
+        and not reuse_l_docs
+    )
+    hotel_pdf_path: str = ""
+    ticket_pdf_path: str = ""
     if ctx.visa_type == "L15":
         ctx.hotel_type = random.randint(0, 100) % len(
             HOTEL_DATA[ctx.visa_type]["hotel"]
@@ -234,88 +304,92 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     else:
         adult_number += 1
     if ctx.visa_type == "L15":
-        if ctx.is_under_18 or ctx.haveChildFlag:
-            hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
-        else:
-            hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
-            if not ctx.guest_name:
-                ctx.guest_name = [ctx.vietnamese_name]
-        has_additional_names = bool(
-            getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", [])
-        )
-        if has_additional_names:
-            if not ctx.guest_name:
-                ctx.guest_name = [ctx.vietnamese_name]
-            adult_number += len(getattr(ctx, "addition_adults", []))
-            child_number += len(getattr(ctx, "addition_child", []))
-            _extend_unique_names(ctx.guest_name, ctx.addition_adults)
-            _extend_unique_names(ctx.guest_name, ctx.addition_child)
-        else:
-            if ctx.is_under_18:
-                print("under 18, generate hotel file with payName or random name")
-                adult = (
-                    ctx.payName
-                    if ctx.payName
-                    else random.choice(VIETNAMESE_NAMES).upper()
-                )
+        hotel = ""
+        if not reuse_l_docs:
+            if ctx.is_under_18 or ctx.haveChildFlag:
+                hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
+            else:
+                hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
                 if not ctx.guest_name:
-                    ctx.guest_name = [ctx.vietnamese_name, adult]
-                    print(f"guest_name: {ctx.guest_name}")
-            elif (
-                ctx.haveChildFlag and not ctx.is_private
-            ):  # todo: them and is_private  (haveChildFlag and is_private)
-                child = (
-                    f"{ctx.childFamilyName} {ctx.childGivenName}"
-                    if (ctx.childGivenName and ctx.childFamilyName)
-                    else random.choice(VIETNAMESE_NAMES).upper()
-                )
+                    ctx.guest_name = [ctx.vietnamese_name]
+            has_additional_names = bool(
+                getattr(ctx, "addition_adults", [])
+                or getattr(ctx, "addition_child", [])
+            )
+            if has_additional_names:
                 if not ctx.guest_name:
-                    ctx.guest_name = [ctx.vietnamese_name, child]
+                    ctx.guest_name = [ctx.vietnamese_name]
+                adult_number += len(getattr(ctx, "addition_adults", []))
+                child_number += len(getattr(ctx, "addition_child", []))
+                _extend_unique_names(ctx.guest_name, ctx.addition_adults)
+                _extend_unique_names(ctx.guest_name, ctx.addition_child)
+            else:
+                if ctx.is_under_18:
+                    print("under 18, generate hotel file with payName or random name")
+                    adult = (
+                        ctx.payName
+                        if ctx.payName
+                        else random.choice(VIETNAMESE_NAMES).upper()
+                    )
+                    if not ctx.guest_name:
+                        ctx.guest_name = [ctx.vietnamese_name, adult]
+                        print(f"guest_name: {ctx.guest_name}")
+                elif (
+                    ctx.haveChildFlag and not ctx.is_private
+                ):  # todo: them and is_private  (haveChildFlag and is_private)
+                    child = (
+                        f"{ctx.childFamilyName} {ctx.childGivenName}"
+                        if (ctx.childGivenName and ctx.childFamilyName)
+                        else random.choice(VIETNAMESE_NAMES).upper()
+                    )
+                    if not ctx.guest_name:
+                        ctx.guest_name = [ctx.vietnamese_name, child]
 
-        try:
-            payload = {
-                "file_name": hotel,
-                "names": ctx.guest_name,
-                "first": ctx.m,
-                "end": ctx.f,
-                "type": "hotel",
-                "is_under_18": ctx.is_under_18,
-                "haveChildFlag": ctx.haveChildFlag,
-                "adults_number": adult_number,
-                "child_number": child_number,
-            }
-            print(f"payload for hotel file: {payload}")
-            await hotel_info.render_docx_template_output_pdf(
-                payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
-            )
-            log_event({"step": "genenrate hotel file", "ok": "ok"})
-        except Exception as e:
-            log_exception(e, {"event": "render_failed", "file": hotel})
-            raise
+            try:
+                payload = {
+                    "file_name": hotel,
+                    "names": ctx.guest_name,
+                    "first": ctx.m,
+                    "end": ctx.f,
+                    "type": "hotel",
+                    "is_under_18": ctx.is_under_18,
+                    "haveChildFlag": ctx.haveChildFlag,
+                    "adults_number": adult_number,
+                    "child_number": child_number,
+                }
+                print(f"payload for hotel file: {payload}")
+                hotel_pdf_path = await hotel_info.render_docx_template_output_pdf(
+                    payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
+                )
+                log_event({"step": "genenrate hotel file", "ok": "ok"})
+            except Exception as e:
+                log_exception(e, {"event": "render_failed", "file": hotel})
+                raise
     elif ctx.visa_type == "L30":
-        ctx.guest_name = build_L30_guest_names(
-            ctx.guest_name,
-            ctx.vietnamese_name,
-            ctx.addition_adults,
-            ctx.addition_child,
-        )
-        try:
-            payload = {
-                "names": ctx.guest_name,
-                "addition_adults": ctx.addition_adults,
-                "addition_child": ctx.addition_child,
-                "first": ctx.m,
-                "type": "hotel",
-                "is_under_18": ctx.is_under_18,
-                "haveChildFlag": ctx.haveChildFlag,
-            }
-            await hotel_info.render_L30_hotel(
-                payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
+        if not reuse_l_docs:
+            ctx.guest_name = build_L30_guest_names(
+                ctx.guest_name,
+                ctx.vietnamese_name,
+                ctx.addition_adults,
+                ctx.addition_child,
             )
-            log_event({"step": "genenrate hotel file", "ok": "ok"})
-        except Exception as e:
-            log_exception(e, {"event": "render_failed_L30"})
-            raise
+            try:
+                payload = {
+                    "names": ctx.guest_name,
+                    "addition_adults": ctx.addition_adults,
+                    "addition_child": ctx.addition_child,
+                    "first": ctx.m,
+                    "type": "hotel",
+                    "is_under_18": ctx.is_under_18,
+                    "haveChildFlag": ctx.haveChildFlag,
+                }
+                hotel_pdf_path = await hotel_info.render_L30_hotel(
+                    payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
+                )
+                log_event({"step": "genenrate hotel file", "ok": "ok"})
+            except Exception as e:
+                log_exception(e, {"event": "render_failed_L30"})
+                raise
 
     file_name = ""
     if ctx.ticket_names == []:
@@ -392,41 +466,117 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             log_exception(
                 e, {"event": "render_failed", "file": payload.get("file_name")}
             )
-        await flight_info.render_flight_ticket_output_pdf(
-            payload, L_15_TICKET_OUTPUT_PATH, ctx.input_passportNumber
-        )
+        if not reuse_l_docs:
+            ticket_pdf_path = await flight_info.render_flight_ticket_output_pdf(
+                payload, L_15_TICKET_OUTPUT_PATH, ctx.input_passportNumber
+            )
+
+    if ctx.visa_type.startswith("L"):
+        if reuse_l_docs:
+            downloaded = _download_pdf_tree_from_r2(
+                prefix=family_passport,
+                local_root=passport_root,
+            )
+            if downloaded == 0:
+                raise FileNotFoundError(
+                    f"No PDF files found on R2 for prefix: {family_passport}"
+                )
+            print(
+                f"downloaded L docs from R2 prefix={family_passport} "
+                f"into={passport_root}"
+            )
+        elif cache_l_docs:
+            upload_prefix = _normalize_r2_prefix(
+                family_passport, ctx.input_passportNumber
+            )
+            upload_results = []
+            if hotel_pdf_path:
+                upload_results.append(
+                    _upload_pdf_preserve_local(
+                        hotel_pdf_path,
+                        local_root=passport_root,
+                        prefix=upload_prefix,
+                    )
+                )
+            if ticket_pdf_path:
+                upload_results.append(
+                    _upload_pdf_preserve_local(
+                        ticket_pdf_path,
+                        local_root=passport_root,
+                        prefix=upload_prefix,
+                    )
+                )
+            for result in upload_results:
+                if not result.get("ok"):
+                    raise RuntimeError(
+                        f"Failed to upload PDF to R2: {result.get('error')}"
+                    )
+            print(
+                f"uploaded L docs to R2 prefix={upload_prefix} "
+                f"files={len(upload_results)}"
+            )
 
     ctx.ticket_names = [ctx.vietnamese_name]
-    try:
-        today_yyyy, today_mm, today_dd = get_today_parts()
-        file_name = CV_DATA
-        payload = {
-            "file_name": file_name,
-            "names": ctx.ticket_names,
-            "visa_type_first": ctx.first_letter_visa_type,
-            "visa_type_number": ctx.last_letter_visa_type,
-            "submit_year_yyyy": today_yyyy,
-            "submit_month_mm": today_mm,
-            "submit_day_dd": today_dd,
-            "sex": SEX_MAP.get(ctx.ocr_data.Response.Data.sex, ""),
-            "nationality": NATIONALITY_MAP.get(
-                ctx.ocr_data.Response.Data.nationality, ""
-            ),
-            "passportNo": ctx.ocr_data.Response.Data.passportNumber,
-            "birth_date_dd_mm_yyyy": format_date(
-                ctx.ocr_data.Response.Data.dateOfBirth
-            ),
-            "expired_day_dd_mm_yyyy": format_date(
-                ctx.ocr_data.Response.Data.dateOfExpiration
-            ),
-            "passportNumber": ctx.passportNumber,
-        }
-        log_event({"step": "genenrate CV file", "ok": "ok"})
-    except Exception as e:
-        log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
-    await cv_info.render_docx_template_output_pdf(
-        payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
-    )
+    cv_pdf_path: str = ""
+    if ctx.visa_type.startswith("L") and reuse_l_docs:
+        downloaded = _download_pdf_tree_from_r2(
+            prefix=family_passport,
+            local_root=passport_root,
+        )
+        if downloaded == 0:
+            raise FileNotFoundError(
+                f"No PDF files found on R2 for prefix: {family_passport}"
+            )
+        print(
+            f"downloaded CV from R2 prefix={family_passport} "
+            f"into={passport_root}"
+        )
+    else:
+        try:
+            today_yyyy, today_mm, today_dd = get_today_parts()
+            file_name = CV_DATA
+            payload = {
+                "file_name": file_name,
+                "names": ctx.ticket_names,
+                "visa_type_first": ctx.first_letter_visa_type,
+                "visa_type_number": ctx.last_letter_visa_type,
+                "submit_year_yyyy": today_yyyy,
+                "submit_month_mm": today_mm,
+                "submit_day_dd": today_dd,
+                "sex": SEX_MAP.get(ctx.ocr_data.Response.Data.sex, ""),
+                "nationality": NATIONALITY_MAP.get(
+                    ctx.ocr_data.Response.Data.nationality, ""
+                ),
+                "passportNo": ctx.ocr_data.Response.Data.passportNumber,
+                "birth_date_dd_mm_yyyy": format_date(
+                    ctx.ocr_data.Response.Data.dateOfBirth
+                ),
+                "expired_day_dd_mm_yyyy": format_date(
+                    ctx.ocr_data.Response.Data.dateOfExpiration
+                ),
+                "passengers": getattr(ctx, "passengers", []),
+                "passportNumber": ctx.passportNumber,
+            }
+            log_event({"step": "genenrate CV file", "ok": "ok"})
+        except Exception as e:
+            log_exception(e, {"event": "render_failed", "file": payload.get("file_name")})
+        cv_pdf_path = await cv_info.render_docx_template_output_pdf(
+            payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
+        )
+        if ctx.visa_type.startswith("L"):
+            upload_prefix = _normalize_r2_prefix(
+                family_passport, ctx.input_passportNumber
+            )
+            cv_upload_result = _upload_pdf_preserve_local(
+                cv_pdf_path,
+                local_root=passport_root,
+                prefix=upload_prefix,
+            )
+            if not cv_upload_result.get("ok"):
+                raise RuntimeError(
+                    f"Failed to upload CV PDF to R2: {cv_upload_result.get('error')}"
+                )
+            print(f"uploaded CV to R2 prefix={upload_prefix}")
 
     if ctx.visa_type == "L30":
         try:

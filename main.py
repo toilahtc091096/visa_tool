@@ -29,6 +29,8 @@ DEFAULT_CASE: dict[str, Any] = {
     "companyPhone": "",
     "managerName": "",
     "company_passport": "",
+    "family_passport": "",
+    "passengers": [],
     "arrivalCity": "",
     "arrivalDistrict": "",
     "stayCity": "",
@@ -186,6 +188,8 @@ def main(
     companyPhone: str = "",
     managerName: str = "",
     company_passport: str | None = None,
+    family_passport: str | None = None,
+    passengers: list[dict[str, Any]] | None = None,
     arrivalCity: str = "",
     arrivalDistrict: str = "",
     stayCity: str = "",
@@ -204,6 +208,10 @@ def main(
         data["upload_config_keys"] = _normalize_upload_config_keys(upload_config_keys)
     if company_passport is not None:
         data["company_passport"] = str(company_passport).strip()
+    if family_passport is not None:
+        data["family_passport"] = str(family_passport).strip()
+    if passengers is not None:
+        data["passengers"] = list(passengers)
     if fixed_arrived is not None:
         data["fixed_arrived"] = str(fixed_arrived).strip()
     if fixed_departure is not None:
@@ -281,6 +289,8 @@ def main(
             data["companyPhone"],
             data["managerName"],
             data["company_passport"],
+            data.get("family_passport", ""),
+            data.get("passengers", []),
             data["arrivalCity"],
             data["arrivalDistrict"],
             data["stayCity"],

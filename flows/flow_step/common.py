@@ -54,6 +54,7 @@ def build_flow_context(**kwargs):
     ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", False)
     ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", False)
     ctx.is_private = kwargs.get("is_private", False)
+    ctx.family_passport = kwargs.get("family_passport", "")
     ctx.arrivalDate = kwargs.get("arrivalDate", "")
     ctx.departureDate = kwargs.get("departureDate", "")
     ctx.fixed_arrived = kwargs.get("fixed_arrived", "")
@@ -74,6 +75,7 @@ def build_flow_context(**kwargs):
     ctx.departureDistrict = kwargs.get("departureDistrict", "")
     ctx.addition_adults = kwargs.get("addition_adults", [])
     ctx.addition_child = kwargs.get("addition_child", [])
+    ctx.passengers = kwargs.get("passengers", [])
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

@@ -9,6 +9,31 @@ from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 
 
+def _normalize_passengers(value: Any) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list):
+        return []
+    result: list[dict[str, Any]] = []
+    for item in value:
+        if isinstance(item, dict):
+            result.append(
+                {
+                    "name": item.get("name", ""),
+                    "sex": item.get("sex", ""),
+                    "nationality": item.get("nationality", ""),
+                    "passportNo": item.get("passportNo", ""),
+                    "birth_date_dd_mm_yyyy": item.get(
+                        "birth_date_dd_mm_yyyy", ""
+                    ),
+                    "expired_day_dd_mm_yyyy": item.get(
+                        "expired_day_dd_mm_yyyy", ""
+                    ),
+                }
+            )
+    return result
+
+
 async def render_docx_template_output_pdf(
     payload: dict[str, Any],
     output_path: str = "",
@@ -27,6 +52,7 @@ async def render_docx_template_output_pdf(
     """
     file_name: str = payload.get("file_name")
     name: str = payload.get("names", "")
+    extra_passengers = _normalize_passengers(payload.get("passengers", []))
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = passport_data_dir(passport_number)
@@ -56,6 +82,7 @@ async def render_docx_template_output_pdf(
                     "birth_date_dd_mm_yyyy": payload.get("birth_date_dd_mm_yyyy"),
                     "expired_day_dd_mm_yyyy": payload.get("expired_day_dd_mm_yyyy"),
                 },
+                *extra_passengers,
             ],
             "visa_type_first": payload.get("visa_type_first"),
             "visa_type_number": payload.get("visa_type_number"),
