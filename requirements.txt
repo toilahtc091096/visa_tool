@@ -9,7 +9,7 @@ boto3==1.35.99
 docxtpl
 python-docx
 
-docx2pdf
+pywin32>=308; platform_system == "Windows"
 
 weasyprint==68.1
 python-multipart==0.0.9
