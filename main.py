@@ -56,6 +56,7 @@ DEFAULT_CASE: dict[str, Any] = {
     "ticket_names": [],
     "addition_adults": [],
     "addition_child": [],
+    "children": [],
     "haveSpouseFlag": False,
     "haveChildFlag": False,
     "childFamilyName": "",
@@ -138,6 +139,45 @@ def _normalize_name_list(value: Any) -> list[str]:
     return [str(item).strip() for item in items if str(item).strip()]
 
 
+def _normalize_children_list(value: Any) -> list[dict[str, Any]]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, dict):
+        items = [value]
+    elif isinstance(value, (list, tuple, set)):
+        items = list(value)
+    else:
+        return []
+
+    children: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        child_family = str(
+            item.get("childFamilyName", item.get("familyName", "")) or ""
+        ).strip()
+        child_given = str(
+            item.get("childGivenName", item.get("firstName", "")) or ""
+        ).strip()
+        child_nationality = str(
+            item.get("childNationality", item.get("nationalityCountry", "")) or ""
+        ).strip()
+        child_birth_date = str(
+            item.get("childBirthDate", item.get("birthday", "")) or ""
+        ).strip()
+        if not any([child_family, child_given, child_nationality, child_birth_date]):
+            continue
+        children.append(
+            {
+                "childFamilyName": child_family,
+                "childGivenName": child_given,
+                "childNationality": child_nationality,
+                "childBirthDate": child_birth_date,
+            }
+        )
+    return children
+
+
 def build_case(case: dict[str, Any] | None = None) -> dict[str, Any]:
     merged = dict(DEFAULT_CASE)
     if case:
@@ -162,6 +202,36 @@ def build_case(case: dict[str, Any] | None = None) -> dict[str, Any]:
     merged["upload_config_keys"] = _normalize_upload_config_keys(
         merged.get("upload_config_keys")
     )
+    merged["children"] = _normalize_children_list(merged.get("children"))
+    if merged["children"]:
+        first_child = merged["children"][0]
+        if not str(merged.get("childFamilyName", "") or "").strip():
+            merged["childFamilyName"] = first_child.get("childFamilyName", "")
+        if not str(merged.get("childGivenName", "") or "").strip():
+            merged["childGivenName"] = first_child.get("childGivenName", "")
+        if not str(merged.get("childNationality", "") or "").strip():
+            merged["childNationality"] = first_child.get("childNationality", "")
+        if not str(merged.get("childBirthDate", "") or "").strip():
+            merged["childBirthDate"] = first_child.get("childBirthDate", "")
+        merged["haveChildFlag"] = True
+    elif any(
+        str(merged.get(key, "") or "").strip()
+        for key in (
+            "childFamilyName",
+            "childGivenName",
+            "childNationality",
+            "childBirthDate",
+        )
+    ):
+        merged["children"] = [
+            {
+                "childFamilyName": str(merged.get("childFamilyName", "") or "").strip(),
+                "childGivenName": str(merged.get("childGivenName", "") or "").strip(),
+                "childNationality": str(merged.get("childNationality", "") or "").strip(),
+                "childBirthDate": str(merged.get("childBirthDate", "") or "").strip(),
+            }
+        ]
+        merged["haveChildFlag"] = True
     return merged
 
 
@@ -187,6 +257,19 @@ def main(
     companyAddressUpperNoAccent: str = "",
     companyPhone: str = "",
     managerName: str = "",
+    work_from: str = "",
+    work_to: str = "",
+    employer_name: str = "",
+    employer_address: str = "",
+    employer_phone: str = "",
+    supervisor_name: str = "",
+    supervisor_mobile: str = "",
+    position: str = "",
+    duty: str = "",
+    name_of_institute: str = "",
+    diploma_degree: str = "",
+    major: str = "",
+    children: list[dict[str, Any]] | None = None,
     company_passport: str | None = None,
     family_passport: str | None = None,
     passengers: list[dict[str, Any]] | None = None,
@@ -288,6 +371,19 @@ def main(
             data["companyAddressUpperNoAccent"],
             data["companyPhone"],
             data["managerName"],
+            data["work_from"],
+            data["work_to"],
+            data["employer_name"],
+            data["employer_address"],
+            data["employer_phone"],
+            data["supervisor_name"],
+            data["supervisor_mobile"],
+            data["position"],
+            data["duty"],
+            data["name_of_institute"],
+            data["diploma_degree"],
+            data["major"],
+            data["children"],
             data["company_passport"],
             data.get("family_passport", ""),
             data.get("passengers", []),

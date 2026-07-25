@@ -253,6 +253,15 @@ def build_work_info_profile(
     companyAddressUpperNoAccent: str = "",
     companyPhone: str = "",
     managerName: str = "",
+    work_from: str = "",
+    work_to: str = "",
+    employer_name: str = "",
+    employer_address: str = "",
+    employer_phone: str = "",
+    supervisor_name: str = "",
+    supervisor_mobile: str = "",
+    position: str = "",
+    duty: str = "",
 ) -> WorkInfoProfile:
     def _normalize_ascii_upper(value: str) -> str:
         if not value:
@@ -280,7 +289,38 @@ def build_work_info_profile(
         job_type_label = "Student"
         job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
 
-    if job_type_label == "Unemployed":
+    has_custom_work = any(
+        str(value or "").strip()
+        for value in (
+            work_from,
+            work_to,
+            employer_name,
+            employer_address,
+            employer_phone,
+            supervisor_name,
+            supervisor_mobile,
+            position,
+            duty,
+        )
+    )
+
+    if has_custom_work:
+        not_apply_items = []
+        work_experience = [
+            _work_experience_entry(
+                str(work_from or work_begin_date).strip() or work_begin_date,
+                str(work_to or work_end_date).strip() or work_end_date,
+                _normalize_ascii_upper(employer_address) or province_city_code,
+                _normalize_ascii_upper(position) or "NHAN VIEN",
+                _normalize_ascii_upper(duty) or "NHAN VIEN",
+                job_name=_normalize_ascii_upper(employer_name),
+                job_addr=_normalize_ascii_upper(employer_address) or province_city_code,
+                job_tel=str(employer_phone or "").strip() or mobile_utils.generate_job_tel(),
+                supervisor_name=_normalize_ascii_upper(supervisor_name),
+                supervisor_tel=str(supervisor_mobile or "").strip() or mobile_utils.generate_supervisor_tel(),
+            )
+        ]
+    elif job_type_label == "Unemployed":
         not_apply_items = [
             {
                 "notApplyCode": "workExperience",
@@ -335,7 +375,9 @@ def build_work_info_profile(
             )
         ]
     we_src = []
-    if visa_type.startswith("M"):
+    if has_custom_work:
+        we_src = work_experience
+    elif visa_type.startswith("M"):
         we_src = work_experience
     elif experiences != []:
         for experience in experiences:
@@ -398,11 +440,31 @@ def build_education_info_profile(
     province_city_code: str,
     educationExperience: list[EducationExperienceItem],
     is_under_18: bool = False,
+    name_of_institute: str = "",
+    diploma_degree: str = "",
+    major: str = "",
 ) -> EducationInfoProfile:
+
+    has_custom_education = any(
+        str(value or "").strip()
+        for value in (name_of_institute, diploma_degree, major)
+    )
 
     we_src = []
     not_apply_items = []
-    if educationExperience != []:
+    if has_custom_education:
+        we_src = [
+            {
+                "sort": "1",
+                "beginDate": "",
+                "endDate": "",
+                "schoolName": name_of_institute.strip(),
+                "schoolAddr": "",
+                "highestDegree": diploma_degree.strip(),
+                "specialty": major.strip(),
+            }
+        ]
+    elif educationExperience != []:
         we_src = (
             educationExperience
             if educationExperience != []
@@ -524,6 +586,7 @@ def build_family_info_profile(
     childGivenName: str = "",
     childNationality: str = "",
     childBirthDate: str = "",
+    children: list[dict[str, Any]] | None = None,
     fatherFamilyName: str = "",
     fatherGivenName: str = "",
     fatherNationality: str = "",
@@ -569,7 +632,22 @@ def build_family_info_profile(
             )
         ]
 
-    if haveChildFlag is not True:
+    children_payload = [item for item in (children or []) if isinstance(item, dict)]
+    effective_have_child_flag = haveChildFlag or bool(children_payload)
+    if children_payload:
+        child_info = [
+            _child_entry(
+                str(item.get("childFamilyName", item.get("familyName", "")) or "").upper(),
+                str(item.get("childGivenName", item.get("firstName", "")) or "").upper(),
+                str(
+                    item.get("childNationality", item.get("nationalityCountry", ""))
+                    or family_nationality
+                ).upper(),
+                str(item.get("childBirthDate", item.get("birthday", "")) or ""),
+            )
+            for item in children_payload
+        ]
+    elif effective_have_child_flag is not True:
         not_apply_items.append(
             {
                 "notApplyCode": "children",
@@ -741,7 +819,7 @@ def build_family_info_profile(
             if old_haveSpouseFlag
             else ("" if haveSpouseFlag is not True else haveSpouseFlag)
         ),
-        "haveChildFlag": "" if haveChildFlag is not True else haveChildFlag,
+        "haveChildFlag": "" if effective_have_child_flag is not True else effective_have_child_flag,
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
         "children": [_to_dict(i) for i in (children_src or [])],
         "relatives": [_to_dict(i) for i in (relative_src or [])],

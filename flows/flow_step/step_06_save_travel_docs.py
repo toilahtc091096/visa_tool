@@ -1,5 +1,6 @@
 import random
 from pathlib import Path
+from typing import Any
 
 from api import (
     api_save_other_info,
@@ -54,6 +55,32 @@ def _extend_unique_names(names: list[str], additions: list[str] | None) -> None:
 
 def _sorted_unique_names(additions: list[str] | None) -> list[str]:
     return sorted({name.strip() for name in (additions or []) if name and name.strip()})
+
+
+def _child_full_name(child: dict[str, Any]) -> str:
+    family = str(child.get("childFamilyName", child.get("familyName", "")) or "").strip()
+    given = str(child.get("childGivenName", child.get("firstName", "")) or "").strip()
+    return " ".join(part for part in [family, given] if part).strip()
+
+
+def _child_names(ctx) -> list[str]:
+    names: list[str] = []
+    for child in getattr(ctx, "children", []) or []:
+        if isinstance(child, dict):
+            full_name = _child_full_name(child)
+            if full_name and full_name not in names:
+                names.append(full_name)
+    legacy_name = " ".join(
+        part
+        for part in [
+            str(getattr(ctx, "childFamilyName", "") or "").strip(),
+            str(getattr(ctx, "childGivenName", "") or "").strip(),
+        ]
+        if part
+    ).strip()
+    if legacy_name and legacy_name not in names:
+        names.append(legacy_name)
+    return names
 
 
 def _maybe_parse_date(value):
@@ -302,6 +329,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     if ctx.visa_type == "L15":
         hotel = ""
         if not reuse_l_docs:
+            child_names = _child_names(ctx)
             if ctx.is_under_18 or (
                 ctx.haveChildFlag and not ctx.is_private
             ):  # todo: them and is_private  (haveChildFlag and is_private)
@@ -321,6 +349,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 child_number += len(getattr(ctx, "addition_child", []))
                 _extend_unique_names(ctx.guest_name, ctx.addition_adults)
                 _extend_unique_names(ctx.guest_name, ctx.addition_child)
+                _extend_unique_names(ctx.guest_name, child_names)
             else:
                 if ctx.is_under_18:
                     print("under 18, generate hotel file with payName or random name")
@@ -335,11 +364,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 elif (
                     ctx.haveChildFlag and not ctx.is_private
                 ):  # todo: them and is_private  (haveChildFlag and is_private)
-                    child = (
-                        f"{ctx.childFamilyName} {ctx.childGivenName}"
-                        if (ctx.childGivenName and ctx.childFamilyName)
-                        else random.choice(VIETNAMESE_NAMES).upper()
-                    )
+                    child = child_names[0] if child_names else random.choice(VIETNAMESE_NAMES).upper()
                     if not ctx.guest_name:
                         ctx.guest_name = [ctx.vietnamese_name, child]
 
@@ -394,6 +419,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         has_additional_names = bool(
             getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", [])
         )
+        child_names = _child_names(ctx)
         if has_additional_names:
             ctx.ticket_names = _sorted_unique_names(ctx.addition_adults)
             if ctx.vietnamese_name and ctx.vietnamese_name not in ctx.ticket_names:
@@ -401,6 +427,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             _extend_unique_names(
                 ctx.ticket_names, _sorted_unique_names(ctx.addition_child)
             )
+            _extend_unique_names(ctx.ticket_names, child_names)
         else:
             ctx.ticket_names = [ctx.vietnamese_name]
             if ctx.is_under_18:
@@ -412,10 +439,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             if (
                 ctx.haveChildFlag and not ctx.is_private
             ):  # todo: them and is_private  (haveChildFlag and is_private)
-                ctx.ticket_names.append(
-                    f"{ctx.childFamilyName} {ctx.childGivenName}"
-                    if (ctx.childGivenName and ctx.childFamilyName)
-                    else random.choice(VIETNAMESE_NAMES).upper()
+                ctx.ticket_names.extend(
+                    child_names or [random.choice(VIETNAMESE_NAMES).upper()]
                 )
     if not ctx.visa_type.startswith("M"):
         try:

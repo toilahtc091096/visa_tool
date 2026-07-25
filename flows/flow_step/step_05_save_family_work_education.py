@@ -72,6 +72,15 @@ async def save_family_work_education(ctx, client) -> bool:
         getattr(ctx, "companyAddressUpperNoAccent", ""),
         getattr(ctx, "companyPhone", ""),
         getattr(ctx, "managerName", ""),
+        getattr(ctx, "work_from", ""),
+        getattr(ctx, "work_to", ""),
+        getattr(ctx, "employer_name", ""),
+        getattr(ctx, "employer_address", ""),
+        getattr(ctx, "employer_phone", ""),
+        getattr(ctx, "supervisor_name", ""),
+        getattr(ctx, "supervisor_mobile", ""),
+        getattr(ctx, "position", ""),
+        getattr(ctx, "duty", ""),
     )
     ok4, meta4 = await api_save_work_info(
         client,
@@ -107,7 +116,10 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.first_applyid,
         ctx.ct08_province_city_code if ctx.ct08_province_city_code != "" else ctx.province_city_code,
         ctx.educationExperience,
-        ctx.is_under_18
+        ctx.is_under_18,
+        getattr(ctx, "name_of_institute", ""),
+        getattr(ctx, "diploma_degree", ""),
+        getattr(ctx, "major", ""),
     )
     ok5, meta5 = await api_save_education_info(
         client,
@@ -181,6 +193,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.childGivenName,
         ctx.childNationality,
         ctx.childBirthDate,
+        getattr(ctx, "children", []),
         ctx.fatherFamilyName,
         ctx.fatherGivenName,
         ctx.fatherNationality,
