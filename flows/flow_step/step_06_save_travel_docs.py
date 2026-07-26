@@ -132,7 +132,14 @@ def _upload_pdf_preserve_local(
     return result
 
 
-def _download_pdf_tree_from_r2(
+FAMILY_COMMON_DOC_FOLDERS = (
+    "chung/khach_san",
+    "chung/ve_may_bay",
+    "chung/xac_nhan_tu_trung_tam_visa",
+)
+
+
+def _download_family_common_docs_from_r2(
     *,
     prefix: str,
     local_root: Path,
@@ -140,7 +147,14 @@ def _download_pdf_tree_from_r2(
     normalized_prefix = _normalize_r2_prefix(prefix, "")
     if not normalized_prefix:
         return 0
-    return download_r2_folder(prefix=normalized_prefix, local_dir=str(local_root))
+
+    total = 0
+    for folder in FAMILY_COMMON_DOC_FOLDERS:
+        total += download_r2_folder(
+            prefix=f"{normalized_prefix.rstrip('/')}/{folder}",
+            local_dir=str(local_root / Path(folder)),
+        )
+    return total
 
 
 async def save_travel_and_generate_docs(ctx, client) -> bool:
@@ -496,17 +510,18 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     if ctx.visa_type.startswith("L"):
         if reuse_l_docs:
-            downloaded = _download_pdf_tree_from_r2(
+            downloaded = _download_family_common_docs_from_r2(
                 prefix=family_passport,
                 local_root=passport_root,
             )
             if downloaded == 0:
                 raise FileNotFoundError(
-                    f"No PDF files found on R2 for prefix: {family_passport}"
+                    "No family common documents found on R2 for prefix: "
+                    f"{family_passport}"
                 )
             print(
-                f"downloaded L docs from R2 prefix={family_passport} "
-                f"into={passport_root}"
+                f"downloaded family common docs from R2 prefix={family_passport} "
+                f"folders={FAMILY_COMMON_DOC_FOLDERS} into={passport_root}"
             )
         elif cache_l_docs:
             upload_prefix = _normalize_r2_prefix(
@@ -541,19 +556,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     ctx.ticket_names = [ctx.vietnamese_name]
     cv_pdf_path: str = ""
-    if ctx.visa_type.startswith("L") and reuse_l_docs:
-        downloaded = _download_pdf_tree_from_r2(
-            prefix=family_passport,
-            local_root=passport_root,
-        )
-        if downloaded == 0:
-            raise FileNotFoundError(
-                f"No PDF files found on R2 for prefix: {family_passport}"
-            )
-        print(
-            f"downloaded CV from R2 prefix={family_passport} " f"into={passport_root}"
-        )
-    else:
+    if not (ctx.visa_type.startswith("L") and reuse_l_docs):
         try:
             today_yyyy, today_mm, today_dd = get_today_parts()
             file_name = CV_DATA
