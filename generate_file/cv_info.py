@@ -23,12 +23,8 @@ def _normalize_passengers(value: Any) -> list[dict[str, Any]]:
                     "sex": item.get("sex", ""),
                     "nationality": item.get("nationality", ""),
                     "passportNo": item.get("passportNo", ""),
-                    "birth_date_dd_mm_yyyy": item.get(
-                        "birth_date_dd_mm_yyyy", ""
-                    ),
-                    "expired_day_dd_mm_yyyy": item.get(
-                        "expired_day_dd_mm_yyyy", ""
-                    ),
+                    "birth_date_dd_mm_yyyy": item.get("birth_date_dd_mm_yyyy", ""),
+                    "expired_day_dd_mm_yyyy": item.get("expired_day_dd_mm_yyyy", ""),
                 }
             )
     return result
@@ -67,15 +63,15 @@ async def render_docx_template_output_pdf(
         raise ValueError(f"Not a .docx file: {src}")
     if isinstance(name, list):
         name = "_".join(name)
-    entry_type = payload.get("entry_type", "");
-    entry_type_show = "1";
+    entry_type = payload.get("entry_type", "")
+    entry_type_show = "1"
     if entry_type == "S":
-        entry_type_show = "1";
+        entry_type_show = "1"
     elif entry_type == "D":
-        entry_type_show = "2";
+        entry_type_show = "2"
     elif entry_type == "M":
-        entry_type_show = "多";
-        
+        entry_type_show = "多"
+
     name = f"{name}_{entry_type}"
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
 
@@ -85,7 +81,7 @@ async def render_docx_template_output_pdf(
         {
             "passengers": [
                 {
-                    "name": name,
+                    "name": name.strip("_"),
                     "sex": payload.get("sex"),
                     "nationality": payload.get("nationality"),
                     "passportNo": payload.get("passportNo"),
