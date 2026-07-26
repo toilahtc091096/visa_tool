@@ -578,6 +578,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 ),
                 "passengers": getattr(ctx, "passengers", []),
                 "passportNumber": ctx.passportNumber,
+                "entries_type": ctx.entries_type,
             }
             log_event({"step": "genenrate CV file", "ok": "ok"})
         except Exception as e:

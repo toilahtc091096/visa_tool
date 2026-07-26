@@ -67,6 +67,16 @@ async def render_docx_template_output_pdf(
         raise ValueError(f"Not a .docx file: {src}")
     if isinstance(name, list):
         name = "_".join(name)
+    entry_type = payload.get("entry_type", "");
+    entry_type_show = "1";
+    if entry_type == "S":
+        entry_type_show = "1";
+    elif entry_type == "D":
+        entry_type_show = "2";
+    elif entry_type == "M":
+        entry_type_show = "多";
+        
+    name = f"{name}_{entry_type}"
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
 
     out = out_dir / (Path(file_name).stem + ".docx")
@@ -89,6 +99,7 @@ async def render_docx_template_output_pdf(
             "submit_year_yyyy": payload.get("submit_year_yyyy"),
             "submit_month_mm": payload.get("submit_month_mm"),
             "submit_day_dd": payload.get("submit_day_dd"),
+            "entry_type_show": entry_type_show,
         }
     )
 
