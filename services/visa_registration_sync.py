@@ -103,8 +103,10 @@ def _extract_approved_date(matched_row: dict[str, Any]) -> str:
     if len(date_parts) != 3:
         return ""
 
-    day = date_parts[2].strip()
-    return str(int(day)) if day.isdigit() else ""
+    year, month, day = (part.strip() for part in date_parts)
+    if not (year.isdigit() and month.isdigit() and day.isdigit()):
+        return ""
+    return f"{year.zfill(4)}-{month.zfill(2)}-{day.zfill(2)}"
 
 
 def _extract_stored_matched_row(row: dict[str, Any]) -> dict[str, Any]:
