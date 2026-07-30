@@ -93,6 +93,31 @@ def _extract_remote_application_code(row: dict[str, Any]) -> str:
     return str(value).strip()
 
 
+def _extract_approved_date(matched_row: dict[str, Any]) -> str:
+    if str(matched_row.get("applyStatus") or "").strip() != "\u5ba1\u6838\u901a\u8fc7":
+        return ""
+
+    create_time = str(matched_row.get("createTime") or "").strip()
+    date_part = create_time.split(" ", 1)[0]
+    date_parts = date_part.split("-")
+    if len(date_parts) != 3:
+        return ""
+
+    day = date_parts[2].strip()
+    return str(int(day)) if day.isdigit() else ""
+
+
+def _extract_stored_matched_row(row: dict[str, Any]) -> dict[str, Any]:
+    payload = row.get("payload")
+    if not isinstance(payload, dict):
+        return {}
+    sync_payload = payload.get("sync")
+    if not isinstance(sync_payload, dict):
+        return {}
+    matched_row = sync_payload.get("matched_row")
+    return matched_row if isinstance(matched_row, dict) else {}
+
+
 def _parse_statuses(statuses: str | list[str] | None) -> list[str]:
     if statuses is None:
         return DEFAULT_SYNC_STATUSES[:]
@@ -115,6 +140,7 @@ def _build_skipped_item(row: dict[str, Any], reason: str) -> dict[str, Any]:
 
 def _build_display_only_item(row: dict[str, Any]) -> dict[str, Any]:
     internal_status = str(row.get("status") or "").strip()
+    matched_row = _extract_stored_matched_row(row)
     return {
         "id": row.get("id"),
         "full_name": str(row.get("full_name") or "").strip(),
@@ -122,6 +148,7 @@ def _build_display_only_item(row: dict[str, Any]) -> dict[str, Any]:
         "visa_type": str(row.get("visa_type") or "").strip(),
         "first_applyid": str(row.get("first_applyid") or "").strip(),
         "application_code": str(row.get("application_code") or "").strip(),
+        "approved_date": _extract_approved_date(matched_row),
         "ok": True,
         "reason": "display_only_no_api_sync",
         "remote_applyid": "",
@@ -360,6 +387,7 @@ async def sync_draft_visa_registrations(
             "visa_type": visa_type,
             "first_applyid": first_applyid,
             "application_code": application_code,
+            "approved_date": _extract_approved_date(matched_row),
             "ok": False,
             "remote_applyid": _extract_remote_applyid(matched_row),
             "remote_status": remote_status,
