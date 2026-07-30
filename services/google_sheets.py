@@ -316,6 +316,33 @@ def write_rows_to_google_sheet(
                 sheet_header_row_idx = 1
                 sheet_header_row = input_header[:]
 
+            sheet_header_names = {
+                _normalize_header_name(name) for name in sheet_header_row
+            }
+            missing_headers = [
+                name
+                for name in input_header
+                if _normalize_header_name(name) not in sheet_header_names
+            ]
+            if missing_headers:
+                first_new_column = len(sheet_header_row) + 1
+                last_new_column = first_new_column + len(missing_headers) - 1
+                worksheet.batch_update(
+                    [
+                        {
+                            "range": (
+                                f"{_column_number_to_letter(first_new_column)}"
+                                f"{sheet_header_row_idx}:"
+                                f"{_column_number_to_letter(last_new_column)}"
+                                f"{sheet_header_row_idx}"
+                            ),
+                            "values": [missing_headers],
+                        }
+                    ],
+                    value_input_option="RAW",
+                )
+                sheet_header_row.extend(missing_headers)
+
             sheet_key_idx = next(
                 (
                     idx
@@ -468,7 +495,7 @@ def write_sync_summary_to_google_sheet(
                 "passport_number": item.get("passport_number", ""),
                 "visa_type": item.get("visa_type", ""),
                 "first_applyid": item.get("first_applyid", ""),
-                "application_code": item.get("application_code", ""),
+                "hancode": item.get("application_code", ""),
                 "ok": item.get("ok", False),
                 "reason": item.get("reason", ""),
                 # "remote_applyid": item.get("remote_applyid", ""),
@@ -483,7 +510,7 @@ def write_sync_summary_to_google_sheet(
         "passport_number",
         "visa_type",
         "first_applyid",
-        "application_code",
+        "hancode",
         "ok",
         "reason",
         # "remote_applyid",
