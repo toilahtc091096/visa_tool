@@ -316,9 +316,11 @@ def build_work_info_profile(
                 _normalize_ascii_upper(duty) or "NHAN VIEN",
                 job_name=_normalize_ascii_upper(employer_name),
                 job_addr=_normalize_ascii_upper(employer_address) or province_city_code,
-                job_tel=str(employer_phone or "").strip() or mobile_utils.generate_job_tel(),
+                job_tel=str(employer_phone or "").strip()
+                or mobile_utils.generate_job_tel(),
                 supervisor_name=_normalize_ascii_upper(supervisor_name),
-                supervisor_tel=str(supervisor_mobile or "").strip() or mobile_utils.generate_supervisor_tel(),
+                supervisor_tel=str(supervisor_mobile or "").strip()
+                or mobile_utils.generate_supervisor_tel(),
             )
         ]
     elif job_type_label == "Unemployed":
@@ -336,8 +338,8 @@ def build_work_info_profile(
                 work_begin_date,
                 work_end_date,
                 companyAddressUpperNoAccent or province_city_code,
-                "NHAN VIEN",
-                "NHAN VIEN",
+                _normalize_ascii_upper(position) or "NHAN VIEN",
+                _normalize_ascii_upper(duty) or "NHAN VIEN",
                 job_name=_build_company_job_name(companyNameVi),
                 job_addr=companyAddressUpperNoAccent or province_city_code,
                 job_tel=companyPhone,
@@ -371,8 +373,8 @@ def build_work_info_profile(
                 work_begin_date,
                 work_end_date,
                 province_city_code,
-                "TU KINH DOANH",
-                "TU KINH DOANH",
+                SELF_EMPLOYED_JOB_DESC,
+                SELF_EMPLOYED_JOB_DESC,
             )
         ]
     we_src = []
@@ -454,8 +456,7 @@ def build_education_info_profile(
 ) -> EducationInfoProfile:
 
     has_custom_education = any(
-        str(value or "").strip()
-        for value in (name_of_institute, diploma_degree, major)
+        str(value or "").strip() for value in (name_of_institute, diploma_degree, major)
     )
 
     we_src = []
@@ -472,14 +473,10 @@ def build_education_info_profile(
                 "specialty": major.strip(),
             }
         ]
-    elif educationExperience != []:
-        we_src = (
-            educationExperience
-            if educationExperience != []
-            else [_education_experience_entry(province_city_code)]
-        )
     else:
-        we_src = [_education_experience_entry(province_city_code)]
+        we_src = educationExperience or [
+            _education_experience_entry(province_city_code)
+        ]
 
     if is_under_18:
         we_src = []
@@ -645,8 +642,12 @@ def build_family_info_profile(
     if children_payload:
         child_info = [
             _child_entry(
-                str(item.get("childFamilyName", item.get("familyName", "")) or "").upper(),
-                str(item.get("childGivenName", item.get("firstName", "")) or "").upper(),
+                str(
+                    item.get("childFamilyName", item.get("familyName", "")) or ""
+                ).upper(),
+                str(
+                    item.get("childGivenName", item.get("firstName", "")) or ""
+                ).upper(),
                 str(
                     item.get("childNationality", item.get("nationalityCountry", ""))
                     or family_nationality
@@ -827,7 +828,9 @@ def build_family_info_profile(
             if old_haveSpouseFlag
             else ("" if haveSpouseFlag is not True else haveSpouseFlag)
         ),
-        "haveChildFlag": "" if effective_have_child_flag is not True else effective_have_child_flag,
+        "haveChildFlag": (
+            "" if effective_have_child_flag is not True else effective_have_child_flag
+        ),
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
         "children": [_to_dict(i) for i in (children_src or [])],
         "relatives": [_to_dict(i) for i in (relative_src or [])],

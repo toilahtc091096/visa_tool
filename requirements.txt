@@ -22,3 +22,5 @@ pypdf
 pdf2image 
 pillow 
 python-multipart
+
+docx2pdf

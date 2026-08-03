@@ -1,3 +1,4 @@
+import mimetypes
 import random
 from pathlib import Path
 from typing import Any
@@ -98,7 +99,7 @@ def _normalize_r2_prefix(value: str, fallback: str) -> str:
     return text.lstrip("/")
 
 
-def _upload_pdf_preserve_local(
+def _upload_file_preserve_local(
     file_path: str | Path,
     *,
     local_root: Path,
@@ -123,7 +124,7 @@ def _upload_pdf_preserve_local(
     result = api_upload_r2_object(
         key,
         path.read_bytes(),
-        "application/pdf",
+        mimetypes.guess_type(path.name)[0] or "application/octet-stream",
     )
     if not result.get("ok"):
         return result
@@ -132,7 +133,14 @@ def _upload_pdf_preserve_local(
     return result
 
 
-def _download_pdf_tree_from_r2(
+COMMON_DOC_FOLDERS = (
+    "chung/khach_san",
+    "chung/ve_may_bay",
+    "chung/xac_nhan_tu_trung_tam_visa",
+)
+
+
+def _download_family_common_docs_from_r2(
     *,
     prefix: str,
     local_root: Path,
@@ -140,20 +148,38 @@ def _download_pdf_tree_from_r2(
     normalized_prefix = _normalize_r2_prefix(prefix, "")
     if not normalized_prefix:
         return 0
-    return download_r2_folder(prefix=normalized_prefix, local_dir=str(local_root))
+
+    total = 0
+    for folder in COMMON_DOC_FOLDERS:
+        total += download_r2_folder(
+            prefix=f"{normalized_prefix.rstrip('/')}/{folder}",
+            local_dir=str(local_root / Path(folder)),
+        )
+    return total
+
+
+def _upload_common_docs_to_r2(*, local_root: Path, prefix: str) -> list[dict]:
+    results: list[dict] = []
+    for folder in COMMON_DOC_FOLDERS:
+        folder_path = local_root / Path(folder)
+        if not folder_path.is_dir():
+            continue
+        for file_path in sorted(folder_path.rglob("*")):
+            if file_path.is_file():
+                results.append(
+                    _upload_file_preserve_local(
+                        file_path,
+                        local_root=local_root,
+                        prefix=prefix,
+                    )
+                )
+    return results
 
 
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     passport_root = passport_data_dir(ctx.input_passportNumber)
     family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
     reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
-    cache_l_docs = bool(
-        ctx.visa_type.startswith("L")
-        and (getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", []))
-        and not reuse_l_docs
-    )
-    hotel_pdf_path: str = ""
-    ticket_pdf_path: str = ""
     if ctx.visa_type == "L15":
         ctx.hotel_type = random.randint(0, 100) % len(
             HOTEL_DATA[ctx.visa_type]["hotel"]
@@ -381,7 +407,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     "child_number": child_number,
                 }
                 print(f"payload for hotel file: {payload}")
-                hotel_pdf_path = await hotel_info.render_docx_template_output_pdf(
+                await hotel_info.render_docx_template_output_pdf(
                     payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
                 )
                 log_event({"step": "genenrate hotel file", "ok": "ok"})
@@ -406,7 +432,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     "is_under_18": ctx.is_under_18,
                     "haveChildFlag": ctx.haveChildFlag,
                 }
-                hotel_pdf_path = await hotel_info.render_L30_hotel(
+                await hotel_info.render_L30_hotel(
                     payload, L_15_HOTEL_OUTPUT_PATH, ctx.input_passportNumber
                 )
                 log_event({"step": "genenrate hotel file", "ok": "ok"})
@@ -490,70 +516,28 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 e, {"event": "render_failed", "file": payload.get("file_name")}
             )
         if not reuse_l_docs:
-            ticket_pdf_path = await flight_info.render_flight_ticket_output_pdf(
+            await flight_info.render_flight_ticket_output_pdf(
                 payload, L_15_TICKET_OUTPUT_PATH, ctx.input_passportNumber
             )
 
     if ctx.visa_type.startswith("L"):
         if reuse_l_docs:
-            downloaded = _download_pdf_tree_from_r2(
+            downloaded = _download_family_common_docs_from_r2(
                 prefix=family_passport,
                 local_root=passport_root,
             )
             if downloaded == 0:
                 raise FileNotFoundError(
-                    f"No PDF files found on R2 for prefix: {family_passport}"
+                    "No family common documents found on R2 for prefix: "
+                    f"{family_passport}"
                 )
             print(
-                f"downloaded L docs from R2 prefix={family_passport} "
-                f"into={passport_root}"
-            )
-        elif cache_l_docs:
-            upload_prefix = _normalize_r2_prefix(
-                family_passport, ctx.input_passportNumber
-            )
-            upload_results = []
-            if hotel_pdf_path:
-                upload_results.append(
-                    _upload_pdf_preserve_local(
-                        hotel_pdf_path,
-                        local_root=passport_root,
-                        prefix=upload_prefix,
-                    )
-                )
-            if ticket_pdf_path:
-                upload_results.append(
-                    _upload_pdf_preserve_local(
-                        ticket_pdf_path,
-                        local_root=passport_root,
-                        prefix=upload_prefix,
-                    )
-                )
-            for result in upload_results:
-                if not result.get("ok"):
-                    raise RuntimeError(
-                        f"Failed to upload PDF to R2: {result.get('error')}"
-                    )
-            print(
-                f"uploaded L docs to R2 prefix={upload_prefix} "
-                f"files={len(upload_results)}"
+                f"downloaded family common docs from R2 prefix={family_passport} "
+                f"folders={COMMON_DOC_FOLDERS} into={passport_root}"
             )
 
     ctx.ticket_names = [ctx.vietnamese_name]
-    cv_pdf_path: str = ""
-    if ctx.visa_type.startswith("L") and reuse_l_docs:
-        downloaded = _download_pdf_tree_from_r2(
-            prefix=family_passport,
-            local_root=passport_root,
-        )
-        if downloaded == 0:
-            raise FileNotFoundError(
-                f"No PDF files found on R2 for prefix: {family_passport}"
-            )
-        print(
-            f"downloaded CV from R2 prefix={family_passport} " f"into={passport_root}"
-        )
-    else:
+    if not (ctx.visa_type.startswith("L") and reuse_l_docs):
         try:
             today_yyyy, today_mm, today_dd = get_today_parts()
             file_name = CV_DATA
@@ -585,23 +569,25 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             log_exception(
                 e, {"event": "render_failed", "file": payload.get("file_name")}
             )
-        cv_pdf_path = await cv_info.render_docx_template_output_pdf(
+        await cv_info.render_docx_template_output_pdf(
             payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
         )
-        if ctx.visa_type.startswith("L"):
-            upload_prefix = _normalize_r2_prefix(
-                family_passport, ctx.input_passportNumber
-            )
-            cv_upload_result = _upload_pdf_preserve_local(
-                cv_pdf_path,
-                local_root=passport_root,
-                prefix=upload_prefix,
-            )
-            if not cv_upload_result.get("ok"):
-                raise RuntimeError(
-                    f"Failed to upload CV PDF to R2: {cv_upload_result.get('error')}"
-                )
-            print(f"uploaded CV to R2 prefix={upload_prefix}")
+
+    upload_prefix = _normalize_r2_prefix(family_passport, ctx.input_passportNumber)
+    common_doc_uploads = _upload_common_docs_to_r2(
+        local_root=passport_root,
+        prefix=upload_prefix,
+    )
+    failed_uploads = [result for result in common_doc_uploads if not result.get("ok")]
+    if failed_uploads:
+        raise RuntimeError(
+            "Failed to upload common documents to R2: "
+            f"{failed_uploads[0].get('error')}"
+        )
+    print(
+        f"uploaded common docs to R2 prefix={upload_prefix} "
+        f"files={len(common_doc_uploads)} folders={COMMON_DOC_FOLDERS}"
+    )
 
     if ctx.visa_type == "L30":
         try:
