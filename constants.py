@@ -1287,7 +1287,7 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
         ],
         "THU_MOI": [
             {
-                "categoryCode": "12025062114355815132681",
+                "categoryCode": "12026072917273869111112",
                 "materialCode": "mfa-049_1",
             },
         ],
