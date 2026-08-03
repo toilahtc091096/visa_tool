@@ -714,11 +714,11 @@ UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
         {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_3"},
     ],
     "UNDER_18": [
-        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_1"},
-        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_2"},
-        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_3"},
-        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_4"},
-        {"categoryCode": "22025062114181968780924", "materialCode": "mfa-039_5"},
+        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_1"},
+        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_2"},
+        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_3"},
+        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_4"},
+        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_5"},
     ],
     "PREV_CHINESE_PASSPORT_OR_VISA_FOR_EX_CHINESE": [
         {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_1"},
@@ -1002,23 +1002,23 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
             ],
             "UNDER_18": [
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_1",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_2",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_3",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_4",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_5",
                 },
             ],
@@ -1130,23 +1130,23 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
             ],
             "UNDER_18": [
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_1",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_2",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_3",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_4",
                 },
                 {
-                    "categoryCode": "22025062114181968780924",
+                    "categoryCode": "22026072917255869849620",
                     "materialCode": "mfa-039_5",
                 },
             ],
@@ -1245,23 +1245,23 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
         ],
         "UNDER_18": [
             {
-                "categoryCode": "22025062114181968780924",
+                "categoryCode": "22026072917255869849620",
                 "materialCode": "mfa-039_1",
             },
             {
-                "categoryCode": "22025062114181968780924",
+                "categoryCode": "22026072917255869849620",
                 "materialCode": "mfa-039_2",
             },
             {
-                "categoryCode": "22025062114181968780924",
+                "categoryCode": "22026072917255869849620",
                 "materialCode": "mfa-039_3",
             },
             {
-                "categoryCode": "22025062114181968780924",
+                "categoryCode": "22026072917255869849620",
                 "materialCode": "mfa-039_4",
             },
             {
-                "categoryCode": "22025062114181968780924",
+                "categoryCode": "22026072917255869849620",
                 "materialCode": "mfa-039_5",
             },
         ],
