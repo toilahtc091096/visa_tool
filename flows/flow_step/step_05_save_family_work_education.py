@@ -1,5 +1,5 @@
 import random
-from datetime import datetime
+from datetime import date, datetime
 
 from api import api_get_education_info, api_get_family_info, api_get_work_info, api_list_online_applications, api_save_education_info, api_save_family_info, api_save_work_info
 from constants import (
@@ -175,6 +175,10 @@ async def save_family_work_education(ctx, client) -> bool:
             "err={('step 6 cannot parse date')}"
         )
         return False
+    today = date.today()
+    ctx.is_over_50 = (
+        today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    ) > 50
 
     body_save_family_info = build_family_info_profile(
         ctx.first_applyid,
@@ -182,6 +186,8 @@ async def save_family_work_education(ctx, client) -> bool:
         datetime.strptime(ctx.ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
         ctx.ocr_data.Response.Data.nationality,
         ctx.haveSpouseFlag,
+        ctx.is_under_18,
+        ctx.is_over_50,
         ctx.spouseFamilyName,
         ctx.spouseFirstName,
         ctx.spouseNationalityCountry,

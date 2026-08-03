@@ -577,6 +577,8 @@ def build_family_info_profile(
     main_account_birth_date: date,
     family_nationality: str,
     haveSpouseFlag: bool,
+    is_under_18: bool,
+    is_over_50: bool,
     spouseFamilyName: str = "",
     spouseFirstName: str = "",
     spouseNationalityCountry: str = "",
@@ -673,7 +675,7 @@ def build_family_info_profile(
         print(child_info)
 
     if fatherFamilyName == "" and fatherGivenName == "":
-        if random.randint(0, 9) < 1:
+        if (not is_under_18) and is_over_50:
             not_apply_items.append(
                 {
                     "notApplyCode": "father",
