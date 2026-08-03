@@ -435,10 +435,7 @@ def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
         "highestDegree": degree_code,
         "specialty": degree_label,
     }
-    if degree_label == "THPT":
-        school_name = f"THPT {random.choice(EDUCATION_SCHOOL_NAMES)}, {province_city_code}"
-    else:
-        school_name = random.choice(EDUCATION_UNIVERSITY_SCHOOL_NAMES_HANOI)
+    school_name = random.choice(EDUCATION_UNIVERSITY_SCHOOL_NAMES_HANOI)
     return {
         **base_entry,
         "schoolName": school_name,
