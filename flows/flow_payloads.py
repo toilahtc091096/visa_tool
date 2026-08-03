@@ -19,6 +19,7 @@ from constants import (
     VISA_TYPE_VALUE,
     EDUCATION_DEGREE_TYPE,
     EDUCATION_SCHOOL_NAMES,
+    EDUCATION_UNIVERSITY_SCHOOL_NAMES_HANOI,
     FAMILY_DEFAULT_PHONE,
     FAMILY_FATHER_NOT_APPLY_REMARK,
     FAMILY_PARENT_RELATION_MOTHER,
@@ -423,15 +424,22 @@ def _to_dict(x: Any) -> dict[str, Any]:
 
 
 def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
-    _, degree_code, specialty = random.choice(EDUCATION_DEGREE_TYPE)
-    return {
+    _, degree_code, degree_label = random.choice(EDUCATION_DEGREE_TYPE)
+    base_entry = {
         "sort": "1",
         "beginDate": "",
         "endDate": "",
-        "schoolName": f"THPT {random.choice(EDUCATION_SCHOOL_NAMES)}, {province_city_code}",
         "schoolAddr": "",
         "highestDegree": degree_code,
-        "specialty": specialty,
+        "specialty": degree_label,
+    }
+    if degree_label == "THPT":
+        school_name = f"THPT {random.choice(EDUCATION_SCHOOL_NAMES)}, {province_city_code}"
+    else:
+        school_name = random.choice(EDUCATION_UNIVERSITY_SCHOOL_NAMES_HANOI)
+    return {
+        **base_entry,
+        "schoolName": school_name,
     }
 
 
