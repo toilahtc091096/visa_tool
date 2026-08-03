@@ -28,7 +28,7 @@ def upload_pdf_to_r2(file_path: str, prefix: str = "data/") -> str:
         str(file_path),
         config.bucket_name,
         key,
-        ExtraArgs={"ContentType": "application/pdf"}
+        ExtraArgs={"ContentType": "application/pdf"},
     )
 
     print(f"Uploaded: {file_path} -> r2://{config.bucket_name}/{key}", flush=True)
