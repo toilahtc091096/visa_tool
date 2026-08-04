@@ -59,7 +59,9 @@ def _sorted_unique_names(additions: list[str] | None) -> list[str]:
 
 
 def _child_full_name(child: dict[str, Any]) -> str:
-    family = str(child.get("childFamilyName", child.get("familyName", "")) or "").strip()
+    family = str(
+        child.get("childFamilyName", child.get("familyName", "")) or ""
+    ).strip()
     given = str(child.get("childGivenName", child.get("firstName", "")) or "").strip()
     return " ".join(part for part in [family, given] if part).strip()
 
@@ -387,12 +389,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if not ctx.guest_name:
                         ctx.guest_name = [ctx.vietnamese_name, adult]
                         print(f"guest_name: {ctx.guest_name}")
-                elif (
-                    ctx.haveChildFlag and not ctx.is_private
-                ):  # todo: them and is_private  (haveChildFlag and is_private)
-                    child = child_names[0] if child_names else random.choice(VIETNAMESE_NAMES).upper()
-                    if not ctx.guest_name:
-                        ctx.guest_name = [ctx.vietnamese_name, child]
+
+            if not ctx.guest_name:
+                ctx.guest_name = [ctx.vietnamese_name]
 
             try:
                 payload = {
@@ -461,12 +460,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     ctx.payName
                     if ctx.payName
                     else random.choice(VIETNAMESE_NAMES).upper()
-                )
-            if (
-                ctx.haveChildFlag and not ctx.is_private
-            ):  # todo: them and is_private  (haveChildFlag and is_private)
-                ctx.ticket_names.extend(
-                    child_names or [random.choice(VIETNAMESE_NAMES).upper()]
                 )
     if not ctx.visa_type.startswith("M"):
         try:
