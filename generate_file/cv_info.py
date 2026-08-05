@@ -63,7 +63,7 @@ async def render_docx_template_output_pdf(
         raise ValueError(f"Not a .docx file: {src}")
     if isinstance(name, list):
         name = "_".join(name)
-    entry_type = payload.get("entry_type", "")
+    entry_type = payload.get("entries_type", "")
     entry_type_show = "1"
     if entry_type == "S":
         entry_type_show = "1"
