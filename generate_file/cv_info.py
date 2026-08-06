@@ -72,7 +72,7 @@ async def render_docx_template_output_pdf(
     elif entry_type == "M":
         entry_type_show = "多"
 
-    name = f"{name}_{entry_type}"
+    name = f"{name}"
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_")
 
     out = out_dir / (Path(file_name).stem + ".docx")
