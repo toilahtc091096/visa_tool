@@ -182,11 +182,31 @@ def _upload_common_docs_to_r2(*, local_root: Path, prefix: str) -> list[dict]:
 def _delete_common_docs_from_r2(*, prefix: str) -> int:
     normalized_prefix = _normalize_r2_prefix(prefix, "")
     if not normalized_prefix:
+        print(
+            "[R2][COMMON_DOCS] skip delete because prefix is empty",
+            flush=True,
+        )
         return 0
 
     deleted_count = 0
     for folder in COMMON_DOC_FOLDERS:
-        deleted_count += delete_r2_folder(f"{normalized_prefix.rstrip('/')}/{folder}")
+        folder_prefix = f"{normalized_prefix.rstrip('/')}/{folder}"
+        print(
+            f"[R2][COMMON_DOCS] deleting folder_prefix={folder_prefix}",
+            flush=True,
+        )
+        folder_deleted = delete_r2_folder(folder_prefix)
+        deleted_count += folder_deleted
+        print(
+            f"[R2][COMMON_DOCS] deleted folder_prefix={folder_prefix} "
+            f"count={folder_deleted}",
+            flush=True,
+        )
+    print(
+        f"[R2][COMMON_DOCS] delete finished prefix={normalized_prefix} "
+        f"total_deleted={deleted_count}",
+        flush=True,
+    )
     return deleted_count
 
 
@@ -579,12 +599,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         )
 
     upload_prefix = _normalize_r2_prefix(family_passport, ctx.input_passportNumber)
+    print(
+        f"[R2][COMMON_DOCS] start cleanup+upload prefix={upload_prefix} "
+        f"folders={COMMON_DOC_FOLDERS}",
+        flush=True,
+    )
     deleted_common_docs = _delete_common_docs_from_r2(prefix=upload_prefix)
-    if deleted_common_docs:
-        print(
-            f"deleted existing common docs from R2 prefix={upload_prefix} "
-            f"folders={COMMON_DOC_FOLDERS} count={deleted_common_docs}"
-        )
+    print(
+        f"[R2][COMMON_DOCS] cleanup done prefix={upload_prefix} "
+        f"deleted={deleted_common_docs}",
+        flush=True,
+    )
     common_doc_uploads = _upload_common_docs_to_r2(
         local_root=passport_root,
         prefix=upload_prefix,
