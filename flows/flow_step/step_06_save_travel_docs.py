@@ -45,6 +45,7 @@ from utils import (
     log_exception,
     notify,
 )
+from utils.remove_r2 import delete_r2_folder
 from utils.download_r2 import download_r2_folder
 
 
@@ -176,6 +177,17 @@ def _upload_common_docs_to_r2(*, local_root: Path, prefix: str) -> list[dict]:
                     )
                 )
     return results
+
+
+def _delete_common_docs_from_r2(*, prefix: str) -> int:
+    normalized_prefix = _normalize_r2_prefix(prefix, "")
+    if not normalized_prefix:
+        return 0
+
+    deleted_count = 0
+    for folder in COMMON_DOC_FOLDERS:
+        deleted_count += delete_r2_folder(f"{normalized_prefix.rstrip('/')}/{folder}")
+    return deleted_count
 
 
 async def save_travel_and_generate_docs(ctx, client) -> bool:
@@ -567,6 +579,12 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         )
 
     upload_prefix = _normalize_r2_prefix(family_passport, ctx.input_passportNumber)
+    deleted_common_docs = _delete_common_docs_from_r2(prefix=upload_prefix)
+    if deleted_common_docs:
+        print(
+            f"deleted existing common docs from R2 prefix={upload_prefix} "
+            f"folders={COMMON_DOC_FOLDERS} count={deleted_common_docs}"
+        )
     common_doc_uploads = _upload_common_docs_to_r2(
         local_root=passport_root,
         prefix=upload_prefix,
