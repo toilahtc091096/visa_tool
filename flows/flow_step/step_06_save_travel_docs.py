@@ -243,6 +243,13 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     passport_root = passport_data_dir(ctx.input_passportNumber)
     family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
     reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
+    if ctx.visa_type.startswith("L"):
+        print(
+            f"[LOCAL][COMMON_DOCS] start cleanup root={passport_root} "
+            f"folders={COMMON_DOC_FOLDERS}",
+            flush=True,
+        )
+        _cleanup_common_docs_local(local_root=passport_root)
     if ctx.visa_type == "L15":
         ctx.hotel_type = random.randint(0, 100) % len(
             HOTEL_DATA[ctx.visa_type]["hotel"]
@@ -576,7 +583,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     if ctx.visa_type.startswith("L"):
         if reuse_l_docs:
-            _cleanup_common_docs_local(local_root=passport_root)
             downloaded = _download_family_common_docs_from_r2(
                 prefix=family_passport,
                 local_root=passport_root,
