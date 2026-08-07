@@ -1,5 +1,6 @@
 import mimetypes
 import random
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -159,6 +160,34 @@ def _download_family_common_docs_from_r2(
             local_dir=str(local_root / Path(folder)),
         )
     return total
+
+
+def _cleanup_common_docs_local(*, local_root: Path) -> int:
+    deleted_count = 0
+    for folder in COMMON_DOC_FOLDERS:
+        folder_path = local_root / Path(folder)
+        if not folder_path.exists():
+            print(
+                f"[LOCAL][COMMON_DOCS] skip missing folder={folder_path}",
+                flush=True,
+            )
+            continue
+        print(
+            f"[LOCAL][COMMON_DOCS] deleting folder={folder_path}",
+            flush=True,
+        )
+        shutil.rmtree(folder_path)
+        deleted_count += 1
+        print(
+            f"[LOCAL][COMMON_DOCS] deleted folder={folder_path}",
+            flush=True,
+        )
+    print(
+        f"[LOCAL][COMMON_DOCS] cleanup finished root={local_root} "
+        f"deleted_folders={deleted_count}",
+        flush=True,
+    )
+    return deleted_count
 
 
 def _upload_common_docs_to_r2(*, local_root: Path, prefix: str) -> list[dict]:
@@ -547,6 +576,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     if ctx.visa_type.startswith("L"):
         if reuse_l_docs:
+            _cleanup_common_docs_local(local_root=passport_root)
             downloaded = _download_family_common_docs_from_r2(
                 prefix=family_passport,
                 local_root=passport_root,
