@@ -10,6 +10,11 @@ from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
 
 
+def _remove_if_exists(path: Path) -> None:
+    if path.exists():
+        path.unlink()
+
+
 def build_itinerary(first: date) -> list[dict]:
 
     routes = [
@@ -221,6 +226,7 @@ async def render_init_pdf(
 
     doc = DocxTemplate(str(src))
     doc.render(context)
+    _remove_if_exists(out)
     doc.save(str(out))
 
     pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")

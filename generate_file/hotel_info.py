@@ -16,6 +16,11 @@ from utils import pdf_helper
 from generate_file.path_utils import passport_data_dir
 
 
+def _remove_if_exists(path: Path) -> None:
+    if path.exists():
+        path.unlink()
+
+
 def _build_l30_names(
     names: list[str],
     addition_adults: list[str] | None = None,
@@ -140,6 +145,7 @@ async def render_docx_template_output_pdf(
             },
             jinja_env=jinja_env,
         )
+    _remove_if_exists(out)
     doc.save(str(out))
     safe = safe or "NONAME"
 
@@ -229,6 +235,7 @@ async def render_L30_hotel(
                 },
                 jinja_env=jinja_env,
             )
+            _remove_if_exists(outs[i])
             doc.save(str(outs[i]))
             safe = safe or "NONAME"
 
@@ -278,10 +285,11 @@ def merge_docx_files(
     merger = PdfMerger()
 
     try:
+        out_path = folder / output_name
+        _remove_if_exists(out_path)
         for pdf_path in pdf_paths:
             merger.append(str(pdf_path))
 
-        out_path = folder / output_name
         merger.write(str(out_path))
     finally:
         merger.close()

@@ -100,6 +100,8 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
     if not source.is_file():
         raise FileNotFoundError(f"DOCX source file does not exist: {source}")
     target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        target.unlink()
 
     if os.name == "nt":
         _convert_with_word(source, target)

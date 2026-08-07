@@ -12,6 +12,11 @@ from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 
 
+def _remove_if_exists(path: Path) -> None:
+    if path.exists():
+        path.unlink()
+
+
 async def render_flight_ticket_output_pdf(
     payload: dict[str, Any],
     output_path: str = "",
@@ -78,6 +83,7 @@ async def render_flight_ticket_output_pdf(
                 "departure_city": str(payload.get("departure_city")),
             },
         )
+    _remove_if_exists(out)
     doc.save(str(out))
     safe = safe or "NONAME"
 

@@ -30,6 +30,11 @@ def _normalize_passengers(value: Any) -> list[dict[str, Any]]:
     return result
 
 
+def _remove_if_exists(path: Path) -> None:
+    if path.exists():
+        path.unlink()
+
+
 async def render_docx_template_output_pdf(
     payload: dict[str, Any],
     output_path: str = "",
@@ -99,6 +104,7 @@ async def render_docx_template_output_pdf(
         }
     )
 
+    _remove_if_exists(out)
     doc.save(str(out))
     safe = safe or "NONAME"
 
