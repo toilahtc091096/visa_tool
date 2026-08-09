@@ -5,6 +5,15 @@ def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, s
     raw_type = str(visa_type or "").strip().upper()
     raw_duration = str(visa_duration or "").strip().upper()
 
+    if raw_type.startswith("Q"):
+        if raw_type in {"Q1", "Q2"}:
+            return raw_type, raw_duration or raw_type[2:]
+        if len(raw_type) > 2 and raw_type[:2] in {"Q1", "Q2"}:
+            return raw_type[:2], raw_type[2:] or raw_duration
+        if raw_duration:
+            return raw_type, raw_duration
+        return raw_type, ""
+
     if raw_type.startswith("M"):
         if raw_type == "M":
             if raw_duration in {"15", "30", "90", "MT", "MP", "MO"}:
@@ -46,7 +55,10 @@ def build_flow_context(**kwargs):
         raw_visa_type,
         raw_visa_duration,
     )
-    ctx.first_letter_visa_type = ctx.visa_type[:1]
+    if ctx.visa_type.startswith("Q") and len(ctx.visa_type) > 1 and ctx.visa_type[1].isdigit():
+        ctx.first_letter_visa_type = ctx.visa_type[:2]
+    else:
+        ctx.first_letter_visa_type = ctx.visa_type[:1]
     ctx.last_letter_visa_type = ctx.visa_duration or ctx.visa_type[1:]
     ctx.first_applyid = kwargs.get("first_applyid", "")
     ctx.passportNumber = kwargs.get("passportNumber", "")
@@ -92,8 +104,20 @@ def build_flow_context(**kwargs):
     ctx.inviterFamilyName = kwargs.get("inviterFamilyName", "")
     ctx.inviterGivenName = kwargs.get("inviterGivenName", "")
     ctx.inviterIdCard = kwargs.get("inviterIdCard", "")
+    ctx.inviterPhone = kwargs.get("inviterPhone", "")
     ctx.inviterAddress = kwargs.get("inviterAddress", "")
-    ctx.inviterRelation = kwargs.get("inviterRelation", "")
+    ctx.relation = kwargs.get("relation", "")
+    ctx.inviterName = kwargs.get(
+        "inviterName",
+        "".join(
+            part
+            for part in (
+                str(kwargs.get("inviterFamilyName", "") or "").strip(),
+                str(kwargs.get("inviterGivenName", "") or "").strip(),
+            )
+            if part
+        ),
+    )
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

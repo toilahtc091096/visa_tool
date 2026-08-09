@@ -10,7 +10,7 @@ def validate_initial_inputs(ctx) -> bool:
     visa_type = str(getattr(ctx, "visa_type", "") or "").strip().upper()
     first_letter = str(getattr(ctx, "first_letter_visa_type", "") or "").strip().upper()
 
-    if first_letter not in SERVICE_VISA_TYPE or not visa_type.startswith(("L", "M")):
+    if first_letter not in SERVICE_VISA_TYPE or not visa_type.startswith(("L", "M", "Q")):
         log_event({"step": "Visa Type", "status": visa_type + " not support"})
         return False
 

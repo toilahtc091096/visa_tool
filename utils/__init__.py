@@ -36,6 +36,15 @@ _EXPORTS = {
     "remove_last_blank_page": ("pdf_helper", "remove_last_blank_page"),
     "upload_pdf_to_r2": ("upload_r2", "upload_pdf_to_r2"),
     "upload_pdf_to_r2_keep_local": ("upload_r2", "upload_pdf_to_r2_keep_local"),
+    "render_chinese_name_signature_png": (
+        "chinese_signature",
+        "render_chinese_name_signature_png",
+    ),
+    "save_chinese_name_signature_png": (
+        "chinese_signature",
+        "save_chinese_name_signature_png",
+    ),
+    "resolve_chinese_font": ("chinese_signature", "resolve_chinese_font"),
 }
 
 

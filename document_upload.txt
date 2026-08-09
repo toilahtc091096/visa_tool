@@ -47,3 +47,56 @@ ID or permanent residence permit number
 
 	LÀM FILE VÀ UPLOAD THEO LOẠI Q
 	
+
+
+File Q2
+
+| Path đề xuất                     | Loại hồ sơ             | categoryCode              | materialCode                          |
+| -------------------------------- | ---------------------- | ------------------------- | ------------------------------------- |
+| `tham-than/trang-trong-ho-chieu` | Trang trống hộ chiếu   | `22025070216180808782737` | `mfa-017_1`, `mfa-017_2`              |
+| `tham-than/visa-trung-quoc-cu`   | Visa Trung Quốc cũ     | `22025062114131912554297` | `mfa-033_1`                           |
+| `tham-than/thumoi`               | **Thư mời**            | `12025062115191056099712` | `mfa-091_1`                           |
+| `tham-than/cccd-nguoi-moi`       | CCCD/CMND người mời    | `12025062115202108210397` | `mfa-092_1`, `mfa-092_2`              |
+| `tham-than/chung-minh-quan-he`   | **Chứng minh quan hệ** | `12025062115232232717451` | `mfa-094_2`, `mfa-094_3`, `mfa-094_4` |
+| `tham-than/tai-lieu-khac`        | Tài liệu khác          | `12025062115255295051217` | `mfa-099_1`                           |
+
+
+
+{
+  inviterName: "陈松松",
+  inviterIdCard: "340521199207223016",
+  inviterPhone: "18655548582",
+  inviterAddress: "安徽省马鞍山市博望区...",
+
+  spouse: "☑",
+  parents: "□",
+  spouseParents: "□",
+  children: "□",
+  siblings: "□",
+  paternalGrandparents: "□",
+  maternalGrandparents: "□",
+  grandchildren: "□",
+  maternalGrandchildren: "□",
+  childrenSpouse: "□",
+  relative: "□",
+  relativeNote: "",
+
+  q1: "☑",
+  q2Once: "□",
+  q2Twice: "□",
+  q2HalfYear: "□",
+  q2OneYear: "□",
+
+  name: "PHAN MAY NHAN",
+  passport_number: "E03099984",
+
+  birth_year: "2004",
+  birth_month: "09",
+  birth_day: "13",
+
+  phone: "0817910125",
+
+  today_year: "2026",
+  today_month: "08",
+  today_day: "06"
+}

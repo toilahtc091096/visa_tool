@@ -21,8 +21,10 @@ DEFAULT_CASE: dict[str, Any] = {
     "inviterFamilyName": "",
     "inviterGivenName": "",
     "inviterIdCard": "",
+    "inviterPhone": "",
     "inviterAddress": "",
-    "inviterRelation": "",
+    "relation": "",
+    "inviterName": "",
     "arrivalDate": "",
     "departureDate": "",
     "fixed_arrived": "",
@@ -267,8 +269,10 @@ def main(
     inviterFamilyName: str = "",
     inviterGivenName: str = "",
     inviterIdCard: str = "",
+    inviterPhone: str = "",
     inviterAddress: str = "",
-    inviterRelation: str = "",
+    relation: str = "",
+    inviterName: str = "",
     arrivalDate: str = "",
     departureDate: str = "",
     fixed_arrived: str | None = None,
@@ -335,10 +339,23 @@ def main(
         data["inviterGivenName"] = str(inviterGivenName).strip()
     if inviterIdCard:
         data["inviterIdCard"] = str(inviterIdCard).strip()
+    if inviterPhone:
+        data["inviterPhone"] = str(inviterPhone).strip()
     if inviterAddress:
         data["inviterAddress"] = str(inviterAddress).strip()
-    if inviterRelation:
-        data["inviterRelation"] = str(inviterRelation).strip()
+    if relation:
+        data["relation"] = str(relation).strip()
+    if inviterName:
+        data["inviterName"] = str(inviterName).strip()
+    elif not str(data.get("inviterName", "") or "").strip():
+        data["inviterName"] = "".join(
+            part
+            for part in (
+                str(data.get("inviterFamilyName", "") or "").strip(),
+                str(data.get("inviterGivenName", "") or "").strip(),
+            )
+            if part
+        )
     if visa_duration not in (None, ""):
         data["visa_duration"] = str(visa_duration).strip().upper()
     asyncio.run(
@@ -429,6 +446,8 @@ def main(
             data["stayDistrict"],
             data["departureCity"],
             data["departureDistrict"],
+            inviterPhone=data.get("inviterPhone", ""),
+            inviterName=data.get("inviterName", ""),
         )
     )
 
