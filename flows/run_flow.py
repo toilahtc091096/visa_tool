@@ -80,12 +80,6 @@ async def run_flow(
     upload_config_keys: list[str] | None = None,
     addition_adults: list[str] | None = None,
     addition_child: list[str] | None = None,
-    apply_visa_validity: Any | None = None,
-    inviterFamilyName: str = "",
-    inviterGivenName: str = "",
-    inviterIdCard: str = "",
-    inviterAddress: str = "",
-    inviterRelation: str = "",
     chinaResidenceLicenseFlag: bool = False,
     collectFingerprintFlag: bool = False,
     is_private: bool = False,
@@ -122,6 +116,12 @@ async def run_flow(
     stayDistrict: str = "",
     departureCity: str = "",
     departureDistrict: str = "",
+    apply_visa_validity: Any | None = None,
+    inviterFamilyName: str = "",
+    inviterGivenName: str = "",
+    inviterIdCard: str = "",
+    inviterAddress: str = "",
+    inviterRelation: str = "",
 ) -> None:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
