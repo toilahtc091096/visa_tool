@@ -134,7 +134,7 @@ def run(payload: dict[str, Any] = Body(...)):
         inviterIdCard=case.get("inviterIdCard", ""),
         inviterPhone=case.get("inviterPhone", case.get("inviter_id_phone", "")),
         inviterAddress=case.get("inviterAddress", ""),
-        relation=case.get("relation", case.get("relation", "")),
+        inviterRelation=case.get("inviterRelation", case.get("inviterrelation", "")),
         inviterName=case.get("inviterName", case.get("inviter_name", "")),
     )
     return {"ok": True, "received": payload is not None}

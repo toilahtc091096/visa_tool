@@ -107,7 +107,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
     relation_hint = _normalize_relation_label(
         _get_value(
             source,
-            "relation",
+            "inviterRelation",
             "inviter_relation",
             "relativeType",
             "relative_type",
@@ -154,7 +154,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         explicit_flags["relative"] = CHECKED if relation_hint else UNCHECKED
     if not _text(explicit_flags["relativeNote"]) and relation_hint:
         explicit_flags["relativeNote"] = _text(
-            _get_value(source, "relation", "relativeNote", default="")
+            _get_value(source, "inviterRelation", "relativeNote", default="")
         )
 
     normalized_flags = {

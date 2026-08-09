@@ -106,7 +106,7 @@ def build_flow_context(**kwargs):
     ctx.inviterIdCard = kwargs.get("inviterIdCard", "")
     ctx.inviterPhone = kwargs.get("inviterPhone", "")
     ctx.inviterAddress = kwargs.get("inviterAddress", "")
-    ctx.relation = kwargs.get("relation", "")
+    ctx.inviterRelation = kwargs.get("inviterRelation", "")
     ctx.inviterName = kwargs.get(
         "inviterName",
         "".join(

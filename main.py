@@ -23,7 +23,7 @@ DEFAULT_CASE: dict[str, Any] = {
     "inviterIdCard": "",
     "inviterPhone": "",
     "inviterAddress": "",
-    "relation": "",
+    "inviterRelation": "",
     "inviterName": "",
     "arrivalDate": "",
     "departureDate": "",
@@ -271,7 +271,7 @@ def main(
     inviterIdCard: str = "",
     inviterPhone: str = "",
     inviterAddress: str = "",
-    relation: str = "",
+    inviterRelation: str = "",
     inviterName: str = "",
     arrivalDate: str = "",
     departureDate: str = "",
@@ -343,8 +343,8 @@ def main(
         data["inviterPhone"] = str(inviterPhone).strip()
     if inviterAddress:
         data["inviterAddress"] = str(inviterAddress).strip()
-    if relation:
-        data["relation"] = str(relation).strip()
+    if inviterRelation:
+        data["inviterRelation"] = str(inviterRelation).strip()
     if inviterName:
         data["inviterName"] = str(inviterName).strip()
     elif not str(data.get("inviterName", "") or "").strip():
