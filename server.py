@@ -128,6 +128,12 @@ def run(payload: dict[str, Any] = Body(...)):
         first_applyid=case.get("first_applyid", ""),
         is_update_info=case.get("is_update_info", False),
         upload_config_keys=case.get("upload_config_keys", []),
+        apply_visa_validity=case.get("apply_visa_validity"),
+        inviterFamilyName=case.get("inviterFamilyName", ""),
+        inviterGivenName=case.get("inviterGivenName", ""),
+        inviterIdCard=case.get("inviterIdCard", ""),
+        inviterAddress=case.get("inviterAddress", ""),
+        inviterRelation=case.get("inviterRelation", case.get("inviterrelation", "")),
     )
     return {"ok": True, "received": payload is not None}
 

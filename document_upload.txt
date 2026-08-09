@@ -6,3 +6,44 @@
 | **CCCD/CMND người mời** (身份证件)   | `12025062115051305548199` | `mfa-071_1`, `mfa-071_2`                           |
 | **Chứng minh quan hệ** (关系证明)    | `12025062115240751955592` | `mfa-073_1`, `mfa-073_2`, `mfa-073_3`, `mfa-073_4` |
 | **Tài liệu khác** (其他文件)         | `12025062115165388661358` | `mfa-085_1`, `mfa-085_2`                           |
+
+
+tham-than/thumoi
+tham-than/cccd 
+tham-than/quanhe
+
+LÀm bộ Q
+1. check file những file gì:
+	1.1 hộ chiếu, trang trắng, các file cơ bản khác, chinesesID , ralationship certi 
+2. file nào cần lấy thông tin, thông tin gì
+3. n8n ra các file và đưa vào đúng thư mục 
+4. code : 
+	4.1: them các field ở trên vào ban đầu 
+	4.2: check xem các step nào cần thay đổi 
+	4.3: thay đổi file upload theo mục 3 
+	
+	
+Step thay doi: 
+	type ofvisa => can them thong tin ten va moi quan he => se co them param va doan nay neu ma 
+	la Q thi them thong tin nay vao:
+		"applyVisaValidity": "3",
+        "applyMaxStayDays": "365",
+		"applyVisaTimes": "703001",???
+		 "applyReason": {"name": "陈松松",
+                    "relation": "CHONG",
+                    "residencePermit": "340521199207223016"
+					}
+	family: Can them cai 5.5E:
+	Do you have any immediate relatives, not including parents, in China?
+	
+
+qmoi_1 => Address, Family name
+Given name, Nationality, Occupation( random)
+Date of birth
+Country of birth
+ID or permanent residence permit number
+
+
+
+	LÀM FILE VÀ UPLOAD THEO LOẠI Q
+	

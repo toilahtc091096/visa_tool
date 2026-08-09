@@ -17,6 +17,12 @@ DEFAULT_CASE: dict[str, Any] = {
     "passportNumber": "",
     "register_date": "",
     "visa_type": "L15",
+    "apply_visa_validity": "",
+    "inviterFamilyName": "",
+    "inviterGivenName": "",
+    "inviterIdCard": "",
+    "inviterAddress": "",
+    "inviterRelation": "",
     "arrivalDate": "",
     "departureDate": "",
     "fixed_arrived": "",
@@ -257,6 +263,12 @@ def main(
     upload_config_keys: list[str] | None = None,
     addition_adults: list[str] | None = None,
     addition_child: list[str] | None = None,
+    apply_visa_validity: Any | None = None,
+    inviterFamilyName: str = "",
+    inviterGivenName: str = "",
+    inviterIdCard: str = "",
+    inviterAddress: str = "",
+    inviterRelation: str = "",
     arrivalDate: str = "",
     departureDate: str = "",
     fixed_arrived: str | None = None,
@@ -315,6 +327,18 @@ def main(
         data["addition_adults"] = _normalize_name_list(addition_adults)
     if addition_child is not None:
         data["addition_child"] = _normalize_name_list(addition_child)
+    if apply_visa_validity is not None:
+        data["apply_visa_validity"] = apply_visa_validity
+    if inviterFamilyName:
+        data["inviterFamilyName"] = str(inviterFamilyName).strip()
+    if inviterGivenName:
+        data["inviterGivenName"] = str(inviterGivenName).strip()
+    if inviterIdCard:
+        data["inviterIdCard"] = str(inviterIdCard).strip()
+    if inviterAddress:
+        data["inviterAddress"] = str(inviterAddress).strip()
+    if inviterRelation:
+        data["inviterRelation"] = str(inviterRelation).strip()
     if visa_duration not in (None, ""):
         data["visa_duration"] = str(visa_duration).strip().upper()
     asyncio.run(

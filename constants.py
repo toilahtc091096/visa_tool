@@ -75,7 +75,12 @@ HOTEL_DATA = {
 CV_DATA = os.getenv("CV_DATA", "CV.docx").strip() or "CV.docx"
 
 ENTRIES_TYPE = {"S": "703001", "D": "703002", "M": "703003"}
-SERVICE_VISA_TYPE = {"L": ({"I", "G"}), "M": ({"MT", "MP", "MO"})}
+SERVICE_VISA_TYPE = {
+    "L": ({"I", "G"}),
+    "M": ({"MT", "MP", "MO"}),
+    "Q1": ({"QCN", "QPR", "QFC"}),
+    "Q2": ({"QCV", "QPV"}),
+}
 VISA_TYPE_VALUE = {
     "L": {
         "I": ({"visaPurpose": 709001, "visaType": 710001}),
@@ -86,8 +91,17 @@ VISA_TYPE_VALUE = {
         "P": ({"visaPurpose": 709002, "visaType": 710004}),
         "O": ({"visaPurpose": 709002, "visaType": 710005}),
     },
+    "Q1": {
+        "QCN": {"visaPurpose": 709004, "visaType": 710013},
+        "QPR": {"visaPurpose": 709004, "visaType": 710014},
+        "QFC": {"visaPurpose": 709004, "visaType": 710015},
+    },
+    "Q2": {
+        "QCV": {"visaPurpose": 709005, "visaType": 710016},
+        "QPV": {"visaPurpose": 709005, "visaType": 710017},
+    },
 }
-APPLY_VISA_VALIDITY = {"L": 3, "M": 3}
+APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
@@ -208,9 +222,7 @@ FEMALE_VIETNAMESE_NAMES = (
     "Pham Thi Trang",
 )
 
-EDUCATION_DEGREE_TYPE = (
-    ("Junior_College", "714003", "DAI HOC"),
-)
+EDUCATION_DEGREE_TYPE = (("Junior_College", "714003", "DAI HOC"),)
 
 EDUCATION_SCHOOL_NAMES = (
     "NGO QUYEN",

@@ -37,6 +37,11 @@ async def save_person_and_apply(ctx, client) -> bool:
         ctx.entries_type,
         ctx.type_of_visa_sub_value,
         ctx.service_type,
+        apply_visa_validity=getattr(ctx, "apply_visa_validity", None),
+        inviter_family_name=getattr(ctx, "inviterFamilyName", ""),
+        inviter_given_name=getattr(ctx, "inviterGivenName", ""),
+        inviter_id_card=getattr(ctx, "inviterIdCard", ""),
+        inviter_relation=getattr(ctx, "inviterRelation", ""),
     )
     ok3, meta3 = await api_save_apply_info(
         client,

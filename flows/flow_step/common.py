@@ -89,6 +89,11 @@ def build_flow_context(**kwargs):
     ctx.addition_adults = kwargs.get("addition_adults", [])
     ctx.addition_child = kwargs.get("addition_child", [])
     ctx.passengers = kwargs.get("passengers", [])
+    ctx.inviterFamilyName = kwargs.get("inviterFamilyName", "")
+    ctx.inviterGivenName = kwargs.get("inviterGivenName", "")
+    ctx.inviterIdCard = kwargs.get("inviterIdCard", "")
+    ctx.inviterAddress = kwargs.get("inviterAddress", "")
+    ctx.inviterRelation = kwargs.get("inviterRelation", "")
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

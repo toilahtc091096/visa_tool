@@ -170,10 +170,22 @@ def build_apply_info_profile(
     entries_type: str,
     type_of_visa_sub_value: str,
     service_type: str,
+    apply_visa_validity: Any = None,
+    inviter_family_name: str = "",
+    inviter_given_name: str = "",
+    inviter_id_card: str = "",
+    inviter_relation: str = "",
 ) -> ApplyInfoProfile:
     visa_sub = VISA_TYPE_VALUE.get(first_letter_visa_type, {}).get(
         type_of_visa_sub_value, {}
     )
+    if apply_visa_validity in (None, ""):
+        resolved_apply_visa_validity = APPLY_VISA_VALIDITY.get(first_letter_visa_type)
+    else:
+        try:
+            resolved_apply_visa_validity = int(str(apply_visa_validity).strip())
+        except (TypeError, ValueError):
+            resolved_apply_visa_validity = apply_visa_validity
     apply_info_json: dict[str, Any] = {
         "travelAgencyLicenseNo": "",
         "finishedStep": 9,
@@ -187,19 +199,19 @@ def build_apply_info_profile(
         "lang": DEFAULT_LANG,
         "applyReason": {
             "missionName": "",
-            "name": "",
+            "name": f"{str(inviter_family_name or '').strip()}{str(inviter_given_name or '').strip()}",
             "newPredecessorFlag": False,
             "otherSpecify": "",
             "personalMatters": "",
             "predecessorName": "",
-            "relation": "",
-            "residencePermit": "",
+            "relation": str(inviter_relation or "").strip(),
+            "residencePermit": str(inviter_id_card or "").strip(),
             "residentName": "",
             "talentProgrammeName": "",
             "travelAgencyLicenseNo": "",
             "travelAgencyName": "",
         },
-        "applyVisaValidity": APPLY_VISA_VALIDITY.get(first_letter_visa_type),
+        "applyVisaValidity": resolved_apply_visa_validity,
         "applyMaxStayDays": last_letter_visa_type,
         "applyVisaTimes": ENTRIES_TYPE.get(entries_type, {}),
         "visaType": visa_sub.get("visaType"),
