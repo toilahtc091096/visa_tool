@@ -245,6 +245,8 @@ def _delete_common_docs_from_r2(*, prefix: str) -> int:
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     passport_root = passport_data_dir(ctx.input_passportNumber)
     family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
+    if not bool(ctx.visa_type.startswith("L")): 
+        return True
     reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
     if ctx.visa_type.startswith("L"):
         print(
