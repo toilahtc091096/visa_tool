@@ -337,13 +337,6 @@ async def sync_draft_visa_registrations(
                 matched_row = remote_row
 
         if matched_row is None:
-            print(
-                "[sync_draft] no match "
-                f"id={record_id} passport={passport_number} "
-                f"first_applyid={first_applyid} rows={len(rows)} "
-                f"duration={request_duration:.2f}s",
-                flush=True,
-            )
             return await finish(
                 {
                     "id": record_id,
