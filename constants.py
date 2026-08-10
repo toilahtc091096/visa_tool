@@ -595,6 +595,18 @@ L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
 TRAVEL_PLAN_21D = "Init_goc.docx"
 
+Q1_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
+Q1_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
+Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quanhe"
+Q1_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
+
+Q2_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "tham-than\\trang-trong-ho-chieu"
+Q2_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = "tham-than\\visa-trung-quoc-cu"
+Q2_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
+Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd-nguoi-moi"
+Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\chung-minh-quan-he"
+Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
+
 DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
 DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
@@ -912,6 +924,70 @@ UPLOAD_CONFIG["M90"] = {
     },
 }
 UPLOAD_CONFIG["M"] = UPLOAD_CONFIG["M90"]
+UPLOAD_CONFIG["Q1"] = {
+    "PASSPORT_BLANK_PAGES": {
+        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "PREV_CHINESE_VISA": {
+        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+        "limit": 3,
+    },
+    "THU_MOI": {
+        "folder": Q1_THU_MOI_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "CCCD_NGUOI_MOI": {
+        "folder": Q1_CCCD_NGUOI_MOI_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "CHUNG_MINH_QUAN_HE": {
+        "folder": Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH,
+        "limit": 4,
+    },
+    "OTHER_MATERIALS": [
+        {
+            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+            "limit": 1,
+        },
+        {
+            "folder": Q1_TAI_LIEU_KHAC_OUTPUT_PATH,
+            "limit": 1,
+        },
+    ],
+}
+UPLOAD_CONFIG["Q2"] = {
+    "PASSPORT_BLANK_PAGES": {
+        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "PREV_CHINESE_VISA": {
+        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+        "limit": 3,
+    },
+    "THU_MOI": {
+        "folder": Q2_THU_MOI_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "CCCD_NGUOI_MOI": {
+        "folder": Q2_CCCD_NGUOI_MOI_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "CHUNG_MINH_QUAN_HE": {
+        "folder": Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH,
+        "limit": 3,
+    },
+    "OTHER_MATERIALS": [
+        {
+            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+            "limit": 1,
+        },
+        {
+            "folder": Q1_TAI_LIEU_KHAC_OUTPUT_PATH,
+            "limit": 1,
+        },
+    ],
+}
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
@@ -1314,6 +1390,126 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
     }
 }
 UPLOAD_FILE_CODE_BY_VISA_TYPE["M"] = UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"]
+UPLOAD_FILE_CODE_BY_VISA_TYPE["Q1"] = {
+    "COMMON": {
+        "PASSPORT_BLANK_PAGES": [
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_1",
+            },
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_2",
+            },
+        ],
+        "PREV_CHINESE_VISA": [
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_1",
+            },
+        ],
+        "THU_MOI": [
+            {
+                "categoryCode": "12025062115033600751835",
+                "materialCode": "mfa-070_1",
+            },
+        ],
+        "CCCD_NGUOI_MOI": [
+            {
+                "categoryCode": "12025062115051305548199",
+                "materialCode": "mfa-071_1",
+            },
+            {
+                "categoryCode": "12025062115051305548199",
+                "materialCode": "mfa-071_2",
+            },
+        ],
+        "CHUNG_MINH_QUAN_HE": [
+            {
+                "categoryCode": "12025062115240751955592",
+                "materialCode": "mfa-073_1",
+            },
+            {
+                "categoryCode": "12025062115240751955592",
+                "materialCode": "mfa-073_2",
+            },
+            {
+                "categoryCode": "12025062115240751955592",
+                "materialCode": "mfa-073_3",
+            },
+            {
+                "categoryCode": "12025062115240751955592",
+                "materialCode": "mfa-073_4",
+            },
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062115165388661358",
+                "materialCode": "mfa-085_1",
+            },
+            {
+                "categoryCode": "12025062115165388661358",
+                "materialCode": "mfa-085_2",
+            },
+        ],
+    },
+}
+UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
+    "COMMON": {
+        "PASSPORT_BLANK_PAGES": [
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_1",
+            },
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_2",
+            },
+        ],
+        "PREV_CHINESE_VISA": [
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_1",
+            },
+        ],
+        "THU_MOI": [
+            {
+                "categoryCode": "12025062115191056099712",
+                "materialCode": "mfa-091_1",
+            },
+        ],
+        "CCCD_NGUOI_MOI": [
+            {
+                "categoryCode": "12025062115202108210397",
+                "materialCode": "mfa-092_1",
+            },
+            {
+                "categoryCode": "12025062115202108210397",
+                "materialCode": "mfa-092_2",
+            },
+        ],
+        "CHUNG_MINH_QUAN_HE": [
+            {
+                "categoryCode": "12025062115232232717451",
+                "materialCode": "mfa-094_2",
+            },
+            {
+                "categoryCode": "12025062115232232717451",
+                "materialCode": "mfa-094_3",
+            },
+            {
+                "categoryCode": "12025062115232232717451",
+                "materialCode": "mfa-094_4",
+            },
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062115255295051217",
+                "materialCode": "mfa-099_1",
+            },
+        ],
+    },
+}
 
 UNIT_OF_HOTEL = 5870276
 

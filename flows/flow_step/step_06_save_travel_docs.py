@@ -26,6 +26,7 @@ from constants import (
     VIETNAMESE_NAMES,
     L_15_TRAVEL_PLAN_OUTPUT_PATH,
     TRAVEL_PLAN_21D,
+    Q1_THU_MOI_OUTPUT_PATH,
 )
 from api import api_upload_r2_object
 from flows.flow_payloads import (
@@ -35,7 +36,7 @@ from flows.flow_payloads import (
     build_signature_body,
     build_travel_info_profile,
 )
-from generate_file import cv_info, hotel_info, flight_info, file_init_info
+from generate_file import cv_info, hotel_info, flight_info, file_init_info, thumoi_info
 from generate_file.path_utils import passport_data_dir
 from utils import (
     date_util,
@@ -633,6 +634,31 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         await cv_info.render_docx_template_output_pdf(
             payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
         )
+
+    if ctx.visa_type.startswith("Q"):
+        try:
+            file_name = "Q_Template.docx"
+            log_event(
+                {
+                    "step": "generate invitation letter file",
+                    "ok": "ok",
+                    "file": file_name,
+                }
+            )
+            await thumoi_info.render_thumoi_docx_output_pdf(
+                ctx,
+                Q1_THU_MOI_OUTPUT_PATH,
+                ctx.input_passportNumber,
+            )
+        except Exception as e:
+            log_exception(
+                e,
+                {
+                    "event": "render_failed",
+                    "file": "Q_Template.docx",
+                },
+            )
+            raise
 
     upload_prefix = _normalize_r2_prefix(family_passport, ctx.input_passportNumber)
     print(
