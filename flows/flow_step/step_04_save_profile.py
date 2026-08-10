@@ -41,7 +41,7 @@ async def save_person_and_apply(ctx, client) -> bool:
         inviter_family_name=getattr(ctx, "inviterFamilyName", ""),
         inviter_given_name=getattr(ctx, "inviterGivenName", ""),
         inviter_id_card=getattr(ctx, "inviterIdCard", ""),
-        inviter_relation=getattr(ctx, "relation", ""),
+        inviter_relation=getattr(ctx, "inviterRelation", ""),
     )
     ok3, meta3 = await api_save_apply_info(
         client,
