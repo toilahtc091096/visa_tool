@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 import re
@@ -10,6 +11,7 @@ from docxtpl import DocxTemplate
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
+SIGNATURE_MEDIA_NAME = "image1.jpeg"
 
 
 CHECKED = "☑"
@@ -257,6 +259,14 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
         "today_year": today_year,
         "today_month": today_month,
         "today_day": today_day,
+        "signature_image_path": _text(
+            _get_value(
+                source,
+                "signature_image_path",
+                "signatureImagePath",
+                default="",
+            )
+        ),
     }
 
 
@@ -279,6 +289,7 @@ async def render_thumoi_docx_output_pdf(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     context = build_thumoi_context(source)
+    signature_image_path = _text(context.pop("signature_image_path", ""))
     safe_name = re.sub(
         r"[^A-Za-z0-9_\-\u4e00-\u9fff]+",
         "_",
@@ -288,6 +299,13 @@ async def render_thumoi_docx_output_pdf(
 
     out = out_dir / (Path(template_name).stem + ".docx")
     doc = DocxTemplate(str(src))
+    if signature_image_path:
+        signature_path = Path(signature_image_path)
+        if signature_path.is_file():
+            doc.replace_pic(
+                SIGNATURE_MEDIA_NAME,
+                BytesIO(signature_path.read_bytes()),
+            )
     doc.render(context)
     if out.exists():
         out.unlink()
