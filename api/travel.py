@@ -25,7 +25,6 @@ async def api_save_travel_info(
     ``status_code`` -1 and the exception message as ``error``.
     """
     try:
-        breakpoint()
         url = f"{BASE_URL}/SaveTravelInfo"
         headers = build_upload_headers(token, tmp_secret)
         payload = asdict(body)
