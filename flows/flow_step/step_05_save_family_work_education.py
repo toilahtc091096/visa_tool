@@ -231,7 +231,6 @@ async def save_family_work_education(ctx, client) -> bool:
     if not ctx.motherFamilyName and not ctx.motherGivenName and mother:
         ctx.motherFamilyName = mother.familyName
         ctx.motherGivenName = mother.firstName
-
     ok6, meta6 = await api_save_family_info(
         client,
         ctx.token,

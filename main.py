@@ -446,7 +446,12 @@ def main(
             data["stayDistrict"],
             data["departureCity"],
             data["departureDistrict"],
+            inviterFamilyName=data.get("inviterFamilyName", ""),
+            inviterGivenName=data.get("inviterGivenName", ""),
+            inviterIdCard=data.get("inviterIdCard", ""),
             inviterPhone=data.get("inviterPhone", ""),
+            inviterAddress=data.get("inviterAddress", ""),
+            inviterRelation=data.get("inviterRelation", ""),
             inviterName=data.get("inviterName", ""),
         )
     )

@@ -85,6 +85,7 @@ class TravelInfoProfile:
     travelAddr: str
     applyid: str
     arrivalDate: str
+    arrivalCityDate: str
     departureDate: str
     departureCity: str
     departureCounty: str
@@ -159,6 +160,7 @@ class TravelInfoProfile:
             travelAddr=d.get("travelAddr", "") or "",
             applyid=d.get("applyid", "") or "",
             arrivalDate=d.get("arrivalDate", "") or "",
+            arrivalCityDate=d.get("arrivalCityDate", "") or "",
             departureDate=d.get("departureDate", "") or "",
             departureCity=d.get("departureCity", "") or "",
             departureCounty=d.get("departureCounty", "") or "",

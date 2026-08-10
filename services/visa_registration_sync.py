@@ -269,15 +269,15 @@ async def sync_draft_visa_registrations(
                     progress["matched"] += 1
                 done = progress["done"]
                 should_log = done == len(total_rows) or done % 10 == 0
-                if should_log:
-                    print(
-                        "[sync_draft] api progress "
-                        f"done={done}/{len(total_rows)} "
-                        f"matched={progress['matched']} "
-                        f"skipped={progress['skipped']} "
-                        f"display_only={progress['display_only']}",
-                        flush=True,
-                    )
+                # if should_log:
+                    # print(
+                    #     "[sync_draft] api progress "
+                    #     f"done={done}/{len(total_rows)} "
+                    #     f"matched={progress['matched']} "
+                    #     f"skipped={progress['skipped']} "
+                    #     f"display_only={progress['display_only']}",
+                    #     flush=True,
+                    # )
             return item, update
 
         if not _should_sync_row_with_api(row):

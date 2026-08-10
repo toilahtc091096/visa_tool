@@ -11,7 +11,7 @@ from docxtpl import DocxTemplate
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
-SIGNATURE_MEDIA_NAME = "image1.jpeg"
+SIGNATURE_MEDIA_NAME = "Image 1"
 
 
 CHECKED = "☑"

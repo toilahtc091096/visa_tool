@@ -1,6 +1,7 @@
 import os
 import random
 import unicodedata
+from calendar import monthrange
 from datetime import date
 from typing import Any, Dict
 from utils import date_util, log_event, notify, mobile_utils
@@ -1170,6 +1171,109 @@ def _apply_m90_single_stay_overrides(
         travel_json["departureDate"] = departure_date_str
 
 
+def _add_months_to_date(source_date: date, months: int) -> date:
+    month_index = source_date.month - 1 + months
+    year = source_date.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(source_date.day, monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def _apply_q_single_stay_overrides(
+    travel_json: dict[str, Any],
+    *,
+    inviterFamilyName: str = "",
+    inviterGivenName: str = "",
+    inviterIdCard: str = "",
+    inviterRelation: str = "",
+    inviterAddress: str = "",
+    inviterPhone: str = "",
+    inviteProvince: str = "",
+    arrivalCity: str = "",
+    arrivalDistrict: str = "",
+    stayCity: str = "",
+    stayDistrict: str = "",
+    departureCity: str = "",
+    departureDistrict: str = "",
+    apply_visa_validity: Any | None = None,
+) -> None:
+    """
+    Q-specific travel override.
+
+    This is intentionally separate from the M helper so Q can be customized
+    independently later.
+    """
+    invite_person = " ".join(
+        part
+        for part in [
+            str(inviterFamilyName or "").strip(),
+            str(inviterGivenName or "").strip(),
+        ]
+        if part
+    ).strip()
+
+    today = date.today()
+    arrival_date = _add_months_to_date(today, 1)
+    try:
+        validity_months = int(str(apply_visa_validity or "").strip() or "6")
+    except (TypeError, ValueError):
+        validity_months = 6
+    departure_date = _add_months_to_date(arrival_date, validity_months)
+
+    arrival_date_str = date_util.iso_date_str(arrival_date)
+    departure_date_str = date_util.iso_date_str(departure_date)
+    invite_addr = str(inviterAddress or "").strip()
+    arrival_city = str(arrivalCity or "").strip()
+    arrival_county = str(arrivalDistrict or "").strip()
+    stay_city = str(stayCity or arrivalCity or "").strip()
+    stay_county = str(stayDistrict or arrivalDistrict or "").strip()
+    departure_city = str(departureCity or "").strip()
+    departure_county = str(departureDistrict or "").strip()
+    invite_province = str(inviteProvince or "").strip()
+
+    travel_json.update(
+        {
+            "inviteName": invite_person,
+            "inviteCompanyName": invite_person,
+            "inviteRelation": str(inviterRelation or "").strip(),
+            "invitePhoneNumber": str(inviterPhone or "").strip(),
+            "inviteProvince": invite_province,
+            "inviteCity": arrival_city,
+            "inviteCounty": arrival_county,
+            "arrivalDate": arrival_date_str,
+            "arrivalCityDate": arrival_date_str,
+            "arrivalVehicleType": travel_json.get("arrivalVehicleType", ""),
+            "arrivalCity": arrival_city,
+            "arrivalCounty": arrival_county,
+            "leaveDate": departure_date_str,
+            "leaveVehicleType": travel_json.get("leaveVehicleType", ""),
+            "leaveCity": departure_city or arrival_city,
+            "leaveCounty": departure_county or arrival_county,
+            "departureCity": departure_city or arrival_city,
+            "departureCounty": departure_county or arrival_county,
+            "travelAddr": invite_addr,
+            "stayCity": stay_city,
+            "stayCounty": stay_county,
+            "stayDistrict": stay_county,
+            "departureDistrict": departure_county or arrival_county,
+        }
+    )
+
+    travel_json["stayInfo"] = [
+        {
+            "sort": 1,
+            "stayCity": stay_city or arrival_city,
+            "stayCounty": stay_county or arrival_county,
+            "travelAddr": invite_addr,
+            "arrivalDate": arrival_date_str,
+            "leaveDate": departure_date_str,
+        }
+    ]
+
+    if inviterIdCard:
+        travel_json["inviterIdCard"] = str(inviterIdCard).strip()
+
+
 def build_travel_info_profile(
     visa_type: str,
     applyid: str,
@@ -1198,6 +1302,13 @@ def build_travel_info_profile(
     departureDistrict: str = "",
     companyPhone: str = "",
     managerName: str = "",
+    apply_visa_validity: Any | None = None,
+    inviterFamilyName: str = "",
+    inviterGivenName: str = "",
+    inviterIdCard: str = "",
+    inviterRelation: str = "",
+    inviterAddress: str = "",
+    inviterPhone: str = "",
 ) -> TravelInfoProfile:
     print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
@@ -1282,10 +1393,43 @@ def build_travel_info_profile(
             arrivalDate=arrival_date,
             departureDate=leave_date,
         )
+    elif visa_type.startswith("Q"):
+        travel_json = getL30TravelInfo(
+            applyid=applyid,
+            emergency_family=emergency_family,
+            emergency_first=emergency_first,
+            emergency_phone_number=emergency_phone_number,
+            emergency_relation=emergency_relation,
+            is_under_18=is_under_18,
+            haveChildFlag=haveChildFlag,
+            arrival_date=arrival_date,
+            arrivalVehicleType="",
+            leaveVehicleType="",
+            is_private=is_private,
+        )
+        _apply_q_single_stay_overrides(
+            travel_json,
+            inviterFamilyName=inviterFamilyName,
+            inviterGivenName=inviterGivenName,
+            inviterIdCard=inviterIdCard,
+            inviterRelation=inviterRelation,
+            inviterAddress=inviterAddress,
+            inviterPhone=inviterPhone,
+            inviteProvince=inviteProvince,
+            arrivalCity=arrivalCity,
+            arrivalDistrict=arrivalDistrict,
+            stayCity=stayCity,
+            stayDistrict=stayDistrict,
+            departureCity=departureCity,
+            departureDistrict=departureDistrict,
+            apply_visa_validity=apply_visa_validity,
+        )
     else:
         travel_json = {}
 
-    if payMobile != "" and payName != "":
+    if visa_type.startswith("Q"):
+        travel_json.setdefault("payForTravel", TRAVEL_PAY_FOR_SELF)
+    elif payMobile != "" and payName != "":
         travel_json.update(
             {
                 "payForTravel": TRAVEL_PAY_FOR_OTHER,

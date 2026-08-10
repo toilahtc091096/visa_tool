@@ -245,9 +245,9 @@ def _delete_common_docs_from_r2(*, prefix: str) -> int:
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     passport_root = passport_data_dir(ctx.input_passportNumber)
     family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
-    if not bool(ctx.visa_type.startswith("L")): 
-        return True
+
     reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
+    is_q_visa = ctx.visa_type.startswith("Q")
     if ctx.visa_type.startswith("L"):
         print(
             f"[LOCAL][COMMON_DOCS] start cleanup root={passport_root} "
@@ -255,17 +255,20 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             flush=True,
         )
         _cleanup_common_docs_local(local_root=passport_root)
-    if ctx.visa_type == "L15":
+    if not is_q_visa and ctx.visa_type == "L15":
         ctx.hotel_type = random.randint(0, 100) % len(
             HOTEL_DATA[ctx.visa_type]["hotel"]
         )
-    ctx.flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[ctx.visa_type])
-    if ctx.is_under_18 or ctx.haveChildFlag:
+    if not is_q_visa and ctx.visa_type in FLIGHT_TEMPLATE:
+        ctx.flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[ctx.visa_type])
+    else:
+        ctx.flight_ticket = 0
+    if not is_q_visa and (ctx.is_under_18 or ctx.haveChildFlag):
         ctx.flight_ticket = 0
     arrival_date_override = _maybe_parse_date(getattr(ctx, "arrivalDate", ""))
     departure_date_override = _maybe_parse_date(getattr(ctx, "departureDate", ""))
     if (
-        ctx.visa_type.startswith("M")
+        (ctx.visa_type.startswith("Q") or ctx.visa_type.startswith("M"))
         and arrival_date_override
         and departure_date_override
     ):
@@ -274,12 +277,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(
             ctx.register_date, WEEK_SKIP_BY_TYPE.get(ctx.visa_type)
         )
-    ctx.prefix_flight_text = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket][
-        "prefix_flight_text"
-    ]
-    ctx.arrive_flight_number, ctx.departure_flight_number = generate_phone_pair(
-        FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_number"]
-    )
+    if not is_q_visa and ctx.visa_type in FLIGHT_TEMPLATE:
+        ctx.prefix_flight_text = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket][
+            "prefix_flight_text"
+        ]
+        ctx.arrive_flight_number, ctx.departure_flight_number = generate_phone_pair(
+            FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["prefix_number"]
+        )
+    else:
+        ctx.prefix_flight_text = ""
+        ctx.arrive_flight_number = ""
+        ctx.departure_flight_number = ""
 
     ctx.step = "save_travel_info"
     arrive_flight_number_full_info = (
@@ -289,8 +297,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.prefix_flight_text + " " + ctx.departure_flight_number
     )
 
-    if ctx.is_under_18 or (
-        ctx.haveChildFlag and not ctx.is_private
+    if not is_q_visa and (
+        ctx.is_under_18 or (ctx.haveChildFlag and not ctx.is_private)
     ):  # todo: them and is_private  (haveChildFlag and is_private)
         ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(ctx.register_date, 5)
         arrive_flight_number_full_info = (
@@ -341,6 +349,13 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         getattr(ctx, "departureDistrict", ""),
         getattr(ctx, "companyPhone", ""),
         getattr(ctx, "managerName", ""),
+        apply_visa_validity=getattr(ctx, "apply_visa_validity", None),
+        inviterFamilyName=getattr(ctx, "inviterFamilyName", ""),
+        inviterGivenName=getattr(ctx, "inviterGivenName", ""),
+        inviterIdCard=getattr(ctx, "inviterIdCard", ""),
+        inviterRelation=getattr(ctx, "inviterRelation", ""),
+        inviterAddress=getattr(ctx, "inviterAddress", ""),
+        inviterPhone=getattr(ctx, "inviterPhone", ""),
     )
     ok7, meta7 = await api_save_travel_info(
         client,
@@ -422,14 +437,11 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         return False
 
     ctx.signature_image_path = ""
-    signature_name = str(
-        getattr(ctx, "inviterName", "") or ""
-    ).strip()
+    signature_name = str(getattr(ctx, "inviterName", "") or "").strip()
     if signature_name:
         try:
             signature_dir = (
-                passport_data_dir(ctx.input_passportNumber)
-                / Q1_THU_MOI_OUTPUT_PATH
+                passport_data_dir(ctx.input_passportNumber) / Q1_THU_MOI_OUTPUT_PATH
             )
             signature_path = signature_dir / "signature.png"
             ctx.signature_image_path = save_chinese_name_signature_png(
@@ -451,7 +463,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         child_number += 1
     else:
         adult_number += 1
-    if ctx.visa_type == "L15":
+    if not is_q_visa and ctx.visa_type == "L15":
         hotel = ""
         if not reuse_l_docs:
             child_names = _child_names(ctx)
@@ -510,7 +522,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             except Exception as e:
                 log_exception(e, {"event": "render_failed", "file": hotel})
                 raise
-    elif ctx.visa_type == "L30":
+    elif not is_q_visa and ctx.visa_type == "L30":
         if not reuse_l_docs:
             ctx.guest_name = build_L30_guest_names(
                 ctx.guest_name,
@@ -558,7 +570,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if ctx.payName
                     else random.choice(VIETNAMESE_NAMES).upper()
                 )
-    if not ctx.visa_type.startswith("M"):
+    if not is_q_visa and ctx.visa_type.startswith("L"):
         try:
             if ctx.visa_type in FLIGHT_TEMPLATE:
                 file_name = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["name"]
@@ -609,8 +621,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             await flight_info.render_flight_ticket_output_pdf(
                 payload, L_15_TICKET_OUTPUT_PATH, ctx.input_passportNumber
             )
-
-    if ctx.visa_type.startswith("L"):
         if reuse_l_docs:
             downloaded = _download_family_common_docs_from_r2(
                 prefix=family_passport,
