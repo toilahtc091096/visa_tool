@@ -446,6 +446,7 @@ def main(
             data["stayDistrict"],
             data["departureCity"],
             data["departureDistrict"],
+            apply_visa_validity=data.get("apply_visa_validity", None),
             inviterFamilyName=data.get("inviterFamilyName", ""),
             inviterGivenName=data.get("inviterGivenName", ""),
             inviterIdCard=data.get("inviterIdCard", ""),

@@ -6,12 +6,18 @@ from typing import Iterable
 from PIL import Image, ImageDraw, ImageFont
 
 
+RESOURCE_FONT_DIR = (Path(__file__).resolve().parent / ".." / "resources" / "files").resolve()
 WINDOWS_FONT_DIRS: tuple[Path, ...] = (
     Path(r"C:\Windows\Fonts"),
     Path(r"C:\WINNT\Fonts"),
 )
 
 DEFAULT_FONT_CANDIDATES: tuple[str, ...] = (
+    "ZhiMangXing-Regular.ttf",
+    "LongCang-Regular.ttf",
+    "LiuJianMaoCao-Regular.ttf",
+    "MaShanZheng-Regular.ttf",
+    "LXGWWenKai-Regular.ttf",
     "KaiTi.ttf",
     "stkaiti.ttf",
     "simkai.ttf",
@@ -39,6 +45,9 @@ def _iter_font_candidates(font_name: str | None = None) -> Iterable[Path]:
                 yield font_dir / font_name
         return
 
+    for font_file in DEFAULT_FONT_CANDIDATES:
+        yield RESOURCE_FONT_DIR / font_file
+
     for font_dir in WINDOWS_FONT_DIRS:
         for font_file in DEFAULT_FONT_CANDIDATES:
             yield font_dir / font_file
@@ -51,8 +60,9 @@ def resolve_chinese_font(font_name: str | None = None) -> str:
     Priority:
     1. `font_name` if it is a real path
     2. `font_name` inside common Windows font directories
-    3. Known calligraphy-like/system Chinese fonts
-    4. Pillow default font as final fallback
+    3. Bundled project fonts, starting with the most handwritten-looking fonts
+    4. Known calligraphy-like/system Chinese fonts
+    5. Pillow default font as final fallback
     """
 
     for candidate in _iter_font_candidates(font_name):

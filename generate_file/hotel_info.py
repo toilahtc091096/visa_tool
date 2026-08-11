@@ -139,7 +139,7 @@ async def render_docx_template_output_pdf(
                 # end
                 "three_submit_number": (
                     random.randint(100, 999)
-                    if not (is_under_18 and haveChildFlag)
+                    if not is_under_18
                     else "231"
                 ),
             },
@@ -229,7 +229,7 @@ async def render_L30_hotel(
                     "unit_of_hotel": UNIT_OF_HOTEL + random.randint(10000, 100000),
                     "three_submit_number": (
                         random.randint(100, 999)
-                        if not (is_under_18 and haveChildFlag)
+                        if not is_under_18
                         else 231
                     ),
                 },

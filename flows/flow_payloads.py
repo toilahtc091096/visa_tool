@@ -181,6 +181,7 @@ def build_apply_info_profile(
         type_of_visa_sub_value, {}
     )
     if apply_visa_validity in (None, ""):
+        # Prefer the request body value when it exists; only use the constant as fallback.
         resolved_apply_visa_validity = APPLY_VISA_VALIDITY.get(first_letter_visa_type)
     else:
         try:
@@ -957,9 +958,7 @@ def getL15TravelInfo(
         emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
-    if is_under_18 or (
-        haveChildFlag and not is_private
-    ):  # todo: them and is_private  (haveChildFlag and is_private)
+    if is_under_18 :  # todo: them and is_private  (haveChildFlag and is_private)
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
     addr_100 = ""
