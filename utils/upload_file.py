@@ -52,14 +52,14 @@ def cleanup_data_folder() -> None:
     global _DOWNLOADED_PREFIXES, _DOWNLOADED_BUSINESS_FOLDERS
     global _CURRENT_DATA_FOLDER
     # Keep local `data_<passport>` folders for debugging / reuse.
-    # for path in sorted(DATA_RESOURCE_DIR.glob("data_*"), reverse=True):
-    #     if path.is_dir():
-    #         for item in sorted(path.rglob("*"), reverse=True):
-    #             if item.is_file() or item.is_symlink():
-    #                 item.unlink(missing_ok=True)
-    #             elif item.is_dir():
-    #                 item.rmdir()
-    #         path.rmdir()
+    for path in sorted(DATA_RESOURCE_DIR.glob("data_*"), reverse=True):
+        if path.is_dir():
+            for item in sorted(path.rglob("*"), reverse=True):
+                if item.is_file() or item.is_symlink():
+                    item.unlink(missing_ok=True)
+                elif item.is_dir():
+                    item.rmdir()
+            path.rmdir()
 
     business_dir = DATA_RESOURCE_DIR / "doanh-nghiep"
     if business_dir.exists() and business_dir.is_dir():
