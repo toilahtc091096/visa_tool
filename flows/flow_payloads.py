@@ -939,6 +939,7 @@ def getL15TravelInfo(
     emergency_phone_number: str,
     emergency_relation: str,
     is_under_18: bool,
+    has_additional_names: bool,
     haveChildFlag: bool,
     hotel_type: str,
     arrival_str: str,
@@ -958,7 +959,7 @@ def getL15TravelInfo(
         emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
-    if is_under_18 :  # todo: them and is_private  (haveChildFlag and is_private)
+    if is_under_18 or has_additional_names:  
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
     addr_100 = ""
@@ -1287,6 +1288,7 @@ def build_travel_info_profile(
     arrival_date: date,
     leave_date: date,
     hotel_type: int,
+    has_additional_names: bool,
     arrivalVehicleType: str,
     leaveVehicleType: str,
     is_private: bool,
@@ -1342,6 +1344,7 @@ def build_travel_info_profile(
             emergency_phone_number=emergency_phone_number,
             emergency_relation=emergency_relation,
             is_under_18=is_under_18,
+            has_additional_names=has_additional_names,
             haveChildFlag=haveChildFlag,
             hotel_type=hotel_type,
             arrival_str=arrival_str,
