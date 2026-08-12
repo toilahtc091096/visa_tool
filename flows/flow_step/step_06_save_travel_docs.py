@@ -255,16 +255,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             flush=True,
         )
         _cleanup_common_docs_local(local_root=passport_root)
-    if not is_q_visa and ctx.visa_type == "L15":
-        ctx.hotel_type = random.randint(0, 100) % len(
-            HOTEL_DATA[ctx.visa_type]["hotel"]
-        )
-    if not is_q_visa and ctx.visa_type in FLIGHT_TEMPLATE:
-        ctx.flight_ticket = random.randint(0, 100) % len(FLIGHT_TEMPLATE[ctx.visa_type])
-    else:
-        ctx.flight_ticket = 0
-    if not is_q_visa and (ctx.is_under_18):
-        ctx.flight_ticket = 0
+    if not is_q_visa:
+        if ctx.visa_type == "L15":
+            ctx.hotel_type = random.randrange(len(HOTEL_DATA[ctx.visa_type]["hotel"]))
+
+        if ctx.visa_type in FLIGHT_TEMPLATE:
+            ctx.flight_ticket = random.randrange(len(FLIGHT_TEMPLATE[ctx.visa_type]))
+        else:
+            ctx.flight_ticket = 0
+
+        if ctx.is_under_18 or has_additional_names:
+            ctx.flight_ticket = 0
     arrival_date_override = _maybe_parse_date(getattr(ctx, "arrivalDate", ""))
     departure_date_override = _maybe_parse_date(getattr(ctx, "departureDate", ""))
     if (
@@ -509,6 +510,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     "haveChildFlag": ctx.haveChildFlag,
                     "adults_number": adult_number,
                     "child_number": child_number,
+                    "has_additional_names": has_additional_names,
                 }
                 print(f"payload for hotel file: {payload}")
                 await hotel_info.render_docx_template_output_pdf(
@@ -579,7 +581,10 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 hotel_info_item = L_30_HOTEL_INFO[0]
                 hotel_departure_info_item = L_30_HOTEL_INFO[-1]
             else:
-                hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
+                if ctx.is_under_18 or has_additional_names:
+                    hotel_info_item = UNDER_18_HOTEL_INFO[0]
+                else:
+                    hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
             if ctx.is_under_18 or has_additional_names:
                 ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
                 ctx.departure_flight_number = ctx.departure_flight_number[-4:]

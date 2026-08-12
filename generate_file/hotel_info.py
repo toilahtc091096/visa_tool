@@ -69,7 +69,7 @@ async def render_docx_template_output_pdf(
     adults_number: int = payload.get("adults_number")
     child_number: int = payload.get("child_number")
     is_under_18: bool = payload.get("is_under_18", False)
-    haveChildFlag: bool = payload.get("haveChildFlag", False)
+    has_additional_names: bool = payload.get("has_additional_names", False)
 
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = passport_data_dir(passport_number)
@@ -139,7 +139,7 @@ async def render_docx_template_output_pdf(
                 # end
                 "three_submit_number": (
                     random.randint(100, 999)
-                    if not is_under_18
+                    if not is_under_18 and not has_additional_names
                     else "231"
                 ),
             },
