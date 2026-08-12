@@ -248,6 +248,9 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
 
     reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
     is_q_visa = ctx.visa_type.startswith("Q")
+    has_additional_names = bool(
+        getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", [])
+    )
     if ctx.visa_type.startswith("L"):
         print(
             f"[LOCAL][COMMON_DOCS] start cleanup root={passport_root} "
@@ -466,10 +469,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         hotel = ""
         if not reuse_l_docs:
             child_names = _child_names(ctx)
-            has_additional_names = bool(
-                getattr(ctx, "addition_adults", [])
-                or getattr(ctx, "addition_child", [])
-            )
+
             if has_additional_names:
                 if not ctx.guest_name:
                     ctx.guest_name = [ctx.vietnamese_name]
