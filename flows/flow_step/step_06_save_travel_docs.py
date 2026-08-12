@@ -297,9 +297,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.prefix_flight_text + " " + ctx.departure_flight_number
     )
 
-    if not is_q_visa and (
-        ctx.is_under_18 
-    ):  
+    if not is_q_visa and (ctx.is_under_18):
         ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(ctx.register_date, 5)
         arrive_flight_number_full_info = (
             ctx.prefix_flight_text
@@ -467,12 +465,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         hotel = ""
         if not reuse_l_docs:
             child_names = _child_names(ctx)
-            if ctx.is_under_18:
-                hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
-            else:
-                hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
-                if not ctx.guest_name:
-                    ctx.guest_name = [ctx.vietnamese_name]
             has_additional_names = bool(
                 getattr(ctx, "addition_adults", [])
                 or getattr(ctx, "addition_child", [])
@@ -496,6 +488,12 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if not ctx.guest_name:
                         ctx.guest_name = [ctx.vietnamese_name, adult]
                         print(f"guest_name: {ctx.guest_name}")
+            if ctx.is_under_18 or has_additional_names:
+                hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
+            else:
+                hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
+                if not ctx.guest_name:
+                    ctx.guest_name = [ctx.vietnamese_name]
 
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name]
@@ -582,7 +580,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 hotel_departure_info_item = L_30_HOTEL_INFO[-1]
             else:
                 hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
-            if ctx.is_under_18: 
+            if ctx.is_under_18 or has_additional_names:
                 ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
                 ctx.departure_flight_number = ctx.departure_flight_number[-4:]
             payload = {
