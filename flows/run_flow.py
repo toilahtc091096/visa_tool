@@ -124,6 +124,10 @@ async def run_flow(
     inviterAddress: str = "",
     inviterRelation: str = "",
     inviterName: str = "",
+    emergencyFamilyName: str = "",
+    emergencyGivenName: str = "",
+    emergencyRelationship: str = "",
+    emergencyPhone: str = "",
 ) -> None:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
@@ -188,6 +192,10 @@ async def run_flow(
         inviterAddress=inviterAddress,
         inviterRelation=inviterRelation,
         inviterName=inviterName,
+        emergencyFamilyName=emergencyFamilyName,
+        emergencyGivenName=emergencyGivenName,
+        emergencyRelationship=emergencyRelationship,
+        emergencyPhone=emergencyPhone,
         chinaResidenceLicenseFlag=chinaResidenceLicenseFlag,
         collectFingerprintFlag=collectFingerprintFlag,
         is_private=is_private,

@@ -25,6 +25,10 @@ DEFAULT_CASE: dict[str, Any] = {
     "inviterAddress": "",
     "inviterRelation": "",
     "inviterName": "",
+    "emergencyFamilyName": "",
+    "emergencyGivenName": "",
+    "emergencyRelationship": "",
+    "emergencyPhone": "",
     "arrivalDate": "",
     "departureDate": "",
     "fixed_arrived": "",
@@ -273,6 +277,10 @@ def main(
     inviterAddress: str = "",
     inviterRelation: str = "",
     inviterName: str = "",
+    emergencyFamilyName: str = "",
+    emergencyGivenName: str = "",
+    emergencyRelationship: str = "",
+    emergencyPhone: str = "",
     arrivalDate: str = "",
     departureDate: str = "",
     fixed_arrived: str | None = None,
@@ -356,6 +364,14 @@ def main(
             )
             if part
         )
+    if emergencyFamilyName:
+        data["emergencyFamilyName"] = str(emergencyFamilyName).strip()
+    if emergencyGivenName:
+        data["emergencyGivenName"] = str(emergencyGivenName).strip()
+    if emergencyRelationship:
+        data["emergencyRelationship"] = str(emergencyRelationship).strip()
+    if emergencyPhone:
+        data["emergencyPhone"] = str(emergencyPhone).strip()
     if visa_duration not in (None, ""):
         data["visa_duration"] = str(visa_duration).strip().upper()
     asyncio.run(
@@ -454,6 +470,10 @@ def main(
             inviterAddress=data.get("inviterAddress", ""),
             inviterRelation=data.get("inviterRelation", ""),
             inviterName=data.get("inviterName", ""),
+            emergencyFamilyName=data.get("emergencyFamilyName", ""),
+            emergencyGivenName=data.get("emergencyGivenName", ""),
+            emergencyRelationship=data.get("emergencyRelationship", ""),
+            emergencyPhone=data.get("emergencyPhone", ""),
         )
     )
 

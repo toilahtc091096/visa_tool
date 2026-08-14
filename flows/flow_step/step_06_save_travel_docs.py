@@ -359,6 +359,10 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         inviterRelation=getattr(ctx, "inviterRelation", ""),
         inviterAddress=getattr(ctx, "inviterAddress", ""),
         inviterPhone=getattr(ctx, "inviterPhone", ""),
+        emergencyFamilyName=getattr(ctx, "emergencyFamilyName", ""),
+        emergencyGivenName=getattr(ctx, "emergencyGivenName", ""),
+        emergencyRelationship=getattr(ctx, "emergencyRelationship", ""),
+        emergencyPhone=getattr(ctx, "emergencyPhone", ""),
     )
     ok7, meta7 = await api_save_travel_info(
         client,

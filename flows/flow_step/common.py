@@ -118,6 +118,10 @@ def build_flow_context(**kwargs):
             if part
         ),
     )
+    ctx.emergencyFamilyName = kwargs.get("emergencyFamilyName", "")
+    ctx.emergencyGivenName = kwargs.get("emergencyGivenName", "")
+    ctx.emergencyRelationship = kwargs.get("emergencyRelationship", "")
+    ctx.emergencyPhone = kwargs.get("emergencyPhone", "")
     ctx.step = ""
     ctx.ocr_data = None
     ctx.data_obj = {}

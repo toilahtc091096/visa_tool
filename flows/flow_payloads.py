@@ -1310,19 +1310,17 @@ def build_travel_info_profile(
     inviterRelation: str = "",
     inviterAddress: str = "",
     inviterPhone: str = "",
+    emergencyFamilyName: str = "",
+    emergencyGivenName: str = "",
+    emergencyRelationship: str = "",
+    emergencyPhone: str = "",
 ) -> TravelInfoProfile:
     print(f"is_under_18: {is_under_18}, haveChildFlag: {haveChildFlag}")
     arrival_str = date_util.iso_date_str(arrival_date)
     leave_str = date_util.iso_date_str(leave_date)
     emergency_relation = TRAVEL_EMERGENCY_RELATION
     emergency_phone_number = ""
-    if (
-        fatherFamilyName == ""
-        and fatherGivenName == ""
-        and motherFamilyName == ""
-        and motherGivenName == ""
-    ):
-        emergency_family, emergency_first = _emergency_contact_names()
+    emergency_family, emergency_first = _emergency_contact_names()
     if fatherFamilyName != "" and fatherGivenName != "":
         emergency_family = fatherFamilyName
         emergency_first = fatherGivenName
@@ -1336,6 +1334,16 @@ def build_travel_info_profile(
         emergency_first = ""
         emergency_relation = TRAVEL_EMERGENCY_RELATION_MANAGER
         emergency_phone_number = companyPhone.strip()
+
+    # Explicit emergency contact data from /run has the highest priority.
+    if str(emergencyFamilyName or "").strip():
+        emergency_family = str(emergencyFamilyName).strip()
+    if str(emergencyGivenName or "").strip():
+        emergency_first = str(emergencyGivenName).strip()
+    if str(emergencyRelationship or "").strip():
+        emergency_relation = str(emergencyRelationship).strip()
+    if str(emergencyPhone or "").strip():
+        emergency_phone_number = str(emergencyPhone).strip()
     if visa_type == "L15":
         travel_json: dict[str, Any] = getL15TravelInfo(
             applyid=applyid,
