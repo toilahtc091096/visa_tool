@@ -286,16 +286,20 @@ def build_work_info_profile(
         text = " ".join(text.replace("(", " ").replace(")", " ").split())
         return text.strip()
 
-    job_type_label = random.choice(PREFER_JOB_TYPE)
-    job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
+    # A single configured job type may be supplied as a plain string. Calling
+    # random.choice() on that string would select one character (for example,
+    # "B") instead of the complete job-type label.
+    if isinstance(PREFER_JOB_TYPE, str):
+        job_type_label = PREFER_JOB_TYPE
+    else:
+        job_type_label = random.choice(PREFER_JOB_TYPE)
     work_begin_date = date_util.work_experience_begin_date(register_date)
     work_end_date = date_util.work_experience_end_date()
     if visa_type.startswith("M"):
         job_type_label = "Company employee"
-        job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     if is_under_18:
         job_type_label = "Student"
-        job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
+    job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
 
     has_custom_work = any(
         str(value or "").strip()
