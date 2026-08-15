@@ -336,7 +336,7 @@ JOB_TYPE = (
     ("Other", "713002"),
 )
 
-PREFER_JOB_TYPE = ("Self-employed", "Businessperson")
+PREFER_JOB_TYPE = "Businessperson"
 
 JOB_TYPE_BY_LABEL = dict(JOB_TYPE)
 SELF_EMPLOYED_JOB_DESC = "TU KINH DOANH"
