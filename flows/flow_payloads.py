@@ -14,7 +14,7 @@ from constants import (
     ENTRIES_TYPE,
     JOB_TYPE_BY_LABEL,
     PREFER_JOB_TYPE,
-    SELF_EMPLOYED_JOB_DESC,
+    SELF_EMPLOYED_JOB_DESCS,
     SERVICE_TYPE_NORMAL_EXPRESS,
     VIETNAMESE_NAMES,
     VISA_TYPE_VALUE,
@@ -300,6 +300,7 @@ def build_work_info_profile(
     if is_under_18:
         job_type_label = "Student"
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
+    job_desc = random.choice(SELF_EMPLOYED_JOB_DESCS)
 
     has_custom_work = any(
         str(value or "").strip()
@@ -365,8 +366,8 @@ def build_work_info_profile(
                 work_begin_date,
                 work_end_date,
                 province_city_code,
-                SELF_EMPLOYED_JOB_DESC,
-                SELF_EMPLOYED_JOB_DESC,
+                job_desc,
+                job_desc,
             )
         ]
     elif job_type_label == "Student":
@@ -384,8 +385,8 @@ def build_work_info_profile(
                 work_begin_date,
                 work_end_date,
                 province_city_code,
-                SELF_EMPLOYED_JOB_DESC,
-                SELF_EMPLOYED_JOB_DESC,
+                job_desc,
+                job_desc,
             )
         ]
     we_src = []

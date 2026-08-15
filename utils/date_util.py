@@ -21,7 +21,7 @@ def subtract_months(d: date, months: int) -> date:
 
 
 def work_experience_begin_date(register_date: date) -> str:
-    months_back = random.randint(12, 14)
+    months_back = random.randint(12, 24)
     return year_month_str(subtract_months(register_date, months_back))
 
 
