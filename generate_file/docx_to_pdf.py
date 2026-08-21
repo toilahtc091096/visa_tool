@@ -88,6 +88,35 @@ def _convert_with_word(source: Path, target: Path) -> None:
                     word = None
 
 
+def _convert_with_word_in_fresh_thread(source: Path, target: Path) -> None:
+    """
+    Run Word automation on a brand-new thread so COM state from worker pools
+    cannot leak into the conversion.
+
+    This avoids the common case where a reused ASGI/threadpool worker has a
+    conflicting apartment model and causes CoInitialize/CoInitializeEx errors.
+    """
+
+    error: list[BaseException] = []
+
+    def _runner() -> None:
+        try:
+            _convert_with_word(source, target)
+        except BaseException as exc:  # noqa: BLE001 - re-raise in caller thread
+            error.append(exc)
+
+    thread = threading.Thread(
+        target=_runner,
+        name="word-docx-to-pdf",
+        daemon=True,
+    )
+    thread.start()
+    thread.join()
+
+    if error:
+        raise error[0]
+
+
 def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
     """
     Convert a DOCX file to PDF.
@@ -104,7 +133,8 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
         target.unlink()
 
     if os.name == "nt":
-        _convert_with_word(source, target)
+        with _WORD_AUTOMATION_LOCK:
+            _convert_with_word_in_fresh_thread(source, target)
         if not target.is_file():
             raise RuntimeError(
                 f"Microsoft Word finished without creating the PDF: {target}"
