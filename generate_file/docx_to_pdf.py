@@ -133,8 +133,7 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
         target.unlink()
 
     if os.name == "nt":
-        with _WORD_AUTOMATION_LOCK:
-            _convert_with_word_in_fresh_thread(source, target)
+        _convert_with_word_in_fresh_thread(source, target)
         if not target.is_file():
             raise RuntimeError(
                 f"Microsoft Word finished without creating the PDF: {target}"
