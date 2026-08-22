@@ -5,11 +5,42 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
 
 _WORD_AUTOMATION_LOCK = threading.Lock()
+_WORD_AUTOMATION_MUTEX_NAME = "Local\\visa_tool_word_automation_mutex"
+
+
+@contextmanager
+def _word_automation_process_lock():
+    """
+    Serialize Word automation across all Python processes on this machine.
+
+    This prevents two app instances on different ports from opening Word at the
+    same time, which can trigger intermittent COM initialization failures.
+    """
+
+    from ctypes import windll
+
+    handle = windll.kernel32.CreateMutexW(None, False, _WORD_AUTOMATION_MUTEX_NAME)
+    if not handle:
+        raise OSError("Failed to create Word automation mutex")
+
+    wait_result = windll.kernel32.WaitForSingleObject(handle, 0xFFFFFFFF)
+    if wait_result not in (0x00000000, 0x00000080):
+        windll.kernel32.CloseHandle(handle)
+        raise OSError(f"Failed to acquire Word automation mutex: {wait_result}")
+
+    try:
+        yield
+    finally:
+        try:
+            windll.kernel32.ReleaseMutex(handle)
+        finally:
+            windll.kernel32.CloseHandle(handle)
 
 
 @contextmanager
@@ -117,6 +148,53 @@ def _convert_with_word_in_fresh_thread(source: Path, target: Path) -> None:
         raise error[0]
 
 
+def _is_transient_word_com_error(exc: BaseException) -> bool:
+    """
+    Return True for COM failures that are often recoverable by retrying.
+
+    We keep the check broad but conservative so we only retry likely transient
+    cases such as COM apartment mismatches or Word being busy.
+    """
+
+    text = " ".join(
+        part for part in [exc.__class__.__name__, str(exc)] if part
+    ).lower()
+    transient_markers = (
+        "coinitialize",
+        "coinitializeex",
+        "coinit",
+        "rpc_e_changed_mode",
+        "rpc_e_servercall_retrylater",
+        "servercall",
+        "call was rejected by callee",
+        "word.application",
+        "com_error",
+    )
+    return any(marker in text for marker in transient_markers)
+
+
+def _convert_with_word_with_retry(
+    source: Path,
+    target: Path,
+    *,
+    attempts: int = 2,
+    delay_seconds: float = 0.75,
+) -> None:
+    last_error: BaseException | None = None
+    for attempt in range(1, max(1, attempts) + 1):
+        try:
+            _convert_with_word_in_fresh_thread(source, target)
+            return
+        except BaseException as exc:  # noqa: BLE001 - retry wrapper
+            last_error = exc
+            if attempt >= attempts or not _is_transient_word_com_error(exc):
+                raise
+            time.sleep(delay_seconds * attempt)
+
+    if last_error is not None:
+        raise last_error
+
+
 def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
     """
     Convert a DOCX file to PDF.
@@ -133,7 +211,8 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
         target.unlink()
 
     if os.name == "nt":
-        _convert_with_word_in_fresh_thread(source, target)
+        with _word_automation_process_lock():
+            _convert_with_word_with_retry(source, target)
         if not target.is_file():
             raise RuntimeError(
                 f"Microsoft Word finished without creating the PDF: {target}"
