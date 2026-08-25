@@ -40,7 +40,12 @@ def _is_debug_enabled() -> bool:
 
 
 def _is_sync_scheduler_enabled() -> bool:
-    value = os.getenv("SYNC_DRAFT_SCHEDULER_ENABLED", "1").strip().lower()
+    value = os.getenv("SYNC_DRAFT_SCHEDULER_ENABLED", "0").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _is_sync_draft_enabled() -> bool:
+    value = os.getenv("SYNC_DRAFT_ENABLED", "0").strip().lower()
     return value in {"1", "true", "yes", "on"}
 
 
@@ -63,6 +68,10 @@ def _server_port() -> int:
 
 
 async def _sync_draft_scheduler_loop() -> None:
+    if not _is_sync_draft_enabled():
+        print("[sync_draft_scheduler] disabled by SYNC_DRAFT_ENABLED=0", flush=True)
+        return
+
     interval_seconds = _sync_scheduler_interval_seconds()
     spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
     worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "hai").strip()
@@ -157,6 +166,13 @@ async def sync_draft_visa_status(
     concurrency: int = 5,
     skip_google_sheet: bool = False,
 ):
+    if not _is_sync_draft_enabled():
+        return {
+            "ok": False,
+            "disabled": True,
+            "message": "sync_draft is disabled",
+        }
+
     started_at = time.perf_counter()
     print(
         "[sync_draft_route] request "
