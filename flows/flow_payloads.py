@@ -40,6 +40,7 @@ from constants import (
     UNDER_18_HOTEL_INFO,
     EMERGENCY_RELATION_FATHER,
     EMERGENCY_RELATION_MOTHER,
+    VIETNAMESE_COMPANY_NAMES,
 )
 from models import (
     ApplyInfoProfile,
@@ -239,7 +240,7 @@ def _work_experience_entry(
         "sort": "1",
         "beginDate": begin_date,
         "endDate": end_date,
-        "jobName": job_name or random.choice(VIETNAMESE_NAMES).upper(),
+        "jobName": job_name or random.choice(VIETNAMESE_COMPANY_NAMES).upper(),
         "jobAddr": job_addr or province_city_code,
         "jobTel": job_tel or mobile_utils.generate_job_tel(),
         "jobPosition": job_position,
@@ -324,8 +325,8 @@ def build_work_info_profile(
                 str(work_from or work_begin_date).strip() or work_begin_date,
                 str(work_to or work_end_date).strip() or work_end_date,
                 _normalize_ascii_upper(employer_address) or province_city_code,
-                _normalize_ascii_upper(position) or "NHAN VIEN",
-                _normalize_ascii_upper(duty) or "NHAN VIEN",
+                _normalize_ascii_upper(position) or "GIAM DOC",
+                _normalize_ascii_upper(duty) or "GIAM DOC",
                 job_name=_normalize_ascii_upper(employer_name),
                 job_addr=_normalize_ascii_upper(employer_address) or province_city_code,
                 job_tel=str(employer_phone or "").strip()
@@ -350,8 +351,8 @@ def build_work_info_profile(
                 work_begin_date,
                 work_end_date,
                 companyAddressUpperNoAccent or province_city_code,
-                _normalize_ascii_upper(position) or "NHAN VIEN",
-                _normalize_ascii_upper(duty) or "NHAN VIEN",
+                _normalize_ascii_upper(position) or "GIAM DOC",
+                _normalize_ascii_upper(duty) or "GIAM DOC",
                 job_name=_build_company_job_name(companyNameVi),
                 job_addr=companyAddressUpperNoAccent or province_city_code,
                 job_tel=companyPhone,
