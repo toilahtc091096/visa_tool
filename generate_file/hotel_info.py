@@ -8,9 +8,7 @@ from utils import vnd, cny, vnd_decimal, date_util
 from constants import UNIT_OF_HOTEL, VIETNAMESE_NAMES, L_30_HOTEL_INFO
 import random
 from generate_file.docx_to_pdf import convert_docx_to_pdf
-from pathlib import Path
 from PyPDF2 import PdfMerger
-from docx2pdf import convert
 
 from utils import pdf_helper
 from generate_file.path_utils import passport_data_dir
@@ -277,7 +275,11 @@ def merge_docx_files(
     for docx_path in docx_paths:
         pdf_path = docx_path.with_suffix(".pdf")
 
-        convert(str(docx_path), str(pdf_path))
+        # Do not call docx2pdf.convert directly from an ASGI worker thread:
+        # that library assumes COM has already been initialized in the
+        # current thread.  Our wrapper initializes COM, serializes Word across
+        # processes, and always closes the document/Word instance afterwards.
+        convert_docx_to_pdf(str(docx_path), str(pdf_path))
         pdf_helper.remove_last_blank_page(str(pdf_path))
 
         pdf_paths.append(pdf_path)
