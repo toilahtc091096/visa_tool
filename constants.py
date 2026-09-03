@@ -265,7 +265,7 @@ FEMALE_VIETNAMESE_NAMES = (
     "Pham Thi Trang",
 )
 
-EDUCATION_DEGREE_TYPE = (("Junior_College", "714003", "DAI HOC"),)
+EDUCATION_DEGREE_TYPE = (("Junior_College", "714004", "DAI HOC"),)
 
 EDUCATION_SCHOOL_NAMES = (
     "NGO QUYEN",
