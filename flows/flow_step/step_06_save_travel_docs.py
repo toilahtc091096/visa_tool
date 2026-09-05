@@ -47,7 +47,6 @@ from utils import (
     log_event,
     log_exception,
     notify,
-    save_chinese_name_signature_png,
 )
 from utils.remove_r2 import delete_r2_folder
 from utils.download_r2 import download_r2_folder
@@ -443,26 +442,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         )
         return False
 
-    ctx.signature_image_path = ""
-    signature_name = str(getattr(ctx, "inviterName", "") or "").strip()
-    if signature_name:
-        try:
-            signature_dir = (
-                passport_data_dir(ctx.input_passportNumber) / Q1_THU_MOI_OUTPUT_PATH
-            )
-            signature_path = signature_dir / "signature.png"
-            ctx.signature_image_path = save_chinese_name_signature_png(
-                signature_name,
-                signature_path,
-            )
-        except Exception as e:
-            log_exception(
-                e,
-                {
-                    "event": "render_failed",
-                    "file": "signature.png",
-                },
-            )
     adult_number = 0
     child_number = 0
 
