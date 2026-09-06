@@ -1,5 +1,6 @@
+import logging
+
 import requests
-from typing import Optional, Dict, Any
 from utils import build_login_headers
 from models import LoginApiResponse
 from constants import (
@@ -7,16 +8,28 @@ from constants import (
     BASE_HEADERS
 )
 
-def login(authorization: str, timeout: int = 30) -> LoginApiResponse:
+logger = logging.getLogger(__name__)
+
+
+def login(authorization: str, timeout: int = 60) -> LoginApiResponse:
+    """Log in and return the fresh API token.
+
+    The homepage request is only used to obtain any cookies set by the site.
+    It must not prevent the login API from being attempted: the homepage has
+    occasionally been slow while the API endpoint is still available.
+    """
     session = requests.Session()
 
-    session.get(
-        "https://bio.visaforchina.cn",
-        headers=BASE_HEADERS,
-        timeout=30,
-    )
-
-    authorization = authorization
+    # Cookie warm-up is optional.  Keep its timeout short so a slow homepage
+    # does not abort the actual login request.
+    try:
+        session.get(
+            "https://bio.visaforchina.cn",
+            headers=BASE_HEADERS,
+            timeout=(10, min(timeout, 15)),
+        )
+    except requests.RequestException as exc:
+        logger.warning("Cookie warm-up failed; continuing with login API: %s", exc)
 
     referer = (
         "https://bio.visaforchina.cn/onlineWeb/" "personalCenter/visa/historyForms"
@@ -28,7 +41,7 @@ def login(authorization: str, timeout: int = 30) -> LoginApiResponse:
             authorization=authorization,
             referer=referer,
         ),
-        timeout=30,
+        timeout=(10, timeout),
     )
     r.raise_for_status()
     return LoginApiResponse.from_dict(r.json())
