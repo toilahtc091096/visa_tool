@@ -153,7 +153,6 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         explicit_flags["spouse"] = CHECKED
     if explicit_flags["parents"] is None and relation_hint in {
         "parents",
-        "cha me",
         "bo me",
         "ba me",
         "father",
@@ -164,7 +163,6 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "siblings",
         "brother",
         "sister",
-        "anh chi em",
         "anh em",
     }:
         explicit_flags["siblings"] = CHECKED
@@ -173,7 +171,6 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "child",
         "son",
         "daughter",
-        "con cai",
     }:
         explicit_flags["children"] = CHECKED
     if explicit_flags["spouseParents"] is None and relation_hint in {
@@ -204,6 +201,8 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
     if explicit_flags["childrenSpouse"] is None and relation_hint in {
         "childrenspouse",
         "con dau con re",
+        "con dau",
+        "con re",
     }:
         explicit_flags["childrenSpouse"] = CHECKED
 
