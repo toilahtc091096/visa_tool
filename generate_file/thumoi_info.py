@@ -153,6 +153,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         explicit_flags["spouse"] = CHECKED
     if explicit_flags["parents"] is None and relation_hint in {
         "parents",
+        "cha me",
         "bo me",
         "ba me",
         "father",
@@ -163,6 +164,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "siblings",
         "brother",
         "sister",
+        "anh chi em",
         "anh em",
     }:
         explicit_flags["siblings"] = CHECKED
@@ -171,12 +173,54 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "child",
         "son",
         "daughter",
+        "con cai",
     }:
         explicit_flags["children"] = CHECKED
+    if explicit_flags["spouseParents"] is None and relation_hint in {
+        "spouseparents",
+        "cha me vo chong",
+    }:
+        explicit_flags["spouseParents"] = CHECKED
+    if explicit_flags["paternalGrandparents"] is None and relation_hint in {
+        "paternalgrandparents",
+        "ong ba noi",
+    }:
+        explicit_flags["paternalGrandparents"] = CHECKED
+    if explicit_flags["maternalGrandparents"] is None and relation_hint in {
+        "maternalgrandparents",
+        "ong ba ngoai",
+    }:
+        explicit_flags["maternalGrandparents"] = CHECKED
+    if explicit_flags["grandchildren"] is None and relation_hint in {
+        "grandchildren",
+        "chau noi",
+    }:
+        explicit_flags["grandchildren"] = CHECKED
+    if explicit_flags["maternalGrandchildren"] is None and relation_hint in {
+        "maternalgrandchildren",
+        "chau ngoai",
+    }:
+        explicit_flags["maternalGrandchildren"] = CHECKED
+    if explicit_flags["childrenSpouse"] is None and relation_hint in {
+        "childrenspouse",
+        "con dau con re",
+    }:
+        explicit_flags["childrenSpouse"] = CHECKED
 
     relation_matched_specific_flag = any(
         explicit_flags[key] == CHECKED
-        for key in ("spouse", "parents", "siblings", "children")
+        for key in (
+            "spouse",
+            "parents",
+            "spouseParents",
+            "children",
+            "siblings",
+            "paternalGrandparents",
+            "maternalGrandparents",
+            "grandchildren",
+            "maternalGrandchildren",
+            "childrenSpouse",
+        )
     )
 
     if relation_matched_specific_flag:
