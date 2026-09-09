@@ -21,7 +21,9 @@ PASSPORT_FILE_FOLDER = "resrouces/data"
 DEFAULT_EMBASSY = "3001VNVNMA"
 DEFAULT_LANG = "en_US"
 OLD_APPLY_STATUS_APPROVED = "审核通过"
-OLD_APPLY_ID_FOR_TEST_TOKEN = "2026052752203677110"
+OLD_APPLY_ID_FOR_TEST_TOKEN = os.getenv(
+    "OLD_APPLY_ID_FOR_TEST_TOKEN", "2026052752203677110"
+).strip()
 LOGIN_API_URL = "https://bio.visaforchina.cn/staging-api/application/online/login"
 NORMAL_ACCEPT = "application/json, text/plain, */*"
 DEFAULT_VI_LANGUAGE = "vi-VN"
