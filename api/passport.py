@@ -16,6 +16,7 @@ async def api_passport_ocr(
     file_path: str,                 # đường dẫn file png/jpg/pdf...
     form_field_name: str = "file",  # tùy backend: "file"/"passport"/"image"...
 ) -> tuple[bool, dict[str, Any]]:
+    breakpoint();
     url = f"{BASE_URL}/PassportOCR"
     headers = build_upload_headers(token, tmp_secret)
 

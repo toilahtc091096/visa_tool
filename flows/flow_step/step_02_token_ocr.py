@@ -32,6 +32,7 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
         print("token ok ")
 
     ctx.step = "get ocr"
+    breakpoint();
     if PASSPORT_FILE_FOLDER in (None, ""):
         print("no passport file")
         return False
