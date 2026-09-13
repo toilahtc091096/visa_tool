@@ -41,6 +41,7 @@ from constants import (
     EMERGENCY_RELATION_FATHER,
     EMERGENCY_RELATION_MOTHER,
     VIETNAMESE_COMPANY_NAMES,
+    cityzen_status,
 )
 from models import (
     ApplyInfoProfile,
@@ -547,12 +548,12 @@ def _infor_spouse_entry(
         "familyName": spouseFamilyName,
         "firstName": spouseFirstName,
         "nationalityCountry": spouseNationalityCountry,
+        "birthday": spouseBirthday,
         "profession": "",
         "otherSpecify": "",
-        "birthCity": spouseBirthCity,
         "birthCounty": spouseBirthCountry,
+        "birthCity": spouseBirthCity,
         "address": spouseBirthCity,
-        "birthday": spouseBirthday,
     }
 
 
@@ -581,6 +582,22 @@ def _child_entry(
         "statusInChinaDetail": "",
         "inChinaFlag": None,
         "sort": 1,
+    }
+
+
+def _relative_entry(
+    inviterFamilyName: str = "",
+    inviterGivenName: str = "",
+    inviterRelation: str = "",
+) -> dict[str, Any]:
+    return {
+        "sort": "1",
+        "familyName": inviterFamilyName,
+        "firstName": inviterGivenName,
+        "relation": inviterRelation,
+        "address": "",
+        "statusInChina": cityzen_status,
+        "statusInChinaDetail": "",
     }
 
 
@@ -622,6 +639,9 @@ def build_family_info_profile(
     old_relatives=[],
     old_haveSpouseFlag=False,
     old_spouses=[],
+    inviterFamilyName: str = "",
+    inviterGivenName: str = "",
+    inviterRelation: str = "",
 ) -> FamilyInfoProfile:
 
     not_apply_items = []
@@ -787,11 +807,18 @@ def build_family_info_profile(
     else:
         parents_src = parents_info
 
-    relative_src = []
-    if old_relatives != []:
-        relative_src = old_relatives if old_relatives != [] else []
-    else:
-        relative_src = []
+    has_inviter = any(
+        (
+            str(inviterFamilyName or "").strip(),
+            str(inviterGivenName or "").strip(),
+            str(inviterRelation or "").strip(),
+        )
+    )
+    relative_src = (
+        [_relative_entry(inviterFamilyName, inviterGivenName, inviterRelation)]
+        if has_inviter
+        else old_relatives
+    )
 
     notApplyItems_src = []
     if old_notApplyItems != []:
@@ -965,7 +992,7 @@ def getL15TravelInfo(
         emergency_relation=emergency_relation,
     )
     item_travel = L_15_HOTEL_INFO[hotel_type]
-    if is_under_18 or has_additional_names:  
+    if is_under_18 or has_additional_names:
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
     addr_100 = ""

@@ -218,6 +218,9 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.old_relatives,
         ctx.old_haveSpouseFlag,
         ctx.old_spouses,
+        ctx.inviterFamilyName,
+        ctx.inviterGivenName,
+        ctx.inviterRelation,
     )
     parents = body_save_family_info.parents or []
 
