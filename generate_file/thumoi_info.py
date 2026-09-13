@@ -158,7 +158,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "father",
         "mother",
     }:
-        explicit_flags["parents"] = CHECKED
+        explicit_flags["children"] = CHECKED
     if explicit_flags["siblings"] is None and relation_hint in {
         "siblings",
         "brother",
@@ -172,39 +172,39 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "son",
         "daughter",
     }:
-        explicit_flags["children"] = CHECKED
+        explicit_flags["parents"] = CHECKED
     if explicit_flags["spouseParents"] is None and relation_hint in {
         "spouseparents",
         "cha me vo chong",
     }:
-        explicit_flags["spouseParents"] = CHECKED
+        explicit_flags["childrenSpouse"] = CHECKED
     if explicit_flags["paternalGrandparents"] is None and relation_hint in {
         "paternalgrandparents",
         "ong ba noi",
     }:
-        explicit_flags["paternalGrandparents"] = CHECKED
+        explicit_flags["grandchildren"] = CHECKED
     if explicit_flags["maternalGrandparents"] is None and relation_hint in {
         "maternalgrandparents",
         "ong ba ngoai",
     }:
-        explicit_flags["maternalGrandparents"] = CHECKED
+        explicit_flags["maternalGrandchildren"] = CHECKED
     if explicit_flags["grandchildren"] is None and relation_hint in {
         "grandchildren",
         "chau noi",
     }:
-        explicit_flags["grandchildren"] = CHECKED
+        explicit_flags["paternalGrandparents"] = CHECKED
     if explicit_flags["maternalGrandchildren"] is None and relation_hint in {
         "maternalgrandchildren",
         "chau ngoai",
     }:
-        explicit_flags["maternalGrandchildren"] = CHECKED
+        explicit_flags["maternalGrandparents"] = CHECKED
     if explicit_flags["childrenSpouse"] is None and relation_hint in {
         "childrenspouse",
         "con dau con re",
         "con dau",
         "con re",
     }:
-        explicit_flags["childrenSpouse"] = CHECKED
+        explicit_flags["spouseParents"] = CHECKED
 
     relation_matched_specific_flag = any(
         explicit_flags[key] == CHECKED
