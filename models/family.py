@@ -35,16 +35,17 @@ class FamilyParent:
 
 @dataclass
 class FamilySpouse:
-    address: str = ""
-    birthCity: str = ""
-    birthCountry: str = ""
-    birthCounty: str = ""
+    sort: str = "1"
     familyName: str = ""
     firstName: str = ""
     nationalityCountry: str = ""
     profession: str = ""
+    otherSpecify: str = ""
     birthday: str = ""
-    sort: int = 1
+    birthCountry: str = ""
+    birthCity: str = ""
+    birthCounty: str = ""
+    address: str = ""
     country: str = ""
     province: str = ""
     city: str = ""
@@ -53,16 +54,17 @@ class FamilySpouse:
     @staticmethod
     def from_dict(d: dict[str, Any]) -> "FamilySpouse":
         return FamilySpouse(
-            address=d.get("address", "") or "",
-            birthCity=d.get("birthCity", "") or "",
-            birthCountry=d.get("birthCountry", "") or "",
-            birthCounty=d.get("birthCounty", "") or "",
+            sort=str(d.get("sort", "1") or "1"),
             familyName=d.get("familyName", "") or "",
             firstName=d.get("firstName", "") or "",
             nationalityCountry=d.get("nationalityCountry", "") or "",
             profession=d.get("profession", "") or "",
+            otherSpecify=d.get("otherSpecify", "") or "",
             birthday=d.get("birthday", "") or "",
-            sort=int(d.get("sort", 1) or 1),
+            birthCountry=d.get("birthCountry", "") or "",
+            birthCity=d.get("birthCity", "") or "",
+            birthCounty=d.get("birthCounty", "") or "",
+            address=d.get("address", "") or "",
             country=d.get("country", "") or "",
             province=d.get("province", "") or "",
             city=d.get("city", "") or "",

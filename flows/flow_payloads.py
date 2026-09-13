@@ -551,10 +551,34 @@ def _infor_spouse_entry(
         "birthday": spouseBirthday,
         "profession": "",
         "otherSpecify": "",
-        "birthCounty": spouseBirthCountry,
+        "birthCountry": spouseBirthCountry,
         "birthCity": spouseBirthCity,
-        "address": spouseBirthCity,
+        "birthCounty": "",
+        "address": "",
     }
+
+
+def _order_spouse_fields(spouse: Any) -> dict[str, Any]:
+    """Put spouse properties in the order expected by SaveFamilyInfo."""
+    source = _to_dict(spouse)
+    field_order = (
+        "sort",
+        "familyName",
+        "firstName",
+        "nationalityCountry",
+        "profession",
+        "otherSpecify",
+        "birthday",
+        "birthCountry",
+        "birthCity",
+        "birthCounty",
+        "address",
+    )
+    ordered = {field: source[field] for field in field_order if field in source}
+    ordered.update(
+        {field: value for field, value in source.items() if field not in ordered}
+    )
+    return ordered
 
 
 def _child_entry(
@@ -835,6 +859,7 @@ def build_family_info_profile(
         spouses_src = old_spouses if old_spouses != [] else spouses_info
     else:
         spouses_src = spouses_info
+    spouses_src = [_order_spouse_fields(spouse) for spouse in (spouses_src or [])]
 
     family_json: dict[str, Any] = {
         "applyCountry": "",
@@ -873,7 +898,7 @@ def build_family_info_profile(
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
         "children": [_to_dict(i) for i in (children_src or [])],
         "relatives": [_to_dict(i) for i in (relative_src or [])],
-        "relativeRelativeFlag": False,
+        "relativeRelativeFlag": bool(relative_src),
         "applyid": applyid,
         "parents": [_to_dict(i) for i in (parents_src or [])],
         "lang": DEFAULT_LANG,
