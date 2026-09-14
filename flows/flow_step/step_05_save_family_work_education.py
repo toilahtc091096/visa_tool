@@ -34,6 +34,7 @@ async def save_family_work_education(ctx, client) -> bool:
             for item in model.rows:
                 if item.applyStatus == OLD_APPLY_STATUS_APPROVED:
                     ctx.old_item_id = item.applyid
+                    break
         log_event({"step": ctx.step, "ok": okList, **metaList})
         if not okList:
             await notify(

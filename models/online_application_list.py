@@ -189,9 +189,11 @@ class OnlineApplicationListResponse:
     @staticmethod
     def from_dict(d: dict[str, Any]) -> "OnlineApplicationListResponse":
         rows_raw = d.get("rows") or []
+        rows = [OnlineApplicationRow.from_dict(x) for x in rows_raw]
+        rows.sort(key=lambda item: item.updateTime or "", reverse=True)
         return OnlineApplicationListResponse(
             total=int(d.get("total", 0) or 0),
-            rows=[OnlineApplicationRow.from_dict(x) for x in rows_raw],
+            rows=rows,
             code=int(d.get("code", 0) or 0),
             msg=d.get("msg", ""),
         )
