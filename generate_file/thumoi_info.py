@@ -256,6 +256,9 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
     passport_number = _text(
         _get_value(source, "passportNumber", "passport_number", default="")
     )
+    visa_duration= _text(
+        _get_value(source, "visaDuration", "visa_duration", default="")
+    )
     applicant_name = _text(
         _get_value(
             source,
@@ -311,7 +314,6 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
                 q2_once = CHECKED
             elif entries_type in {"D", "M"} and q2_twice is None:
                 q2_twice = CHECKED
-
     return {
         "inviterName": inviter_name,
         "inviterIdCard": _text(
@@ -348,6 +350,7 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
         "today_year": today_year,
         "today_month": today_month,
         "today_day": today_day,
+        "visa_duration": visa_duration,
     }
 
 

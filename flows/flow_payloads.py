@@ -1388,8 +1388,12 @@ def build_travel_info_profile(
         emergency_first = motherGivenName
         emergency_relation = EMERGENCY_RELATION_MOTHER
     if visa_type.startswith("M") and companyPhone.strip() and managerName.strip():
-        emergency_family = _normalize_ascii_upper(managerName)
-        emergency_first = ""
+        normalized_name = _normalize_ascii_upper(managerName)
+        name_parts = normalized_name.split()
+        if name_parts:
+            emergency_family = name_parts[0]
+            emergency_first = " ".join(name_parts[1:])
+
         emergency_relation = TRAVEL_EMERGENCY_RELATION_MANAGER
         emergency_phone_number = companyPhone.strip()
 
