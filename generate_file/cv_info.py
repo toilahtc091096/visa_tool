@@ -82,6 +82,8 @@ async def render_docx_template_output_pdf(
 
     out = out_dir / (Path(file_name).stem + ".docx")
     doc = DocxTemplate(str(src))
+    if payload.get("visa_type_first") == "Q1":
+        payload["visa_type_number"] = "000"
     doc.render(
         {
             "passengers": [

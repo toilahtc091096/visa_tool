@@ -921,7 +921,6 @@ UPLOAD_CONFIG = {
             }
         ],
         "ITINERARY_IN_CHINA": [
-            # {"categoryCode": "12025062019595907456262", "materialCode": "mfa-004_1"}
             {
                 "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
                 "limit": 1,

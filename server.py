@@ -329,7 +329,7 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
         pdf_path = convert_html_to_pdf(html_content)
         r2_key = upload_pdf_to_r2(
             pdf_path,
-            f"{folderName}/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/",
+            f"{folderName}/",
         )
 
         return {"message": "Upload thanh cong", "file_key": r2_key}
