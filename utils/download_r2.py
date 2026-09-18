@@ -47,12 +47,17 @@ def download_r2_folder(
 
             s3.download_file(config.bucket_name, key, str(out_path))
             total += 1
-            print(f"Downloaded: r2://{config.bucket_name}/{key} -> {out_path}", flush=True)
+            print(
+                f"Downloaded: r2://{config.bucket_name}/{key} -> {out_path}", flush=True
+            )
 
-    print(f"Done. Downloaded {total} files from '{prefix}' into '{local_dir}'.", flush=True)
+    print(
+        f"Done. Downloaded {total} files from '{prefix}' into '{local_dir}'.",
+        flush=True,
+    )
     return total
 
 
 # if __name__ == "__main__":
-    # download folder "data/" về thư mục local "./data"
-    # download_r2_folder(prefix=ctx.passportNumber, local_dir="./data")
+# download folder "data/" về thư mục local "./data"
+# download_r2_folder(prefix=ctx.passportNumber, local_dir="./data")
