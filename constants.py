@@ -659,11 +659,9 @@ TRAVEL_PLAN_21D = "Init_goc.docx"
 
 Q1_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q1_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
-Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quanhe"
-Q1_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
+Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
+Q1_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
 
-Q2_PASSPORT_EMPTY_PAGES_OUTPUT_PATH = "tham-than\\trang-trong-ho-chieu"
-Q2_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = "tham-than\\visa-trung-quoc-cu"
 Q2_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
@@ -987,6 +985,10 @@ UPLOAD_CONFIG["M90"] = {
 }
 UPLOAD_CONFIG["M"] = UPLOAD_CONFIG["M90"]
 UPLOAD_CONFIG["Q1"] = {
+    "HUKOU_OR_EMPLOYMENT_LETTER": {
+        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+        "limit": 1,
+    },
     "PASSPORT_BLANK_PAGES": {
         "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
         "limit": 2,
@@ -1019,6 +1021,10 @@ UPLOAD_CONFIG["Q1"] = {
     ],
 }
 UPLOAD_CONFIG["Q2"] = {
+    "HUKOU_OR_EMPLOYMENT_LETTER": {
+        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+        "limit": 1,
+    },
     "PASSPORT_BLANK_PAGES": {
         "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
         "limit": 2,
@@ -1045,7 +1051,7 @@ UPLOAD_CONFIG["Q2"] = {
             "limit": 1,
         },
         {
-            "folder": Q1_TAI_LIEU_KHAC_OUTPUT_PATH,
+            "folder": Q2_TAI_LIEU_KHAC_OUTPUT_PATH,
             "limit": 1,
         },
     ],
@@ -1514,6 +1520,12 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q1"] = {
                 "materialCode": "mfa-085_2",
             },
         ],
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
+            },
+        ],
     },
 }
 UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
@@ -1568,6 +1580,12 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
             {
                 "categoryCode": "12025062115255295051217",
                 "materialCode": "mfa-099_1",
+            },
+        ],
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
             },
         ],
     },

@@ -33,7 +33,6 @@ def download_r2_folder(
 
     local_base = Path(local_dir)
     total = 0
-
     for page in pages:
         for obj in page.get("Contents", []):
             key = obj["Key"]
