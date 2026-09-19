@@ -251,7 +251,9 @@ def build_case(case: dict[str, Any] | None = None) -> dict[str, Any]:
             {
                 "childFamilyName": str(merged.get("childFamilyName", "") or "").strip(),
                 "childGivenName": str(merged.get("childGivenName", "") or "").strip(),
-                "childNationality": str(merged.get("childNationality", "") or "").strip(),
+                "childNationality": str(
+                    merged.get("childNationality", "") or ""
+                ).strip(),
                 "childBirthDate": str(merged.get("childBirthDate", "") or "").strip(),
             }
         ]
@@ -419,6 +421,8 @@ def main(
             data["birthday"],
             data["birthCountry"],
             data["birthCity"],
+            data["birthCounty"],
+            data["address"],
             data["payMobile"],
             data["payName"],
             data["first_applyid"],
