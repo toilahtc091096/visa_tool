@@ -542,6 +542,8 @@ def _infor_spouse_entry(
     spouseBirthday: str = "",
     spouseBirthCountry: str = "",
     spouseBirthCity: str = "",
+    spouseBirthCounty: str = "",
+    spouseAddress: str = "",
 ) -> dict[str, Any]:
     return {
         "sort": "1",
@@ -553,8 +555,8 @@ def _infor_spouse_entry(
         "otherSpecify": "",
         "birthCountry": spouseBirthCountry,
         "birthCity": spouseBirthCity,
-        "birthCounty": "",
-        "address": "",
+        "birthCounty": spouseBirthCounty,
+        "address": spouseAddress,
     }
 
 
@@ -639,6 +641,8 @@ def build_family_info_profile(
     spouseBirthday: str = "",
     spouseBirthCountry: str = "",
     spouseBirthCity: str = "",
+    spouseBirthCounty: str = "",
+    spouseAddress: str = "",
     haveChildFlag: bool = False,
     childFamilyName: str = "",
     childGivenName: str = "",
@@ -690,6 +694,8 @@ def build_family_info_profile(
                 spouseBirthday,
                 spouseBirthCountry,
                 spouseBirthCity,
+                spouseBirthCounty,
+                spouseAddress,
             )
         ]
 
