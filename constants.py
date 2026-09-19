@@ -1464,6 +1464,12 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q1"] = {
                 "materialCode": "mfa-017_2",
             },
         ],
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
+            },
+        ],
         "PREV_CHINESE_VISA": [
             {
                 "categoryCode": "22025062114131912554297",
