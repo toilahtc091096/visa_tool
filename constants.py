@@ -1522,8 +1522,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q1"] = {
         ],
         "HUKOU_OR_EMPLOYMENT_LETTER": [
             {
-                "categoryCode": "22025062114073725280378",
-                "materialCode": "mfa-030_1",
+                "categoryCode": "12025062115232232717451",
+                "materialCode": "mfa-030_4",
             },
         ],
     },
@@ -1565,15 +1565,15 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
         "CHUNG_MINH_QUAN_HE": [
             {
                 "categoryCode": "12025062115232232717451",
+                "materialCode": "mfa-094_1",
+            },
+            {
+                "categoryCode": "12025062115232232717451",
                 "materialCode": "mfa-094_2",
             },
             {
                 "categoryCode": "12025062115232232717451",
                 "materialCode": "mfa-094_3",
-            },
-            {
-                "categoryCode": "12025062115232232717451",
-                "materialCode": "mfa-094_4",
             },
         ],
         "OTHER_MATERIALS": [
@@ -1584,8 +1584,8 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
         ],
         "HUKOU_OR_EMPLOYMENT_LETTER": [
             {
-                "categoryCode": "22025062114073725280378",
-                "materialCode": "mfa-030_1",
+                "categoryCode": "12025062115232232717451",
+                "materialCode": "mfa-030_4",
             },
         ],
     },
