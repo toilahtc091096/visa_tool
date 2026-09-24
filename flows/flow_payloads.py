@@ -300,9 +300,9 @@ def build_work_info_profile(
     if visa_type.startswith("M"):
         job_type_label = "Company employee"
     if visa_type.startswith("F"):
-            job_type_label = "Student"  
+        job_type_label = "Student"
     if is_under_18:
-        job_type_label = "Student"  
+        job_type_label = "Student"
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     job_desc = random.choice(SELF_EMPLOYED_JOB_DESCS)
 
@@ -409,7 +409,7 @@ def build_work_info_profile(
         not_apply_items = [
             {
                 "notApplyCode": "workExperience",
-                "remark": "CON NHO",
+                "remark": "CHUA DI LAM",
             }
         ]
 
@@ -474,6 +474,15 @@ def build_education_info_profile(
 
     we_src = []
     not_apply_items = []
+    if is_under_18:
+        we_src = []
+        not_apply_items = [
+            {
+                "notApplyCode": "educationExperience",
+                "remark": "CON NHO",
+            }
+        ]
+
     if has_custom_education:
         we_src = [
             {
@@ -491,14 +500,6 @@ def build_education_info_profile(
             _education_experience_entry(province_city_code)
         ]
 
-    if is_under_18:
-        we_src = []
-        not_apply_items = [
-            {
-                "notApplyCode": "educationExperience",
-                "remark": "CON NHO",
-            }
-        ]
     education_json: dict[str, Any] = {
         "applyCountry": "",
         "finishedStep": 9,
@@ -1236,6 +1237,7 @@ def _apply_m90_single_stay_overrides(
         travel_json["leaveDate"] = departure_date_str
         travel_json["departureDate"] = departure_date_str
 
+
 def _apply_f_single_stay_overrides(
     travel_json: dict[str, Any],
     *,
@@ -1250,7 +1252,7 @@ def _apply_f_single_stay_overrides(
     departureDistrict: str = "",
     arrivalDate: date | str | None = None,
     departureDate: date | str | None = None,
-)  -> None:
+) -> None:
     travel_address = school_address
     arrival_date_str = (
         date_util.iso_date_str(arrivalDate)
@@ -1314,6 +1316,7 @@ def _apply_f_single_stay_overrides(
     if departureDate is not None and departure_date_str:
         travel_json["leaveDate"] = departure_date_str
         travel_json["departureDate"] = departure_date_str
+
 
 def _add_months_to_date(source_date: date, months: int) -> date:
     month_index = source_date.month - 1 + months
@@ -1554,33 +1557,33 @@ def build_travel_info_profile(
             departureDate=leave_date,
         )
     elif visa_type.startswith("F"):
-            travel_json = getL30TravelInfo(
-                applyid=applyid,
-                emergency_family=emergency_family,
-                emergency_first=emergency_first,
-                emergency_phone_number=emergency_phone_number,
-                emergency_relation=emergency_relation,
-                is_under_18=is_under_18,
-                haveChildFlag=haveChildFlag,
-                arrival_date=arrival_date,
-                arrivalVehicleType="",
-                leaveVehicleType="",
-                is_private=is_private,
-            )
-            _apply_f_single_stay_overrides(
-                travel_json,
-                inviteSchoolName=inviteSchoolName,
-                school_address=school_address,
-                inviteProvince=inviteProvince,
-                arrivalCity=arrivalCity,
-                arrivalDistrict=arrivalDistrict,
-                stayCity=stayCity,
-                stayDistrict=stayDistrict,
-                departureCity=departureCity,
-                departureDistrict=departureDistrict,
-                arrivalDate=arrival_date,
-                departureDate=leave_date,
-            )
+        travel_json = getL30TravelInfo(
+            applyid=applyid,
+            emergency_family=emergency_family,
+            emergency_first=emergency_first,
+            emergency_phone_number=emergency_phone_number,
+            emergency_relation=emergency_relation,
+            is_under_18=is_under_18,
+            haveChildFlag=haveChildFlag,
+            arrival_date=arrival_date,
+            arrivalVehicleType="",
+            leaveVehicleType="",
+            is_private=is_private,
+        )
+        _apply_f_single_stay_overrides(
+            travel_json,
+            inviteSchoolName=inviteSchoolName,
+            school_address=school_address,
+            inviteProvince=inviteProvince,
+            arrivalCity=arrivalCity,
+            arrivalDistrict=arrivalDistrict,
+            stayCity=stayCity,
+            stayDistrict=stayDistrict,
+            departureCity=departureCity,
+            departureDistrict=departureDistrict,
+            arrivalDate=arrival_date,
+            departureDate=leave_date,
+        )
     elif visa_type.startswith("Q"):
         travel_json = getL30TravelInfo(
             applyid=applyid,
