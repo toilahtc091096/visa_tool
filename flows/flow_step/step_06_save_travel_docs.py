@@ -244,8 +244,12 @@ def _delete_common_docs_from_r2(*, prefix: str) -> int:
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     passport_root = passport_data_dir(ctx.input_passportNumber)
     family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
+    company_passport = str(getattr(ctx, "company_passport", "") or "").strip()
+    school_passport = str(getattr(ctx, "school_passport", "") or "").strip()
 
     reuse_l_docs = bool(ctx.visa_type.startswith("L") and family_passport)
+    reuse_m_docs = bool(ctx.visa_type.startswith("M") and company_passport)
+    reuse_f_docs = bool(ctx.visa_type.startswith("F") and school_passport)
     is_q_visa = ctx.visa_type.startswith("Q")
     has_additional_names = bool(
         getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", [])
@@ -626,7 +630,11 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             )
 
     ctx.ticket_names = [ctx.vietnamese_name]
-    if not (ctx.visa_type.startswith("L") and reuse_l_docs):
+    if not (
+        (ctx.visa_type.startswith("L") and reuse_l_docs)
+        or (ctx.visa_type.startswith("M") and reuse_m_docs)
+        or (ctx.visa_type.startswith("F") and reuse_f_docs)
+    ):
         try:
             today_yyyy, today_mm, today_dd = get_today_parts()
             file_name = CV_DATA
