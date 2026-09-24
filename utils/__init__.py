@@ -20,6 +20,7 @@ _EXPORTS = {
         "upload_file",
         "ensure_company_doanh_nghiep_downloaded",
     ),
+    "ensure_school_downloaded": ("upload_file", "ensure_school_downloaded"),
     "cleanup_data_folder": ("upload_file", "cleanup_data_folder"),
     "generate_phone_pair": ("mobile_utils", "generate_phone_pair"),
     "format_date": ("date_util", "format_date"),

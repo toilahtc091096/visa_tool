@@ -300,7 +300,11 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.prefix_flight_text + " " + ctx.departure_flight_number
     )
 
-    if not is_q_visa and (ctx.is_under_18 or has_additional_names):
+    if (
+        not is_q_visa
+        and ctx.visa_type in FLIGHT_TEMPLATE
+        and (ctx.is_under_18 or has_additional_names)
+    ):
         ctx.m, ctx.f = date_util.monday_and_friday_skip_x_weeks(ctx.register_date, 5)
         arrive_flight_number_full_info = (
             ctx.prefix_flight_text
@@ -342,6 +346,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.is_private,
         getattr(ctx, "inviteCompanyName", ""),
         getattr(ctx, "company_address", ""),
+        getattr(ctx, "inviteSchoolName", ""),
+        getattr(ctx, "school_address", ""),
         getattr(ctx, "inviteProvince", ""),
         getattr(ctx, "arrivalCity", ""),
         getattr(ctx, "arrivalDistrict", ""),

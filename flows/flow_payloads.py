@@ -299,8 +299,10 @@ def build_work_info_profile(
     work_end_date = date_util.work_experience_end_date()
     if visa_type.startswith("M"):
         job_type_label = "Company employee"
+    if visa_type.startswith("F"):
+            job_type_label = "Student"  
     if is_under_18:
-        job_type_label = "Student"
+        job_type_label = "Student"  
     job_type_code = JOB_TYPE_BY_LABEL[job_type_label]
     job_desc = random.choice(SELF_EMPLOYED_JOB_DESCS)
 
@@ -377,7 +379,7 @@ def build_work_info_profile(
         not_apply_items = [
             {
                 "notApplyCode": "workExperience",
-                "remark": "CON NHO",
+                "remark": "CHUA DI LAM",
             }
         ]
     else:
@@ -1234,6 +1236,84 @@ def _apply_m90_single_stay_overrides(
         travel_json["leaveDate"] = departure_date_str
         travel_json["departureDate"] = departure_date_str
 
+def _apply_f_single_stay_overrides(
+    travel_json: dict[str, Any],
+    *,
+    inviteSchoolName: str = "",
+    school_address: str = "",
+    inviteProvince: str = "",
+    arrivalCity: str = "",
+    arrivalDistrict: str = "",
+    stayCity: str = "",
+    stayDistrict: str = "",
+    departureCity: str = "",
+    departureDistrict: str = "",
+    arrivalDate: date | str | None = None,
+    departureDate: date | str | None = None,
+)  -> None:
+    travel_address = school_address
+    arrival_date_str = (
+        date_util.iso_date_str(arrivalDate)
+        if isinstance(arrivalDate, date)
+        else str(arrivalDate).strip() if arrivalDate is not None else ""
+    )
+    departure_date_str = (
+        date_util.iso_date_str(departureDate)
+        if isinstance(departureDate, date)
+        else str(departureDate).strip() if departureDate is not None else ""
+    )
+    travel_json.update(
+        {
+            "inviteCompanyName": inviteSchoolName,
+            "inviteCity": arrivalCity or travel_json.get("inviteCity", ""),
+            "inviteCounty": arrivalDistrict or travel_json.get("inviteCounty", ""),
+            "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
+            "inviteName": inviteSchoolName or travel_json.get("inviteName", ""),
+            "inviteRelation": (
+                "TRUONG HOC"
+                if inviteSchoolName
+                else travel_json.get("inviteRelation", "")
+            ),
+            "arrivalCity": arrivalCity or travel_json.get("arrivalCity", ""),
+            "arrivalCounty": arrivalDistrict or travel_json.get("arrivalCounty", ""),
+            "arrivalDistrict": arrivalDistrict
+            or travel_json.get("arrivalDistrict", ""),
+            "stayCity": stayCity or arrivalCity or travel_json.get("stayCity", ""),
+            "stayCounty": stayDistrict
+            or arrivalDistrict
+            or travel_json.get("stayCounty", ""),
+            "stayDistrict": stayDistrict
+            or arrivalDistrict
+            or travel_json.get("stayDistrict", ""),
+            "travelAddr": travel_address or travel_json.get("travelAddr", ""),
+            "leaveCity": departureCity or travel_json.get("leaveCity", ""),
+            "leaveCounty": departureDistrict or travel_json.get("leaveCounty", ""),
+            "departureCity": departureCity or travel_json.get("departureCity", ""),
+            "departureCounty": departureDistrict
+            or travel_json.get("departureCounty", ""),
+            "departureDistrict": departureDistrict
+            or travel_json.get("departureDistrict", ""),
+            "arrivalDate": arrival_date_str,
+            "leaveDate": departure_date_str,
+            "departureDate": departure_date_str,
+        }
+    )
+    travel_json["stayInfo"] = [
+        {
+            "sort": 1,
+            "stayCity": stayCity or arrivalCity,
+            "stayCounty": stayDistrict or arrivalDistrict,
+            "travelAddr": travel_address or travel_json.get("travelAddr", ""),
+            "arrivalDate": arrival_date_str,
+            "leaveDate": departure_date_str,
+        }
+    ]
+    if arrivalDate is not None:
+        if arrival_date_str:
+            travel_json["arrivalDate"] = arrival_date_str
+    if departureDate is not None and departure_date_str:
+        travel_json["leaveDate"] = departure_date_str
+        travel_json["departureDate"] = departure_date_str
 
 def _add_months_to_date(source_date: date, months: int) -> date:
     month_index = source_date.month - 1 + months
@@ -1358,6 +1438,8 @@ def build_travel_info_profile(
     is_private: bool,
     inviteCompanyName: str = "",
     company_address: str = "",
+    inviteSchoolName: str = "",
+    school_address: str = "",
     inviteProvince: str = "",
     arrivalCity: str = "",
     arrivalDistrict: str = "",
@@ -1471,6 +1553,34 @@ def build_travel_info_profile(
             arrivalDate=arrival_date,
             departureDate=leave_date,
         )
+    elif visa_type.startswith("F"):
+            travel_json = getL30TravelInfo(
+                applyid=applyid,
+                emergency_family=emergency_family,
+                emergency_first=emergency_first,
+                emergency_phone_number=emergency_phone_number,
+                emergency_relation=emergency_relation,
+                is_under_18=is_under_18,
+                haveChildFlag=haveChildFlag,
+                arrival_date=arrival_date,
+                arrivalVehicleType="",
+                leaveVehicleType="",
+                is_private=is_private,
+            )
+            _apply_f_single_stay_overrides(
+                travel_json,
+                inviteSchoolName=inviteSchoolName,
+                school_address=school_address,
+                inviteProvince=inviteProvince,
+                arrivalCity=arrivalCity,
+                arrivalDistrict=arrivalDistrict,
+                stayCity=stayCity,
+                stayDistrict=stayDistrict,
+                departureCity=departureCity,
+                departureDistrict=departureDistrict,
+                arrivalDate=arrival_date,
+                departureDate=leave_date,
+            )
     elif visa_type.startswith("Q"):
         travel_json = getL30TravelInfo(
             applyid=applyid,

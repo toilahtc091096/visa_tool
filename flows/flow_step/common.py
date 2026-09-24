@@ -20,6 +20,12 @@ def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, s
                 return "M", raw_duration
             return "M", "90"
         return "M", raw_type[1:] or raw_duration
+    if raw_type.startswith("F"):
+        if raw_type == "F":
+            if raw_duration in {"15", "30", "90", "MT", "MP", "MO"}:
+                return "F", raw_duration
+            return "F", "15"
+        return "F", raw_type[1:] or raw_duration
 
     if raw_type.startswith("L"):
         if raw_type[1:] in {"15", "30"}:
@@ -92,6 +98,9 @@ def build_flow_context(**kwargs):
     ctx.major = kwargs.get("major", "")
     ctx.children = kwargs.get("children", [])
     ctx.company_passport = kwargs.get("company_passport", "")
+    ctx.school_passport = kwargs.get("school_passport", "")
+    ctx.inviteSchoolName = kwargs.get("inviteSchoolName", "")
+    ctx.school_address = kwargs.get("school_address", "")
     ctx.arrivalCity = kwargs.get("arrivalCity", "")
     ctx.arrivalDistrict = kwargs.get("arrivalDistrict", "")
     ctx.stayCity = kwargs.get("stayCity", "")

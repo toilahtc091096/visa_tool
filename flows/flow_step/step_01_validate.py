@@ -16,7 +16,7 @@ def validate_initial_inputs(ctx) -> bool:
     elif not service_key:
         service_key = visa_type[:1]
 
-    if service_key not in SERVICE_VISA_TYPE or not visa_type.startswith(("L", "M", "Q")):
+    if service_key not in SERVICE_VISA_TYPE or not visa_type.startswith(("L", "M", "Q","F")):
         log_event({"step": "Visa Type", "status": visa_type + " not support"})
         return False
 

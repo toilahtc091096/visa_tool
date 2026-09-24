@@ -16,6 +16,7 @@ DATA_RESOURCE_DIR = Path(__file__).resolve().parent / ".." / "resources"
 DATA_R2_PREFIX = "data/"
 _DOWNLOADED_PREFIXES: set[str] = set()
 _DOWNLOADED_BUSINESS_FOLDERS: set[str] = set()
+_DOWNLOADED_SCHOOL_FOLDERS: set[str] = set()
 _CURRENT_DATA_FOLDER: Path | None = None
 
 
@@ -50,6 +51,7 @@ def ensure_data_folder_downloaded(
 
 def cleanup_data_folder() -> None:
     global _DOWNLOADED_PREFIXES, _DOWNLOADED_BUSINESS_FOLDERS
+    global _DOWNLOADED_SCHOOL_FOLDERS
     global _CURRENT_DATA_FOLDER
     # Keep local `data_<passport>` folders for debugging / reuse.
     for path in sorted(DATA_RESOURCE_DIR.glob("data_*"), reverse=True):
@@ -70,8 +72,18 @@ def cleanup_data_folder() -> None:
                 item.rmdir()
         business_dir.rmdir()
 
+    school_dir = DATA_RESOURCE_DIR / "du-hoc"
+    if school_dir.exists() and school_dir.is_dir():
+        for item in sorted(school_dir.rglob("*"), reverse=True):
+            if item.is_file() or item.is_symlink():
+                item.unlink(missing_ok=True)
+            elif item.is_dir():
+                item.rmdir()
+        school_dir.rmdir()
+
     _DOWNLOADED_PREFIXES = set()
     _DOWNLOADED_BUSINESS_FOLDERS = set()
+    _DOWNLOADED_SCHOOL_FOLDERS = set()
     _CURRENT_DATA_FOLDER = None
 
 
@@ -198,3 +210,26 @@ def ensure_company_doanh_nghiep_downloaded(company_passport: str) -> None:
     )
     _DOWNLOADED_BUSINESS_FOLDERS.add(target_key)
     print(f"[company_download] done: {normalized}")
+
+
+def ensure_school_downloaded(school_passport: str) -> None:
+    normalized = str(school_passport or "").strip().strip('"').strip("'")
+    if not normalized:
+        print("[school_download] skip: empty school_passport")
+        return
+
+    target_key = normalized
+    if target_key in _DOWNLOADED_SCHOOL_FOLDERS:
+        print(f"[school_download] skip: already downloaded {normalized}")
+        return
+
+    print(
+        f"[school_download] downloading prefix={normalized}/du-hoc "
+        f"to local_dir={DATA_RESOURCE_DIR / 'du-hoc'}"
+    )
+    download_r2_folder(
+        prefix=f"{normalized}/du-hoc",
+        local_dir=str(DATA_RESOURCE_DIR / "du-hoc"),
+    )
+    _DOWNLOADED_SCHOOL_FOLDERS.add(target_key)
+    print(f"[school_download] done: {normalized}")

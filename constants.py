@@ -44,7 +44,7 @@ USER_AGENT = (
 
 SEC_CH_UA = '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"'
 
-MY_VISA_TYPE = {"L15", "L30", "M", "Q"}
+MY_VISA_TYPE = {"L15", "L30", "M", "Q", "F"}
 
 HOTEL_DATA = {
     "UNDER_18": (
@@ -83,6 +83,7 @@ SERVICE_VISA_TYPE = {
     "M": ({"MT", "MP", "MO"}),
     "Q1": ({"QCN", "QPR", "QFC"}),
     "Q2": ({"QCV", "QPV"}),
+    "F": ({"AE", "CE", "RE", "NGO", "VOL", "FE", "GSM"}),
 }
 VISA_TYPE_VALUE = {
     "L": {
@@ -103,8 +104,17 @@ VISA_TYPE_VALUE = {
         "QCV": {"visaPurpose": 709005, "visaType": 710016},
         "QPV": {"visaPurpose": 709005, "visaType": 710017},
     },
+    "F": {
+        "AE": {"visaPurpose": 709003, "visaType": 710006},
+        "CE": {"visaPurpose": 709003, "visaType": 710007},
+        "RE": {"visaPurpose": 709003, "visaType": 710008},
+        "NGO": {"visaPurpose": 709003, "visaType": 710009},
+        "VOL": {"visaPurpose": 709003, "visaType": 710010},
+        "FE": {"visaPurpose": 709003, "visaType": 710011},
+        "GSM": {"visaPurpose": 709003, "visaType": 710012},
+    },
 }
-APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6}
+APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6, "F": 3}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
@@ -671,11 +681,17 @@ DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
 DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
 
+F_THU_MOI_OUTPUT_PATH = "du-hoc\\thu-moi"
+F_QUYET_DINH_DU_HOC_OUTPUT_PATH = "du-hoc\\quyet-dinh"
+F_TAI_LIEU_KHAC_OUTPUT_PATH = "du-hoc\\khac"
+
+
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
 WEEK_SKIP_BY_TYPE["M"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["M30"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["M90"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["Q"] = WEEK_SKIP_BY_TYPE["Q1"] = WEEK_SKIP_BY_TYPE["Q2"] = 25
+WEEK_SKIP_BY_TYPE["F"] = WEEK_SKIP_BY_TYPE["L30"]
 
 UNDER_18_HOTEL_INFO = [
     {
@@ -1053,6 +1069,39 @@ UPLOAD_CONFIG["Q2"] = {
         {
             "folder": Q2_TAI_LIEU_KHAC_OUTPUT_PATH,
             "limit": 1,
+        },
+    ],
+}
+
+UPLOAD_CONFIG["F"] = {
+    "HUKOU_OR_EMPLOYMENT_LETTER": {
+        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "PASSPORT_BLANK_PAGES": {
+        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "PREV_CHINESE_VISA": {
+        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
+        "limit": 3,
+    },
+    "THU_MOI": {
+        "folder": F_THU_MOI_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "QUYET_DINH_DU_HOC": {
+        "folder": F_QUYET_DINH_DU_HOC_OUTPUT_PATH,
+        "limit": 2,
+    },
+    "OTHER_MATERIALS": [
+        {
+            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
+            "limit": 1,
+        },
+        {
+            "folder": F_TAI_LIEU_KHAC_OUTPUT_PATH,
+            "limit": 2,
         },
     ],
 }
@@ -1596,7 +1645,56 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
         ],
     },
 }
-
+UPLOAD_FILE_CODE_BY_VISA_TYPE["F"] = {
+    "COMMON": {
+        "PASSPORT_BLANK_PAGES": [
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_1",
+            },
+            {
+                "categoryCode": "22025070216180808782737",
+                "materialCode": "mfa-017_2",
+            },
+        ],
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
+            },
+        ],
+        "THU_MOI": [
+            {
+                "categoryCode": "12026072917284901619425",
+                "materialCode": "mfa-061_1",
+            },
+        ],
+        "QUYET_DINH_DU_HOC": [
+            {
+                "categoryCode": "12025062114560885950076",
+                "materialCode": "mfa-062_1",
+            },
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062115000341540359",
+                "materialCode": "mfa-065_1",
+            },
+            {
+                "categoryCode": "12025062115000341540359",
+                "materialCode": "mfa-065_2",
+            },
+            {
+                "categoryCode": "12025062115000341540359",
+                "materialCode": "mfa-065_3",
+            },
+            {
+                "categoryCode": "12025062115000341540359",
+                "materialCode": "mfa-065_4",
+            },
+        ],
+    }
+}
 UNIT_OF_HOTEL = 5870276
 
 GIVEN_MALE_VIETNAMESE_NAMES = (

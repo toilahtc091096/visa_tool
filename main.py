@@ -53,6 +53,9 @@ DEFAULT_CASE: dict[str, Any] = {
     "diploma_degree": "",
     "major": "",
     "company_passport": "",
+    "school_passport": "",
+    "inviteSchoolName": "",
+    "school_address": "",
     "family_passport": "",
     "passengers": [],
     "arrivalCity": "",
@@ -309,6 +312,9 @@ def main(
     major: str = "",
     children: list[dict[str, Any]] | None = None,
     company_passport: str | None = None,
+    school_passport: str | None = None,
+    inviteSchoolName: str | None = None,
+    school_address: str | None = None,
     family_passport: str | None = None,
     passengers: list[dict[str, Any]] | None = None,
     arrivalCity: str = "",
@@ -329,6 +335,12 @@ def main(
         data["upload_config_keys"] = _normalize_upload_config_keys(upload_config_keys)
     if company_passport is not None:
         data["company_passport"] = str(company_passport).strip()
+    if school_passport is not None:
+        data["school_passport"] = str(school_passport).strip()
+    if inviteSchoolName is not None:
+        data["inviteSchoolName"] = str(inviteSchoolName).strip()
+    if school_address is not None:
+        data["school_address"] = str(school_address).strip()
     if family_passport is not None:
         data["family_passport"] = str(family_passport).strip()
     if passengers is not None:
@@ -458,6 +470,9 @@ def main(
             data.get("major", ""),
             data.get("children", []),
             data["company_passport"],
+            data.get("school_passport", ""),
+            data.get("inviteSchoolName", ""),
+            data.get("school_address", ""),
             data.get("family_passport", ""),
             data.get("passengers", []),
             data["arrivalCity"],

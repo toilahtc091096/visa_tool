@@ -3,6 +3,7 @@ from constants import OLD_APPLY_ID_FOR_TEST_TOKEN, PASSPORT_FILE_FOLDER
 from models import GetEducationInfoResponse, passport_ocr_result_from_dict
 from utils import (
     ensure_company_doanh_nghiep_downloaded,
+    ensure_school_downloaded,
     get_passport_file_path,
     log_event,
     notify,
@@ -42,6 +43,13 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
             f"company_passport={company_passport}"
         )
         ensure_company_doanh_nghiep_downloaded(company_passport)
+    elif str(getattr(ctx, "visa_type", "")).strip().upper().startswith("F"):
+        school_passport = str(getattr(ctx, "school_passport", "")).strip()
+        print(
+            f"[school_download] step_02 visa_type={getattr(ctx, 'visa_type', '')} "
+            f"school_passport={school_passport}"
+        )
+        ensure_school_downloaded(school_passport)
     data_passport_number = getattr(ctx, "input_passportNumber", ctx.passportNumber)
     passport_file_path = get_passport_file_path(
         PASSPORT_FILE_FOLDER, prefix=data_passport_number

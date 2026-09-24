@@ -37,7 +37,7 @@ async def api_save_family_info(
         if not ok:
             return False, {
                 "status_code": resp.status_code,
-                "error": "failedSaveFamilyInfo",
+                "error": resp,
             }
 
         return True, {

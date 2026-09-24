@@ -4,6 +4,7 @@ from utils import (
     api_upload_file_common,
     ensure_company_doanh_nghiep_downloaded,
     ensure_data_folder_downloaded,
+    ensure_school_downloaded,
     get_files,
 )
 from utils import log_event, notify
@@ -20,6 +21,8 @@ async def upload_files(
     ensure_data_folder_downloaded(data_passport_number)
     if str(getattr(ctx, "visa_type", "")).strip().upper().startswith("M"):
         ensure_company_doanh_nghiep_downloaded(getattr(ctx, "company_passport", ""))
+    elif str(getattr(ctx, "visa_type", "")).strip().upper().startswith("F"):
+        ensure_school_downloaded(getattr(ctx, "school_passport", ""))
     cfg_file_by_visa_type = UPLOAD_FILE_CODE_BY_VISA_TYPE[ctx.visa_type]
     selected_upload_keys = set(upload_config_keys or [])
 
