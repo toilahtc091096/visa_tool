@@ -467,7 +467,6 @@ def build_education_info_profile(
     diploma_degree: str = "",
     major: str = "",
 ) -> EducationInfoProfile:
-
     has_custom_education = any(
         str(value or "").strip() for value in (name_of_institute, diploma_degree, major)
     )
@@ -507,7 +506,7 @@ def build_education_info_profile(
         "tempSaveFlag": False,
         "userId": "",
         "language": "",
-        "notApplyItems": not_apply_items,
+        "notApplyItems": not_apply_items if not has_custom_education else [],
         "educationExperience": [_to_dict(i) for i in (we_src or [])],
         "applyid": applyid,
         "lang": DEFAULT_LANG,
