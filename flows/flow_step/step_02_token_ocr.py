@@ -5,8 +5,6 @@ from constants import OLD_APPLY_ID_FOR_TEST_TOKEN, PASSPORT_FILE_FOLDER
 from models import passport_ocr_result_from_dict
 from .common import check_api_result, fail_step
 from utils import (
-    ensure_company_doanh_nghiep_downloaded,
-    ensure_school_downloaded,
     get_passport_file_path,
     log_event,
     save_login_data,
@@ -44,20 +42,7 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
     ctx.step = "get ocr"
     if PASSPORT_FILE_FOLDER in (None, ""):
         return await fail_step(ctx, "PASSPORT_FILE_FOLDER is not configured")
-    if str(getattr(ctx, "visa_type", "")).strip().upper().startswith("M"):
-        company_passport = str(getattr(ctx, "company_passport", "")).strip()
-        print(
-            f"[company_download] step_02 visa_type={getattr(ctx, 'visa_type', '')} "
-            f"company_passport={company_passport}"
-        )
-        ensure_company_doanh_nghiep_downloaded(company_passport)
-    elif str(getattr(ctx, "visa_type", "")).strip().upper().startswith("F"):
-        school_passport = str(getattr(ctx, "school_passport", "")).strip()
-        print(
-            f"[school_download] step_02 visa_type={getattr(ctx, 'visa_type', '')} "
-            f"school_passport={school_passport}"
-        )
-        ensure_school_downloaded(school_passport)
+    ctx.profile.prepare_resources(ctx)
     data_passport_number = getattr(ctx, "input_passportNumber", ctx.passportNumber)
     passport_file_path = get_passport_file_path(
         PASSPORT_FILE_FOLDER, prefix=data_passport_number

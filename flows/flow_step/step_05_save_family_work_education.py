@@ -73,7 +73,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.job_type,
         ctx.experiences,
         ctx.is_under_18,
-        ctx.visa_type,
+        ctx.profile,
         getattr(ctx, "companyNameVi", ""),
         getattr(ctx, "companyAddressUpperNoAccent", ""),
         getattr(ctx, "companyPhone", ""),

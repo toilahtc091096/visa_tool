@@ -1,42 +1,6 @@
 from types import SimpleNamespace
 
-
-def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, str]:
-    raw_type = str(visa_type or "").strip().upper()
-    raw_duration = str(visa_duration or "").strip().upper()
-
-    if raw_type.startswith("Q"):
-        if raw_type in {"Q1", "Q2"}:
-            return raw_type, raw_duration or raw_type[2:]
-        if len(raw_type) > 2 and raw_type[:2] in {"Q1", "Q2"}:
-            return raw_type[:2], raw_type[2:] or raw_duration
-        if raw_duration:
-            return raw_type, raw_duration
-        return raw_type, ""
-
-    if raw_type.startswith("M"):
-        if raw_type == "M":
-            if raw_duration in {"15", "30", "90", "MT", "MP", "MO"}:
-                return "M", raw_duration
-            return "M", "90"
-        return "M", raw_type[1:] or raw_duration
-    if raw_type.startswith("F"):
-        if raw_type == "F":
-            if raw_duration in {"15", "30", "90", "MT", "MP", "MO"}:
-                return "F", raw_duration
-            return "F", "15"
-        return "F", raw_type[1:] or raw_duration
-
-    if raw_type.startswith("L"):
-        if raw_type[1:] in {"15", "30"}:
-            return raw_type, raw_type[1:]
-        if raw_duration in {"15", "30"}:
-            return f"L{raw_duration}", raw_duration
-
-    if raw_duration in {"15", "30", "90"}:
-        return raw_type, raw_duration
-
-    return raw_type, ""
+from visa_types.base import get_visa_profile, normalize_visa_type
 
 
 def get_in(d, *keys, default=None):
@@ -61,8 +25,9 @@ def build_flow_context(**kwargs):
         raw_visa_type,
         raw_visa_duration,
     )
-    if ctx.visa_type.startswith("Q") and len(ctx.visa_type) > 1 and ctx.visa_type[1].isdigit():
-        ctx.first_letter_visa_type = ctx.visa_type[:2]
+    ctx.profile = get_visa_profile(ctx.visa_type)
+    if ctx.profile is not None:
+        ctx.first_letter_visa_type = ctx.profile.service_key
     else:
         ctx.first_letter_visa_type = ctx.visa_type[:1]
     ctx.last_letter_visa_type = ctx.visa_duration or ctx.visa_type[1:]

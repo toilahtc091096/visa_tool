@@ -4,7 +4,7 @@ import unicodedata
 from typing import Any
 
 from flows import run_flow
-from flows.flow_step.common import normalize_visa_type
+from visa_types import normalize_visa_type
 from utils import load_authorization
 
 DEFAULT_CASE: dict[str, Any] = {
