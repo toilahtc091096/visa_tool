@@ -14,7 +14,7 @@ from flows.flow_step import (
     upload_files,
     validate_initial_inputs,
 )
-from utils import cleanup_data_folder, load_login_payload, log_event
+from utils import cleanup_data_folder, load_login_payload, log_exception
 
 
 def _normalize_name_list(value) -> list[str]:
@@ -133,7 +133,7 @@ async def run_flow(
     emergencyGivenName: str = "",
     emergencyRelationship: str = "",
     emergencyPhone: str = "",
-) -> None:
+) -> dict[str, Any]:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
     tmp_secret = login_payload.get("tmpSecret", "")
@@ -244,35 +244,50 @@ async def run_flow(
         departureDistrict=departureDistrict,
     )
 
-    if not validate_initial_inputs(ctx):
-        return
-
     try:
-        async with httpx.AsyncClient() as client:
-            if not await check_token_and_get_ocr(ctx, client):
-                return
-            if not await load_draft_and_prepare_person(ctx, client):
-                return
-            if not is_update_info:
-                if not await save_person_and_apply(ctx, client):
-                    return
-                if not await save_family_work_education(ctx, client):
-                    return
-            if not await save_travel_and_generate_docs(ctx, client):
-                return
-            if not await upload_files(
-                ctx,
-                client,
-                is_update_info=is_update_info,
-                upload_config_keys=upload_config_keys or [],
-            ):
-                return
-            save_draft_visa_registration(ctx)
+        await _run_steps(ctx, is_update_info, upload_config_keys or [])
+    except Exception as exc:
+        log_exception(exc, {"event": "flow_exception", "step": ctx.step})
+        ctx.error = {
+            "step": ctx.step,
+            "status_code": None,
+            "error": f"{type(exc).__name__}: {exc}",
+            "response": None,
+        }
     finally:
         cleanup_data_folder()
 
+    if ctx.error:
+        return {"ok": False, **ctx.error}
+    return {
+        "ok": True,
+        "first_applyid": ctx.first_applyid,
+        "record_id": getattr(ctx, "record_id", None),
+    }
 
-def get_in(d, *keys, default=None):
-    from flows.flow_step.common import get_in as _get_in
 
-    return _get_in(d, *keys, default=default)
+async def _run_steps(ctx, is_update_info: bool, upload_config_keys: list[str]) -> None:
+    """Run the steps in order; a step returning False has set ``ctx.error``."""
+    if not await validate_initial_inputs(ctx):
+        return
+    async with httpx.AsyncClient() as client:
+        if not await check_token_and_get_ocr(ctx, client):
+            return
+        if not await load_draft_and_prepare_person(ctx, client):
+            return
+        if not is_update_info:
+            if not await save_person_and_apply(ctx, client):
+                return
+            if not await save_family_work_education(ctx, client):
+                return
+        if not await save_travel_and_generate_docs(ctx, client):
+            return
+        if not await upload_files(
+            ctx,
+            client,
+            is_update_info=is_update_info,
+            upload_config_keys=upload_config_keys,
+        ):
+            return
+        ctx.step = "save_visa_registration_to_db"
+        ctx.record_id = save_draft_visa_registration(ctx)

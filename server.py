@@ -132,7 +132,7 @@ def run(payload: dict[str, Any] = Body(...)):
     if authorization:
         append_authorization(authorization)
     case = build_case(payload)
-    main(
+    result = main(
         case,
         first_applyid=case.get("first_applyid", ""),
         is_update_info=case.get("is_update_info", False),
@@ -150,7 +150,18 @@ def run(payload: dict[str, Any] = Body(...)):
         emergencyRelationship=case.get("emergencyRelationship", ""),
         emergencyPhone=case.get("emergencyPhone", ""),
     )
-    return {"ok": True, "received": payload is not None}
+    return JSONResponse(status_code=_run_status_code(result), content=result)
+
+
+def _run_status_code(result: dict[str, Any]) -> int:
+    if result.get("ok"):
+        return 200
+    if result.get("step") == "validate":
+        return 422
+    if result.get("status_code") is None and result.get("response") is None:
+        # Local failure (exception, missing file…), not an upstream answer.
+        return 500
+    return 502
 
 
 @app.get("/visa-registrations/sync-draft-status")

@@ -4,9 +4,8 @@ import unicodedata
 from calendar import monthrange
 from datetime import date
 from typing import Any, Dict
-from utils import date_util, log_event, notify, mobile_utils
+from utils import date_util, log_event, mobile_utils
 from dataclasses import asdict, is_dataclass
-from typing import Any
 from constants import (
     APPLY_VISA_VALIDITY,
     DEFAULT_EMBASSY,
@@ -57,7 +56,6 @@ from models import (
     OtherInformationProfile,
     OtherInfoItem,
     ContactInfoProfile,
-    OnlineApplicationRow,
     WorkExperienceItem,
     EducationExperienceItem,
     PersonInfoData,
@@ -1817,7 +1815,6 @@ def validate_payload(p: dict) -> list[str]:
 
     visaType = p.get("visaType")
     otherVisas = _clean_list(p.get("otherVisas"))
-    otherCountries = _clean_list(p.get("otherCountries"))
 
     if haveChinaVisaFlag:
         if _is_blank(visaType):

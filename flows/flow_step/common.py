@@ -157,4 +157,54 @@ def build_flow_context(**kwargs):
     ctx.departure_flight_number = ""
     ctx.vietnamese_name = ""
     ctx.full_name = ""
+    ctx.error = None
     return ctx
+
+
+def extract_api_error(response) -> dict | None:
+    """Return the business error in a COVA body (HTTP 200 + ``Response.Error``)."""
+    if not isinstance(response, dict):
+        return None
+    resp = response.get("Response")
+    if not isinstance(resp, dict):
+        return None
+    err = resp.get("Error")
+    if isinstance(err, dict):
+        if err.get("Code") or err.get("Message"):
+            return {"code": err.get("Code"), "message": err.get("Message")}
+        return None
+    if err:
+        return {"code": None, "message": str(err)}
+    return None
+
+
+async def fail_step(ctx, error, *, status_code=None, response=None) -> bool:
+    """Record why the flow stopped on ``ctx.error`` and notify. Always False."""
+    from utils import log_event, notify
+
+    ctx.error = {
+        "step": ctx.step,
+        "status_code": status_code,
+        "error": error,
+        "response": response,
+    }
+    log_event({"ok": False, **ctx.error})
+    await notify(f"Flow FAILED at step={ctx.step}. status={status_code} err={error}")
+    return False
+
+
+async def check_api_result(ctx, ok: bool, meta: dict) -> bool:
+    """Log an API call; on HTTP or business error record it and return False."""
+    from utils import log_event
+
+    response = meta.get("response")
+    api_error = extract_api_error(response)
+    log_event({"step": ctx.step, "ok": ok and api_error is None, **meta})
+    if ok and api_error is None:
+        return True
+    return await fail_step(
+        ctx,
+        api_error or meta.get("error") or "request failed",
+        status_code=meta.get("status_code"),
+        response=response,
+    )

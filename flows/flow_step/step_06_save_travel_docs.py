@@ -28,7 +28,6 @@ from constants import (
     TRAVEL_PLAN_21D,
     Q1_THU_MOI_OUTPUT_PATH,
 )
-from generate_file.path_utils import passport_data_dir
 from api import api_upload_r2_object
 from flows.flow_payloads import (
     build_L30_guest_names,
@@ -46,10 +45,10 @@ from utils import (
     get_today_parts,
     log_event,
     log_exception,
-    notify,
 )
 from utils.remove_r2 import delete_r2_folder
 from utils.download_r2 import download_r2_folder
+from .common import check_api_result
 
 
 def _extend_unique_names(names: list[str], additions: list[str] | None) -> None:
@@ -260,6 +259,63 @@ def _delete_common_docs_from_r2(*, prefix: str) -> int:
     return deleted_count
 
 
+async def _render_flight_ticket(ctx, has_additional_names: bool) -> None:
+    template = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]
+    if ctx.visa_type == "L30":
+        arrival_info = L_30_HOTEL_INFO[0]
+        departure_info = L_30_HOTEL_INFO[-1]
+    elif ctx.is_under_18 or has_additional_names:
+        arrival_info = departure_info = UNDER_18_HOTEL_INFO[0]
+    else:
+        arrival_info = departure_info = L_15_HOTEL_INFO[ctx.hotel_type]
+    if ctx.is_under_18 or has_additional_names:
+        ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
+        ctx.departure_flight_number = ctx.departure_flight_number[-4:]
+    payload = {
+        "file_name": template["name"],
+        "arrive_flight_number": ctx.arrive_flight_number,
+        "departure_flight_number": ctx.departure_flight_number,
+        "arrvied_city": arrival_info.get("place_city"),
+        "names": ctx.ticket_names,
+        "arrived_iata_code": arrival_info.get("iata_code"),
+        "first": ctx.m,
+        "departure_iata_code": departure_info.get("iata_code"),
+        "departure_city": departure_info.get("place_city"),
+        "end": ctx.f,
+        "type": "flight_ticket",
+        "visa_type": ctx.visa_type,
+    }
+    await flight_info.render_flight_ticket_output_pdf(
+        payload, L_15_TICKET_OUTPUT_PATH, ctx.input_passportNumber
+    )
+    log_event({"step": "genenrate flight ticket file", "ok": "ok"})
+
+
+async def _render_cv(ctx) -> None:
+    ocr = ctx.ocr_data.Response.Data
+    today_yyyy, today_mm, today_dd = get_today_parts()
+    payload = {
+        "file_name": CV_DATA,
+        "names": ctx.ticket_names,
+        "visa_type_first": ctx.first_letter_visa_type,
+        "visa_type_number": ctx.last_letter_visa_type,
+        "submit_year_yyyy": today_yyyy,
+        "submit_month_mm": today_mm,
+        "submit_day_dd": today_dd,
+        "sex": SEX_MAP.get(ocr.sex, ""),
+        "nationality": NATIONALITY_MAP.get(ocr.nationality, ""),
+        "passportNo": ocr.passportNumber,
+        "birth_date_dd_mm_yyyy": format_date(ocr.dateOfBirth),
+        "expired_day_dd_mm_yyyy": format_date(ocr.dateOfExpiration),
+        "passengers": getattr(ctx, "passengers", []),
+        "passportNumber": ctx.passportNumber,
+        "entries_type": ctx.entries_type,
+    }
+    await cv_info.render_docx_template_output_pdf(
+        payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
+    )
+
+
 async def save_travel_and_generate_docs(ctx, client) -> bool:
     passport_root = passport_data_dir(ctx.input_passportNumber)
     family_passport = str(getattr(ctx, "family_passport", "") or "").strip()
@@ -398,13 +454,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_travel_info,
     )
-    log_event({"step": ctx.step, "ok": ok7, **meta7})
-    if not ok7:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta7.get('status_code')} "
-            f"err={meta7.get('error')}"
-        )
+    if not await check_api_result(ctx, ok7, meta7):
         return False
 
     ctx.step = "save_previous_travel_info"
@@ -428,13 +478,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_previous_travel_info,
     )
-    log_event({"step": ctx.step, "ok": ok8, **meta8})
-    if not ok8:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta8.get('status_code')} "
-            f"err={meta8.get('error')}"
-        )
+    if not await check_api_result(ctx, ok8, meta8):
         return False
 
     ctx.step = "save_other_info"
@@ -445,13 +489,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.tmp_secret,
         body_other_info,
     )
-    log_event({"step": ctx.step, "ok": ok8, **meta8})
-    if not ok8:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta8.get('status_code')} "
-            f"err={meta8.get('error')}"
-        )
+    if not await check_api_result(ctx, ok8, meta8):
         return False
 
     ctx.step = "save_signature"
@@ -462,13 +500,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.tmp_secret,
         body_signature_info,
     )
-    log_event({"step": ctx.step, "ok": ok8, **meta8})
-    if not ok8:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta8.get('status_code')} "
-            f"err={meta8.get('error')}"
-        )
+    if not await check_api_result(ctx, ok8, meta8):
         return False
 
     adult_number = 0
@@ -559,7 +591,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                 log_exception(e, {"event": "render_failed_L30"})
                 raise
 
-    file_name = ""
     if ctx.ticket_names == []:
         has_additional_names = bool(
             getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", [])
@@ -581,128 +612,49 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if ctx.payName
                     else random.choice(VIETNAMESE_NAMES).upper()
                 )
-    if ctx.visa_type.startswith("L"):
-        try:
-            if ctx.visa_type in FLIGHT_TEMPLATE:
-                file_name = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["name"]
-            else:
-                log_exception(
-                    KeyError(f"Key {ctx.visa_type} not found"),
-                    {"event": "not have ticket key ", "visa_type": ctx.visa_type},
-                )
-            if ctx.visa_type in {"L30"}:
-                hotel_info_item = L_30_HOTEL_INFO[0]
-                hotel_departure_info_item = L_30_HOTEL_INFO[-1]
-            else:
-                if ctx.is_under_18 or has_additional_names:
-                    hotel_info_item = UNDER_18_HOTEL_INFO[0]
-                else:
-                    hotel_info_item = L_15_HOTEL_INFO[ctx.hotel_type]
-            if ctx.is_under_18 or has_additional_names:
-                ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
-                ctx.departure_flight_number = ctx.departure_flight_number[-4:]
-            payload = {
-                "file_name": file_name,
-                "arrive_flight_number": ctx.arrive_flight_number,
-                "departure_flight_number": ctx.departure_flight_number,
-                "arrvied_city": hotel_info_item.get("place_city"),
-                "names": ctx.ticket_names,
-                "arrived_iata_code": hotel_info_item.get("iata_code"),
-                "first": ctx.m,
-                "departure_iata_code": hotel_info_item.get("iata_code"),
-                "departure_city": hotel_info_item.get("place_city"),
-                "end": ctx.f,
-                "type": "flight_ticket",
-                "visa_type": ctx.visa_type,
-            }
-            if ctx.visa_type in {"L30"}:
-                payload.update(
-                    {
-                        "departure_iata_code": hotel_departure_info_item.get(
-                            "iata_code"
-                        ),
-                        "departure_city": hotel_departure_info_item.get("place_city"),
-                    }
-                )
-            log_event({"step": "genenrate flight ticket file", "ok": "ok"})
-        except Exception as e:
-            log_exception(
-                e, {"event": "render_failed", "file": payload.get("file_name")}
-            )
-        if not reuse_l_docs:
-            await flight_info.render_flight_ticket_output_pdf(
-                payload, L_15_TICKET_OUTPUT_PATH, ctx.input_passportNumber
-            )
-        if reuse_l_docs:
-            downloaded = _download_family_common_docs_from_r2(
-                prefix=family_passport,
-                local_root=passport_root,
-            )
-            if downloaded == 0:
-                raise FileNotFoundError(
-                    "No family common documents found on R2 for prefix: "
-                    f"{family_passport}"
-                )
-            print(
-                f"downloaded family common docs from R2 prefix={family_passport} "
-                f"folders={COMMON_DOC_FOLDERS} into={passport_root}"
-            )
-
-    ctx.ticket_names = [ctx.vietnamese_name]
-    if not (
-        (ctx.visa_type.startswith("L") and reuse_l_docs)
-        or (ctx.visa_type.startswith("M") and reuse_m_docs)
-        or (ctx.visa_type.startswith("F") and reuse_f_docs)
-    ):
-        try:
-            today_yyyy, today_mm, today_dd = get_today_parts()
-            file_name = CV_DATA
-            payload = {
-                "file_name": file_name,
-                "names": ctx.ticket_names,
-                "visa_type_first": ctx.first_letter_visa_type,
-                "visa_type_number": ctx.last_letter_visa_type,
-                "submit_year_yyyy": today_yyyy,
-                "submit_month_mm": today_mm,
-                "submit_day_dd": today_dd,
-                "sex": SEX_MAP.get(ctx.ocr_data.Response.Data.sex, ""),
-                "nationality": NATIONALITY_MAP.get(
-                    ctx.ocr_data.Response.Data.nationality, ""
-                ),
-                "passportNo": ctx.ocr_data.Response.Data.passportNumber,
-                "birth_date_dd_mm_yyyy": format_date(
-                    ctx.ocr_data.Response.Data.dateOfBirth
-                ),
-                "expired_day_dd_mm_yyyy": format_date(
-                    ctx.ocr_data.Response.Data.dateOfExpiration
-                ),
-                "passengers": getattr(ctx, "passengers", []),
-                "passportNumber": ctx.passportNumber,
-                "entries_type": ctx.entries_type,
-            }
-            log_event({"step": "genenrate CV file", "ok": "ok"})
-        except Exception as e:
-            log_exception(
-                e, {"event": "render_failed", "file": payload.get("file_name")}
-            )
-    if not (reuse_f_docs or reuse_m_docs):
-        await cv_info.render_docx_template_output_pdf(
-            payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
-        )
-    else:
-        downloaded = _download_CV_from_r2(
-            prefix=school_passport,
+    if reuse_l_docs:
+        downloaded = _download_family_common_docs_from_r2(
+            prefix=family_passport,
             local_root=passport_root,
         )
         if downloaded == 0:
             raise FileNotFoundError(
                 "No family common documents found on R2 for prefix: "
-                f"{school_passport}"
+                f"{family_passport}"
             )
         print(
-            f"downloaded cv common docs for M and F from R2 prefix={school_passport} "
+            f"downloaded family common docs from R2 prefix={family_passport} "
             f"folders={COMMON_DOC_FOLDERS} into={passport_root}"
         )
+    elif ctx.visa_type.startswith("L"):
+        if ctx.visa_type not in FLIGHT_TEMPLATE:
+            log_exception(
+                KeyError(f"Key {ctx.visa_type} not found"),
+                {"event": "not have ticket key ", "visa_type": ctx.visa_type},
+            )
+        else:
+            await _render_flight_ticket(ctx, has_additional_names)
+
+    ctx.ticket_names = [ctx.vietnamese_name]
+    if reuse_m_docs or reuse_f_docs:
+        # M/F reuse the visa center confirmation of the company/school owner;
+        # L reuse already got it together with the family common docs.
+        cv_prefix = company_passport if reuse_m_docs else school_passport
+        downloaded = _download_CV_from_r2(
+            prefix=cv_prefix,
+            local_root=passport_root,
+        )
+        if downloaded == 0:
+            raise FileNotFoundError(
+                f"No visa center confirmation found on R2 for prefix: {cv_prefix}"
+            )
+        print(
+            f"downloaded cv docs from R2 prefix={cv_prefix} "
+            f"folders={CV_DOC_FOLDERS} into={passport_root}"
+        )
+    elif not reuse_l_docs:
+        await _render_cv(ctx)
+        log_event({"step": "genenrate CV file", "ok": "ok"})
     if ctx.visa_type.startswith("Q"):
         try:
             file_name = "Q_Template.docx"
@@ -756,35 +708,17 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     )
 
     if ctx.visa_type == "L30":
-        try:
-            file_name = TRAVEL_PLAN_21D
-
-            payload = {
-                "file_name": file_name,
-                "first": ctx.m,
-            }
-
-            log_event(
-                {
-                    "step": "generate travel itinerary file",
-                    "ok": "ok",
-                    "file": file_name,
-                }
-            )
-
-        except Exception as e:
-            log_exception(
-                e,
-                {
-                    "event": "render_failed",
-                    "file": file_name,
-                },
-            )
-
         await file_init_info.render_init_pdf(
-            payload,
+            {"file_name": TRAVEL_PLAN_21D, "first": ctx.m},
             L_15_TRAVEL_PLAN_OUTPUT_PATH,
             ctx.input_passportNumber,
+        )
+        log_event(
+            {
+                "step": "generate travel itinerary file",
+                "ok": "ok",
+                "file": TRAVEL_PLAN_21D,
+            }
         )
 
     return True

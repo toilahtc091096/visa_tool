@@ -1,5 +1,4 @@
-import random
-from datetime import date, datetime
+from datetime import date
 
 from api import (
     api_get_education_info,
@@ -10,11 +9,7 @@ from api import (
     api_save_family_info,
     api_save_work_info,
 )
-from constants import (
-    OLD_APPLY_STATUS_APPROVED,
-    HOTEL_DATA,
-    WEEK_SKIP_BY_TYPE,
-)
+from constants import OLD_APPLY_STATUS_APPROVED
 from flows.flow_payloads import (
     build_education_info_profile,
     build_family_info_profile,
@@ -25,9 +20,9 @@ from models import (
     GetFamilyInfoResponse,
     GetWorkInfoResponse,
     OnlineApplicationListResponse,
-    WorkExperienceItem,
 )
-from utils import date_util, log_event, notify
+from utils import date_util
+from .common import check_api_result, fail_step
 
 
 async def save_family_work_education(ctx, client) -> bool:
@@ -47,13 +42,7 @@ async def save_family_work_education(ctx, client) -> bool:
                 if item.applyStatus == OLD_APPLY_STATUS_APPROVED:
                     ctx.old_item_id = item.applyid
                     break
-        log_event({"step": ctx.step, "ok": okList, **metaList})
-        if not okList:
-            await notify(
-                f"Flow FAILED at step={ctx.step}. "
-                f"status={metaList.get('status_code')} "
-                f"err={metaList.get('error')}"
-            )
+        if not await check_api_result(ctx, okList, metaList):
             return False
 
     ctx.step = "save_work_info"
@@ -105,13 +94,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_work_info,
     )
-    log_event({"step": ctx.step, "ok": ok4, **meta4})
-    if not ok4:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta4.get('status_code')} "
-            f"err={meta4.get('error')}"
-        )
+    if not await check_api_result(ctx, ok4, meta4):
         return False
 
     ctx.step = "save_education_info"
@@ -148,13 +131,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_education_info,
     )
-    log_event({"step": ctx.step, "ok": ok5, **meta5})
-    if not ok5:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta5.get('status_code')} "
-            f"err={meta5.get('error')}"
-        )
+    if not await check_api_result(ctx, ok5, meta5):
         return False
 
     ctx.step = "save_family_info"
@@ -190,12 +167,10 @@ async def save_family_work_education(ctx, client) -> bool:
 
     dob = date_util.parse_date(ctx.ocr_data.Response.Data.dateOfBirth)
     if dob is None:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            "status={('data is not valid')} "
-            "err={('step 6 cannot parse date')}"
+        return await fail_step(
+            ctx,
+            f"cannot parse dateOfBirth={ctx.ocr_data.Response.Data.dateOfBirth!r}",
         )
-        return False
     today = date.today()
     ctx.is_over_50 = (
         today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
@@ -208,7 +183,7 @@ async def save_family_work_education(ctx, client) -> bool:
             if ctx.ct08_province_city_code != ""
             else ctx.province_city_code
         ),
-        datetime.strptime(ctx.ocr_data.Response.Data.dateOfBirth, "%Y-%m-%d").date(),
+        dob,
         ctx.ocr_data.Response.Data.nationality,
         ctx.haveSpouseFlag,
         ctx.is_under_18,
@@ -267,13 +242,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_family_info,
     )
-    log_event({"step": ctx.step, "ok": ok6, **meta6})
-    if not ok6:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta6.get('status_code')} "
-            f"err={meta6.get('error')}"
-        )
+    if not await check_api_result(ctx, ok6, meta6):
         return False
 
     return True

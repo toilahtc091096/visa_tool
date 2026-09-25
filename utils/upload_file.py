@@ -7,11 +7,6 @@ from api import (
 )
 from utils.download_r2 import download_r2_folder
 
-from utils import (
-    log_event,
-    notify,
-)
-
 DATA_RESOURCE_DIR = Path(__file__).resolve().parent / ".." / "resources"
 DATA_R2_PREFIX = "data/"
 _DOWNLOADED_PREFIXES: set[str] = set()
@@ -116,27 +111,14 @@ async def api_upload_file_common(
     category_code: str,
     material_code: str,
     first_applyid: str,
-) -> None:
-    ticket_upload_payload_body = build_upload_material_body(
+) -> tuple[bool, dict]:
+    body = build_upload_material_body(
         file_name,
         category_code,
         material_code,
         first_applyid,
     )
-    ok9, meta9 = await api_upload_file(
-        client,
-        token,
-        tmp_secret,
-        ticket_upload_payload_body,
-    )
-    log_event({"step": "step", "ok": ok9, **meta9})
-    if not ok9:
-        await notify(
-            f"Flow FAILED at step={'step'}. "
-            f"status={meta9.get('status_code')} "
-            "err={meta9.get('error')}"
-        )
-        return
+    return await api_upload_file(client, token, tmp_secret, body)
 
 
 def get_passport_file_path(passport_folder: str, prefix: str) -> str | None:

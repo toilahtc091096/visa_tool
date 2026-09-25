@@ -323,7 +323,7 @@ def main(
     stayDistrict: str = "",
     departureCity: str = "",
     departureDistrict: str = "",
-) -> None:
+) -> dict[str, Any]:
     data = build_case(case)
     if not str(data.get("authorization", "") or "").strip():
         data["authorization"] = load_authorization()
@@ -388,7 +388,7 @@ def main(
         data["emergencyPhone"] = str(emergencyPhone).strip()
     if visa_duration not in (None, ""):
         data["visa_duration"] = str(visa_duration).strip().upper()
-    asyncio.run(
+    return asyncio.run(
         run_flow(
             data["authorization"],
             data["visa_type"],
@@ -498,4 +498,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    print(main())

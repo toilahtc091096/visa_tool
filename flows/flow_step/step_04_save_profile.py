@@ -1,6 +1,6 @@
 from api import api_save_apply_info, api_save_person_info
 from flows.flow_payloads import build_apply_info_profile, build_person_profile
-from utils import log_event, notify
+from .common import check_api_result
 
 
 async def save_person_and_apply(ctx, client) -> bool:
@@ -21,12 +21,7 @@ async def save_person_and_apply(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_person_infor,
     )
-    log_event({"step": ctx.step, "ok": ok2, **meta2})
-    if not ok2:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. status={meta2.get('status_code')} "
-            f"err={meta2.get('error')}"
-        )
+    if not await check_api_result(ctx, ok2, meta2):
         return False
 
     ctx.step = "save_type_of_visa"
@@ -49,13 +44,7 @@ async def save_person_and_apply(ctx, client) -> bool:
         ctx.tmp_secret,
         body_save_apply_info,
     )
-    log_event({"step": ctx.step, "ok": ok3, **meta3})
-    if not ok3:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta3.get('status_code')} "
-            f"err={meta3.get('error')}"
-        )
+    if not await check_api_result(ctx, ok3, meta3):
         return False
 
     return True

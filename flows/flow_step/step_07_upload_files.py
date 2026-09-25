@@ -7,7 +7,8 @@ from utils import (
     ensure_school_downloaded,
     get_files,
 )
-from utils import log_event, notify
+from utils import log_event
+from .common import check_api_result, fail_step
 
 
 async def upload_files(
@@ -44,33 +45,31 @@ async def upload_files(
                         f_doc["materialCode"],
                         ctx.first_applyid,
                     )
-                    log_event(
-                        {
-                            "step": "remove_upload_file",
-                            "ok": ok_remove,
-                            "doc_type": doc_type,
-                            **meta_remove,
-                        }
-                    )
+                    ctx.step = f"remove_upload_file {doc_type}"
+                    log_event({"step": ctx.step, "ok": ok_remove, **meta_remove})
+                    # Only HTTP failures stop the flow: removing a file that was
+                    # never uploaded is expected to come back as a business error.
                     if not ok_remove:
-                        await notify(
-                            f"Flow FAILED at step=remove_upload_file. "
-                            f"status={meta_remove.get('status_code')} "
-                            f"err={meta_remove.get('error')}"
+                        return await fail_step(
+                            ctx,
+                            meta_remove.get("error") or "request failed",
+                            status_code=meta_remove.get("status_code"),
+                            response=meta_remove.get("response"),
                         )
-                        return False
 
             configs = config if isinstance(config, list) else [config]
-            all_upload_files = []
-            for cfg in configs:
-                upload_files = get_files(cfg["folder"], cfg["limit"])
-                all_upload_files.extend(upload_files)
+            all_upload_files = [
+                f for cfg in configs for f in get_files(cfg["folder"], cfg["limit"])
+            ]
 
             for f_doc, upload_file in zip(files, all_upload_files):
                 if not upload_file:
                     continue
-                print(upload_file, f_doc["categoryCode"], f_doc["materialCode"])
-                await api_upload_file_common(
+                ctx.step = (
+                    f"upload_file {doc_type} "
+                    f"{f_doc['categoryCode']}/{f_doc['materialCode']} {upload_file.name}"
+                )
+                ok, meta = await api_upload_file_common(
                     client,
                     ctx.token,
                     ctx.tmp_secret,
@@ -79,4 +78,6 @@ async def upload_files(
                     f_doc["materialCode"],
                     ctx.first_applyid,
                 )
+                if not await check_api_result(ctx, ok, meta):
+                    return False
     return True

@@ -1,25 +1,16 @@
 from api import api_get_draft, api_get_person_info, api_save_person_info
 from flows.flow_payloads import build_person_profile, full_name_from_ocr, vietnamese_name_from_ocr
 from models import GetDraftListBody, GetDraftListResult, has_name, person_info_result_from_dict
-from utils import log_event, notify
-from .common import get_in
+from utils import log_event
+from .common import check_api_result, fail_step, get_in
 
 
 async def load_draft_and_prepare_person(ctx, client) -> bool:
     ctx.step = "get_draft"
-    provided_first_applyid = getattr(ctx, "first_applyid", None)
-    has_provided_first_applyid = provided_first_applyid not in (None, "")
-    if provided_first_applyid not in (None, ""):
-        ctx.first_applyid = provided_first_applyid
+    has_provided_first_applyid = bool(getattr(ctx, "first_applyid", None))
     body_draft = GetDraftListBody()
     ok1, meta1 = await api_get_draft(client, ctx.token, ctx.tmp_secret, body_draft)
-    log_event({"step": ctx.step, "ok": ok1, **meta1})
-    if not ok1:
-        await notify(
-            f"Flow FAILED at step={ctx.step}. "
-            f"status={meta1.get('status_code')} "
-            f"err={meta1.get('error')}"
-        )
+    if not await check_api_result(ctx, ok1, meta1):
         return False
 
     resp1 = meta1.get("response", {})
@@ -46,12 +37,7 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
             ctx.tmp_secret,
             body_save_person_infor,
         )
-        log_event({"step": ctx.step, "ok": ok2, **meta2})
-        if not ok2:
-            await notify(
-                f"Flow FAILED at step={ctx.step}. status={meta2.get('status_code')} "
-                f"err={meta2.get('error')}"
-            )
+        if not await check_api_result(ctx, ok2, meta2):
             return False
         ctx.first_applyid = get_in(meta2, "response", "Response", "Data", "applyid")
 
@@ -63,30 +49,23 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
         ),
         None,
     )
-    if ctx.first_applyid is None or ctx.first_applyid == "":
+    if not ctx.first_applyid:
         ctx.first_applyid = obj.applyid if obj else ""
     print("applyid=", ctx.first_applyid)
 
     if not ctx.first_applyid:
-        log_event(
-            {
-                "step": ctx.step,
-                "ok": False,
-                "error": "Missing applyid in response",
-                "response": resp1,
-            }
+        return await fail_step(
+            ctx, "missing applyid in response", response=resp1
         )
-        await notify(f"Flow FAILED at step={ctx.step}: missing applyid in response")
-        return False
 
     ctx.step = "get_current_draft_personal_information"
     ctx.data_obj = {}
-    if ctx.first_applyid is None or ctx.first_applyid == "":
-        ok, result = await api_get_person_info(
-            client, ctx.token, ctx.tmp_secret, ctx.first_applyid
-        )
-        if ok:
-            parsed = person_info_result_from_dict(result.get("response") or {})
+    ok, meta = await api_get_person_info(
+        client, ctx.token, ctx.tmp_secret, ctx.first_applyid
+    )
+    if ok:
+        parsed = person_info_result_from_dict(meta.get("response") or {})
+        if parsed.Response is not None and parsed.Response.Data is not None:
             ctx.data_obj = parsed.Response.Data
 
     return True
