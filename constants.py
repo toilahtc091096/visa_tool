@@ -1663,6 +1663,16 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["F"] = {
                 "materialCode": "mfa-030_1",
             },
         ],
+        "PREV_CHINESE_VISA": [
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_1",
+            },
+            {
+                "categoryCode": "22025062114131912554297",
+                "materialCode": "mfa-033_2",
+            },
+        ],
         "THU_MOI": [
             {
                 "categoryCode": "12026072917284901619425",
