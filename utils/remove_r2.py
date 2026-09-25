@@ -1,20 +1,9 @@
 # utils/r2_util.py
-import boto3
-from botocore.config import Config
-from utils.r2_env import get_active_r2_config
+from utils.r2_env import build_r2_client
 
 
 def _get_r2_client_and_bucket():
-    config = get_active_r2_config(log=True)
-
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=config.endpoint_url,
-        aws_access_key_id=config.access_key_id,
-        aws_secret_access_key=config.secret_access_key,
-        region_name="auto",
-        config=Config(signature_version="s3v4"),
-    )
+    s3, config = build_r2_client(log=True)
     return s3, config.bucket_name
 
 

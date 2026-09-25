@@ -1,8 +1,6 @@
 from pathlib import Path
 
-import boto3
-from botocore.config import Config
-from utils.r2_env import get_active_r2_config
+from utils.r2_env import build_r2_client
 
 
 def download_r2_folder(
@@ -12,21 +10,12 @@ def download_r2_folder(
     Download tất cả object có prefix (vd: 'data/') từ Cloudflare R2 về local_dir.
     Trả về số file đã tải.
     """
-    config = get_active_r2_config(log=True)
+    s3, config = build_r2_client(log=True)
 
     # chuẩn hoá prefix: bỏ / đầu và đảm bảo kết thúc bằng /
     prefix = prefix.lstrip("/")
     if prefix and not prefix.endswith("/"):
         prefix += "/"
-
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=config.endpoint_url,
-        aws_access_key_id=config.access_key_id,
-        aws_secret_access_key=config.secret_access_key,
-        region_name="auto",
-        config=Config(signature_version="s3v4"),
-    )
 
     paginator = s3.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=config.bucket_name, Prefix=prefix)

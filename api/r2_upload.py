@@ -1,10 +1,7 @@
 from io import BytesIO
 from typing import Any
 
-import boto3
-from botocore.config import Config
-
-from utils.r2_env import get_active_r2_config
+from utils.r2_env import build_r2_client
 
 
 def api_upload_r2_object(
@@ -17,14 +14,7 @@ def api_upload_r2_object(
         if not key:
             return {"ok": False, "error": "missing_key"}
 
-        config = get_active_r2_config(log=True)
-        client = boto3.client(
-            "s3",
-            endpoint_url=config.endpoint_url,
-            aws_access_key_id=config.access_key_id,
-            aws_secret_access_key=config.secret_access_key,
-            config=Config(signature_version="s3v4"),
-        )
+        client, config = build_r2_client(log=True)
         bio = BytesIO(content)
         client.upload_fileobj(
             bio,
