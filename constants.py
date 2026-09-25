@@ -1100,7 +1100,7 @@ UPLOAD_CONFIG["F"] = {
             "limit": 1,
         },
         {
-            "folder": F_TAI_LIEU_KHAC_OUTPUT_PATH,
+            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
             "limit": 2,
         },
     ],
