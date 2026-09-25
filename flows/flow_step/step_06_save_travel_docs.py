@@ -144,7 +144,9 @@ COMMON_DOC_FOLDERS = (
     "chung/ve_may_bay",
     "chung/xac_nhan_tu_trung_tam_visa",
 )
-
+CV_DOC_FOLDERS = (
+    "chung/xac_nhan_tu_trung_tam_visa",
+)
 
 def _download_family_common_docs_from_r2(
     *,
@@ -157,6 +159,23 @@ def _download_family_common_docs_from_r2(
 
     total = 0
     for folder in COMMON_DOC_FOLDERS:
+        total += download_r2_folder(
+            prefix=f"{normalized_prefix.rstrip('/')}/{folder}",
+            local_dir=str(local_root / Path(folder)),
+        )
+    return total
+
+def _download_CV_from_r2(
+    *,
+    prefix: str,
+    local_root: Path,
+) -> int:
+    normalized_prefix = _normalize_r2_prefix(prefix, "")
+    if not normalized_prefix:
+        return 0
+
+    total = 0
+    for folder in CV_DOC_FOLDERS:
         total += download_r2_folder(
             prefix=f"{normalized_prefix.rstrip('/')}/{folder}",
             local_dir=str(local_root / Path(folder)),
@@ -562,7 +581,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
                     if ctx.payName
                     else random.choice(VIETNAMESE_NAMES).upper()
                 )
-    if not is_q_visa and ctx.visa_type.startswith("L"):
+    if ctx.visa_type.startswith("L"):
         try:
             if ctx.visa_type in FLIGHT_TEMPLATE:
                 file_name = FLIGHT_TEMPLATE[ctx.visa_type][ctx.flight_ticket]["name"]
@@ -666,10 +685,24 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
             log_exception(
                 e, {"event": "render_failed", "file": payload.get("file_name")}
             )
+    if not (reuse_f_docs or reuse_m_docs):
         await cv_info.render_docx_template_output_pdf(
             payload, L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, ctx.input_passportNumber
         )
-
+    else:
+        downloaded = _download_CV_from_r2(
+            prefix=school_passport,
+            local_root=passport_root,
+        )
+        if downloaded == 0:
+            raise FileNotFoundError(
+                "No family common documents found on R2 for prefix: "
+                f"{school_passport}"
+            )
+        print(
+            f"downloaded cv common docs for M and F from R2 prefix={school_passport} "
+            f"folders={COMMON_DOC_FOLDERS} into={passport_root}"
+        )
     if ctx.visa_type.startswith("Q"):
         try:
             file_name = "Q_Template.docx"
