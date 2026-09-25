@@ -1,3 +1,4 @@
+import time
 from datetime import date
 
 import httpx
@@ -14,7 +15,7 @@ from flows.flow_step import (
     upload_files,
     validate_initial_inputs,
 )
-from utils import cleanup_data_folder, load_login_payload, log_exception
+from utils import cleanup_data_folder, load_login_payload, log_event, log_exception
 
 
 def _normalize_name_list(value) -> list[str]:
@@ -244,6 +245,7 @@ async def run_flow(
         departureDistrict=departureDistrict,
     )
 
+    started_at = time.perf_counter()
     try:
         await _run_steps(ctx, is_update_info, upload_config_keys or [])
     except Exception as exc:
@@ -256,37 +258,83 @@ async def run_flow(
         }
     finally:
         cleanup_data_folder()
+        ctx.timings["total"] = round(time.perf_counter() - started_at, 2)
+        log_event({"step": "timing", "phase": "total", "seconds": ctx.timings["total"]})
 
     if ctx.error:
-        return {"ok": False, **ctx.error}
+        return {"ok": False, **ctx.error, "timings": ctx.timings}
     return {
         "ok": True,
         "first_applyid": ctx.first_applyid,
         "record_id": getattr(ctx, "record_id", None),
+        "timings": ctx.timings,
     }
+
+
+async def _timed(ctx, phase: str, awaitable):
+    """Await ``awaitable`` and record how long it took in ``ctx.timings``."""
+    started_at = time.perf_counter()
+    try:
+        return await awaitable
+    finally:
+        ctx.timings[phase] = round(time.perf_counter() - started_at, 2)
+        log_event({"step": "timing", "phase": phase, "seconds": ctx.timings[phase]})
+
+
+async def _log_request_start(request: httpx.Request) -> None:
+    request.extensions["started_at"] = time.perf_counter()
+
+
+async def _log_response_time(response: httpx.Response) -> None:
+    started_at = response.request.extensions.get("started_at")
+    if started_at is None:
+        return
+    log_event(
+        {
+            "step": "http",
+            "method": response.request.method,
+            "path": response.request.url.path,
+            "status": response.status_code,
+            "seconds": round(time.perf_counter() - started_at, 2),
+        }
+    )
 
 
 async def _run_steps(ctx, is_update_info: bool, upload_config_keys: list[str]) -> None:
     """Run the steps in order; a step returning False has set ``ctx.error``."""
-    if not await validate_initial_inputs(ctx):
+    if not await _timed(ctx, "validate", validate_initial_inputs(ctx)):
         return
-    async with httpx.AsyncClient() as client:
-        if not await check_token_and_get_ocr(ctx, client):
+    async with httpx.AsyncClient(
+        event_hooks={"request": [_log_request_start], "response": [_log_response_time]}
+    ) as client:
+        if not await _timed(ctx, "token_ocr", check_token_and_get_ocr(ctx, client)):
             return
-        if not await load_draft_and_prepare_person(ctx, client):
+        if not await _timed(
+            ctx, "draft_person", load_draft_and_prepare_person(ctx, client)
+        ):
             return
         if not is_update_info:
-            if not await save_person_and_apply(ctx, client):
+            if not await _timed(
+                ctx, "person_apply", save_person_and_apply(ctx, client)
+            ):
                 return
-            if not await save_family_work_education(ctx, client):
+            if not await _timed(
+                ctx, "family_work_education", save_family_work_education(ctx, client)
+            ):
                 return
-        if not await save_travel_and_generate_docs(ctx, client):
+        if not await _timed(
+            ctx, "travel_docs", save_travel_and_generate_docs(ctx, client)
+        ):
             return
-        if not await upload_files(
+        if not await _timed(
             ctx,
-            client,
-            is_update_info=is_update_info,
-            upload_config_keys=upload_config_keys,
+            "upload_files",
+            upload_files(
+                ctx,
+                client,
+                is_update_info=is_update_info,
+                upload_config_keys=upload_config_keys,
+            ),
         ):
             return
         ctx.step = "save_visa_registration_to_db"

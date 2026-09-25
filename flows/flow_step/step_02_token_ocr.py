@@ -1,3 +1,5 @@
+import time
+
 from api import api_get_education_info, api_passport_ocr, login
 from constants import OLD_APPLY_ID_FOR_TEST_TOKEN, PASSPORT_FILE_FOLDER
 from models import passport_ocr_result_from_dict
@@ -6,6 +8,7 @@ from utils import (
     ensure_company_doanh_nghiep_downloaded,
     ensure_school_downloaded,
     get_passport_file_path,
+    log_event,
     save_login_data,
     date_util,
 )
@@ -21,7 +24,15 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
     )
     if not ok:
         print("call login")
+        login_started_at = time.perf_counter()
         login_response = login(ctx.authorization)
+        log_event(
+            {
+                "step": "timing",
+                "phase": "login",
+                "seconds": round(time.perf_counter() - login_started_at, 2),
+            }
+        )
         print(login_response)
         save_login_data(login_response.data)
         if login_response.data:

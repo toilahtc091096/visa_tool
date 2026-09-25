@@ -158,6 +158,7 @@ def build_flow_context(**kwargs):
     ctx.vietnamese_name = ""
     ctx.full_name = ""
     ctx.error = None
+    ctx.timings = {}
     return ctx
 
 

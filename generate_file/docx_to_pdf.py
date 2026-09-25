@@ -211,8 +211,21 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> None:
         target.unlink()
 
     if os.name == "nt":
+        from utils import log_event
+
+        wait_started_at = time.perf_counter()
         with _word_automation_process_lock():
+            convert_started_at = time.perf_counter()
             _convert_with_word_with_retry(source, target)
+        log_event(
+            {
+                "step": "timing",
+                "phase": "word_docx_to_pdf",
+                "file": source.name,
+                "lock_wait_seconds": round(convert_started_at - wait_started_at, 2),
+                "convert_seconds": round(time.perf_counter() - convert_started_at, 2),
+            }
+        )
         if not target.is_file():
             raise RuntimeError(
                 f"Microsoft Word finished without creating the PDF: {target}"
