@@ -9,7 +9,7 @@ from api import (
     api_save_family_info,
     api_save_work_info,
 )
-from constants import OLD_APPLY_STATUS_APPROVED
+from constants import OLD_APPLY_STATUS_APPROVED, FAMILY_PARENT_RELATION_MOTHER, FAMILY_PARENT_RELATION_FATHER
 from flows.flow_payloads import (
     build_education_info_profile,
     build_family_info_profile,
@@ -226,8 +226,8 @@ async def save_family_work_education(ctx, client) -> bool:
     )
     parents = body_save_family_info.parents or []
 
-    father = next((p for p in parents if p.relation == "727002"), None)
-    mother = next((p for p in parents if p.relation == "727003"), None)
+    father = next((p for p in parents if p.relation == FAMILY_PARENT_RELATION_FATHER), None)
+    mother = next((p for p in parents if p.relation == FAMILY_PARENT_RELATION_MOTHER), None)
 
     if not ctx.fatherFamilyName and not ctx.fatherGivenName and father:
         ctx.fatherFamilyName = father.familyName

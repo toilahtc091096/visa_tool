@@ -313,15 +313,13 @@ async def _run_steps(ctx, is_update_info: bool, upload_config_keys: list[str]) -
             ctx, "draft_person", load_draft_and_prepare_person(ctx, client)
         ):
             return
-        if not is_update_info:
-            if not await _timed(
-                ctx, "person_apply", save_person_and_apply(ctx, client)
-            ):
-                return
-            if not await _timed(
-                ctx, "family_work_education", save_family_work_education(ctx, client)
-            ):
-                return
+
+        if not await _timed(ctx, "person_apply", save_person_and_apply(ctx, client)):
+            return
+        if not await _timed(
+            ctx, "family_work_education", save_family_work_education(ctx, client)
+        ):
+            return
         if not await _timed(
             ctx, "travel_docs", save_travel_and_generate_docs(ctx, client)
         ):
