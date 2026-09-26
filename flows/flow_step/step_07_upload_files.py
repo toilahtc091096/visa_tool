@@ -21,31 +21,6 @@ async def upload_files(
     selected_upload_keys = set(upload_config_keys or [])
 
     for item in ctx.profile.upload_plan():
-        if is_update_info and item.doc_type not in selected_upload_keys:
-            continue
-
-        if is_update_info:
-            for f_doc in item.codes:
-                ok_remove, meta_remove = await api_remove_upload_file(
-                    client,
-                    ctx.token,
-                    ctx.tmp_secret,
-                    f_doc["categoryCode"],
-                    f_doc["materialCode"],
-                    ctx.first_applyid,
-                )
-                ctx.step = f"remove_upload_file {item.doc_type}"
-                log_event({"step": ctx.step, "ok": ok_remove, **meta_remove})
-                # Only HTTP failures stop the flow: removing a file that was
-                # never uploaded is expected to come back as a business error.
-                if not ok_remove:
-                    return await fail_step(
-                        ctx,
-                        meta_remove.get("error") or "request failed",
-                        status_code=meta_remove.get("status_code"),
-                        response=meta_remove.get("response"),
-                    )
-
         all_upload_files = [
             f for cfg in item.configs for f in get_files(cfg["folder"], cfg["limit"])
         ]
