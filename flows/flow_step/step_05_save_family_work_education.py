@@ -13,7 +13,6 @@ from constants import OLD_APPLY_STATUS_APPROVED, FAMILY_PARENT_RELATION_MOTHER, 
 from flows.flow_payloads import (
     build_education_info_profile,
     build_family_info_profile,
-    build_work_info_profile,
 )
 from models import (
     GetEducationInfoResponse,
@@ -62,32 +61,7 @@ async def save_family_work_education(ctx, client) -> bool:
                 ctx.job_type = data.jobType
                 ctx.experiences = data.workExperience
 
-    body_save_work_info = build_work_info_profile(
-        ctx.first_applyid,
-        ctx.register_date,
-        (
-            ctx.ct08_province_city_code
-            if ctx.ct08_province_city_code != ""
-            else ctx.province_city_code
-        ),
-        ctx.job_type,
-        ctx.experiences,
-        ctx.is_under_18,
-        ctx.profile,
-        getattr(ctx, "companyNameVi", ""),
-        getattr(ctx, "companyAddressUpperNoAccent", ""),
-        getattr(ctx, "companyPhone", ""),
-        getattr(ctx, "managerName", ""),
-        getattr(ctx, "work_from", ""),
-        getattr(ctx, "work_to", ""),
-        getattr(ctx, "employer_name", ""),
-        getattr(ctx, "employer_address", ""),
-        getattr(ctx, "employer_phone", ""),
-        getattr(ctx, "supervisor_name", ""),
-        getattr(ctx, "supervisor_mobile", ""),
-        getattr(ctx, "position", ""),
-        getattr(ctx, "duty", ""),
-    )
+    body_save_work_info = ctx.profile.build_work_info(ctx)
     ok4, meta4 = await api_save_work_info(
         client,
         ctx.token,

@@ -59,16 +59,20 @@ def get_today_parts():
     return today_yyyy, today_mm, today_dd
 
 
-def is_under_18(date_str: str) -> bool:
+def age(date_str: str) -> int:
     birth_date = parse_date(date_str)
 
     today = date.today()
 
-    age = today.year - birth_date.year
+    years = today.year - birth_date.year
     if (today.month, today.day) < (birth_date.month, birth_date.day):
-        age -= 1
+        years -= 1
 
-    return age < 18
+    return years
+
+
+def is_under_18(date_str: str) -> bool:
+    return age(date_str) < 18
 
 
 # đang ở trong utils/date_util.py (hoặc module utils có date_util),

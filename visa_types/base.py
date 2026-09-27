@@ -94,6 +94,33 @@ class VisaProfile:
         if ctx.is_under_18 or has_additional_names:
             ctx.flight_ticket = 0
 
+    def build_work_info(self, ctx):
+        """Return the SaveWorkInfo body (WorkInfoProfile) for ``ctx``."""
+        from flows.flow_payloads import build_work_info_profile
+
+        return build_work_info_profile(
+            ctx.first_applyid,
+            ctx.register_date,
+            ctx.ct08_province_city_code or ctx.province_city_code,
+            ctx.job_type,
+            ctx.experiences,
+            ctx.is_under_18,
+            self,
+            getattr(ctx, "companyNameVi", ""),
+            getattr(ctx, "companyAddressUpperNoAccent", ""),
+            getattr(ctx, "companyPhone", ""),
+            getattr(ctx, "managerName", ""),
+            getattr(ctx, "work_from", ""),
+            getattr(ctx, "work_to", ""),
+            getattr(ctx, "employer_name", ""),
+            getattr(ctx, "employer_address", ""),
+            getattr(ctx, "employer_phone", ""),
+            getattr(ctx, "supervisor_name", ""),
+            getattr(ctx, "supervisor_mobile", ""),
+            getattr(ctx, "position", ""),
+            getattr(ctx, "duty", ""),
+        )
+
     def build_travel_json(self, travel) -> dict[str, Any]:
         """Return the SaveTravelInfo body for ``travel`` (a TravelInputs)."""
         raise NotImplementedError
