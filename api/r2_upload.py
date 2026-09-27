@@ -8,13 +8,14 @@ def api_upload_r2_object(
     key: str,
     content: bytes,
     content_type: str = "application/octet-stream",
+    log: bool = True,
 ) -> dict[str, Any]:
     try:
         key = str(key).strip()
         if not key:
             return {"ok": False, "error": "missing_key"}
 
-        client, config = build_r2_client(log=True)
+        client, config = build_r2_client(log=log)
         bio = BytesIO(content)
         client.upload_fileobj(
             bio,

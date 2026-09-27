@@ -8,11 +8,11 @@ from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
 from fastapi.responses import JSONResponse, Response
-from pdf2image import convert_from_bytes
-import io
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 from api import api_convert_input_pdfs
+from api.convert_input_pdfs import api_cleanup_pdf_page_images, render_pdf_pages_to_r2
 from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
@@ -28,7 +28,6 @@ from services.han_approval import (
 from services import sync_draft_visa_registrations
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
-from utils.r2_env import build_r2_client
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -234,24 +233,35 @@ def debug_google_sheets(payload: dict[str, Any] = Body(...)):
 
 
 @app.api_route("/convert-input-pdfs", methods=["GET", "POST"])
-async def convert_input_pdfs(request: Request):
-    raw_body = await request.body()
-    body_text = raw_body.decode("utf-8", errors="replace") if raw_body else ""
-    try:
-        body_json = json.loads(body_text) if body_text else None
-    except json.JSONDecodeError:
-        body_json = None
+async def convert_input_pdfs(request: Request, key: str = Query("")):
+    # GET: ?key=...  (body của GET hay bị proxy/client bỏ đi)
+    # POST: {"key": "..."} hoặc ?key=...
+    download_key = key.strip()
+    if not download_key:
+        raw_body = await request.body()
+        try:
+            body_json = json.loads(raw_body) if raw_body else None
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            body_json = None
+        if isinstance(body_json, dict):
+            download_key = str(body_json.get("key", "")).strip()
 
-    download_key = ""
-    if isinstance(body_json, dict):
-        download_key = str(body_json.get("key", "")).strip()
+    # Tải R2 + render PDF đều là blocking I/O/CPU -> chạy ngoài event loop.
+    return await asyncio.to_thread(api_convert_input_pdfs, download_key=download_key)
 
-    result = api_convert_input_pdfs(download_key=download_key)
-    result["request"] = {
-        "method": request.method,
-        "body_text": body_text,
-        "body_json": body_json,
-    }
+
+@app.post("/convert-input-pdfs/cleanup")
+def convert_input_pdfs_cleanup(payload: dict[str, Any] = Body(default_factory=dict)):
+    # Gọi sau khi đã merge ảnh lại thành PDF:
+    # {"key": "folder/x.pdf"}  -> xóa mọi folder/x_page_N.png
+    # {"keys": ["output/..._page_1.png", ...]}  -> xóa đúng các ảnh này
+    raw_keys = payload.get("keys") or []
+    result = api_cleanup_pdf_page_images(
+        pdf_key=str(payload.get("key", "") or ""),
+        keys=raw_keys if isinstance(raw_keys, list) else [raw_keys],
+    )
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
     return result
 
 
@@ -462,36 +472,25 @@ def r2_folders_download(prefix: str = Query("")):
 
 
 @app.post("/pdf-to-images")
-async def pdf_to_images(file: UploadFile = File(...)):
-    pdf_bytes = await file.read()
-    pages = convert_from_bytes(
-        pdf_bytes, dpi=300, poppler_path="C:/poppler-26.02.0/Library/bin"
-    )
-
-    images = []
-    public_base = os.getenv("R2_PUBLIC_BASE", "").rstrip("/")
-    _r2_s3_client, r2_config = build_r2_client(log=True)
-
-    for page_number, page in enumerate(pages, start=1):
-        buffer = io.BytesIO()
-        page.save(buffer, format="PNG")
-        buffer.seek(0)
-
-        key = f"output/{uuid.uuid4()}_page_{page_number}.png"
-        _r2_s3_client.upload_fileobj(
-            buffer,
-            r2_config.bucket_name,
-            key,
-            ExtraArgs={"ContentType": "image/png"},
+def pdf_to_images(file: UploadFile = File(...)):
+    pdf_bytes = file.file.read()
+    batch_id = uuid.uuid4()
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        result = render_pdf_pages_to_r2(
+            pdf_bytes, lambda n: f"output/{batch_id}_page_{n}.png", pool
         )
+    if not result.get("ok"):
+        status = 400 if result.get("error") == "invalid_pdf" else 502
+        raise HTTPException(status_code=status, detail=result)
 
-        images.append(
-            {
-                "page": page_number,
-                "key": key,
-                "url": f"{public_base}/{key}" if public_base else key,
-            }
-        )
+    images = [
+        {
+            "page": item["page"],
+            "key": item["key"],
+            "url": item["url"] or item["key"],
+        }
+        for item in result["uploaded_pngs"]
+    ]
 
     return {
         "count": len(images),

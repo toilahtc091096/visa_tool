@@ -29,7 +29,7 @@ biến `ENV_FILE` (mặc định `.env`). Các biến chính: `PORT`, `R2_*`,
 `POSTGRES_*`, `DEFAULT_EMAIL`/`DEFAULT_GUID`/`DEFAULT_UID`.
 
 Cài thư viện: `python -m pip install -r requirements.txt`
-(sinh PDF cần Microsoft Word trên Windows; `/pdf-to-images` cần Poppler).
+(sinh PDF cần Microsoft Word trên Windows).
 
 ## Chạy
 

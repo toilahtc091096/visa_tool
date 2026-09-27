@@ -46,9 +46,17 @@ def api_download_r2_object_bytes(key: str) -> dict[str, Any]:
         }
 
     started_at = time.perf_counter()
-    client, config = build_r2_client(log=True)
-    resp = client.get_object(Bucket=config.bucket_name, Key=key)
-    body = resp["Body"].read()
+    try:
+        client, config = build_r2_client(log=True)
+        resp = client.get_object(Bucket=config.bucket_name, Key=key)
+        body = resp["Body"].read()
+    except Exception as exc:
+        return {
+            "ok": False,
+            "key": key,
+            "error": type(exc).__name__,
+            "message": str(exc),
+        }
     log_event(
         {
             "step": "timing",
