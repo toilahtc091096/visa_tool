@@ -10,7 +10,7 @@ visa_types/
   base.py       VisaProfile (mặc định + hook), registry, normalize_visa_type
   documents.py  các loại giấy tờ sinh ra (DocumentStep)
   tourism.py    L15, L30      business.py  M
-  family.py     Q1, Q2        study.py     F
+  family.py     Q1, Q2        study.py     F, X1, X2
 ```
 
 ---

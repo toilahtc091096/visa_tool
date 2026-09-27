@@ -185,6 +185,14 @@ def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, s
             return "F", "15"
         return "F", raw_type[1:] or raw_duration
 
+    if raw_type == "X1":
+        return "X1", raw_duration or "365"
+    if raw_type.startswith("X2"):
+        days = raw_type[2:] or raw_duration or "180"
+        if days.isdigit() and 1 <= int(days) <= 180:
+            return "X2", str(int(days))
+        return raw_type, ""  # no profile -> "visa_type not supported"
+
     if raw_type.startswith("L"):
         if raw_type[1:] in {"15", "30"}:
             return raw_type, raw_type[1:]

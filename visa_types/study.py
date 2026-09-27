@@ -1,4 +1,5 @@
-"""F visa (exchange/study): invited by a school given in the request."""
+"""Study visas invited by a school given in the request: F (exchange/study),
+X1 (study > 180 days) and X2 (study <= 180 days)."""
 
 from __future__ import annotations
 
@@ -28,6 +29,8 @@ class StudyVisa(VisaProfile):
     documents = (VisaCenterConfirmation(),)
     reuse = SCHOOL_REUSE
     job_type_label = "Student"
+    academic_over_25: bool = True
+    """Adults over 25 are declared as academics working at the school."""
 
     def prepare_resources(self, ctx) -> None:
         school_passport = str(getattr(ctx, "school_passport", "")).strip()
@@ -38,7 +41,7 @@ class StudyVisa(VisaProfile):
         ensure_school_downloaded(school_passport)
 
     def build_work_info(self, ctx) -> WorkInfoProfile:
-        return build_study_work_info_profile(ctx)
+        return build_study_work_info_profile(ctx, self.academic_over_25)
 
     def build_travel_json(self, travel) -> dict[str, Any]:
         travel_json = getL30TravelInfo(
@@ -67,6 +70,26 @@ class StudyVisa(VisaProfile):
         return travel_json
 
 
+@register
+class LongStudyVisa(StudyVisa):
+    """X1: study longer than 180 days (365 days). Same flow as F but always a
+    student; codes and uploaded school files (Admission Notice + JW201/JW202
+    form) come from constants."""
+
+    code = "X1"
+    service_key = "X1"
+    academic_over_25 = False
+
+
+@register
+class ShortStudyVisa(StudyVisa):
+    """X2: study up to 180 days (half a year). Same as X1."""
+
+    code = "X2"
+    service_key = "X2"
+    academic_over_25 = False
+
+
 def _ascii_upper(value: str) -> str:
     if not value:
         return ""
@@ -74,19 +97,20 @@ def _ascii_upper(value: str) -> str:
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
 
 
-def build_study_work_info_profile(ctx) -> WorkInfoProfile:
-    """SaveWorkInfo body for F.
+def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInfoProfile:
+    """SaveWorkInfo body for F / X1 / X2.
 
-    Over 25 with a school in the request: academic working at that school
-    (inviteSchoolName, else name_of_institute; school_address). work_from,
-    employer_*, position... from the request override the school defaults.
-    Otherwise (25 or younger, or no school name): student, no work experience.
+    Over 25 with a school in the request (only when ``academic_over_25``):
+    academic working at that school (inviteSchoolName, else name_of_institute;
+    school_address). work_from, employer_*, position... from the request
+    override the school defaults.
+    Otherwise: student, no work experience.
     """
     school_name = _ascii_upper(
         getattr(ctx, "inviteSchoolName", "") or getattr(ctx, "name_of_institute", "")
     )
     dob = ctx.ocr_data.Response.Data.dateOfBirth
-    is_over_25 = bool(dob) and date_util.parse_date(dob) is not None and date_util.age(dob) > 25
+    is_over_25 = academic_over_25 and bool(dob) and date_util.parse_date(dob) is not None and date_util.age(dob) > 25
     if not is_over_25 or not school_name:
         job_type_code = JOB_TYPE_BY_LABEL["Student"]
         not_apply_items = [{"notApplyCode": "workExperience", "remark": "CHUA DI LAM"}]

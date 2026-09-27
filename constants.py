@@ -84,6 +84,8 @@ SERVICE_VISA_TYPE = {
     "Q1": ({"QCN", "QPR", "QFC"}),
     "Q2": ({"QCV", "QPV"}),
     "F": ({"AE", "CE", "RE", "NGO", "VOL", "FE", "GSM"}),
+    "X1": ({"L"}),
+    "X2": ({"S"}),
 }
 VISA_TYPE_VALUE = {
     "L": {
@@ -113,8 +115,10 @@ VISA_TYPE_VALUE = {
         "FE": {"visaPurpose": 709003, "visaType": 710011},
         "GSM": {"visaPurpose": 709003, "visaType": 710012},
     },
+    "X1": {"L": {"visaPurpose": 709009, "visaType": 710023}},
+    "X2": {"S": {"visaPurpose": 709010, "visaType": 710022}},
 }
-APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6, "F": 3}
+APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6, "F": 3, "X1": 3, "X2": 3}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
@@ -684,6 +688,8 @@ DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
 F_THU_MOI_OUTPUT_PATH = "du-hoc\\thu-moi"
 F_QUYET_DINH_DU_HOC_OUTPUT_PATH = "du-hoc\\quyet-dinh"
 F_TAI_LIEU_KHAC_OUTPUT_PATH = "du-hoc\\khac"
+X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH = "du-hoc\\nhap-hoc"
+X_JW_OUTPUT_PATH = "du-hoc\\jw"
 
 
 WEEK_SKIP_BY_TYPE = {"L15": random.randint(4, 6), "L30": random.randint(9, 11)}
@@ -692,6 +698,7 @@ WEEK_SKIP_BY_TYPE["M30"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["M90"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["Q"] = WEEK_SKIP_BY_TYPE["Q1"] = WEEK_SKIP_BY_TYPE["Q2"] = 25
 WEEK_SKIP_BY_TYPE["F"] = WEEK_SKIP_BY_TYPE["L30"]
+WEEK_SKIP_BY_TYPE["X1"] = WEEK_SKIP_BY_TYPE["X2"] = WEEK_SKIP_BY_TYPE["F"]
 
 UNDER_18_HOTEL_INFO = [
     {
@@ -1105,6 +1112,23 @@ UPLOAD_CONFIG["F"] = {
         },
     ],
 }
+
+UPLOAD_CONFIG["X1"] = {
+    **{
+        k: v
+        for k, v in UPLOAD_CONFIG["F"].items()
+        if k not in ("THU_MOI", "QUYET_DINH_DU_HOC")
+    },
+    "GIAY_BAO_NHAP_HOC": {
+        "folder": X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH,
+        "limit": 1,
+    },
+    "JW": {
+        "folder": X_JW_OUTPUT_PATH,
+        "limit": 1,
+    },
+}
+UPLOAD_CONFIG["X2"] = UPLOAD_CONFIG["X1"]
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
@@ -1701,6 +1725,86 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["F"] = {
             {
                 "categoryCode": "12025062115000341540359",
                 "materialCode": "mfa-065_4",
+            },
+        ],
+    }
+}
+
+UPLOAD_FILE_CODE_BY_VISA_TYPE["X1"] = {
+    "COMMON": {
+        **{
+            k: v
+            for k, v in UPLOAD_FILE_CODE_BY_VISA_TYPE["F"]["COMMON"].items()
+            if k not in ("THU_MOI", "QUYET_DINH_DU_HOC", "OTHER_MATERIALS")
+        },
+        "GIAY_BAO_NHAP_HOC": [
+            {
+                "categoryCode": "12025062116113060399385",
+                "materialCode": "mfa-155_1",
+            }
+        ],
+        "JW": [
+            {
+                "categoryCode": "12025062116141116750122",
+                "materialCode": "mfa-164_1",
+            }
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062116171641916688",
+                "materialCode": "mfa-165_1",
+            },
+            {
+                "categoryCode": "12025062116171641916688",
+                "materialCode": "mfa-165_1",
+            },
+            {
+                "categoryCode": "12025062116171641916688",
+                "materialCode": "mfa-165_1",
+            },
+            {
+                "categoryCode": "12025062116171641916688",
+                "materialCode": "mfa-165_1",
+            },
+        ],
+    }
+}
+UPLOAD_FILE_CODE_BY_VISA_TYPE["X2"] = {
+    
+    "COMMON": {
+        **{
+            k: v
+            for k, v in UPLOAD_FILE_CODE_BY_VISA_TYPE["F"]["COMMON"].items()
+            if k not in ("THU_MOI", "QUYET_DINH_DU_HOC", "OTHER_MATERIALS")
+        },
+        "GIAY_BAO_NHAP_HOC": [
+            {
+                "categoryCode": "12025062116191142931178",
+                "materialCode": "mfa-169_1",
+            }
+        ],
+        "JW": [
+            {
+                "categoryCode": "12025062116191142931178",
+                "materialCode": "mfa-169_2",
+            }
+        ],
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062116215851186649",
+                "materialCode": "mfa-172_2",
+            },
+            {
+                "categoryCode": "12025062116215851186649",
+                "materialCode": "mfa-172_2",
+            },
+            {
+                "categoryCode": "12025062116215851186649",
+                "materialCode": "mfa-172_2",
+            },
+            {
+                "categoryCode": "12025062116215851186649",
+                "materialCode": "mfa-172_2",
             },
         ],
     }
