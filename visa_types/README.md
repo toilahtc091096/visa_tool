@@ -59,7 +59,6 @@ class X1Visa(VisaProfile):
     code = "X1"                 # = visa_type sau normalize, = khoá bảng upload
     service_key = "X1"          # khoá trong SERVICE_VISA_TYPE / VISA_TYPE_VALUE
     documents = (VisaCenterConfirmation(),)
-    accepts_requested_dates = True
 
     def build_travel_json(self, travel):
         ...                     # bắt buộc: body SaveTravelInfo
@@ -106,7 +105,7 @@ Quy tắc: **khác biệt đi vào profile, luồng chung giữ nguyên.**
 ### B1. Khác biệt đã có "nút" sẵn → chỉ cấu hình
 | Muốn | Làm trong profile |
 |---|---|
-| Nhận ngày đi/về từ request (`arrivalDate`/`departureDate`) | `accepts_requested_dates = True` |
+| **Không** nhận ngày đi/về từ request (`arrivalDate`/`departureDate`; mặc định mọi loại đều nhận) | `accepts_requested_dates = False` |
 | Công việc cố định (vd "Student") | `job_type_label = "Student"` |
 | Công việc = công ty trong request (`companyNameVi`...) | `works_at_inviting_company = True` |
 | Người liên hệ khẩn cấp = giám đốc công ty | `manager_is_emergency_contact = True` |

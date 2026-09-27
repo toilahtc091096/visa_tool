@@ -51,8 +51,9 @@ class VisaProfile:
     """DocumentStep instances rendered, in order, after the travel info is saved."""
     reuse: ClassVar[ReuseRule | None] = None
 
-    accepts_requested_dates: ClassVar[bool] = False
-    """Use arrivalDate/departureDate from the request when both are given."""
+    accepts_requested_dates: ClassVar[bool] = True
+    """Use arrivalDate/departureDate from the request when both are given;
+    set False on a profile that must always compute its own dates."""
     cleans_local_common_docs: ClassVar[bool] = False
     """Wipe the local ``chung/*`` folders before generating documents."""
     job_type_label: ClassVar[str | None] = None

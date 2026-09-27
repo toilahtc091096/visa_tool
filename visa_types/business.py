@@ -24,7 +24,6 @@ class BusinessVisa(VisaProfile):
     service_key = "M"
     documents = (VisaCenterConfirmation(),)
     reuse = COMPANY_REUSE
-    accepts_requested_dates = True
     job_type_label = "Company employee"
     works_at_inviting_company = True
     manager_is_emergency_contact = True

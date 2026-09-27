@@ -15,7 +15,6 @@ from .documents import InvitationLetter, VisaCenterConfirmation
 
 
 class FamilyVisa(VisaProfile):
-    accepts_requested_dates = True
     always_self_paid = True
 
     @property
