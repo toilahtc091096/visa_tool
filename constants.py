@@ -1792,7 +1792,7 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["X2"] = {
         "OTHER_MATERIALS": [
             {
                 "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_2",
+                "materialCode": "mfa-172_1",
             },
             {
                 "categoryCode": "12025062116215851186649",
@@ -1800,11 +1800,11 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["X2"] = {
             },
             {
                 "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_2",
+                "materialCode": "mfa-172_3",
             },
             {
                 "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_2",
+                "materialCode": "mfa-172_4",
             },
         ],
     }
