@@ -20,33 +20,36 @@ from models import (
     GetWorkInfoResponse,
     OnlineApplicationListResponse,
 )
-from utils import date_util
-from .common import check_api_result, fail_step
+from utils import date_util, log_event
+from .common import check_api_result, extract_api_error, fail_step
 
 
 async def save_family_work_education(ctx, client) -> bool:
+    # Always look for an approved previous application of this passport; when
+    # found, its work / education / family info is reused below. A failed
+    # lookup is only logged: the flow goes on as for a first application.
     ctx.step = "get_old_list"
     ctx.old_item_id = ""
-    if ctx.haveChinaVisaFlag:
-        okList, metaList = await api_list_online_applications(
-            client,
-            ctx.token,
-            ctx.tmp_secret,
-            ctx.ocr_data.Response.Data.passportNumber,
-            authorization=getattr(ctx, "authorization", ""),
-        )
-        if okList:
-            model = OnlineApplicationListResponse.from_dict(metaList["response"])
-            for item in model.rows:
-                if item.applyStatus == OLD_APPLY_STATUS_APPROVED:
-                    ctx.old_item_id = item.applyid
-                    break
-        if not await check_api_result(ctx, okList, metaList):
-            return False
+    okList, metaList = await api_list_online_applications(
+        client,
+        ctx.token,
+        ctx.tmp_secret,
+        ctx.ocr_data.Response.Data.passportNumber,
+        authorization=getattr(ctx, "authorization", ""),
+    )
+    list_error = extract_api_error(metaList.get("response"))
+    log_event({"step": ctx.step, "ok": okList and list_error is None, **metaList})
+    if okList and list_error is None:
+        model = OnlineApplicationListResponse.from_dict(metaList["response"])
+        for item in model.rows:
+            if item.applyStatus == OLD_APPLY_STATUS_APPROVED:
+                ctx.old_item_id = item.applyid
+                break
 
     ctx.step = "save_work_info"
     ctx.job_type = ""
     ctx.experiences = []
+    ctx.old_work_not_apply_items = []
     if ctx.old_item_id != "":
         ok, res = await api_get_work_info(
             client=client,
@@ -60,6 +63,7 @@ async def save_family_work_education(ctx, client) -> bool:
             if data:
                 ctx.job_type = data.jobType
                 ctx.experiences = data.workExperience
+                ctx.old_work_not_apply_items = data.notApplyItems
 
     body_save_work_info = ctx.profile.build_work_info(ctx)
     ok4, meta4 = await api_save_work_info(

@@ -57,6 +57,7 @@ class Q1Visa(FamilyVisa):
     """Family reunion / long stay with relatives living in China."""
 
     code = "Q1"
+    cv_visa_type_number = "000"
     documents = (VisaCenterConfirmation(), InvitationLetter(Q1_THU_MOI_OUTPUT_PATH))
 
 

@@ -144,7 +144,7 @@ Không thêm `if ctx.visa_type == ...` vào `flows/`.
 
 ### B4. Kiểm tra các renderer có đoán theo visa type
 Một số renderer trong `generate_file/` còn tự rẽ nhánh theo payload:
-`cv_info` (Q1 → `visa_type_number = "000"`), `flight_info` (L30 → ngày về
+`flight_info` (L30 → ngày về
 2W6D), `thumoi_info` (Q1/Q2 → ô tick). Loại mới dùng các giấy tờ này thì
 kiểm tra kết quả render.
 

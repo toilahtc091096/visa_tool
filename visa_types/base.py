@@ -61,6 +61,8 @@ class VisaProfile:
     """Work experience is the company given in the request (company* fields)."""
     manager_is_emergency_contact: ClassVar[bool] = False
     always_self_paid: ClassVar[bool] = False
+    cv_visa_type_number: ClassVar[str | None] = None
+    """Number printed after the visa type on the CV form; None = duration."""
 
     @property
     def sub_types(self) -> dict[str, dict[str, int]]:

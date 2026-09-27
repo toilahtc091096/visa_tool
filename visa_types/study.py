@@ -8,7 +8,7 @@ from datetime import date
 from typing import Any
 
 from constants import DEFAULT_EMBASSY, DEFAULT_LANG, JOB_TYPE_BY_LABEL
-from flows.flow_payloads import _work_experience_entry, getL30TravelInfo
+from flows.flow_payloads import _to_dict, _work_experience_entry, getL30TravelInfo
 from models import WorkInfoProfile
 from utils import date_util, ensure_school_downloaded, mobile_utils
 
@@ -79,6 +79,7 @@ class LongStudyVisa(StudyVisa):
     code = "X1"
     service_key = "X1"
     academic_over_25 = False
+    cv_visa_type_number = "000"
 
 
 @register
@@ -105,7 +106,20 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
     school_address). work_from, employer_*, position... from the request
     override the school defaults.
     Otherwise: student, no work experience.
+    An approved previous visa (ctx.job_type / ctx.experiences, loaded in
+    step 5) takes precedence over all of the above.
     """
+    if ctx.job_type or ctx.experiences:
+        work_end_date = date_util.work_experience_end_date()
+        for experience in ctx.experiences:
+            experience.endDate = work_end_date
+        return _work_info_profile(
+            ctx,
+            ctx.job_type or JOB_TYPE_BY_LABEL["Student"],
+            list(getattr(ctx, "old_work_not_apply_items", []) or []),
+            [_to_dict(i) for i in ctx.experiences],
+        )
+
     school_name = _ascii_upper(
         getattr(ctx, "inviteSchoolName", "") or getattr(ctx, "name_of_institute", "")
     )
@@ -144,6 +158,15 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
             )
         ]
 
+    return _work_info_profile(ctx, job_type_code, not_apply_items, work_experience)
+
+
+def _work_info_profile(
+    ctx,
+    job_type_code: str,
+    not_apply_items: list[Any],
+    work_experience: list[dict[str, Any]],
+) -> WorkInfoProfile:
     return WorkInfoProfile.from_dict(
         {
             "applyCountry": "",

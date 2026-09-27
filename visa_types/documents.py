@@ -245,7 +245,8 @@ class VisaCenterConfirmation(DocumentStep):
             "file_name": CV_DATA,
             "names": ctx.ticket_names,
             "visa_type_first": ctx.first_letter_visa_type,
-            "visa_type_number": ctx.last_letter_visa_type,
+            "visa_type_number": ctx.profile.cv_visa_type_number
+            or ctx.last_letter_visa_type,
             "submit_year_yyyy": today_yyyy,
             "submit_month_mm": today_mm,
             "submit_day_dd": today_dd,
