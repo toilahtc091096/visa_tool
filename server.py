@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import threading
 import time
 import traceback
 from contextlib import asynccontextmanager
@@ -28,6 +29,7 @@ from services.han_approval import (
 from services import sync_draft_visa_registrations
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
+from utils.app_logging import log_event
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -78,17 +80,23 @@ async def _sync_draft_scheduler_loop() -> None:
 
     while True:
         try:
-            result = await sync_draft_visa_registrations(
-                spreadsheet_url=spreadsheet_url,
-                worksheet_name=worksheet_name,
-                sheet_mode=sheet_mode,
+            # DB, xóa R2, Google Sheet bên trong đều là blocking -> chạy ở thread
+            # riêng với event loop riêng để không làm đứng các request khác.
+            result = await asyncio.to_thread(
+                asyncio.run,
+                sync_draft_visa_registrations(
+                    spreadsheet_url=spreadsheet_url,
+                    worksheet_name=worksheet_name,
+                    sheet_mode=sheet_mode,
+                ),
             )
             print(
                 "[sync_draft_scheduler] completed "
                 f"matched={result.get('matched', 0)} "
                 f"updated={result.get('updated', 0)} "
                 f"skipped={result.get('skipped', 0)} "
-                f"display_only={result.get('display_only', 0)}"
+                f"display_only={result.get('display_only', 0)}",
+                flush=True,
             )
         except asyncio.CancelledError:
             print("[sync_draft_scheduler] cancelled")
@@ -193,17 +201,20 @@ async def sync_draft_visa_status(
     )
     if authorization.strip():
         append_authorization(authorization)
-    result = await sync_draft_visa_registrations(
-        page_num=page_num,
-        page_size=page_size,
-        authorization=authorization,
-        spreadsheet_url=spreadsheet_url,
-        worksheet_name=worksheet_name,
-        sheet_mode=sheet_mode,
-        statuses=statuses or None,
-        max_records=max_records,
-        concurrency=concurrency,
-        skip_google_sheet=skip_google_sheet,
+    result = await asyncio.to_thread(
+        asyncio.run,
+        sync_draft_visa_registrations(
+            page_num=page_num,
+            page_size=page_size,
+            authorization=authorization,
+            spreadsheet_url=spreadsheet_url,
+            worksheet_name=worksheet_name,
+            sheet_mode=sheet_mode,
+            statuses=statuses or None,
+            max_records=max_records,
+            concurrency=concurrency,
+            skip_google_sheet=skip_google_sheet,
+        ),
     )
     print(
         "[sync_draft_route] response "
@@ -340,6 +351,32 @@ def han_approval_retry(payload: dict[str, Any] = Body(...)):
     )
 
 
+_WEASYPRINT_LOCK = threading.Lock()
+
+
+def _render_html_and_upload(html_content: bytes, folder_name: str, filename: str) -> str:
+    started_at = time.perf_counter()
+    # WeasyPrint (Pango/fontconfig) không đảm bảo thread-safe -> render lần lượt.
+    with _WEASYPRINT_LOCK:
+        waited_at = time.perf_counter()
+        pdf_path = convert_html_to_pdf(html_content)
+    rendered_at = time.perf_counter()
+    r2_key = upload_pdf_to_r2(pdf_path, f"{folder_name}/")
+    log_event(
+        {
+            "step": "timing",
+            "phase": "html_to_pdf",
+            "filename": filename,
+            "html_bytes": len(html_content),
+            "lock_wait_seconds": round(waited_at - started_at, 2),
+            "render_seconds": round(rendered_at - waited_at, 2),
+            "upload_seconds": round(time.perf_counter() - rendered_at, 2),
+            "key": r2_key,
+        }
+    )
+    return r2_key
+
+
 @app.post("/upload-html-to-pdf")
 async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = Form(...)):
     try:
@@ -347,10 +384,9 @@ async def upload_html_to_pdf(file: UploadFile = File(...), folderName: str = For
             raise HTTPException(status_code=400, detail="File must be .html")
 
         html_content = await file.read()
-        pdf_path = convert_html_to_pdf(html_content)
-        r2_key = upload_pdf_to_r2(
-            pdf_path,
-            f"{folderName}/",
+        # WeasyPrint render + upload R2 đều blocking -> chạy ngoài event loop.
+        r2_key = await asyncio.to_thread(
+            _render_html_and_upload, html_content, folderName, file.filename
         )
 
         return {"message": "Upload thanh cong", "file_key": r2_key}
@@ -387,7 +423,8 @@ async def r2_images(
     file: UploadFile | None = File(None),
 ):
     file_bytes = await file.read() if file is not None else None
-    result = api_sign_and_push_image_to_r2(
+    result = await asyncio.to_thread(
+        api_sign_and_push_image_to_r2,
         mode=mode,
         folder=folder,
         key=key,

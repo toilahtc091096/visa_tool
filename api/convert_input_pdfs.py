@@ -1,5 +1,7 @@
 import os
 import re
+import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import PurePosixPath
 from typing import Any, Callable
@@ -7,6 +9,7 @@ from urllib.parse import quote
 
 import fitz
 
+from utils.app_logging import log_event
 from utils.r2_env import build_r2_client
 
 from .r2_download import api_download_r2_object_bytes
@@ -17,6 +20,9 @@ _RENDER_MATRIX = fitz.Matrix(1.5, 1.5)
 # Upload là phần chậm nhất (mỗi trang 1 request mạng) -> chạy song song.
 # Giữ <= max_pool_connections của R2 client (16).
 _UPLOAD_WORKERS = 8
+# PyMuPDF không thread-safe, kể cả khi mỗi thread mở 1 file khác nhau:
+# nhiều request convert cùng lúc phải render lần lượt (upload vẫn song song).
+_FITZ_LOCK = threading.Lock()
 
 
 def _page_key_prefix(pdf_key: str) -> str:
@@ -86,18 +92,17 @@ def render_pdf_pages_to_r2(
 ) -> dict[str, Any]:
     """Render từng trang PDF thành PNG và upload lên R2 với key `page_key(số trang)`.
 
-    Render tuần tự (fitz không thread-safe trên cùng 1 document) nhưng upload
+    Render tuần tự (giữ _FITZ_LOCK) nhưng upload
     song song: trang N đang upload trong lúc trang N+1 được render.
     Lỗi ở bất kỳ trang nào -> xóa các trang đã upload trong lần này.
     """
-    try:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    except Exception as exc:
-        return {"ok": False, "error": "invalid_pdf", "message": str(exc), "uploaded_pngs": []}
-
     futures: list[tuple[int, str, Future]] = []
     render_error: dict[str, Any] | None = None
-    with doc:
+    with _FITZ_LOCK:
+        try:
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        except Exception as exc:
+            return {"ok": False, "error": "invalid_pdf", "message": str(exc), "uploaded_pngs": []}
         page_count = len(doc)
         for page_index in range(page_count):
             page_number = page_index + 1
@@ -113,6 +118,7 @@ def render_pdf_pages_to_r2(
                 }
                 break
             futures.append((page_number, key, pool.submit(_upload_png, key, png_bytes)))
+        doc.close()
 
     uploaded_pngs: list[dict[str, Any]] = []
     failed = render_error
@@ -240,9 +246,21 @@ def api_convert_input_pdfs(download_key: str | None = None) -> dict[str, Any]:
         "content_length": download_result.get("content_length"),
         "content_type": download_result.get("content_type"),
     }
+    started_at = time.perf_counter()
     upload_result = _convert_pdf_bytes_to_png_uploads(
         download_result["key"],
         download_result["content"],
+    )
+    log_event(
+        {
+            "step": "timing",
+            "phase": "convert_pdf_to_pngs",
+            "key": download_key,
+            "ok": bool(upload_result.get("ok")),
+            "pages": upload_result.get("page_count", 0),
+            "error": upload_result.get("error"),
+            "seconds": round(time.perf_counter() - started_at, 2),
+        }
     )
     if not upload_result.get("ok"):
         return {
