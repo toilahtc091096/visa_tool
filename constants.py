@@ -1108,7 +1108,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "CHUNG_MINH_QUAN_HE": _files(S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
-            _files(S2_TAI_LIEU_KHAC_OUTPUT_PATH, 1),
+            _files(S2_TAI_LIEU_KHAC_OUTPUT_PATH, 4),
         ],
     },
 }
