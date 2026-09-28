@@ -129,6 +129,13 @@
    },
    {
     "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
      "annualIncome": "",
      "applyCountry": "",
      "applyid": "APPLY-0001",
@@ -136,18 +143,26 @@
      "d3": false,
      "embassy": "3001VNVNMA",
      "finishedStep": 9,
-     "jobType": "713007",
+     "jobType": "713017",
      "lang": "en_US",
-     "notApplyItems": [
-      {
-       "notApplyCode": "workExperience",
-       "remark": "CHUA DI LAM"
-      }
-     ],
+     "notApplyItems": [],
      "otherSpecify": "",
      "tempSaveFlag": false,
      "userId": "",
-     "workExperience": []
+     "workExperience": [
+      {
+       "beginDate": "2025-06",
+       "endDate": "2026-09",
+       "jobAddr": "5 YIHEYUAN ROAD",
+       "jobDuty": "GIANG VIEN",
+       "jobName": "PEKING UNIVERSITY",
+       "jobPosition": "GIANG VIEN",
+       "jobTel": "02463937481",
+       "sort": "1",
+       "supervisorName": "NGUYEN VAN AN",
+       "supervisorTel": "0913258495"
+      }
+     ]
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveWorkInfo"
@@ -162,7 +177,7 @@
        "endDate": "",
        "highestDegree": "714004",
        "schoolAddr": "",
-       "schoolName": "DAI HOC THANG LONG",
+       "schoolName": "DAI HOC GIAO THONG VAN TAI",
        "sort": "1",
        "specialty": "DAI HOC"
       }
@@ -191,7 +206,7 @@
      "finishedStep": 9,
      "haveSpouseFlag": false,
      "lang": "en_US",
-     "mobilePhoneNumber": "0938132584",
+     "mobilePhoneNumber": "0930100902",
      "notApplyItems": [
       {
        "notApplyCode": "spouse",
@@ -204,9 +219,9 @@
      ],
      "parents": [
       {
-       "birthday": "1968-01-08",
+       "birthday": "1967-07-04",
        "familyName": "NGUYEN",
-       "firstName": "THANH DAT",
+       "firstName": "DUC MANH",
        "inChinaFlag": false,
        "nationalityCountry": "VNM",
        "otherSpecify": "",
@@ -217,9 +232,9 @@
        "statusInChinaDetail": ""
       },
       {
-       "birthday": "1968-12-28",
-       "familyName": "MAI",
-       "firstName": "THI TAM",
+       "birthday": "1970-10-09",
+       "familyName": "NGO",
+       "firstName": "THI THAO",
        "inChinaFlag": false,
        "nationalityCountry": "VNM",
        "otherSpecify": "",
@@ -230,7 +245,7 @@
        "statusInChinaDetail": ""
       }
      ],
-     "phoneNumber": "0938132584",
+     "phoneNumber": "0930100902",
      "province": "",
      "relativeRelativeFlag": false,
      "relatives": [],
@@ -253,7 +268,7 @@
        "sort": "1"
       }
      ],
-     "streetAddr": "THANH TRI, HA NOI",
+     "streetAddr": "CAU GIAY, HA NOI",
      "tempSaveFlag": false,
      "userId": "",
      "zipCode": ""
@@ -278,13 +293,13 @@
      "disposableFundsCurrency": "",
      "embassy": "3001VNVNMA",
      "emergencyCity": "",
-     "emergencyContactFamilyName": "MAI",
-     "emergencyContactFirstName": "THI TAM",
+     "emergencyContactFamilyName": "NGO",
+     "emergencyContactFirstName": "THI THAO",
      "emergencyContactMiddlename": "",
      "emergencyCountry": "",
      "emergencyCounty": "",
      "emergencyEmail": "",
-     "emergencyPhoneNumber": "0961009021",
+     "emergencyPhoneNumber": "0968135235",
      "emergencyProvince": "",
      "emergencyRelation": "ME",
      "emergencyStreetAddr": "",
@@ -297,7 +312,7 @@
      "inviteCounty": "110115",
      "inviteEmail": "",
      "inviteName": "PEKING UNIVERSITY",
-     "invitePhoneNumber": "15966109491",
+     "invitePhoneNumber": "15908741476",
      "inviteProvince": "BJ",
      "inviteRelation": "TRUONG HOC",
      "inviteZipCode": "",
@@ -520,7 +535,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "F",
@@ -726,6 +741,13 @@
    },
    {
     "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
      "annualIncome": "",
      "applyCountry": "",
      "applyid": "APPLY-0001",
@@ -759,7 +781,7 @@
        "endDate": "",
        "highestDegree": "714004",
        "schoolAddr": "",
-       "schoolName": "DAI HOC THANG LONG",
+       "schoolName": "DAI HOC THUY LOI",
        "sort": "1",
        "specialty": "DAI HOC"
       }
@@ -788,7 +810,7 @@
      "finishedStep": 9,
      "haveSpouseFlag": false,
      "lang": "en_US",
-     "mobilePhoneNumber": "0938132584",
+     "mobilePhoneNumber": "0939374813",
      "notApplyItems": [
       {
        "notApplyCode": "spouse",
@@ -801,9 +823,9 @@
      ],
      "parents": [
       {
-       "birthday": "1968-01-08",
+       "birthday": "1968-09-26",
        "familyName": "NGUYEN",
-       "firstName": "THANH DAT",
+       "firstName": "HOANG ANH",
        "inChinaFlag": false,
        "nationalityCountry": "VNM",
        "otherSpecify": "",
@@ -814,9 +836,9 @@
        "statusInChinaDetail": ""
       },
       {
-       "birthday": "1968-12-28",
-       "familyName": "MAI",
-       "firstName": "THI TAM",
+       "birthday": "1968-10-12",
+       "familyName": "LY",
+       "firstName": "VAN OANH",
        "inChinaFlag": false,
        "nationalityCountry": "VNM",
        "otherSpecify": "",
@@ -827,7 +849,7 @@
        "statusInChinaDetail": ""
       }
      ],
-     "phoneNumber": "0938132584",
+     "phoneNumber": "0939374813",
      "province": "",
      "relativeRelativeFlag": false,
      "relatives": [],
@@ -850,7 +872,7 @@
        "sort": "1"
       }
      ],
-     "streetAddr": "THANH TRI, HA NOI",
+     "streetAddr": "HOAN KIEM, HA NOI",
      "tempSaveFlag": false,
      "userId": "",
      "zipCode": ""
@@ -875,13 +897,13 @@
      "disposableFundsCurrency": "",
      "embassy": "3001VNVNMA",
      "emergencyCity": "",
-     "emergencyContactFamilyName": "MAI",
-     "emergencyContactFirstName": "THI TAM",
+     "emergencyContactFamilyName": "LY",
+     "emergencyContactFirstName": "VAN OANH",
      "emergencyContactMiddlename": "",
      "emergencyCountry": "",
      "emergencyCounty": "",
      "emergencyEmail": "",
-     "emergencyPhoneNumber": "0961009021",
+     "emergencyPhoneNumber": "0965010090",
      "emergencyProvince": "",
      "emergencyRelation": "ME",
      "emergencyStreetAddr": "",
@@ -894,7 +916,7 @@
      "inviteCounty": "110115",
      "inviteEmail": "",
      "inviteName": "GreenTree Inn Beijing East Yizhuang District Second Kechuang Street Express Hotel",
-     "invitePhoneNumber": "15966109491",
+     "invitePhoneNumber": "15921661094",
      "inviteProvince": "BJ",
      "inviteRelation": "KHACH SAN",
      "inviteZipCode": "",
@@ -1300,6 +1322,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -1736,7 +1765,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "L",
@@ -2005,6 +2034,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -2437,7 +2473,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "L",
@@ -2706,6 +2742,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -3805,7 +3848,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "L",
@@ -4074,6 +4117,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -4505,7 +4555,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "L",
@@ -4690,13 +4740,249 @@
    },
    {
     "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "birthday": "1990-01-01",
+     "birthplaceCity": "HA NOI",
+     "birthplaceCountry": "VNM",
+     "birthplaceCounty": "",
+     "birthplaceProvince": "HA NOI",
+     "childrenFlag": false,
+     "chineseName": "",
+     "embassy": "3001VNVNMA",
+     "expirationDate": "2032-01-01",
+     "finishedStep": 9,
+     "formerName": "",
+     "formerNationals": [],
+     "gender": 1,
+     "haveFormerNationalityFlag": false,
+     "haveOtherNationalityFlag": false,
+     "havePermanentFlag": false,
+     "issueCountry": "VNM",
+     "issueDate": "",
+     "issuePlace": "CQLXNC",
+     "issueUnit": "",
+     "joinNationalityDate": "",
+     "lang": "en_US",
+     "localName": "",
+     "lostPassportFlag": false,
+     "lostPassports": [],
+     "maritalStatus": "706003",
+     "nationalityCountry": "VNM",
+     "nationalityIdcard": "001090000001",
+     "notApplyItems": [],
+     "otherName": "",
+     "otherNationals": [],
+     "otherPassportinfo": "",
+     "otherSpecify": "",
+     "passport": "707001",
+     "passportFamilyName": "NGUYEN",
+     "passportFirstName": "VAN AN",
+     "passportNumber": "SNAP0001",
+     "passportPath": "FILE-1",
+     "permanentCountries": "",
+     "photoDetectionResult": 0,
+     "photoPath": "",
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SavePersonInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyMaxStayDays": "15",
+     "applyReason": {
+      "missionName": "",
+      "name": "",
+      "newPredecessorFlag": "",
+      "otherSpecify": "",
+      "personalMatters": "",
+      "predecessorName": "",
+      "relation": "",
+      "residencePermit": "",
+      "residentName": "",
+      "talentProgrammeName": "",
+      "travelAgencyLicenseNo": "",
+      "travelAgencyName": ""
+     },
+     "applyVisaTimes": "703001",
+     "applyVisaValidity": 3,
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "groupVisaFlag": true,
+     "lang": "en_US",
+     "notApplyItems": [],
+     "serviceType": "701001",
+     "tempSaveFlag": false,
+     "travelAgencyLicenseNo": "",
+     "userId": "",
+     "visaPurpose": 709001,
+     "visaType": 710001
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
+     "annualIncome": "",
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "currency": "",
+     "d3": false,
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "jobType": "713009",
+     "lang": "en_US",
+     "notApplyItems": [],
+     "otherSpecify": "",
+     "tempSaveFlag": false,
+     "userId": "",
+     "workExperience": [
+      {
+       "beginDate": "2025-03",
+       "endDate": "2026-09",
+       "jobAddr": "HA NOI",
+       "jobDuty": "PHO TONG GIAM DOC",
+       "jobName": "CONG TY CO PHAN CONG NGHE SO DAI VIET",
+       "jobPosition": "PHO TONG GIAM DOC",
+       "jobTel": "02437481325",
+       "sort": "1",
+       "supervisorName": "VO VAN TUAN",
+       "supervisorTel": "0914950350"
+      }
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveWorkInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "educationExperience": [
+      {
+       "beginDate": "",
+       "endDate": "",
+       "highestDegree": "714004",
+       "schoolAddr": "",
+       "schoolName": "DAI HOC QUOC GIA HA NOI",
+       "sort": "1",
+       "specialty": "DAI HOC"
+      }
+     ],
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "lang": "en_US",
+     "language": "",
+     "notApplyItems": [],
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveEducationInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "children": [],
+     "city": "",
+     "country": "",
+     "county": "",
+     "email": "",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "haveSpouseFlag": false,
+     "lang": "en_US",
+     "mobilePhoneNumber": "0939021661",
+     "notApplyItems": [
+      {
+       "notApplyCode": "spouse",
+       "remark": ""
+      },
+      {
+       "notApplyCode": "children",
+       "remark": ""
+      }
+     ],
+     "parents": [
+      {
+       "birthday": "1966-05-26",
+       "familyName": "NGUYEN",
+       "firstName": "BAO LONG",
+       "inChinaFlag": false,
+       "nationalityCountry": "VNM",
+       "otherSpecify": "",
+       "profession": "",
+       "relation": "727002",
+       "sort": "1",
+       "statusInChina": "",
+       "statusInChinaDetail": ""
+      },
+      {
+       "birthday": "1966-02-18",
+       "familyName": "PHAM",
+       "firstName": "THI DUNG",
+       "inChinaFlag": false,
+       "nationalityCountry": "VNM",
+       "otherSpecify": "",
+       "profession": "",
+       "relation": "727003",
+       "sort": "1",
+       "statusInChina": "",
+       "statusInChinaDetail": ""
+      }
+     ],
+     "phoneNumber": "0939021661",
+     "province": "",
+     "relativeRelativeFlag": false,
+     "relatives": [],
+     "spouses": [
+      {
+       "address": "",
+       "birthCity": "",
+       "birthCountry": "",
+       "birthCounty": "",
+       "birthday": "",
+       "city": "",
+       "country": "",
+       "county": "",
+       "familyName": "",
+       "firstName": "",
+       "nationalityCountry": "",
+       "otherSpecify": "",
+       "profession": "",
+       "province": "",
+       "sort": "1"
+      }
+     ],
+     "streetAddr": "HOAN KIEM, HA NOI",
+     "tempSaveFlag": false,
+     "userId": "",
+     "zipCode": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveFamilyInfo"
+   },
+   {
+    "body": {
      "applyid": "APPLY-0001",
      "arrivalCity": "CAN1",
      "arrivalCityDate": "",
      "arrivalCounty": "440105",
      "arrivalDate": "2026-10-12",
      "arrivalDistrict": "",
-     "arrivalVehicleType": "CZ 8362",
+     "arrivalVehicleType": "VN 0530",
      "departureCity": "",
      "departureCounty": "",
      "departureDate": "",
@@ -4705,15 +4991,15 @@
      "disposableFundsCurrency": "",
      "embassy": "3001VNVNMA",
      "emergencyCity": "",
-     "emergencyContactFamilyName": "DANG",
-     "emergencyContactFirstName": "VAN NAM",
+     "emergencyContactFamilyName": "PHAM",
+     "emergencyContactFirstName": "THI DUNG",
      "emergencyContactMiddlename": "",
      "emergencyCountry": "",
      "emergencyCounty": "",
      "emergencyEmail": "",
-     "emergencyPhoneNumber": "0969374813",
+     "emergencyPhoneNumber": "0960874147",
      "emergencyProvince": "",
-     "emergencyRelation": "NGUOI THAN",
+     "emergencyRelation": "ME",
      "emergencyStreetAddr": "",
      "emergencyZipCode": "",
      "finishedStep": 9,
@@ -4724,7 +5010,7 @@
      "inviteCounty": "",
      "inviteEmail": "",
      "inviteName": "L-Magic Design hotel ( L-Magic 设计酒店)",
-     "invitePhoneNumber": "15925849503",
+     "invitePhoneNumber": "15962335084",
      "inviteProvince": "GD",
      "inviteRelation": "KHACH SAN",
      "inviteZipCode": "",
@@ -4732,7 +5018,7 @@
      "leaveCity": "CAN1",
      "leaveCounty": "",
      "leaveDate": "2026-10-17",
-     "leaveVehicleType": "CZ 8366",
+     "leaveVehicleType": "VN 0534",
      "notApplyItems": [],
      "payForTravel": "708001",
      "payForTravelAddr": "",
@@ -4902,26 +5188,6 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveSignatureInfo"
-   },
-   {
-    "body": "<multipart>",
-    "method": "POST",
-    "path": "/VISA/api/cova-service/Visa/State/V1/RemoveApMaterial"
-   },
-   {
-    "body": "<multipart>",
-    "method": "POST",
-    "path": "/VISA/api/cova-service/Visa/State/V1/RemoveApMaterial"
-   },
-   {
-    "body": "<multipart>",
-    "method": "POST",
-    "path": "/VISA/api/cova-service/Visa/State/V1/RemoveApMaterial"
-   },
-   {
-    "body": "<multipart>",
-    "method": "POST",
-    "path": "/VISA/api/cova-service/Visa/State/V1/RemoveApMaterial"
    }
   ],
   "r2": [
@@ -4965,14 +5231,14 @@
     "kind": "flight_ticket",
     "output_path": "chung\\ve_may_bay",
     "payload": {
-     "arrive_flight_number": "8362",
+     "arrive_flight_number": "0530",
      "arrived_iata_code": "CAN",
      "arrvied_city": "GUANGZHOU",
      "departure_city": "GUANGZHOU",
-     "departure_flight_number": "8366",
+     "departure_flight_number": "0534",
      "departure_iata_code": "CAN",
      "end": "2026-10-17",
-     "file_name": "VE_MAY_BAY_L15_B_Jet.docx",
+     "file_name": "Ve_VN_Air.docx",
      "first": "2026-10-12",
      "names": [
       "NGUYEN VAN AN"
@@ -4997,7 +5263,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "L",
@@ -5022,6 +5288,120 @@
     "categoryCode": "12025063014542307352106",
     "file": "chung/khach_san/file0.jpg",
     "materialCode": "mfa-002_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025070216180808782737",
+    "file": "chung/2_trang_ho_chieu_trang/file0.jpg",
+    "materialCode": "mfa-017_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025070216180808782737",
+    "file": "chung/2_trang_ho_chieu_trang/file1.jpg",
+    "materialCode": "mfa-017_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062216413672273869",
+    "file": "chung/sao_ke_ngan_hang/file0.jpg",
+    "materialCode": "mfa-007_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062216413672273869",
+    "file": "chung/sao_ke_ngan_hang/file1.jpg",
+    "materialCode": "mfa-007_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114073725280378",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/file0.jpg",
+    "materialCode": "mfa-030_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114211484037531",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/file0.jpg",
+    "materialCode": "mfa-044_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114211484037531",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/file1.jpg",
+    "materialCode": "mfa-044_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114211484037531",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/file2.jpg",
+    "materialCode": "mfa-044_3"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114211484037531",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/file3.jpg",
+    "materialCode": "mfa-044_4"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114131912554297",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/file0.jpg",
+    "materialCode": "mfa-033_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114131912554297",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/file1.jpg",
+    "materialCode": "mfa-033_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22026072917255869849620",
+    "file": "duoi_18_tuoi/giay_to_cho_nguoi_duoi_18/file0.jpg",
+    "materialCode": "mfa-039_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22026072917255869849620",
+    "file": "duoi_18_tuoi/giay_to_cho_nguoi_duoi_18/file1.jpg",
+    "materialCode": "mfa-039_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22026072917255869849620",
+    "file": "duoi_18_tuoi/giay_to_cho_nguoi_duoi_18/file2.jpg",
+    "materialCode": "mfa-039_3"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22026072917255869849620",
+    "file": "duoi_18_tuoi/giay_to_cho_nguoi_duoi_18/file3.jpg",
+    "materialCode": "mfa-039_4"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22026072917255869849620",
+    "file": "duoi_18_tuoi/giay_to_cho_nguoi_duoi_18/file4.jpg",
+    "materialCode": "mfa-039_5"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114213765489140",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_cac_nuoc_khac_anh_ho_chieu/file0.jpg",
+    "materialCode": "mfa-011_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114213765489140",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_cac_nuoc_khac_anh_ho_chieu/file1.jpg",
+    "materialCode": "mfa-011_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062114213765489140",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_cac_nuoc_khac_anh_ho_chieu/file2.jpg",
+    "materialCode": "mfa-011_3"
    }
   ]
  },
@@ -5152,6 +5532,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -5600,7 +5987,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "L",
@@ -5883,6 +6270,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -6285,7 +6679,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "M",
@@ -6560,6 +6954,13 @@
     },
     "method": "POST",
     "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
    },
    {
     "body": {
@@ -7220,6 +7621,13 @@
    },
    {
     "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
      "annualIncome": "",
      "applyCountry": "",
      "applyid": "APPLY-0001",
@@ -7374,9 +7782,9 @@
     "body": {
      "applyid": "APPLY-0001",
      "arrivalCity": "BEIJING",
-     "arrivalCityDate": "2026-10-25",
+     "arrivalCityDate": "2026-10-28",
      "arrivalCounty": "CHAOYANG",
-     "arrivalDate": "2026-10-25",
+     "arrivalDate": "2026-10-28",
      "arrivalDistrict": "",
      "arrivalVehicleType": "",
      "departureCity": "BEIJING",
@@ -7413,7 +7821,7 @@
      "lang": "en_US",
      "leaveCity": "BEIJING",
      "leaveCounty": "CHAOYANG",
-     "leaveDate": "2027-04-25",
+     "leaveDate": "2027-04-28",
      "leaveVehicleType": "",
      "notApplyItems": [],
      "payForTravel": "708001",
@@ -7439,8 +7847,8 @@
      "stayDistrict": "CHAOYANG",
      "stayInfo": [
       {
-       "arrivalDate": "2026-10-25",
-       "leaveDate": "2027-04-25",
+       "arrivalDate": "2026-10-28",
+       "leaveDate": "2027-04-28",
        "sort": 1,
        "stayCity": "BEIJING",
        "stayCounty": "CHAOYANG",
@@ -7621,11 +8029,11 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "Q1",
-     "visa_type_number": "1"
+     "visa_type_number": "000"
     }
    },
    {
@@ -7659,7 +8067,7 @@
      "siblings": "□",
      "spouse": "☑",
      "spouseParents": "□",
-     "today_day": "25",
+     "today_day": "28",
      "today_month": "09",
      "today_year": "2026",
      "visa_duration": ""
@@ -7882,6 +8290,13 @@
    },
    {
     "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
      "annualIncome": "",
      "applyCountry": "",
      "applyid": "APPLY-0001",
@@ -8036,9 +8451,9 @@
     "body": {
      "applyid": "APPLY-0001",
      "arrivalCity": "SHANGHAI",
-     "arrivalCityDate": "2026-10-25",
+     "arrivalCityDate": "2026-10-28",
      "arrivalCounty": "",
-     "arrivalDate": "2026-10-25",
+     "arrivalDate": "2026-10-28",
      "arrivalDistrict": "",
      "arrivalVehicleType": "",
      "departureCity": "SHANGHAI",
@@ -8075,7 +8490,7 @@
      "lang": "en_US",
      "leaveCity": "SHANGHAI",
      "leaveCounty": "",
-     "leaveDate": "2027-04-25",
+     "leaveDate": "2027-04-28",
      "leaveVehicleType": "",
      "notApplyItems": [],
      "payForTravel": "708001",
@@ -8101,8 +8516,8 @@
      "stayDistrict": "",
      "stayInfo": [
       {
-       "arrivalDate": "2026-10-25",
-       "leaveDate": "2027-04-25",
+       "arrivalDate": "2026-10-28",
+       "leaveDate": "2027-04-28",
        "sort": 1,
        "stayCity": "SHANGHAI",
        "stayCounty": "",
@@ -8283,7 +8698,7 @@
      "passportNo": "SNAP0001",
      "passportNumber": "SNAP0001",
      "sex": "M",
-     "submit_day_dd": "25",
+     "submit_day_dd": "28",
      "submit_month_mm": "09",
      "submit_year_yyyy": "2026",
      "visa_type_first": "Q2",
@@ -8321,7 +8736,7 @@
      "siblings": "☑",
      "spouse": "□",
      "spouseParents": "□",
-     "today_day": "25",
+     "today_day": "28",
      "today_month": "09",
      "today_year": "2026",
      "visa_duration": ""
@@ -8399,6 +8814,1248 @@
     "categoryCode": "12025062115232232717451",
     "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/file0.jpg",
     "materialCode": "mfa-030_4"
+   }
+  ]
+ },
+ "S2_family_member": {
+  "db": [
+   {
+    "first_applyid": "APPLY-0001",
+    "full_name": "VAN AN NGUYEN",
+    "visa_type": "S2"
+   }
+  ],
+  "http": [
+   {
+    "body": {
+     "applyid": [
+      "2026052752203677110"
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/GetEducationInfo"
+   },
+   {
+    "body": "<multipart>",
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/PassportOCR"
+   },
+   {
+    "body": {
+     "PageNumber": 1,
+     "PageSize": 10,
+     "embassy": "3001VNVNMA"
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/GetDraftList"
+   },
+   {
+    "body": {
+     "applyid": [
+      "APPLY-0001"
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/GetPersonInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "birthday": "1990-01-01",
+     "birthplaceCity": "HA NOI",
+     "birthplaceCountry": "VNM",
+     "birthplaceCounty": "",
+     "birthplaceProvince": "HA NOI",
+     "childrenFlag": false,
+     "chineseName": "",
+     "embassy": "3001VNVNMA",
+     "expirationDate": "2032-01-01",
+     "finishedStep": 9,
+     "formerName": "",
+     "formerNationals": [],
+     "gender": 1,
+     "haveFormerNationalityFlag": false,
+     "haveOtherNationalityFlag": false,
+     "havePermanentFlag": false,
+     "issueCountry": "VNM",
+     "issueDate": "",
+     "issuePlace": "CQLXNC",
+     "issueUnit": "",
+     "joinNationalityDate": "",
+     "lang": "en_US",
+     "localName": "",
+     "lostPassportFlag": false,
+     "lostPassports": [],
+     "maritalStatus": "706003",
+     "nationalityCountry": "VNM",
+     "nationalityIdcard": "001090000001",
+     "notApplyItems": [],
+     "otherName": "",
+     "otherNationals": [],
+     "otherPassportinfo": "",
+     "otherSpecify": "",
+     "passport": "707001",
+     "passportFamilyName": "NGUYEN",
+     "passportFirstName": "VAN AN",
+     "passportNumber": "SNAP0001",
+     "passportPath": "FILE-1",
+     "permanentCountries": "",
+     "photoDetectionResult": 0,
+     "photoPath": "",
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SavePersonInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyMaxStayDays": "2",
+     "applyReason": {
+      "missionName": "",
+      "name": "SMITHJOHN",
+      "newPredecessorFlag": "",
+      "otherSpecify": "",
+      "personalMatters": "",
+      "predecessorName": "",
+      "relation": "SPOUSE",
+      "residencePermit": "",
+      "residentName": "",
+      "talentProgrammeName": "",
+      "travelAgencyLicenseNo": "",
+      "travelAgencyName": ""
+     },
+     "applyVisaTimes": "703001",
+     "applyVisaValidity": 6,
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "groupVisaFlag": true,
+     "lang": "en_US",
+     "notApplyItems": [],
+     "serviceType": "701001",
+     "tempSaveFlag": false,
+     "travelAgencyLicenseNo": "",
+     "userId": "",
+     "visaPurpose": 709007,
+     "visaType": 710020
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
+     "annualIncome": "",
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "currency": "",
+     "d3": false,
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "jobType": "713009",
+     "lang": "en_US",
+     "notApplyItems": [],
+     "otherSpecify": "",
+     "tempSaveFlag": false,
+     "userId": "",
+     "workExperience": [
+      {
+       "beginDate": "2025-03",
+       "endDate": "2026-09",
+       "jobAddr": "HA NOI",
+       "jobDuty": "PHO TONG GIAM DOC",
+       "jobName": "CONG TY CO PHAN CONG NGHE SO DAI VIET",
+       "jobPosition": "PHO TONG GIAM DOC",
+       "jobTel": "02437481325",
+       "sort": "1",
+       "supervisorName": "VO VAN TUAN",
+       "supervisorTel": "0914950350"
+      }
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveWorkInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "educationExperience": [
+      {
+       "beginDate": "",
+       "endDate": "",
+       "highestDegree": "714004",
+       "schoolAddr": "",
+       "schoolName": "DAI HOC QUOC GIA HA NOI",
+       "sort": "1",
+       "specialty": "DAI HOC"
+      }
+     ],
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "lang": "en_US",
+     "language": "",
+     "notApplyItems": [],
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveEducationInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "children": [],
+     "city": "",
+     "country": "",
+     "county": "",
+     "email": "",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "haveSpouseFlag": false,
+     "lang": "en_US",
+     "mobilePhoneNumber": "0939021661",
+     "notApplyItems": [
+      {
+       "notApplyCode": "spouse",
+       "remark": ""
+      },
+      {
+       "notApplyCode": "children",
+       "remark": ""
+      }
+     ],
+     "parents": [
+      {
+       "birthday": "1966-05-26",
+       "familyName": "NGUYEN",
+       "firstName": "BAO LONG",
+       "inChinaFlag": false,
+       "nationalityCountry": "VNM",
+       "otherSpecify": "",
+       "profession": "",
+       "relation": "727002",
+       "sort": "1",
+       "statusInChina": "",
+       "statusInChinaDetail": ""
+      },
+      {
+       "birthday": "1966-02-18",
+       "familyName": "PHAM",
+       "firstName": "THI DUNG",
+       "inChinaFlag": false,
+       "nationalityCountry": "VNM",
+       "otherSpecify": "",
+       "profession": "",
+       "relation": "727003",
+       "sort": "1",
+       "statusInChina": "",
+       "statusInChinaDetail": ""
+      }
+     ],
+     "phoneNumber": "0939021661",
+     "province": "",
+     "relativeRelativeFlag": true,
+     "relatives": [
+      {
+       "address": "",
+       "familyName": "SMITH",
+       "firstName": "JOHN",
+       "relation": "SPOUSE",
+       "sort": "1",
+       "statusInChina": "702001",
+       "statusInChinaDetail": ""
+      }
+     ],
+     "spouses": [
+      {
+       "address": "",
+       "birthCity": "",
+       "birthCountry": "",
+       "birthCounty": "",
+       "birthday": "",
+       "city": "",
+       "country": "",
+       "county": "",
+       "familyName": "",
+       "firstName": "",
+       "nationalityCountry": "",
+       "otherSpecify": "",
+       "profession": "",
+       "province": "",
+       "sort": "1"
+      }
+     ],
+     "streetAddr": "HOAN KIEM, HA NOI",
+     "tempSaveFlag": false,
+     "userId": "",
+     "zipCode": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveFamilyInfo"
+   },
+   {
+    "body": {
+     "applyid": "APPLY-0001",
+     "arrivalCity": "SHANGHAI",
+     "arrivalCityDate": "2026-10-28",
+     "arrivalCounty": "",
+     "arrivalDate": "2026-10-28",
+     "arrivalDistrict": "",
+     "arrivalVehicleType": "",
+     "departureCity": "SHANGHAI",
+     "departureCounty": "",
+     "departureDate": "",
+     "departureDistrict": "",
+     "disposableFunds": "",
+     "disposableFundsCurrency": "",
+     "embassy": "3001VNVNMA",
+     "emergencyCity": "",
+     "emergencyContactFamilyName": "PHAM",
+     "emergencyContactFirstName": "THI DUNG",
+     "emergencyContactMiddlename": "",
+     "emergencyCountry": "",
+     "emergencyCounty": "",
+     "emergencyEmail": "",
+     "emergencyPhoneNumber": "0965235087",
+     "emergencyProvince": "",
+     "emergencyRelation": "ME",
+     "emergencyStreetAddr": "",
+     "emergencyZipCode": "",
+     "finishedStep": 9,
+     "havePeersFlag": false,
+     "invitationNumber": "",
+     "inviteCity": "SHANGHAI",
+     "inviteCompanyName": "SMITH JOHN",
+     "inviteCounty": "",
+     "inviteEmail": "",
+     "inviteName": "SMITH JOHN",
+     "invitePhoneNumber": "",
+     "inviteProvince": "",
+     "inviteRelation": "SPOUSE",
+     "inviteZipCode": "",
+     "lang": "en_US",
+     "leaveCity": "SHANGHAI",
+     "leaveCounty": "",
+     "leaveDate": "2027-04-28",
+     "leaveVehicleType": "",
+     "notApplyItems": [],
+     "payForTravel": "708001",
+     "payForTravelAddr": "",
+     "payForTravelCountry": "",
+     "payForTravelEmail": "",
+     "payForTravelName": "",
+     "payForTravelOrganizationName": "",
+     "payForTravelPhoneNumber": "",
+     "payForTravelRelation": "",
+     "sponsorCity": "",
+     "sponsorCountry": "",
+     "sponsorCounty": "",
+     "sponsorEmail": "",
+     "sponsorName": "",
+     "sponsorPhoneNumber": "",
+     "sponsorProvince": "",
+     "sponsorRelation": "",
+     "sponsorType": "",
+     "sponsorZipCode": "",
+     "stayCity": "SHANGHAI",
+     "stayCounty": "",
+     "stayDistrict": "",
+     "stayInfo": [
+      {
+       "arrivalDate": "2026-10-28",
+       "leaveDate": "2027-04-28",
+       "sort": 1,
+       "stayCity": "SHANGHAI",
+       "stayCounty": "",
+       "travelAddr": ""
+      }
+     ],
+     "tempSaveFlag": false,
+     "travelAddr": "",
+     "travelCompanion": [],
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveTravelInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "arrivedChinaFlag": false,
+     "chinaResidenceLicenseFlag": false,
+     "collectFingerprintCountry": "",
+     "collectFingerprintDate": "",
+     "collectFingerprintFlag": false,
+     "collectFingerprintPlace": "",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "firstApplyChinaVisaFlag": false,
+     "haveChinaVisaFlag": false,
+     "haveOtherVisaFlag": false,
+     "issueDate": "",
+     "issuePlace": "",
+     "lang": "en_US",
+     "lostChinaVisaDate": "",
+     "lostChinaVisaFlag": "",
+     "lostChinaVisaNumber": "",
+     "lostChinaVisaPlace": "",
+     "notApplyItems": [],
+     "otherCountries": "",
+     "otherVisas": "",
+     "previousTravelInChinaInfos": [],
+     "provideChinaVisaDetailFlag": "",
+     "residenceLicenseNumber": "",
+     "tempSaveFlag": false,
+     "userId": "",
+     "visaNumber": "",
+     "visaType": "",
+     "visitedOtherCountryFlag": false
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SavePreviousTravelInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "itemValue3": "",
+     "lang": "en_US",
+     "militaryServiceInfos": [],
+     "notApplyItems": [],
+     "otherInfoItems": [
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "1"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "2"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "3"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "4"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "5"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "6"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "7"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "8"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "9"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "10"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "11"
+      }
+     ],
+     "otherProblemFlag": false,
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveOtherInfo"
+   },
+   {
+    "body": {
+     "W2": "752001",
+     "agentAddr": "KDT DUONG NOI, HA DONG, HA NOI",
+     "agentFlag": false,
+     "agentName": "CONG TY TNHH DU LICH WM TRAVEL VIETNAM",
+     "agentTel": "0936188491",
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "lang": "en_US",
+     "relationship": "CONG TY DU LICH",
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveSignatureInfo"
+   }
+  ],
+  "r2": [
+   [
+    "delete",
+    "SNAP0001/chung/khach_san"
+   ],
+   [
+    "delete",
+    "SNAP0001/chung/ve_may_bay"
+   ],
+   [
+    "delete",
+    "SNAP0001/chung/xac_nhan_tu_trung_tam_visa"
+   ],
+   [
+    "data_folder",
+    "SNAP0001"
+   ]
+  ],
+  "renders": [
+   {
+    "kind": "visa_center_confirmation",
+    "output_path": "chung\\xac_nhan_tu_trung_tam_visa",
+    "payload": {
+     "birth_date_dd_mm_yyyy": "01.01.1990",
+     "entries_type": "S",
+     "expired_day_dd_mm_yyyy": "01.01.2032",
+     "file_name": "CV_phong.docx",
+     "names": [
+      "NGUYEN VAN AN"
+     ],
+     "nationality": "Viet Nam",
+     "passengers": [],
+     "passportNo": "SNAP0001",
+     "passportNumber": "SNAP0001",
+     "sex": "M",
+     "submit_day_dd": "28",
+     "submit_month_mm": "09",
+     "submit_year_yyyy": "2026",
+     "visa_type_first": "S2",
+     "visa_type_number": "2"
+    }
+   }
+  ],
+  "result": {
+   "first_applyid": "APPLY-0001",
+   "ok": true,
+   "record_id": 1
+  },
+  "uploads": [
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025070216180808782737",
+    "file": "chung/2_trang_ho_chieu_trang/file0.jpg",
+    "materialCode": "mfa-017_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025070216180808782737",
+    "file": "chung/2_trang_ho_chieu_trang/file1.jpg",
+    "materialCode": "mfa-017_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114131912554297",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/file0.jpg",
+    "materialCode": "mfa-033_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114073725280378",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/file0.jpg",
+    "materialCode": "mfa-030_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115424944966353",
+    "file": "tham-than/thu-moi/file0.jpg",
+    "materialCode": "mfa-122_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115452102589065",
+    "file": "tham-than/cccd/file0.jpg",
+    "materialCode": "mfa-123_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115452102589065",
+    "file": "tham-than/cccd/file1.jpg",
+    "materialCode": "mfa-123_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115515363163065",
+    "file": "tham-than/quan-he/file0.jpg",
+    "materialCode": "mfa-125_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115515363163065",
+    "file": "tham-than/quan-he/file1.jpg",
+    "materialCode": "mfa-125_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115515363163065",
+    "file": "tham-than/quan-he/file2.jpg",
+    "materialCode": "mfa-125_3"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115571999891100",
+    "file": "chung/xac_nhan_tu_trung_tam_visa/file0.jpg",
+    "materialCode": "mfa-134_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115571999891100",
+    "file": "tham-than/tai-lieu-khac/file0.jpg",
+    "materialCode": "mfa-134_2"
+   }
+  ]
+ },
+ "S2_personal_matters": {
+  "db": [
+   {
+    "first_applyid": "APPLY-0001",
+    "full_name": "VAN AN NGUYEN",
+    "visa_type": "S2"
+   }
+  ],
+  "http": [
+   {
+    "body": {
+     "applyid": [
+      "2026052752203677110"
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/GetEducationInfo"
+   },
+   {
+    "body": "<multipart>",
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/PassportOCR"
+   },
+   {
+    "body": {
+     "PageNumber": 1,
+     "PageSize": 10,
+     "embassy": "3001VNVNMA"
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/GetDraftList"
+   },
+   {
+    "body": {
+     "applyid": [
+      "APPLY-0001"
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/GetPersonInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "birthday": "1990-01-01",
+     "birthplaceCity": "HA NOI",
+     "birthplaceCountry": "VNM",
+     "birthplaceCounty": "",
+     "birthplaceProvince": "HA NOI",
+     "childrenFlag": false,
+     "chineseName": "",
+     "embassy": "3001VNVNMA",
+     "expirationDate": "2032-01-01",
+     "finishedStep": 9,
+     "formerName": "",
+     "formerNationals": [],
+     "gender": 1,
+     "haveFormerNationalityFlag": false,
+     "haveOtherNationalityFlag": false,
+     "havePermanentFlag": false,
+     "issueCountry": "VNM",
+     "issueDate": "",
+     "issuePlace": "CQLXNC",
+     "issueUnit": "",
+     "joinNationalityDate": "",
+     "lang": "en_US",
+     "localName": "",
+     "lostPassportFlag": false,
+     "lostPassports": [],
+     "maritalStatus": "706003",
+     "nationalityCountry": "VNM",
+     "nationalityIdcard": "001090000001",
+     "notApplyItems": [],
+     "otherName": "",
+     "otherNationals": [],
+     "otherPassportinfo": "",
+     "otherSpecify": "",
+     "passport": "707001",
+     "passportFamilyName": "NGUYEN",
+     "passportFirstName": "VAN AN",
+     "passportNumber": "SNAP0001",
+     "passportPath": "FILE-1",
+     "permanentCountries": "",
+     "photoDetectionResult": 0,
+     "photoPath": "",
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SavePersonInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyMaxStayDays": "2",
+     "applyReason": {
+      "missionName": "",
+      "name": "",
+      "newPredecessorFlag": "",
+      "otherSpecify": "",
+      "personalMatters": "",
+      "predecessorName": "",
+      "relation": "",
+      "residencePermit": "",
+      "residentName": "",
+      "talentProgrammeName": "",
+      "travelAgencyLicenseNo": "",
+      "travelAgencyName": ""
+     },
+     "applyVisaTimes": "703001",
+     "applyVisaValidity": 6,
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "groupVisaFlag": true,
+     "lang": "en_US",
+     "notApplyItems": [],
+     "serviceType": "701001",
+     "tempSaveFlag": false,
+     "travelAgencyLicenseNo": "",
+     "userId": "",
+     "visaPurpose": 709007,
+     "visaType": 710021
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveApplyInfo"
+   },
+   {
+    "body": {
+     "passportNo": "SNAP0001"
+    },
+    "method": "POST",
+    "path": "/staging-api/application/online/list"
+   },
+   {
+    "body": {
+     "annualIncome": "",
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "currency": "",
+     "d3": false,
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "jobType": "713009",
+     "lang": "en_US",
+     "notApplyItems": [],
+     "otherSpecify": "",
+     "tempSaveFlag": false,
+     "userId": "",
+     "workExperience": [
+      {
+       "beginDate": "2025-03",
+       "endDate": "2026-09",
+       "jobAddr": "HA NOI",
+       "jobDuty": "PHO TONG GIAM DOC",
+       "jobName": "CONG TY CO PHAN CONG NGHE SO DAI VIET",
+       "jobPosition": "PHO TONG GIAM DOC",
+       "jobTel": "02437481325",
+       "sort": "1",
+       "supervisorName": "VO VAN TUAN",
+       "supervisorTel": "0914950350"
+      }
+     ]
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveWorkInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "educationExperience": [
+      {
+       "beginDate": "",
+       "endDate": "",
+       "highestDegree": "714004",
+       "schoolAddr": "",
+       "schoolName": "DAI HOC QUOC GIA HA NOI",
+       "sort": "1",
+       "specialty": "DAI HOC"
+      }
+     ],
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "lang": "en_US",
+     "language": "",
+     "notApplyItems": [],
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveEducationInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "children": [],
+     "city": "",
+     "country": "",
+     "county": "",
+     "email": "",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "haveSpouseFlag": false,
+     "lang": "en_US",
+     "mobilePhoneNumber": "0939021661",
+     "notApplyItems": [
+      {
+       "notApplyCode": "spouse",
+       "remark": ""
+      },
+      {
+       "notApplyCode": "children",
+       "remark": ""
+      }
+     ],
+     "parents": [
+      {
+       "birthday": "1966-05-26",
+       "familyName": "NGUYEN",
+       "firstName": "BAO LONG",
+       "inChinaFlag": false,
+       "nationalityCountry": "VNM",
+       "otherSpecify": "",
+       "profession": "",
+       "relation": "727002",
+       "sort": "1",
+       "statusInChina": "",
+       "statusInChinaDetail": ""
+      },
+      {
+       "birthday": "1966-02-18",
+       "familyName": "PHAM",
+       "firstName": "THI DUNG",
+       "inChinaFlag": false,
+       "nationalityCountry": "VNM",
+       "otherSpecify": "",
+       "profession": "",
+       "relation": "727003",
+       "sort": "1",
+       "statusInChina": "",
+       "statusInChinaDetail": ""
+      }
+     ],
+     "phoneNumber": "0939021661",
+     "province": "",
+     "relativeRelativeFlag": false,
+     "relatives": [],
+     "spouses": [
+      {
+       "address": "",
+       "birthCity": "",
+       "birthCountry": "",
+       "birthCounty": "",
+       "birthday": "",
+       "city": "",
+       "country": "",
+       "county": "",
+       "familyName": "",
+       "firstName": "",
+       "nationalityCountry": "",
+       "otherSpecify": "",
+       "profession": "",
+       "province": "",
+       "sort": "1"
+      }
+     ],
+     "streetAddr": "HOAN KIEM, HA NOI",
+     "tempSaveFlag": false,
+     "userId": "",
+     "zipCode": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveFamilyInfo"
+   },
+   {
+    "body": {
+     "applyid": "APPLY-0001",
+     "arrivalCity": "SHENZHEN",
+     "arrivalCityDate": "2026-10-28",
+     "arrivalCounty": "",
+     "arrivalDate": "2026-10-28",
+     "arrivalDistrict": "",
+     "arrivalVehicleType": "",
+     "departureCity": "SHENZHEN",
+     "departureCounty": "",
+     "departureDate": "",
+     "departureDistrict": "",
+     "disposableFunds": "",
+     "disposableFundsCurrency": "",
+     "embassy": "3001VNVNMA",
+     "emergencyCity": "",
+     "emergencyContactFamilyName": "PHAM",
+     "emergencyContactFirstName": "THI DUNG",
+     "emergencyContactMiddlename": "",
+     "emergencyCountry": "",
+     "emergencyCounty": "",
+     "emergencyEmail": "",
+     "emergencyPhoneNumber": "0965235087",
+     "emergencyProvince": "",
+     "emergencyRelation": "ME",
+     "emergencyStreetAddr": "",
+     "emergencyZipCode": "",
+     "finishedStep": 9,
+     "havePeersFlag": false,
+     "invitationNumber": "",
+     "inviteCity": "SHENZHEN",
+     "inviteCompanyName": "",
+     "inviteCounty": "",
+     "inviteEmail": "",
+     "inviteName": "",
+     "invitePhoneNumber": "",
+     "inviteProvince": "",
+     "inviteRelation": "",
+     "inviteZipCode": "",
+     "lang": "en_US",
+     "leaveCity": "SHENZHEN",
+     "leaveCounty": "",
+     "leaveDate": "2027-04-28",
+     "leaveVehicleType": "",
+     "notApplyItems": [],
+     "payForTravel": "708001",
+     "payForTravelAddr": "",
+     "payForTravelCountry": "",
+     "payForTravelEmail": "",
+     "payForTravelName": "",
+     "payForTravelOrganizationName": "",
+     "payForTravelPhoneNumber": "",
+     "payForTravelRelation": "",
+     "sponsorCity": "",
+     "sponsorCountry": "",
+     "sponsorCounty": "",
+     "sponsorEmail": "",
+     "sponsorName": "",
+     "sponsorPhoneNumber": "",
+     "sponsorProvince": "",
+     "sponsorRelation": "",
+     "sponsorType": "",
+     "sponsorZipCode": "",
+     "stayCity": "SHENZHEN",
+     "stayCounty": "",
+     "stayDistrict": "",
+     "stayInfo": [
+      {
+       "arrivalDate": "2026-10-28",
+       "leaveDate": "2027-04-28",
+       "sort": 1,
+       "stayCity": "SHENZHEN",
+       "stayCounty": "",
+       "travelAddr": ""
+      }
+     ],
+     "tempSaveFlag": false,
+     "travelAddr": "",
+     "travelCompanion": [],
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveTravelInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "arrivedChinaFlag": false,
+     "chinaResidenceLicenseFlag": false,
+     "collectFingerprintCountry": "",
+     "collectFingerprintDate": "",
+     "collectFingerprintFlag": false,
+     "collectFingerprintPlace": "",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "firstApplyChinaVisaFlag": false,
+     "haveChinaVisaFlag": false,
+     "haveOtherVisaFlag": false,
+     "issueDate": "",
+     "issuePlace": "",
+     "lang": "en_US",
+     "lostChinaVisaDate": "",
+     "lostChinaVisaFlag": "",
+     "lostChinaVisaNumber": "",
+     "lostChinaVisaPlace": "",
+     "notApplyItems": [],
+     "otherCountries": "",
+     "otherVisas": "",
+     "previousTravelInChinaInfos": [],
+     "provideChinaVisaDetailFlag": "",
+     "residenceLicenseNumber": "",
+     "tempSaveFlag": false,
+     "userId": "",
+     "visaNumber": "",
+     "visaType": "",
+     "visitedOtherCountryFlag": false
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SavePreviousTravelInfo"
+   },
+   {
+    "body": {
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "itemValue3": "",
+     "lang": "en_US",
+     "militaryServiceInfos": [],
+     "notApplyItems": [],
+     "otherInfoItems": [
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "1"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "2"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "3"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "4"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "5"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "6"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "7"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "8"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "9"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "10"
+      },
+      {
+       "itemNote": "",
+       "itemValue": false,
+       "sort": "11"
+      }
+     ],
+     "otherProblemFlag": false,
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveOtherInfo"
+   },
+   {
+    "body": {
+     "W2": "752001",
+     "agentAddr": "KDT DUONG NOI, HA DONG, HA NOI",
+     "agentFlag": false,
+     "agentName": "CONG TY TNHH DU LICH WM TRAVEL VIETNAM",
+     "agentTel": "0936188491",
+     "applyCountry": "",
+     "applyid": "APPLY-0001",
+     "embassy": "3001VNVNMA",
+     "finishedStep": 9,
+     "lang": "en_US",
+     "relationship": "CONG TY DU LICH",
+     "tempSaveFlag": false,
+     "userId": ""
+    },
+    "method": "POST",
+    "path": "/VISA/api/cova-service/Visa/Apply/V1/SaveSignatureInfo"
+   }
+  ],
+  "r2": [
+   [
+    "delete",
+    "SNAP0001/chung/khach_san"
+   ],
+   [
+    "delete",
+    "SNAP0001/chung/ve_may_bay"
+   ],
+   [
+    "delete",
+    "SNAP0001/chung/xac_nhan_tu_trung_tam_visa"
+   ],
+   [
+    "data_folder",
+    "SNAP0001"
+   ]
+  ],
+  "renders": [
+   {
+    "kind": "visa_center_confirmation",
+    "output_path": "chung\\xac_nhan_tu_trung_tam_visa",
+    "payload": {
+     "birth_date_dd_mm_yyyy": "01.01.1990",
+     "entries_type": "S",
+     "expired_day_dd_mm_yyyy": "01.01.2032",
+     "file_name": "CV_phong.docx",
+     "names": [
+      "NGUYEN VAN AN"
+     ],
+     "nationality": "Viet Nam",
+     "passengers": [],
+     "passportNo": "SNAP0001",
+     "passportNumber": "SNAP0001",
+     "sex": "M",
+     "submit_day_dd": "28",
+     "submit_month_mm": "09",
+     "submit_year_yyyy": "2026",
+     "visa_type_first": "S2",
+     "visa_type_number": "2"
+    }
+   }
+  ],
+  "result": {
+   "first_applyid": "APPLY-0001",
+   "ok": true,
+   "record_id": 1
+  },
+  "uploads": [
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025070216180808782737",
+    "file": "chung/2_trang_ho_chieu_trang/file0.jpg",
+    "materialCode": "mfa-017_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025070216180808782737",
+    "file": "chung/2_trang_ho_chieu_trang/file1.jpg",
+    "materialCode": "mfa-017_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114131912554297",
+    "file": "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/file0.jpg",
+    "materialCode": "mfa-033_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "22025062114073725280378",
+    "file": "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/file0.jpg",
+    "materialCode": "mfa-030_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115424944966353",
+    "file": "tham-than/thu-moi/file0.jpg",
+    "materialCode": "mfa-122_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115452102589065",
+    "file": "tham-than/cccd/file0.jpg",
+    "materialCode": "mfa-123_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115452102589065",
+    "file": "tham-than/cccd/file1.jpg",
+    "materialCode": "mfa-123_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115515363163065",
+    "file": "tham-than/quan-he/file0.jpg",
+    "materialCode": "mfa-125_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115515363163065",
+    "file": "tham-than/quan-he/file1.jpg",
+    "materialCode": "mfa-125_2"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115515363163065",
+    "file": "tham-than/quan-he/file2.jpg",
+    "materialCode": "mfa-125_3"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115571999891100",
+    "file": "chung/xac_nhan_tu_trung_tam_visa/file0.jpg",
+    "materialCode": "mfa-134_1"
+   },
+   {
+    "businessId": "APPLY-0001",
+    "categoryCode": "12025062115571999891100",
+    "file": "tham-than/tai-lieu-khac/file0.jpg",
+    "materialCode": "mfa-134_2"
    }
   ]
  },

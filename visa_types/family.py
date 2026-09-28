@@ -1,4 +1,5 @@
-"""Q visas (family visit): Q1 and Q2, invited by a relative in China."""
+"""Q visas (family visit): Q1 and Q2, invited by a relative in China.
+S2 (foreigner's family member / personal matters) reuses the Q2 flow."""
 
 from __future__ import annotations
 
@@ -66,6 +67,16 @@ class Q2Visa(FamilyVisa):
 
     code = "Q2"
     documents = (VisaCenterConfirmation(), InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
+
+
+@register
+class S2Visa(FamilyVisa):
+    """S2: family member of a foreigner living in China (short visit), or other
+    personal matters. Same flow as Q2, but the invitation letter is not
+    generated: the applicant's own letter in tham-than/thu-moi is uploaded."""
+
+    code = "S2"
+    documents = (VisaCenterConfirmation(),)
 
 
 def _add_months_to_date(source_date: date, months: int) -> date:

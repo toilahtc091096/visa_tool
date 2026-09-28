@@ -142,6 +142,20 @@ CASES: dict[str, dict[str, Any]] = {
         "inviterRelation": "SISTER",
         "arrivalCity": "SHANGHAI",
     },
+    "S2_family_member": {
+        "visa_type": "S2",
+        "type_of_visa_sub_value": "SFM",
+        "apply_visa_validity": 6,
+        "inviterFamilyName": "SMITH",
+        "inviterGivenName": "JOHN",
+        "inviterRelation": "SPOUSE",
+        "arrivalCity": "SHANGHAI",
+    },
+    "S2_personal_matters": {
+        "visa_type": "S2",
+        "type_of_visa_sub_value": "SPM",
+        "arrivalCity": "SHENZHEN",
+    },
     "F_school": {
         "visa_type": "F",
         "type_of_visa_sub_value": "AE",

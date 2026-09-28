@@ -188,6 +188,10 @@ def normalize_visa_type(visa_type: str, visa_duration: str = "") -> tuple[str, s
             return "F", "15"
         return "F", raw_type[1:] or raw_duration
 
+    if raw_type.startswith("S2"):
+        # Same as Q2 for now: optional duration as "S2<days>" or visa_duration.
+        return "S2", raw_type[2:] or raw_duration
+
     if raw_type.startswith(("X1", "X2")):
         # Study stay in days: X1 > 180 ("X1365"), X2 <= 180 ("X2150"); the
         # days may also come as visa_duration. Out of range -> no profile

@@ -26,12 +26,15 @@ from visa_types import (  # noqa: E402
 
 class VisaProfileTest(unittest.TestCase):
     def test_expected_types_are_registered(self) -> None:
-        self.assertEqual(registered_visa_types(), ["F", "L15", "L30", "M", "Q1", "Q2", "X1", "X2"])
+        self.assertEqual(
+            registered_visa_types(),
+            ["F", "L15", "L30", "M", "Q1", "Q2", "S2", "X1", "X2"],
+        )
 
     def test_requested_types_resolve_to_a_profile(self) -> None:
         for raw_type, raw_duration in [
             ("L15", ""), ("l30", ""), ("L", "15"), ("M", ""), ("M90", ""),
-            ("Q1", ""), ("Q2", ""), ("F", ""), ("X1", ""), ("X2", ""),
+            ("Q1", ""), ("Q2", ""), ("F", ""), ("X1", ""), ("X2", ""), ("S2", ""),
         ]:
             code, _ = normalize_visa_type(raw_type, raw_duration)
             with self.subTest(raw_type=raw_type, raw_duration=raw_duration):

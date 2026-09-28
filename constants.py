@@ -86,6 +86,9 @@ SERVICE_VISA_TYPE = {
     "F": ({"AE", "CE", "RE", "NGO", "VOL", "FE", "GSM"}),
     "X1": ({"L"}),
     "X2": ({"S"}),
+    # S2: SFM = family member visiting a foreigner in China (<= 180 days),
+    #     SPM = other personal matters (litigation, inheritance, medical, property)
+    "S2": ({"SFM", "SPM"}),
 }
 VISA_TYPE_VALUE = {
     "L": {
@@ -117,8 +120,12 @@ VISA_TYPE_VALUE = {
     },
     "X1": {"L": {"visaPurpose": 709009, "visaType": 710023}},
     "X2": {"S": {"visaPurpose": 709010, "visaType": 710022}},
+    "S2": {
+        "SFM": {"visaPurpose": 709007, "visaType": 710020},
+        "SPM": {"visaPurpose": 709007, "visaType": 710021},
+    },
 }
-APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6, "F": 3, "X1": 3, "X2": 3}
+APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6, "F": 3, "X1": 3, "X2": 3, "S2": 6}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
@@ -681,6 +688,9 @@ Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
 Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
 
+# S2 uploads the applicant's own invitation letter (not generated).
+S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
+
 DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
 DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
@@ -699,6 +709,7 @@ WEEK_SKIP_BY_TYPE["M90"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["Q"] = WEEK_SKIP_BY_TYPE["Q1"] = WEEK_SKIP_BY_TYPE["Q2"] = 25
 WEEK_SKIP_BY_TYPE["F"] = WEEK_SKIP_BY_TYPE["L30"]
 WEEK_SKIP_BY_TYPE["X1"] = WEEK_SKIP_BY_TYPE["X2"] = WEEK_SKIP_BY_TYPE["F"]
+WEEK_SKIP_BY_TYPE["S2"] = WEEK_SKIP_BY_TYPE["Q2"]
 
 UNDER_18_HOTEL_INFO = [
     {
@@ -1129,6 +1140,15 @@ UPLOAD_CONFIG["X1"] = {
     },
 }
 UPLOAD_CONFIG["X2"] = UPLOAD_CONFIG["X1"]
+# S2 takes its files from the same tham-than/* folders as Q2, except the
+# invitation letter, which is the applicant's own file (not generated).
+UPLOAD_CONFIG["S2"] = {
+    **UPLOAD_CONFIG["Q2"],
+    "THU_MOI": {
+        "folder": S2_THU_MOI_OUTPUT_PATH,
+        "limit": 1,
+    },
+}
 
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
     "L15": {
@@ -1808,6 +1828,73 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE["X2"] = {
             },
         ],
     }
+}
+# S2 material slots, taken from the S2 form's "materials" list. The old Chinese
+# visa slot is not in that sample, so it keeps the Q2 code.
+UPLOAD_FILE_CODE_BY_VISA_TYPE["S2"] = {
+    "COMMON": {
+        "PASSPORT_BLANK_PAGES": UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"]["COMMON"][
+            "PASSPORT_BLANK_PAGES"
+        ],
+        "PREV_CHINESE_VISA": UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"]["COMMON"][
+            "PREV_CHINESE_VISA"
+        ],
+        # Residential certificate / "Hukou" / employment letter
+        "HUKOU_OR_EMPLOYMENT_LETTER": [
+            {
+                "categoryCode": "22025062114073725280378",
+                "materialCode": "mfa-030_1",
+            },
+        ],
+        # Invitation letter from the inviting party
+        "THU_MOI": [
+            {
+                "categoryCode": "12025062115424944966353",
+                "materialCode": "mfa-122_1",
+            },
+        ],
+        # Inviting foreigner's passport + residence permit
+        "CCCD_NGUOI_MOI": [
+            {
+                "categoryCode": "12025062115452102589065",
+                "materialCode": "mfa-123_1",
+            },
+            {
+                "categoryCode": "12025062115452102589065",
+                "materialCode": "mfa-123_2",
+            },
+        ],
+        # Family relationship certification
+        "CHUNG_MINH_QUAN_HE": [
+            {
+                "categoryCode": "12025062115515363163065",
+                "materialCode": "mfa-125_1",
+            },
+            {
+                "categoryCode": "12025062115515363163065",
+                "materialCode": "mfa-125_2",
+            },
+            {
+                "categoryCode": "12025062115515363163065",
+                "materialCode": "mfa-125_3",
+            },
+        ],
+        # Other documents
+        "OTHER_MATERIALS": [
+            {
+                "categoryCode": "12025062115571999891100",
+                "materialCode": "mfa-134_1",
+            },
+            {
+                "categoryCode": "12025062115571999891100",
+                "materialCode": "mfa-134_2",
+            },
+            {
+                "categoryCode": "12025062115571999891100",
+                "materialCode": "mfa-134_3",
+            },
+        ],
+    },
 }
 UNIT_OF_HOTEL = 5870276
 
