@@ -693,7 +693,7 @@ Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
 S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
 S2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
-S2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
+S2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
 
 DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
