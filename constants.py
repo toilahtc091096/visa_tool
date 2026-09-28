@@ -1,5 +1,6 @@
 import env_loader  # noqa: F401
 import os
+from dataclasses import dataclass
 import random
 
 """Shared constants for API headers and site defaults."""
@@ -690,6 +691,9 @@ Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
 
 # S2 uploads the applicant's own invitation letter (not generated).
 S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
+S2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
+S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
+S2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
 
 DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
@@ -794,513 +798,321 @@ FLIGHT_TEMPLATE = {
 FLIGHT_TEMPLATE["M"] = FLIGHT_TEMPLATE["L30"]
 FLIGHT_TEMPLATE["M90"] = FLIGHT_TEMPLATE["L30"]
 
-UPLOAD_FILE_CODE: dict[str, list[dict[str, str]]] = {
-    "FLIGHT_TICKET": [
-        {"categoryCode": "12025062020000706552852", "materialCode": "mfa-003_1"},
-    ],
-    "OTHER_MATERIALS": [
-        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_1"},
-        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_2"},
-        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_3"},
-        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_4"},
-        {"categoryCode": "12025062114211484037531", "materialCode": "mfa-044_5"},
-    ],
-    "BANK_STATEMENT": [
-        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_1"},
-        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_2"},
-        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_3"},
-        {"categoryCode": "12025062216413672273869", "materialCode": "mfa-007_4"},
-    ],
-    "OTHER_COUNTRY_VISAS": [
-        {"categoryCode": "2026051411041876690", "materialCode": "mfa-011_1"},
-        {"categoryCode": "2026051411041876690", "materialCode": "mfa-011_2"},
-        {"categoryCode": "2026051411041876690", "materialCode": "mfa-011_3"},
-    ],
-    "ITINERARY_IN_CHINA": [
-        {"categoryCode": "12025062019595907456262", "materialCode": "mfa-004_1"},
-    ],
-    "HOTEL_RESERVATION_WITH_PAYMENT": [
-        {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_1"},
-        {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_2"},
-        {"categoryCode": "12025063014542307352106", "materialCode": "mfa-002_3"},
-    ],
-    "UNDER_18": [
-        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_1"},
-        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_2"},
-        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_3"},
-        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_4"},
-        {"categoryCode": "22026072917255869849620", "materialCode": "mfa-039_5"},
-    ],
-    "PREV_CHINESE_PASSPORT_OR_VISA_FOR_EX_CHINESE": [
-        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_1"},
-        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_2"},
-        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_3"},
-        {"categoryCode": "22025062418014204043091", "materialCode": "mfa-036_4"},
-    ],
-    "PREV_CHINESE_VISA": [
-        {"categoryCode": "22025062114131912554297", "materialCode": "mfa-033_1"},
-        {"categoryCode": "22025062114131912554297", "materialCode": "mfa-033_2"},
-        {"categoryCode": "22025062114131912554297", "materialCode": "mfa-033_3"},
-    ],
-    "PASSPORT_BLANK_PAGES": [
-        {"categoryCode": "22025070216180808782737", "materialCode": "mfa-017_1"},
-        {"categoryCode": "22025070216180808782737", "materialCode": "mfa-017_2"},
-    ],
-    "PROOF_OF_LEGAL_STAY": [
-        {"categoryCode": "22025062114095544389381", "materialCode": "mfa-031_1"},
-        {"categoryCode": "22025062114095544389381", "materialCode": "mfa-031_2"},
-    ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": [
-        {"categoryCode": "22025062114073725280378", "materialCode": "mfa-030_1"},
-    ],
-}
+# ---------------------------------------------------------------------------
+# Upload to COVA
+#
+# UPLOAD_FILE_CODE_BY_VISA_TYPE: the material slots of each visa form.
+# UPLOAD_CONFIG: which local folders fill those slots.
+# Both are keyed by visa type, then doc_type; VisaProfile.upload_plan() joins
+# them. Every visa type has its own complete entry: a type never reads another
+# type's table. What is shared are the named MAT_* categories and the folder
+# constants above.
+# ---------------------------------------------------------------------------
 
 
-UPLOAD_CONFIG = {
-    "L15": {
-        "PASSPORT_BLANK_PAGES": {
-            "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
-            "limit": 2,
-        },
-        "BANK_STATEMENT": {
-            "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
-            "limit": 2,
-        },
-        "HUKOU_OR_EMPLOYMENT_LETTER": {
-            "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "FLIGHT_TICKET": {
-            "folder": L_15_TICKET_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "HOTEL_RESERVATION_WITH_PAYMENT": {
-            "folder": L_15_HOTEL_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "OTHER_MATERIALS": [
-            {
-                "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
-                "limit": 4,
-            },
-            {
-                "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-                "limit": 1,
-            },
-        ],
-        "PREV_CHINESE_VISA": {
-            "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-            "limit": 3,
-        },
-        "UNDER_18": [
-            {
-                "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
-                "limit": 5,
-            }
-        ],
-        "OTHER_COUNTRY_VISAS": [
-            {
-                "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-                "limit": 3,
-            }
-        ],
-    },
-    "L30": {
-        "PASSPORT_BLANK_PAGES": {
-            "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
-            "limit": 2,
-        },
-        "BANK_STATEMENT": {
-            "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
-            "limit": 2,
-        },
-        "HUKOU_OR_EMPLOYMENT_LETTER": {
-            "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "FLIGHT_TICKET": {
-            "folder": L_15_TICKET_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "HOTEL_RESERVATION_WITH_PAYMENT": {
-            "folder": L_15_HOTEL_OUTPUT_PATH,
-            "limit": 1,
-        },
-        "OTHER_MATERIALS": [
-            {
-                "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
-                "limit": 4,
-            },
-            {
-                "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-                "limit": 1,
-            },
-        ],
-        "PREV_CHINESE_VISA": {
-            "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-            "limit": 3,
-        },
-        "UNDER_18": [
-            {
-                "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
-                "limit": 5,
-            }
-        ],
-        "OTHER_COUNTRY_VISAS": [
-            {
-                "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-                "limit": 3,
-            }
-        ],
-        "ITINERARY_IN_CHINA": [
-            {
-                "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
-                "limit": 1,
-            },
-        ],
-    },
-}
-UPLOAD_CONFIG["M90"] = {
-    "PASSPORT_BLANK_PAGES": {
-        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "BANK_STATEMENT": {
-        "folder": L_15_BANK_STATEMENT_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "HUKOU_OR_EMPLOYMENT_LETTER": {
-        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "OTHER_MATERIALS": [
-        {
-            "folder": L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH,
-            "limit": 4,
-        },
-        {
-            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-            "limit": 3,
-        },
-    ],
-    "VISA_CENTER_CONFIRMATION": {
-        "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "PREV_CHINESE_VISA": {
-        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-        "limit": 3,
-    },
-    "UNDER_18": [
-        {
-            "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
-            "limit": 5,
-        }
-    ],
-    # "OTHER_COUNTRY_VISAS": [],
-    "ITINERARY_IN_CHINA": [
-        {
-            "folder": L_15_TRAVEL_PLAN_OUTPUT_PATH,
-            "limit": 1,
-        },
-    ],
-    "THU_MOI": {
-        "folder": DOANH_NGHIEP_THU_MOI_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "QUYET_DINH": {
-        "folder": DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "DANG_KY_DOANH_NGHIEP": {
-        "folder": DOANH_NGHIEP_DANG_KY_OUTPUT_PATH,
-        "limit": 2,
-    },
-}
-UPLOAD_CONFIG["M"] = UPLOAD_CONFIG["M90"]
-UPLOAD_CONFIG["Q1"] = {
-    "HUKOU_OR_EMPLOYMENT_LETTER": {
-        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "PASSPORT_BLANK_PAGES": {
-        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "PREV_CHINESE_VISA": {
-        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-        "limit": 3,
-    },
-    "THU_MOI": {
-        "folder": Q1_THU_MOI_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "CCCD_NGUOI_MOI": {
-        "folder": Q1_CCCD_NGUOI_MOI_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "CHUNG_MINH_QUAN_HE": {
-        "folder": Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH,
-        "limit": 4,
-    },
-    "OTHER_MATERIALS": [
-        {
-            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-            "limit": 1,
-        },
-        {
-            "folder": Q1_TAI_LIEU_KHAC_OUTPUT_PATH,
-            "limit": 1,
-        },
-    ],
-}
-UPLOAD_CONFIG["Q2"] = {
-    "HUKOU_OR_EMPLOYMENT_LETTER": {
-        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "PASSPORT_BLANK_PAGES": {
-        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "PREV_CHINESE_VISA": {
-        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-        "limit": 3,
-    },
-    "THU_MOI": {
-        "folder": Q2_THU_MOI_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "CCCD_NGUOI_MOI": {
-        "folder": Q2_CCCD_NGUOI_MOI_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "CHUNG_MINH_QUAN_HE": {
-        "folder": Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH,
-        "limit": 3,
-    },
-    "OTHER_MATERIALS": [
-        {
-            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-            "limit": 1,
-        },
-        {
-            "folder": Q2_TAI_LIEU_KHAC_OUTPUT_PATH,
-            "limit": 1,
-        },
-    ],
-}
+@dataclass(frozen=True)
+class CovaMaterial:
+    """One upload category of a COVA form; its slots are ``<code>_1``, ``<code>_2``..."""
 
-UPLOAD_CONFIG["F"] = {
-    "HUKOU_OR_EMPLOYMENT_LETTER": {
-        "folder": L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "PASSPORT_BLANK_PAGES": {
-        "folder": L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "PREV_CHINESE_VISA": {
-        "folder": L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH,
-        "limit": 3,
-    },
-    "THU_MOI": {
-        "folder": F_THU_MOI_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "QUYET_DINH_DU_HOC": {
-        "folder": F_QUYET_DINH_DU_HOC_OUTPUT_PATH,
-        "limit": 2,
-    },
-    "OTHER_MATERIALS": [
-        {
-            "folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
-            "limit": 1,
-        },
-        {
-            "folder": L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH,
-            "limit": 2,
-        },
-    ],
-}
+    category_code: str
+    code: str
 
-UPLOAD_CONFIG["X1"] = {
-    **{
-        k: v
-        for k, v in UPLOAD_CONFIG["F"].items()
-        if k not in ("THU_MOI", "QUYET_DINH_DU_HOC")
-    },
-    "GIAY_BAO_NHAP_HOC": {
-        "folder": X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH,
-        "limit": 1,
-    },
-    "JW": {
-        "folder": X_JW_OUTPUT_PATH,
-        "limit": 1,
-    },
-}
-UPLOAD_CONFIG["X2"] = UPLOAD_CONFIG["X1"]
-# S2 takes its files from the same tham-than/* folders as Q2, except the
-# invitation letter, which is the applicant's own file (not generated).
-UPLOAD_CONFIG["S2"] = {
-    **UPLOAD_CONFIG["Q2"],
-    "THU_MOI": {
-        "folder": S2_THU_MOI_OUTPUT_PATH,
-        "limit": 1,
-    },
-}
-
-def _slots(category_code: str, *material_codes: str) -> list[dict[str, str]]:
-    """COVA upload slots of one category, one per material code (in order)."""
-    return [
-        {"categoryCode": category_code, "materialCode": code}
-        for code in material_codes
-    ]
+    def slots(self, *numbers: int) -> list[dict[str, str]]:
+        return [
+            {"categoryCode": self.category_code, "materialCode": f"{self.code}_{n}"}
+            for n in numbers
+        ]
 
 
-# Upload slots whose codes are the same on every COVA form that has them.
-# A visa type takes them with _common(); when a type's slot differs, the type
-# writes its own _slots(...) instead. Types never read another type's table.
-COMMON_MATERIAL_SLOTS: dict[str, list[dict[str, str]]] = {
-    "PASSPORT_BLANK_PAGES": _slots("22025070216180808782737", "mfa-017_1", "mfa-017_2"),
-    "HUKOU_OR_EMPLOYMENT_LETTER": _slots("22025062114073725280378", "mfa-030_1"),
-    "PREV_CHINESE_VISA": _slots("22025062114131912554297", "mfa-033_1", "mfa-033_2"),
-    "BANK_STATEMENT": _slots("12025062216413672273869", "mfa-007_1", "mfa-007_2", "mfa-007_3", "mfa-007_4"),
-    "OTHER_COUNTRY_VISAS": _slots("12025062114213765489140", "mfa-011_1", "mfa-011_2", "mfa-011_3"),
-    "UNDER_18": _slots("22026072917255869849620", "mfa-039_1", "mfa-039_2", "mfa-039_3", "mfa-039_4", "mfa-039_5"),
-    "ITINERARY_IN_CHINA": _slots("12025062019595907456262", "mfa-004_1"),
-    "FLIGHT_TICKET": _slots("12025062020000706552852", "mfa-003_1"),
-    "HOTEL_RESERVATION_WITH_PAYMENT": _slots("12025063014542307352106", "mfa-002_1", "mfa-002_2", "mfa-002_3"),
-}
+# Same category on every form that has it.
+MAT_PASSPORT_BLANK_PAGES = CovaMaterial("22025070216180808782737", "mfa-017")
+MAT_RESIDENCE_CERTIFICATE = CovaMaterial("22025062114073725280378", "mfa-030")  # hukou / CT07 / employment letter
+MAT_PREV_CHINESE_VISA = CovaMaterial("22025062114131912554297", "mfa-033")
+MAT_BANK_STATEMENT = CovaMaterial("12025062216413672273869", "mfa-007")
+MAT_OTHER_COUNTRY_VISAS = CovaMaterial("12025062114213765489140", "mfa-011")
+MAT_UNDER_18_DOCUMENTS = CovaMaterial("22026072917255869849620", "mfa-039")
+MAT_ITINERARY_IN_CHINA = CovaMaterial("12025062019595907456262", "mfa-004")
+MAT_FLIGHT_TICKET = CovaMaterial("12025062020000706552852", "mfa-003")
+MAT_HOTEL_RESERVATION = CovaMaterial("12025063014542307352106", "mfa-002")
+# Known categories not uploaded by any visa type yet.
+MAT_PROOF_OF_LEGAL_STAY = CovaMaterial("22025062114095544389381", "mfa-031")
+MAT_EX_CHINESE_PREV_PASSPORT_OR_VISA = CovaMaterial("22025062418014204043091", "mfa-036")
+
+# L - tourism
+MAT_L_OTHER_DOCUMENTS = CovaMaterial("12025062114211484037531", "mfa-044")  # _5 = visa center confirmation
+# M - business
+MAT_M_OTHER_DOCUMENTS = CovaMaterial("12025062114365564197636", "mfa-053")  # _1 = visa center confirmation
+MAT_M_INVITATION_LETTER = CovaMaterial("12026072917273869111112", "mfa-049")
+MAT_M_ASSIGNMENT_DECISION = CovaMaterial("12025062114271519280895", "mfa-050")
+MAT_M_BUSINESS_REGISTRATION = CovaMaterial("12025062114301276922307", "mfa-051")
+# Q1 / Q2 - family visit. Their residence certificate slot uses the same
+# category as Q2's relationship certification (as found on the forms).
+MAT_Q_RESIDENCE_CERTIFICATE = CovaMaterial("12025062115232232717451", "mfa-030")
+MAT_Q1_INVITATION_LETTER = CovaMaterial("12025062115033600751835", "mfa-070")
+MAT_Q1_INVITER_ID = CovaMaterial("12025062115051305548199", "mfa-071")
+MAT_Q1_RELATIONSHIP_PROOF = CovaMaterial("12025062115240751955592", "mfa-073")
+MAT_Q1_OTHER_DOCUMENTS = CovaMaterial("12025062115165388661358", "mfa-085")
+MAT_Q2_INVITATION_LETTER = CovaMaterial("12025062115191056099712", "mfa-091")
+MAT_Q2_INVITER_ID = CovaMaterial("12025062115202108210397", "mfa-092")
+MAT_Q2_RELATIONSHIP_PROOF = CovaMaterial("12025062115232232717451", "mfa-094")
+MAT_Q2_OTHER_DOCUMENTS = CovaMaterial("12025062115255295051217", "mfa-099")
+# F - exchange / study visit
+MAT_F_INVITATION_LETTER = CovaMaterial("12026072917284901619425", "mfa-061")
+MAT_F_STUDY_DECISION = CovaMaterial("12025062114560885950076", "mfa-062")
+MAT_F_OTHER_DOCUMENTS = CovaMaterial("12025062115000341540359", "mfa-065")
+# X1 / X2 - study
+MAT_X1_ADMISSION_NOTICE = CovaMaterial("12025062116113060399385", "mfa-155")
+MAT_X1_JW_FORM = CovaMaterial("12025062116141116750122", "mfa-164")
+MAT_X1_OTHER_DOCUMENTS = CovaMaterial("12025062116171641916688", "mfa-165")
+MAT_X2_ADMISSION_DOCUMENTS = CovaMaterial("12025062116191142931178", "mfa-169")  # _1 admission notice, _2 JW form
+MAT_X2_OTHER_DOCUMENTS = CovaMaterial("12025062116215851186649", "mfa-172")
+# S2 - foreigner's family member / personal matters
+MAT_S2_INVITATION_LETTER = CovaMaterial("12025062115424944966353", "mfa-122")
+MAT_S2_INVITER_PASSPORT_AND_PERMIT = CovaMaterial("12025062115452102589065", "mfa-123")
+MAT_S2_RELATIONSHIP_PROOF = CovaMaterial("12025062115515363163065", "mfa-125")
+MAT_S2_OTHER_DOCUMENTS = CovaMaterial("12025062115571999891100", "mfa-134")
 
 
-def _common(doc_type: str, count: int | None = None) -> list[dict[str, str]]:
-    """A fresh copy of a shared slot list (optionally only the first ``count``)."""
-    return [dict(slot) for slot in COMMON_MATERIAL_SLOTS[doc_type][:count]]
-
-
-# COVA material slots per visa type: {visa_type: {group: {doc_type: slots}}}.
-# Files are uploaded into the slots in order (see VisaProfile.upload_plan).
+# Material slots per visa type: {visa_type: {group: {doc_type: slots}}}.
+# Files are uploaded into the slots in this order.
 UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
-    # L15 - tourism 15 days
     "L15": {
         "COMMON": {
-            "FLIGHT_TICKET": _common("FLIGHT_TICKET"),
-            "HOTEL_RESERVATION_WITH_PAYMENT": _common("HOTEL_RESERVATION_WITH_PAYMENT"),
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "BANK_STATEMENT": _common("BANK_STATEMENT"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "OTHER_MATERIALS": _slots("12025062114211484037531", "mfa-044_1", "mfa-044_2", "mfa-044_3", "mfa-044_4"),
-            "VISA_CENTER_CONFIRMATION": _slots("12025062114211484037531", "mfa-044_5"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
-            "UNDER_18": _common("UNDER_18"),
-            "OTHER_COUNTRY_VISAS": _common("OTHER_COUNTRY_VISAS"),
+            "FLIGHT_TICKET": MAT_FLIGHT_TICKET.slots(1),
+            "HOTEL_RESERVATION_WITH_PAYMENT": MAT_HOTEL_RESERVATION.slots(1, 2, 3),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "BANK_STATEMENT": MAT_BANK_STATEMENT.slots(1, 2, 3, 4),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "OTHER_MATERIALS": MAT_L_OTHER_DOCUMENTS.slots(1, 2, 3, 4),
+            "VISA_CENTER_CONFIRMATION": MAT_L_OTHER_DOCUMENTS.slots(5),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1, 2),
+            "UNDER_18": MAT_UNDER_18_DOCUMENTS.slots(1, 2, 3, 4, 5),
+            "OTHER_COUNTRY_VISAS": MAT_OTHER_COUNTRY_VISAS.slots(1, 2, 3),
         },
     },
-    # L30 - tourism 30 days
     "L30": {
         "COMMON": {
-            "FLIGHT_TICKET": _common("FLIGHT_TICKET"),
-            "HOTEL_RESERVATION_WITH_PAYMENT": _common("HOTEL_RESERVATION_WITH_PAYMENT"),
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "BANK_STATEMENT": _common("BANK_STATEMENT"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "OTHER_MATERIALS": _slots("12025062114211484037531", "mfa-044_1", "mfa-044_2", "mfa-044_3", "mfa-044_4"),
-            "VISA_CENTER_CONFIRMATION": _slots("12025062114211484037531", "mfa-044_5"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
-            "UNDER_18": _common("UNDER_18"),
-            "OTHER_COUNTRY_VISAS": _common("OTHER_COUNTRY_VISAS"),
-            "ITINERARY_IN_CHINA": _common("ITINERARY_IN_CHINA"),
+            "FLIGHT_TICKET": MAT_FLIGHT_TICKET.slots(1),
+            "HOTEL_RESERVATION_WITH_PAYMENT": MAT_HOTEL_RESERVATION.slots(1, 2, 3),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "BANK_STATEMENT": MAT_BANK_STATEMENT.slots(1, 2, 3, 4),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "OTHER_MATERIALS": MAT_L_OTHER_DOCUMENTS.slots(1, 2, 3, 4),
+            "VISA_CENTER_CONFIRMATION": MAT_L_OTHER_DOCUMENTS.slots(5),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1, 2),
+            "UNDER_18": MAT_UNDER_18_DOCUMENTS.slots(1, 2, 3, 4, 5),
+            "OTHER_COUNTRY_VISAS": MAT_OTHER_COUNTRY_VISAS.slots(1, 2, 3),
+            "ITINERARY_IN_CHINA": MAT_ITINERARY_IN_CHINA.slots(1),
         },
     },
-    # M - business
     "M": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "BANK_STATEMENT": _common("BANK_STATEMENT"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "OTHER_MATERIALS": _slots("12025062114365564197636", "mfa-053_2", "mfa-053_3", "mfa-053_4", "mfa-053_5"),
-            "VISA_CENTER_CONFIRMATION": _slots("12025062114365564197636", "mfa-053_1"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
-            "UNDER_18": _common("UNDER_18"),
-            "OTHER_COUNTRY_VISAS": _common("OTHER_COUNTRY_VISAS"),
-            "ITINERARY_IN_CHINA": _common("ITINERARY_IN_CHINA"),
-            "THU_MOI": _slots("12026072917273869111112", "mfa-049_1"),
-            "QUYET_DINH": _slots("12025062114271519280895", "mfa-050_1"),
-            "DANG_KY_DOANH_NGHIEP": _slots("12025062114301276922307", "mfa-051_1", "mfa-051_2"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "BANK_STATEMENT": MAT_BANK_STATEMENT.slots(1, 2, 3, 4),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "OTHER_MATERIALS": MAT_M_OTHER_DOCUMENTS.slots(2, 3, 4, 5),
+            "VISA_CENTER_CONFIRMATION": MAT_M_OTHER_DOCUMENTS.slots(1),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1, 2),
+            "UNDER_18": MAT_UNDER_18_DOCUMENTS.slots(1, 2, 3, 4, 5),
+            "OTHER_COUNTRY_VISAS": MAT_OTHER_COUNTRY_VISAS.slots(1, 2, 3),
+            "ITINERARY_IN_CHINA": MAT_ITINERARY_IN_CHINA.slots(1),
+            "THU_MOI": MAT_M_INVITATION_LETTER.slots(1),
+            "QUYET_DINH": MAT_M_ASSIGNMENT_DECISION.slots(1),
+            "DANG_KY_DOANH_NGHIEP": MAT_M_BUSINESS_REGISTRATION.slots(1, 2),
         },
     },
-    # Q1 - family reunion / long stay
     "Q1": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _slots("12025062115232232717451", "mfa-030_4"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA", count=1),
-            "THU_MOI": _slots("12025062115033600751835", "mfa-070_1"),
-            "CCCD_NGUOI_MOI": _slots("12025062115051305548199", "mfa-071_1", "mfa-071_2"),
-            "CHUNG_MINH_QUAN_HE": _slots("12025062115240751955592", "mfa-073_1", "mfa-073_2", "mfa-073_3", "mfa-073_4"),
-            "OTHER_MATERIALS": _slots("12025062115165388661358", "mfa-085_1", "mfa-085_2"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_Q_RESIDENCE_CERTIFICATE.slots(4),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1),
+            "THU_MOI": MAT_Q1_INVITATION_LETTER.slots(1),
+            "CCCD_NGUOI_MOI": MAT_Q1_INVITER_ID.slots(1, 2),
+            "CHUNG_MINH_QUAN_HE": MAT_Q1_RELATIONSHIP_PROOF.slots(1, 2, 3, 4),
+            "OTHER_MATERIALS": MAT_Q1_OTHER_DOCUMENTS.slots(1, 2),
         },
     },
-    # Q2 - short family visit
     "Q2": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA", count=1),
-            "THU_MOI": _slots("12025062115191056099712", "mfa-091_1"),
-            "CCCD_NGUOI_MOI": _slots("12025062115202108210397", "mfa-092_1", "mfa-092_2"),
-            "CHUNG_MINH_QUAN_HE": _slots("12025062115232232717451", "mfa-094_1", "mfa-094_2", "mfa-094_3"),
-            "OTHER_MATERIALS": _slots("12025062115255295051217", "mfa-099_1"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _slots("12025062115232232717451", "mfa-030_4"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1),
+            "THU_MOI": MAT_Q2_INVITATION_LETTER.slots(1),
+            "CCCD_NGUOI_MOI": MAT_Q2_INVITER_ID.slots(1, 2),
+            "CHUNG_MINH_QUAN_HE": MAT_Q2_RELATIONSHIP_PROOF.slots(1, 2, 3),
+            "OTHER_MATERIALS": MAT_Q2_OTHER_DOCUMENTS.slots(1),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_Q_RESIDENCE_CERTIFICATE.slots(4),
         },
     },
-    # F - exchange / study visit
     "F": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
-            "THU_MOI": _slots("12026072917284901619425", "mfa-061_1"),
-            "QUYET_DINH_DU_HOC": _slots("12025062114560885950076", "mfa-062_1"),
-            "OTHER_MATERIALS": _slots("12025062115000341540359", "mfa-065_1", "mfa-065_2", "mfa-065_3", "mfa-065_4"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1, 2),
+            "THU_MOI": MAT_F_INVITATION_LETTER.slots(1),
+            "QUYET_DINH_DU_HOC": MAT_F_STUDY_DECISION.slots(1),
+            "OTHER_MATERIALS": MAT_F_OTHER_DOCUMENTS.slots(1, 2, 3, 4),
         },
     },
-    # X1 - study > 180 days
     "X1": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
-            "GIAY_BAO_NHAP_HOC": _slots("12025062116113060399385", "mfa-155_1"),
-            "JW": _slots("12025062116141116750122", "mfa-164_1"),
-            # TODO(X1): all 4 slots are mfa-165_1; confirm the real codes (_2.._4?).
-            "OTHER_MATERIALS": _slots("12025062116171641916688", "mfa-165_1", "mfa-165_1", "mfa-165_1", "mfa-165_1"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1, 2),
+            "GIAY_BAO_NHAP_HOC": MAT_X1_ADMISSION_NOTICE.slots(1),
+            "JW": MAT_X1_JW_FORM.slots(1),
+            "OTHER_MATERIALS": MAT_X1_OTHER_DOCUMENTS.slots(1, 2, 3, 4),
         },
     },
-    # X2 - study <= 180 days
     "X2": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
-            "GIAY_BAO_NHAP_HOC": _slots("12025062116191142931178", "mfa-169_1"),
-            "JW": _slots("12025062116191142931178", "mfa-169_2"),
-            "OTHER_MATERIALS": _slots("12025062116215851186649", "mfa-172_1", "mfa-172_2", "mfa-172_3", "mfa-172_4"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1, 2),
+            "GIAY_BAO_NHAP_HOC": MAT_X2_ADMISSION_DOCUMENTS.slots(1),
+            "JW": MAT_X2_ADMISSION_DOCUMENTS.slots(2),
+            "OTHER_MATERIALS": MAT_X2_OTHER_DOCUMENTS.slots(1, 2, 3, 4),
         },
     },
-    # S2 - foreigner's family member / personal matters
     "S2": {
         "COMMON": {
-            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
-            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA", count=1),
-            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
-            "THU_MOI": _slots("12025062115424944966353", "mfa-122_1"),
-            "CCCD_NGUOI_MOI": _slots("12025062115452102589065", "mfa-123_1", "mfa-123_2"),
-            "CHUNG_MINH_QUAN_HE": _slots("12025062115515363163065", "mfa-125_1", "mfa-125_2", "mfa-125_3"),
-            "OTHER_MATERIALS": _slots("12025062115571999891100", "mfa-134_1", "mfa-134_2", "mfa-134_3"),
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),
+            "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_RESIDENCE_CERTIFICATE.slots(1),
+            "THU_MOI": MAT_S2_INVITATION_LETTER.slots(1),
+            "CCCD_NGUOI_MOI": MAT_S2_INVITER_PASSPORT_AND_PERMIT.slots(1, 2),
+            "CHUNG_MINH_QUAN_HE": MAT_S2_RELATIONSHIP_PROOF.slots(1, 2, 3),
+            "OTHER_MATERIALS": MAT_S2_OTHER_DOCUMENTS.slots(1, 2, 3),
         },
     },
 }
+
+
+def _files(folder: str, limit: int) -> dict[str, object]:
+    """Take up to ``limit`` files from ``folder`` (relative to data_<passport>)."""
+    return {"folder": folder, "limit": limit}
+
+
+# Local folders filling each doc_type: {visa_type: {doc_type: source | [sources]}}.
+# With several sources, files are taken from them in order.
+UPLOAD_CONFIG: dict[str, dict[str, object]] = {
+    "L15": {
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "BANK_STATEMENT": _files(L_15_BANK_STATEMENT_OUTPUT_PATH, 2),
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "FLIGHT_TICKET": _files(L_15_TICKET_OUTPUT_PATH, 1),
+        "HOTEL_RESERVATION_WITH_PAYMENT": _files(L_15_HOTEL_OUTPUT_PATH, 1),
+        "OTHER_MATERIALS": [
+            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+        ],
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
+    },
+    "L30": {
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "BANK_STATEMENT": _files(L_15_BANK_STATEMENT_OUTPUT_PATH, 2),
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "FLIGHT_TICKET": _files(L_15_TICKET_OUTPUT_PATH, 1),
+        "HOTEL_RESERVATION_WITH_PAYMENT": _files(L_15_HOTEL_OUTPUT_PATH, 1),
+        "OTHER_MATERIALS": [
+            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+        ],
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
+    },
+    "M": {
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "BANK_STATEMENT": _files(L_15_BANK_STATEMENT_OUTPUT_PATH, 2),
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "OTHER_MATERIALS": [
+            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
+            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
+        ],
+        "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        # "OTHER_COUNTRY_VISAS": not uploaded for M (photos go to OTHER_MATERIALS)
+        "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
+        "THU_MOI": _files(DOANH_NGHIEP_THU_MOI_OUTPUT_PATH, 1),
+        "QUYET_DINH": _files(DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH, 1),
+        "DANG_KY_DOANH_NGHIEP": _files(DOANH_NGHIEP_DANG_KY_OUTPUT_PATH, 2),
+    },
+    "Q1": {
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 1),
+        "CCCD_NGUOI_MOI": _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
+        "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 4),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+            _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 1),
+        ],
+    },
+    "Q2": {
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 1),
+        "CCCD_NGUOI_MOI": _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
+        "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+            _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 1),
+        ],
+    },
+    "F": {
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "THU_MOI": _files(F_THU_MOI_OUTPUT_PATH, 1),
+        "QUYET_DINH_DU_HOC": _files(F_QUYET_DINH_DU_HOC_OUTPUT_PATH, 2),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 2),
+        ],
+    },
+    "X1": {
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 2),
+        ],
+        "GIAY_BAO_NHAP_HOC": _files(X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH, 1),
+        "JW": _files(X_JW_OUTPUT_PATH, 1),
+    },
+    "X2": {
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 2),
+        ],
+        "GIAY_BAO_NHAP_HOC": _files(X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH, 1),
+        "JW": _files(X_JW_OUTPUT_PATH, 1),
+    },
+    "S2": {
+        "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        # The applicant's own invitation letter (not generated).
+        "THU_MOI": _files(S2_THU_MOI_OUTPUT_PATH, 1),
+        "CCCD_NGUOI_MOI": _files(S2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
+        "CHUNG_MINH_QUAN_HE": _files(S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+            _files(S2_TAI_LIEU_KHAC_OUTPUT_PATH, 1),
+        ],
+    },
+}
+
 
 UNIT_OF_HOTEL = 5870276
 

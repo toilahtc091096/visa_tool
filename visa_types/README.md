@@ -155,29 +155,46 @@ Upload (step 7) do 2 bảng trong `constants.py` quyết định, khoá = `profi
 
 | Bảng | Nghĩa |
 |---|---|
-| `UPLOAD_FILE_CODE_BY_VISA_TYPE[code][group][doc_type]` | **Các ô upload trên COVA**: list `{categoryCode, materialCode}` |
-| `UPLOAD_CONFIG[code][doc_type]` | **Lấy file ở đâu**: `{"folder", "limit"}` hoặc list nhiều nguồn |
+| `UPLOAD_FILE_CODE_BY_VISA_TYPE[code][group][doc_type]` | **Các ô upload trên COVA** |
+| `UPLOAD_CONFIG[code][doc_type]` | **Lấy file ở đâu**: `_files(folder, limit)` hoặc list nhiều nguồn |
 
+Mỗi category trên form COVA là **một hằng số `MAT_*` có tên** (`CovaMaterial(categoryCode, prefix)`):
+- Category giống nhau ở mọi form (hộ chiếu trắng, hukou, visa TQ cũ, sao kê,
+  vé, khách sạn...) → dùng chung, vd `MAT_PASSPORT_BLANK_PAGES`.
+- Category riêng của 1 loại → đặt tên theo loại, vd `MAT_S2_INVITATION_LETTER`.
+
+`MAT_X.slots(1, 2, 3)` sinh các ô `<prefix>_1`, `_2`, `_3` theo thứ tự.
 `profile.upload_plan()` ghép 2 bảng theo `doc_type`, rồi lấy file lần lượt từ
 các `folder` và **ghép theo thứ tự** với các ô COVA:
 
 ```python
-UPLOAD_FILE_CODE_BY_VISA_TYPE["X1"] = {
-    "COMMON": {
-        "OTHER_MATERIALS": [                                   # 3 ô trên COVA
-            {"categoryCode": "...", "materialCode": "mfa-099_1"},
-            {"categoryCode": "...", "materialCode": "mfa-099_2"},
-            {"categoryCode": "...", "materialCode": "mfa-099_3"},
+MAT_X9_OTHER_DOCUMENTS = CovaMaterial("12025...", "mfa-199")   # lấy từ DevTools
+
+UPLOAD_FILE_CODE_BY_VISA_TYPE = {
+    ...
+    "X9": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": MAT_PASSPORT_BLANK_PAGES.slots(1, 2),   # dùng chung
+            "OTHER_MATERIALS": MAT_X9_OTHER_DOCUMENTS.slots(1, 2, 3),       # 3 ô riêng
+        },
+    },
+}
+UPLOAD_CONFIG = {
+    ...
+    "X9": {
+        "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
+        "OTHER_MATERIALS": [
+            _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),  # → ô 1
+            _files(X9_TAI_LIEU_KHAC_OUTPUT_PATH, 2),               # → ô 2, 3
         ],
     },
 }
-UPLOAD_CONFIG["X1"] = {
-    "OTHER_MATERIALS": [
-        {"folder": L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, "limit": 1},  # → ô 1
-        {"folder": "x1\\tai-lieu-khac", "limit": 2},                        # → ô 2, 3
-    ],
-}
 ```
+
+**Không nối đuôi**: mỗi loại viết đầy đủ mục của mình trong cả 2 bảng, không
+gán `UPLOAD_CONFIG["X"] = UPLOAD_CONFIG["Y"]`, không `{**bảng_của_Y, ...}`, không
+lọc lại bảng của loại khác. Thứ được dùng chung chỉ là hằng số `MAT_*` và hằng
+số thư mục `*_OUTPUT_PATH`. Nhờ vậy sửa 1 loại không ảnh hưởng loại khác.
 
 Quy tắc:
 - **Mỗi `doc_type` trong `UPLOAD_CONFIG` phải có mã trong
@@ -193,7 +210,7 @@ Quy tắc:
   những ô thực sự có trên form COVA của loại đó.
 - Tên `doc_type` cũng là giá trị client gửi trong `upload_config_keys` khi
   `is_update_info = true` (chỉ upload lại các mục đó).
-- Hai loại dùng chung bảng → gán alias: `UPLOAD_CONFIG["M"] = UPLOAD_CONFIG["M90"]`.
+- Hai loại có mục giống nhau → vẫn viết đủ ở cả hai, dùng chung hằng số `MAT_*`.
 - Loại có cách upload khác hẳn (hiếm) → override `upload_plan()` trong profile.
 
 ---

@@ -156,6 +156,18 @@ CASES: dict[str, dict[str, Any]] = {
         "type_of_visa_sub_value": "SPM",
         "arrivalCity": "SHENZHEN",
     },
+    "X1_study_long": {
+        "visa_type": "X1",
+        "type_of_visa_sub_value": "L",
+        "inviteSchoolName": "PEKING UNIVERSITY",
+        "school_address": "5 YIHEYUAN ROAD",
+    },
+    "X2_study_short": {
+        "visa_type": "X2",
+        "type_of_visa_sub_value": "S",
+        "inviteSchoolName": "FUDAN UNIVERSITY",
+        "school_address": "220 HANDAN ROAD",
+    },
     "F_school": {
         "visa_type": "F",
         "type_of_visa_sub_value": "AE",
