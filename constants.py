@@ -1150,752 +1150,158 @@ UPLOAD_CONFIG["S2"] = {
     },
 }
 
-UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
-    "L15": {
-        "COMMON": {
-            "FLIGHT_TICKET": [
-                {
-                    "categoryCode": "12025062020000706552852",
-                    "materialCode": "mfa-003_1",
-                },
-            ],
-            "HOTEL_RESERVATION_WITH_PAYMENT": [
-                {
-                    "categoryCode": "12025063014542307352106",
-                    "materialCode": "mfa-002_1",
-                },
-                {
-                    "categoryCode": "12025063014542307352106",
-                    "materialCode": "mfa-002_2",
-                },
-                {
-                    "categoryCode": "12025063014542307352106",
-                    "materialCode": "mfa-002_3",
-                },
-            ],
-            "PASSPORT_BLANK_PAGES": [
-                {
-                    "categoryCode": "22025070216180808782737",
-                    "materialCode": "mfa-017_1",
-                },
-                {
-                    "categoryCode": "22025070216180808782737",
-                    "materialCode": "mfa-017_2",
-                },
-            ],
-            "BANK_STATEMENT": [
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_1",
-                },
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_2",
-                },
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_3",
-                },
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_4",
-                },
-            ],
-            "HUKOU_OR_EMPLOYMENT_LETTER": [
-                {
-                    "categoryCode": "22025062114073725280378",
-                    "materialCode": "mfa-030_1",
-                },
-            ],
-            "OTHER_MATERIALS": [
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_1",
-                },
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_2",
-                },
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_3",
-                },
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_4",
-                },
-            ],
-            "VISA_CENTER_CONFIRMATION": [
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_5",
-                },
-            ],
-            "PREV_CHINESE_VISA": [
-                {
-                    "categoryCode": "22025062114131912554297",
-                    "materialCode": "mfa-033_1",
-                },
-                {
-                    "categoryCode": "22025062114131912554297",
-                    "materialCode": "mfa-033_2",
-                },
-            ],
-            "UNDER_18": [
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_1",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_2",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_3",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_4",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_5",
-                },
-            ],
-            "OTHER_COUNTRY_VISAS": [
-                {
-                    "categoryCode": "12025062114213765489140",
-                    "materialCode": "mfa-011_1",
-                },
-                {
-                    "categoryCode": "12025062114213765489140",
-                    "materialCode": "mfa-011_2",
-                },
-                {
-                    "categoryCode": "12025062114213765489140",
-                    "materialCode": "mfa-011_3",
-                },
-            ],
-        },
-    },
-    "L30": {
-        "COMMON": {
-            "FLIGHT_TICKET": [
-                {
-                    "categoryCode": "12025062020000706552852",
-                    "materialCode": "mfa-003_1",
-                },
-            ],
-            "HOTEL_RESERVATION_WITH_PAYMENT": [
-                {
-                    "categoryCode": "12025063014542307352106",
-                    "materialCode": "mfa-002_1",
-                },
-                {
-                    "categoryCode": "12025063014542307352106",
-                    "materialCode": "mfa-002_2",
-                },
-                {
-                    "categoryCode": "12025063014542307352106",
-                    "materialCode": "mfa-002_3",
-                },
-            ],
-            "PASSPORT_BLANK_PAGES": [
-                {
-                    "categoryCode": "22025070216180808782737",
-                    "materialCode": "mfa-017_1",
-                },
-                {
-                    "categoryCode": "22025070216180808782737",
-                    "materialCode": "mfa-017_2",
-                },
-            ],
-            "BANK_STATEMENT": [
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_1",
-                },
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_2",
-                },
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_3",
-                },
-                {
-                    "categoryCode": "12025062216413672273869",
-                    "materialCode": "mfa-007_4",
-                },
-            ],
-            "HUKOU_OR_EMPLOYMENT_LETTER": [
-                {
-                    "categoryCode": "22025062114073725280378",
-                    "materialCode": "mfa-030_1",
-                },
-            ],
-            "OTHER_MATERIALS": [
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_1",
-                },
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_2",
-                },
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_3",
-                },
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_4",
-                },
-            ],
-            "VISA_CENTER_CONFIRMATION": [
-                {
-                    "categoryCode": "12025062114211484037531",
-                    "materialCode": "mfa-044_5",
-                },
-            ],
-            "PREV_CHINESE_VISA": [
-                {
-                    "categoryCode": "22025062114131912554297",
-                    "materialCode": "mfa-033_1",
-                },
-                {
-                    "categoryCode": "22025062114131912554297",
-                    "materialCode": "mfa-033_2",
-                },
-            ],
-            "UNDER_18": [
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_1",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_2",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_3",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_4",
-                },
-                {
-                    "categoryCode": "22026072917255869849620",
-                    "materialCode": "mfa-039_5",
-                },
-            ],
-            "OTHER_COUNTRY_VISAS": [
-                {
-                    "categoryCode": "12025062114213765489140",
-                    "materialCode": "mfa-011_1",
-                },
-                {
-                    "categoryCode": "12025062114213765489140",
-                    "materialCode": "mfa-011_2",
-                },
-                {
-                    "categoryCode": "12025062114213765489140",
-                    "materialCode": "mfa-011_3",
-                },
-            ],
-            "ITINERARY_IN_CHINA": [
-                {
-                    "categoryCode": "12025062019595907456262",
-                    "materialCode": "mfa-004_1",
-                },
-            ],
-        },
-    },
-}
-UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"] = {
-    "COMMON": {
-        "PASSPORT_BLANK_PAGES": [
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_1",
-            },
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_2",
-            },
-        ],
-        "BANK_STATEMENT": [
-            {
-                "categoryCode": "12025062216413672273869",
-                "materialCode": "mfa-007_1",
-            },
-            {
-                "categoryCode": "12025062216413672273869",
-                "materialCode": "mfa-007_2",
-            },
-            {
-                "categoryCode": "12025062216413672273869",
-                "materialCode": "mfa-007_3",
-            },
-            {
-                "categoryCode": "12025062216413672273869",
-                "materialCode": "mfa-007_4",
-            },
-        ],
-        "HUKOU_OR_EMPLOYMENT_LETTER": [
-            {
-                "categoryCode": "22025062114073725280378",
-                "materialCode": "mfa-030_1",
-            },
-        ],
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062114365564197636",
-                "materialCode": "mfa-053_2",
-            },
-            {
-                "categoryCode": "12025062114365564197636",
-                "materialCode": "mfa-053_3",
-            },
-            {
-                "categoryCode": "12025062114365564197636",
-                "materialCode": "mfa-053_4",
-            },
-            {
-                "categoryCode": "12025062114365564197636",
-                "materialCode": "mfa-053_5",
-            },
-        ],
-        "VISA_CENTER_CONFIRMATION": [
-            {
-                "categoryCode": "12025062114365564197636",
-                "materialCode": "mfa-053_1",
-            },
-        ],
-        "PREV_CHINESE_VISA": [
-            {
-                "categoryCode": "22025062114131912554297",
-                "materialCode": "mfa-033_1",
-            },
-            {
-                "categoryCode": "22025062114131912554297",
-                "materialCode": "mfa-033_2",
-            },
-        ],
-        "UNDER_18": [
-            {
-                "categoryCode": "22026072917255869849620",
-                "materialCode": "mfa-039_1",
-            },
-            {
-                "categoryCode": "22026072917255869849620",
-                "materialCode": "mfa-039_2",
-            },
-            {
-                "categoryCode": "22026072917255869849620",
-                "materialCode": "mfa-039_3",
-            },
-            {
-                "categoryCode": "22026072917255869849620",
-                "materialCode": "mfa-039_4",
-            },
-            {
-                "categoryCode": "22026072917255869849620",
-                "materialCode": "mfa-039_5",
-            },
-        ],
-        "OTHER_COUNTRY_VISAS": [
-            {
-                "categoryCode": "12025062114213765489140",
-                "materialCode": "mfa-011_1",
-            },
-            {
-                "categoryCode": "12025062114213765489140",
-                "materialCode": "mfa-011_2",
-            },
-            {
-                "categoryCode": "12025062114213765489140",
-                "materialCode": "mfa-011_3",
-            },
-        ],
-        "ITINERARY_IN_CHINA": [
-            {
-                "categoryCode": "12025062019595907456262",
-                "materialCode": "mfa-004_1",
-            },
-        ],
-        "THU_MOI": [
-            {
-                "categoryCode": "12026072917273869111112",
-                "materialCode": "mfa-049_1",
-            },
-        ],
-        "QUYET_DINH": [
-            {
-                "categoryCode": "12025062114271519280895",
-                "materialCode": "mfa-050_1",
-            },
-        ],
-        "DANG_KY_DOANH_NGHIEP": [
-            {
-                "categoryCode": "12025062114301276922307",
-                "materialCode": "mfa-051_1",
-            },
-            {
-                "categoryCode": "12025062114301276922307",
-                "materialCode": "mfa-051_2",
-            },
-        ],
-    }
-}
-UPLOAD_FILE_CODE_BY_VISA_TYPE["M"] = UPLOAD_FILE_CODE_BY_VISA_TYPE["M90"]
-UPLOAD_FILE_CODE_BY_VISA_TYPE["Q1"] = {
-    "COMMON": {
-        "PASSPORT_BLANK_PAGES": [
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_1",
-            },
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_2",
-            },
-        ],
-        "HUKOU_OR_EMPLOYMENT_LETTER": [
-            {
-                "categoryCode": "22025062114073725280378",
-                "materialCode": "mfa-030_1",
-            },
-        ],
-        "PREV_CHINESE_VISA": [
-            {
-                "categoryCode": "22025062114131912554297",
-                "materialCode": "mfa-033_1",
-            },
-        ],
-        "THU_MOI": [
-            {
-                "categoryCode": "12025062115033600751835",
-                "materialCode": "mfa-070_1",
-            },
-        ],
-        "CCCD_NGUOI_MOI": [
-            {
-                "categoryCode": "12025062115051305548199",
-                "materialCode": "mfa-071_1",
-            },
-            {
-                "categoryCode": "12025062115051305548199",
-                "materialCode": "mfa-071_2",
-            },
-        ],
-        "CHUNG_MINH_QUAN_HE": [
-            {
-                "categoryCode": "12025062115240751955592",
-                "materialCode": "mfa-073_1",
-            },
-            {
-                "categoryCode": "12025062115240751955592",
-                "materialCode": "mfa-073_2",
-            },
-            {
-                "categoryCode": "12025062115240751955592",
-                "materialCode": "mfa-073_3",
-            },
-            {
-                "categoryCode": "12025062115240751955592",
-                "materialCode": "mfa-073_4",
-            },
-        ],
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062115165388661358",
-                "materialCode": "mfa-085_1",
-            },
-            {
-                "categoryCode": "12025062115165388661358",
-                "materialCode": "mfa-085_2",
-            },
-        ],
-        "HUKOU_OR_EMPLOYMENT_LETTER": [
-            {
-                "categoryCode": "12025062115232232717451",
-                "materialCode": "mfa-030_4",
-            },
-        ],
-    },
-}
-UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"] = {
-    "COMMON": {
-        "PASSPORT_BLANK_PAGES": [
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_1",
-            },
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_2",
-            },
-        ],
-        "PREV_CHINESE_VISA": [
-            {
-                "categoryCode": "22025062114131912554297",
-                "materialCode": "mfa-033_1",
-            },
-        ],
-        "THU_MOI": [
-            {
-                "categoryCode": "12025062115191056099712",
-                "materialCode": "mfa-091_1",
-            },
-        ],
-        "CCCD_NGUOI_MOI": [
-            {
-                "categoryCode": "12025062115202108210397",
-                "materialCode": "mfa-092_1",
-            },
-            {
-                "categoryCode": "12025062115202108210397",
-                "materialCode": "mfa-092_2",
-            },
-        ],
-        "CHUNG_MINH_QUAN_HE": [
-            {
-                "categoryCode": "12025062115232232717451",
-                "materialCode": "mfa-094_1",
-            },
-            {
-                "categoryCode": "12025062115232232717451",
-                "materialCode": "mfa-094_2",
-            },
-            {
-                "categoryCode": "12025062115232232717451",
-                "materialCode": "mfa-094_3",
-            },
-        ],
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062115255295051217",
-                "materialCode": "mfa-099_1",
-            },
-        ],
-        "HUKOU_OR_EMPLOYMENT_LETTER": [
-            {
-                "categoryCode": "12025062115232232717451",
-                "materialCode": "mfa-030_4",
-            },
-        ],
-    },
-}
-UPLOAD_FILE_CODE_BY_VISA_TYPE["F"] = {
-    "COMMON": {
-        "PASSPORT_BLANK_PAGES": [
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_1",
-            },
-            {
-                "categoryCode": "22025070216180808782737",
-                "materialCode": "mfa-017_2",
-            },
-        ],
-        "HUKOU_OR_EMPLOYMENT_LETTER": [
-            {
-                "categoryCode": "22025062114073725280378",
-                "materialCode": "mfa-030_1",
-            },
-        ],
-        "PREV_CHINESE_VISA": [
-            {
-                "categoryCode": "22025062114131912554297",
-                "materialCode": "mfa-033_1",
-            },
-            {
-                "categoryCode": "22025062114131912554297",
-                "materialCode": "mfa-033_2",
-            },
-        ],
-        "THU_MOI": [
-            {
-                "categoryCode": "12026072917284901619425",
-                "materialCode": "mfa-061_1",
-            },
-        ],
-        "QUYET_DINH_DU_HOC": [
-            {
-                "categoryCode": "12025062114560885950076",
-                "materialCode": "mfa-062_1",
-            },
-        ],
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062115000341540359",
-                "materialCode": "mfa-065_1",
-            },
-            {
-                "categoryCode": "12025062115000341540359",
-                "materialCode": "mfa-065_2",
-            },
-            {
-                "categoryCode": "12025062115000341540359",
-                "materialCode": "mfa-065_3",
-            },
-            {
-                "categoryCode": "12025062115000341540359",
-                "materialCode": "mfa-065_4",
-            },
-        ],
-    }
+def _slots(category_code: str, *material_codes: str) -> list[dict[str, str]]:
+    """COVA upload slots of one category, one per material code (in order)."""
+    return [
+        {"categoryCode": category_code, "materialCode": code}
+        for code in material_codes
+    ]
+
+
+# Upload slots whose codes are the same on every COVA form that has them.
+# A visa type takes them with _common(); when a type's slot differs, the type
+# writes its own _slots(...) instead. Types never read another type's table.
+COMMON_MATERIAL_SLOTS: dict[str, list[dict[str, str]]] = {
+    "PASSPORT_BLANK_PAGES": _slots("22025070216180808782737", "mfa-017_1", "mfa-017_2"),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _slots("22025062114073725280378", "mfa-030_1"),
+    "PREV_CHINESE_VISA": _slots("22025062114131912554297", "mfa-033_1", "mfa-033_2"),
+    "BANK_STATEMENT": _slots("12025062216413672273869", "mfa-007_1", "mfa-007_2", "mfa-007_3", "mfa-007_4"),
+    "OTHER_COUNTRY_VISAS": _slots("12025062114213765489140", "mfa-011_1", "mfa-011_2", "mfa-011_3"),
+    "UNDER_18": _slots("22026072917255869849620", "mfa-039_1", "mfa-039_2", "mfa-039_3", "mfa-039_4", "mfa-039_5"),
+    "ITINERARY_IN_CHINA": _slots("12025062019595907456262", "mfa-004_1"),
+    "FLIGHT_TICKET": _slots("12025062020000706552852", "mfa-003_1"),
+    "HOTEL_RESERVATION_WITH_PAYMENT": _slots("12025063014542307352106", "mfa-002_1", "mfa-002_2", "mfa-002_3"),
 }
 
-UPLOAD_FILE_CODE_BY_VISA_TYPE["X1"] = {
-    "COMMON": {
-        **{
-            k: v
-            for k, v in UPLOAD_FILE_CODE_BY_VISA_TYPE["F"]["COMMON"].items()
-            if k not in ("THU_MOI", "QUYET_DINH_DU_HOC", "OTHER_MATERIALS")
+
+def _common(doc_type: str, count: int | None = None) -> list[dict[str, str]]:
+    """A fresh copy of a shared slot list (optionally only the first ``count``)."""
+    return [dict(slot) for slot in COMMON_MATERIAL_SLOTS[doc_type][:count]]
+
+
+# COVA material slots per visa type: {visa_type: {group: {doc_type: slots}}}.
+# Files are uploaded into the slots in order (see VisaProfile.upload_plan).
+UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
+    # L15 - tourism 15 days
+    "L15": {
+        "COMMON": {
+            "FLIGHT_TICKET": _common("FLIGHT_TICKET"),
+            "HOTEL_RESERVATION_WITH_PAYMENT": _common("HOTEL_RESERVATION_WITH_PAYMENT"),
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "BANK_STATEMENT": _common("BANK_STATEMENT"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "OTHER_MATERIALS": _slots("12025062114211484037531", "mfa-044_1", "mfa-044_2", "mfa-044_3", "mfa-044_4"),
+            "VISA_CENTER_CONFIRMATION": _slots("12025062114211484037531", "mfa-044_5"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
+            "UNDER_18": _common("UNDER_18"),
+            "OTHER_COUNTRY_VISAS": _common("OTHER_COUNTRY_VISAS"),
         },
-        "GIAY_BAO_NHAP_HOC": [
-            {
-                "categoryCode": "12025062116113060399385",
-                "materialCode": "mfa-155_1",
-            }
-        ],
-        "JW": [
-            {
-                "categoryCode": "12025062116141116750122",
-                "materialCode": "mfa-164_1",
-            }
-        ],
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062116171641916688",
-                "materialCode": "mfa-165_1",
-            },
-            {
-                "categoryCode": "12025062116171641916688",
-                "materialCode": "mfa-165_1",
-            },
-            {
-                "categoryCode": "12025062116171641916688",
-                "materialCode": "mfa-165_1",
-            },
-            {
-                "categoryCode": "12025062116171641916688",
-                "materialCode": "mfa-165_1",
-            },
-        ],
-    }
-}
-UPLOAD_FILE_CODE_BY_VISA_TYPE["X2"] = {
-    
-    "COMMON": {
-        **{
-            k: v
-            for k, v in UPLOAD_FILE_CODE_BY_VISA_TYPE["F"]["COMMON"].items()
-            if k not in ("THU_MOI", "QUYET_DINH_DU_HOC", "OTHER_MATERIALS")
+    },
+    # L30 - tourism 30 days
+    "L30": {
+        "COMMON": {
+            "FLIGHT_TICKET": _common("FLIGHT_TICKET"),
+            "HOTEL_RESERVATION_WITH_PAYMENT": _common("HOTEL_RESERVATION_WITH_PAYMENT"),
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "BANK_STATEMENT": _common("BANK_STATEMENT"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "OTHER_MATERIALS": _slots("12025062114211484037531", "mfa-044_1", "mfa-044_2", "mfa-044_3", "mfa-044_4"),
+            "VISA_CENTER_CONFIRMATION": _slots("12025062114211484037531", "mfa-044_5"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
+            "UNDER_18": _common("UNDER_18"),
+            "OTHER_COUNTRY_VISAS": _common("OTHER_COUNTRY_VISAS"),
+            "ITINERARY_IN_CHINA": _common("ITINERARY_IN_CHINA"),
         },
-        "GIAY_BAO_NHAP_HOC": [
-            {
-                "categoryCode": "12025062116191142931178",
-                "materialCode": "mfa-169_1",
-            }
-        ],
-        "JW": [
-            {
-                "categoryCode": "12025062116191142931178",
-                "materialCode": "mfa-169_2",
-            }
-        ],
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_1",
-            },
-            {
-                "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_2",
-            },
-            {
-                "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_3",
-            },
-            {
-                "categoryCode": "12025062116215851186649",
-                "materialCode": "mfa-172_4",
-            },
-        ],
-    }
-}
-# S2 material slots, taken from the S2 form's "materials" list. The old Chinese
-# visa slot is not in that sample, so it keeps the Q2 code.
-UPLOAD_FILE_CODE_BY_VISA_TYPE["S2"] = {
-    "COMMON": {
-        "PASSPORT_BLANK_PAGES": UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"]["COMMON"][
-            "PASSPORT_BLANK_PAGES"
-        ],
-        "PREV_CHINESE_VISA": UPLOAD_FILE_CODE_BY_VISA_TYPE["Q2"]["COMMON"][
-            "PREV_CHINESE_VISA"
-        ],
-        # Residential certificate / "Hukou" / employment letter
-        "HUKOU_OR_EMPLOYMENT_LETTER": [
-            {
-                "categoryCode": "22025062114073725280378",
-                "materialCode": "mfa-030_1",
-            },
-        ],
-        # Invitation letter from the inviting party
-        "THU_MOI": [
-            {
-                "categoryCode": "12025062115424944966353",
-                "materialCode": "mfa-122_1",
-            },
-        ],
-        # Inviting foreigner's passport + residence permit
-        "CCCD_NGUOI_MOI": [
-            {
-                "categoryCode": "12025062115452102589065",
-                "materialCode": "mfa-123_1",
-            },
-            {
-                "categoryCode": "12025062115452102589065",
-                "materialCode": "mfa-123_2",
-            },
-        ],
-        # Family relationship certification
-        "CHUNG_MINH_QUAN_HE": [
-            {
-                "categoryCode": "12025062115515363163065",
-                "materialCode": "mfa-125_1",
-            },
-            {
-                "categoryCode": "12025062115515363163065",
-                "materialCode": "mfa-125_2",
-            },
-            {
-                "categoryCode": "12025062115515363163065",
-                "materialCode": "mfa-125_3",
-            },
-        ],
-        # Other documents
-        "OTHER_MATERIALS": [
-            {
-                "categoryCode": "12025062115571999891100",
-                "materialCode": "mfa-134_1",
-            },
-            {
-                "categoryCode": "12025062115571999891100",
-                "materialCode": "mfa-134_2",
-            },
-            {
-                "categoryCode": "12025062115571999891100",
-                "materialCode": "mfa-134_3",
-            },
-        ],
+    },
+    # M - business
+    "M": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "BANK_STATEMENT": _common("BANK_STATEMENT"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "OTHER_MATERIALS": _slots("12025062114365564197636", "mfa-053_2", "mfa-053_3", "mfa-053_4", "mfa-053_5"),
+            "VISA_CENTER_CONFIRMATION": _slots("12025062114365564197636", "mfa-053_1"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
+            "UNDER_18": _common("UNDER_18"),
+            "OTHER_COUNTRY_VISAS": _common("OTHER_COUNTRY_VISAS"),
+            "ITINERARY_IN_CHINA": _common("ITINERARY_IN_CHINA"),
+            "THU_MOI": _slots("12026072917273869111112", "mfa-049_1"),
+            "QUYET_DINH": _slots("12025062114271519280895", "mfa-050_1"),
+            "DANG_KY_DOANH_NGHIEP": _slots("12025062114301276922307", "mfa-051_1", "mfa-051_2"),
+        },
+    },
+    # Q1 - family reunion / long stay
+    "Q1": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _slots("12025062115232232717451", "mfa-030_4"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA", count=1),
+            "THU_MOI": _slots("12025062115033600751835", "mfa-070_1"),
+            "CCCD_NGUOI_MOI": _slots("12025062115051305548199", "mfa-071_1", "mfa-071_2"),
+            "CHUNG_MINH_QUAN_HE": _slots("12025062115240751955592", "mfa-073_1", "mfa-073_2", "mfa-073_3", "mfa-073_4"),
+            "OTHER_MATERIALS": _slots("12025062115165388661358", "mfa-085_1", "mfa-085_2"),
+        },
+    },
+    # Q2 - short family visit
+    "Q2": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA", count=1),
+            "THU_MOI": _slots("12025062115191056099712", "mfa-091_1"),
+            "CCCD_NGUOI_MOI": _slots("12025062115202108210397", "mfa-092_1", "mfa-092_2"),
+            "CHUNG_MINH_QUAN_HE": _slots("12025062115232232717451", "mfa-094_1", "mfa-094_2", "mfa-094_3"),
+            "OTHER_MATERIALS": _slots("12025062115255295051217", "mfa-099_1"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _slots("12025062115232232717451", "mfa-030_4"),
+        },
+    },
+    # F - exchange / study visit
+    "F": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
+            "THU_MOI": _slots("12026072917284901619425", "mfa-061_1"),
+            "QUYET_DINH_DU_HOC": _slots("12025062114560885950076", "mfa-062_1"),
+            "OTHER_MATERIALS": _slots("12025062115000341540359", "mfa-065_1", "mfa-065_2", "mfa-065_3", "mfa-065_4"),
+        },
+    },
+    # X1 - study > 180 days
+    "X1": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
+            "GIAY_BAO_NHAP_HOC": _slots("12025062116113060399385", "mfa-155_1"),
+            "JW": _slots("12025062116141116750122", "mfa-164_1"),
+            # TODO(X1): all 4 slots are mfa-165_1; confirm the real codes (_2.._4?).
+            "OTHER_MATERIALS": _slots("12025062116171641916688", "mfa-165_1", "mfa-165_1", "mfa-165_1", "mfa-165_1"),
+        },
+    },
+    # X2 - study <= 180 days
+    "X2": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA"),
+            "GIAY_BAO_NHAP_HOC": _slots("12025062116191142931178", "mfa-169_1"),
+            "JW": _slots("12025062116191142931178", "mfa-169_2"),
+            "OTHER_MATERIALS": _slots("12025062116215851186649", "mfa-172_1", "mfa-172_2", "mfa-172_3", "mfa-172_4"),
+        },
+    },
+    # S2 - foreigner's family member / personal matters
+    "S2": {
+        "COMMON": {
+            "PASSPORT_BLANK_PAGES": _common("PASSPORT_BLANK_PAGES"),
+            "PREV_CHINESE_VISA": _common("PREV_CHINESE_VISA", count=1),
+            "HUKOU_OR_EMPLOYMENT_LETTER": _common("HUKOU_OR_EMPLOYMENT_LETTER"),
+            "THU_MOI": _slots("12025062115424944966353", "mfa-122_1"),
+            "CCCD_NGUOI_MOI": _slots("12025062115452102589065", "mfa-123_1", "mfa-123_2"),
+            "CHUNG_MINH_QUAN_HE": _slots("12025062115515363163065", "mfa-125_1", "mfa-125_2", "mfa-125_3"),
+            "OTHER_MATERIALS": _slots("12025062115571999891100", "mfa-134_1", "mfa-134_2", "mfa-134_3"),
+        },
     },
 }
+
 UNIT_OF_HOTEL = 5870276
 
 GIVEN_MALE_VIETNAMESE_NAMES = (
