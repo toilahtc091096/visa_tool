@@ -11,6 +11,7 @@ from docxtpl import DocxTemplate
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
+
 SIGNATURE_MEDIA_NAME = "Image 1"
 
 
@@ -110,7 +111,11 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "parents": _get_value(source, "parents", default=None),
         "spouseParents": _get_value(source, "spouseParents", default=None),
         "children": _get_value(
-            source, "childrenCheckbox", "childrenFlag", "children_relation", default=None
+            source,
+            "childrenCheckbox",
+            "childrenFlag",
+            "children_relation",
+            default=None,
         ),
         "siblings": _get_value(source, "siblings", default=None),
         "paternalGrandparents": _get_value(
@@ -171,6 +176,8 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         "child",
         "son",
         "daughter",
+        "con",
+        "con cai",
     }:
         explicit_flags["parents"] = CHECKED
     if explicit_flags["spouseParents"] is None and relation_hint in {
@@ -249,14 +256,15 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
     inviter_given = _text(
         _get_value(source, "inviterGivenName", "inviter_given_name", default="")
     )
-    inviter_name = _text(
-        _get_value(source, "inviterName", "inviter_name", default="")
-    ) or f"{inviter_family}{inviter_given}"
+    inviter_name = (
+        _text(_get_value(source, "inviterName", "inviter_name", default=""))
+        or f"{inviter_family}{inviter_given}"
+    )
 
     passport_number = _text(
         _get_value(source, "passportNumber", "passport_number", default="")
     )
-    visa_duration= _text(
+    visa_duration = _text(
         _get_value(source, "visaDuration", "visa_duration", default="")
     )
     applicant_name = _text(
