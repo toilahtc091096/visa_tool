@@ -358,7 +358,10 @@ def run_case(name: str, overrides: dict[str, Any]) -> dict[str, Any]:
     saved_week_skip = dict(constants.WEEK_SKIP_BY_TYPE)
     # constants picks these with random.randint at import time; pin them.
     constants.WEEK_SKIP_BY_TYPE.update(
-        {"L15": 5, "L30": 10, "M": 10, "M30": 10, "M90": 10, "F": 10}
+        {
+            "L15": 5, "L30": 10, "M": 10, "M30": 10, "M90": 10, "F": 10,
+            "X1": 10, "X2": 10,
+        }
     )
     random.seed(20260907)
     try:

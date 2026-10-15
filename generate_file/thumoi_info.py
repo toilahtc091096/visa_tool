@@ -310,18 +310,21 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
     q2_one_year = _get_value(source, "q2OneYear", "q2_one_year", default=None)
     if q1 is None and visa_type == "Q1":
         q1 = CHECKED
-    if visa_type == "Q2":
-        if apply_visa_validity == 6:
-            if q2_half_year is None:
-                q2_half_year = CHECKED
-        elif apply_visa_validity == 12:
-            if q2_one_year is None:
+    explicit_q2 = any(v is not None for v in (q2_once, q2_twice, q2_half_year, q2_one_year))
+    if visa_type == "Q2" and not explicit_q2:
+        # Template boxes: Q2一次 (single entry), Q2两次 (double entry),
+        # Q2半年多次 / Q2一年多次 (multiple entries within 6 / 12 months).
+        # The number of entries picks the box; the validity only splits the
+        # two multiple-entry boxes (Q2 default validity is 6 months).
+        if entries_type == "S":
+            q2_once = CHECKED
+        elif entries_type == "D":
+            q2_twice = CHECKED
+        elif entries_type == "M":
+            if (apply_visa_validity or 6) >= 12:
                 q2_one_year = CHECKED
-        else:
-            if entries_type == "S" and q2_once is None:
-                q2_once = CHECKED
-            elif entries_type in {"D", "M"} and q2_twice is None:
-                q2_twice = CHECKED
+            else:
+                q2_half_year = CHECKED
     return {
         "inviterName": inviter_name,
         "inviterIdCard": _text(
