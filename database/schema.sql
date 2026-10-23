@@ -56,3 +56,36 @@ CREATE INDEX IF NOT EXISTS idx_han_approval_jobs_status
 
 CREATE INDEX IF NOT EXISTS idx_han_approval_jobs_han_code
     ON han_approval_jobs (han_code);
+
+CREATE TABLE IF NOT EXISTS application_status_trackings (
+    id BIGSERIAL PRIMARY KEY,
+    passport_number VARCHAR(64) NOT NULL,
+    first_applyid VARCHAR(64) NOT NULL DEFAULT '',
+    application_code VARCHAR(64) NOT NULL DEFAULT '',
+    full_name VARCHAR(255) NOT NULL DEFAULT '',
+    initial_status VARCHAR(32) NOT NULL DEFAULT '',
+    current_status VARCHAR(32) NOT NULL DEFAULT 'not_checked',
+    apply_status_raw VARCHAR(64) NOT NULL DEFAULT '',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    group_id VARCHAR(64) NOT NULL DEFAULT '',
+    sender_id VARCHAR(64) NOT NULL DEFAULT '',
+    sender_name VARCHAR(255) NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status_changed_at TIMESTAMPTZ,
+    last_checked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Mỗi số HC chỉ có tối đa 1 lượt đang theo dõi; lượt đã xong giữ lại làm lịch sử.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_application_status_trackings_active_passport
+    ON application_status_trackings (passport_number)
+    WHERE is_active;
+
+CREATE INDEX IF NOT EXISTS idx_application_status_trackings_passport_number
+    ON application_status_trackings (passport_number);
+
+CREATE INDEX IF NOT EXISTS idx_application_status_trackings_is_active
+    ON application_status_trackings (is_active);

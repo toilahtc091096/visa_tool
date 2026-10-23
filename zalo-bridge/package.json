@@ -1,0 +1,15 @@
+{
+  "name": "zalo-bridge",
+  "private": true,
+  "type": "module",
+  "description": "Cầu nối zca-js <-> visa_tool: chuyển tin nhắn nhóm Zalo sang Python và gửi tin nhắn ra Zalo.",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "zca-js": "^2.2.0"
+  }
+}

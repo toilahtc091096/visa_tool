@@ -22,6 +22,13 @@ from database.crud.approval_print_job import (
     reset_approval_print_jobs_by_printed_range,
     upsert_approval_print_job_processing,
 )
+from database.crud.application_status_tracking import (
+    create_tracking,
+    get_active_tracking_by_passport,
+    list_active_trackings,
+    list_finished_tracking_applyids,
+    update_tracking,
+)
 
 __all__ = [
     "create_visa_registration",
@@ -44,4 +51,9 @@ __all__ = [
     "update_approval_print_job_status_by_ids",
     "reset_approval_print_jobs_by_printed_range",
     "upsert_approval_print_job_processing",
+    "create_tracking",
+    "get_active_tracking_by_passport",
+    "list_active_trackings",
+    "list_finished_tracking_applyids",
+    "update_tracking",
 ]

@@ -9,6 +9,7 @@ from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
 from fastapi.responses import JSONResponse, Response
+import httpx
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
@@ -18,6 +19,7 @@ from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
 from api import api_sign_and_push_image_to_r2
+from api import check_token_alive
 from database.connection import init_database
 from main import build_case, main
 from services.han_approval import (
@@ -27,7 +29,13 @@ from services.han_approval import (
     retry_han_approval_jobs,
 )
 from services import sync_draft_visa_registrations
+from services.application_status_tracker import (
+    ZaloInbox,
+    check_tracked_applications,
+    update_authorization,
+)
 from services.google_sheets import debug_google_sheet_access
+from services.zalo_notify import bridge_secret
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
 from utils.token_store import append_authorization
@@ -110,22 +118,92 @@ async def _sync_draft_scheduler_loop() -> None:
         await asyncio.sleep(interval_seconds)
 
 
+def _is_tracker_scheduler_enabled() -> bool:
+    value = os.getenv("TRACKER_SCHEDULER_ENABLED", "0").strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _tracker_interval_seconds() -> int:
+    raw_value = os.getenv("TRACKER_INTERVAL_SECONDS", "").strip()
+    try:
+        return max(60, int(raw_value)) if raw_value else 30 * 60
+    except ValueError:
+        return 30 * 60
+
+
+async def _application_status_tracker_loop() -> None:
+    interval_seconds = _tracker_interval_seconds()
+    while True:
+        try:
+            # DB, Google Sheet bên trong là blocking -> chạy thread riêng.
+            await asyncio.to_thread(asyncio.run, check_tracked_applications())
+        except asyncio.CancelledError:
+            print("[tracker_scheduler] cancelled")
+            raise
+        except Exception as exc:
+            print(f"[tracker_scheduler] failed: {type(exc).__name__}: {exc}")
+            print(traceback.format_exc())
+            log_exception(exc, {"path": "application_status_tracker_loop"})
+
+        await asyncio.sleep(interval_seconds)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_database()
-    scheduler_task = None
+    background_tasks = []
     if _is_sync_scheduler_enabled():
-        scheduler_task = asyncio.create_task(_sync_draft_scheduler_loop())
+        background_tasks.append(asyncio.create_task(_sync_draft_scheduler_loop()))
+    if _is_tracker_scheduler_enabled():
+        background_tasks.append(asyncio.create_task(_application_status_tracker_loop()))
     yield
-    if scheduler_task is not None:
-        scheduler_task.cancel()
+    for task in background_tasks:
+        task.cancel()
         try:
-            await scheduler_task
+            await task
         except asyncio.CancelledError:
             pass
 
 
 app = FastAPI(lifespan=lifespan)
+zalo_inbox = ZaloInbox()
+
+
+def _require_bridge_secret(request: Request) -> None:
+    expected = bridge_secret()
+    if expected and request.headers.get("x-bridge-secret", "") != expected:
+        raise HTTPException(status_code=401, detail="invalid bridge secret")
+
+
+@app.post("/zalo/inbound")
+async def zalo_inbound(request: Request, payload: dict[str, Any] = Body(...)):
+    # zalo-bridge đẩy từng tin nhắn nhóm vào đây.
+    _require_bridge_secret(request)
+    return zalo_inbox.handle(payload)
+
+
+@app.post("/tracker/token")
+async def tracker_update_token(request: Request, payload: dict[str, Any] = Body(...)):
+    _require_bridge_secret(request)
+    authorization = str(payload.get("authorization", "") or "").strip()
+    if not authorization:
+        raise HTTPException(status_code=400, detail="authorization is required")
+    return await asyncio.to_thread(asyncio.run, update_authorization(authorization))
+
+
+@app.get("/tracker/token/check")
+async def tracker_check_token():
+    async def _check() -> dict[str, Any]:
+        async with httpx.AsyncClient(timeout=60) as client:
+            return await check_token_alive(client)
+
+    return await asyncio.to_thread(asyncio.run, _check())
+
+
+@app.post("/tracker/run-now")
+async def tracker_run_now(request: Request):
+    _require_bridge_secret(request)
+    return await asyncio.to_thread(asyncio.run, check_tracked_applications())
 
 
 @app.get("/health")
