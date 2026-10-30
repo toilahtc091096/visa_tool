@@ -1218,3 +1218,40 @@ PASSPORT_SYMBOL_MAP = {
 
 EMERGENCY_RELATION_FATHER = "BO"
 EMERGENCY_RELATION_MOTHER = "ME"
+
+# Inviter relation labels (normalized: lowercase, single spaces) used to tick
+# the relation checkboxes on the invitation letter (thu moi).
+INVITER_RELATION_SPOUSE = frozenset(
+    {"spouse", "husband", "wife", "vo chong", "vợ chồng", "vo", "chong"}
+)
+INVITER_RELATION_PARENTS = frozenset(
+    {"parents", "father", "mother", "bo me", "ba me", "cha me", "bo", "ba", "cha", "me"}
+)
+INVITER_RELATION_SIBLINGS = frozenset(
+    {
+        "siblings", "brother", "sister", "anh em", "anh chi em",
+        "anh", "chi", "em", "anh trai", "chi gai", "em trai", "em gai",
+    }
+)
+INVITER_RELATION_CHILDREN = frozenset(
+    {"children", "child", "son", "daughter", "con", "con cai", "con trai", "con gai"}
+)
+INVITER_RELATION_SPOUSE_PARENTS = frozenset(
+    {
+        "spouseparents", "cha me vo chong",
+        "cha me vo", "cha me chong", "bo me vo", "bo me chong",
+        "cha vo", "cha chong", "bo vo", "bo chong", "ba vo", "ba chong",
+        "me vo", "me chong",
+    }
+)
+INVITER_RELATION_PATERNAL_GRANDPARENTS = frozenset(
+    {"paternalgrandparents", "ong ba noi", "ong noi", "ba noi"}
+)
+INVITER_RELATION_MATERNAL_GRANDPARENTS = frozenset(
+    {"maternalgrandparents", "ong ba ngoai", "ong ngoai", "ba ngoai"}
+)
+INVITER_RELATION_GRANDCHILDREN = frozenset({"grandchildren", "chau noi"})
+INVITER_RELATION_MATERNAL_GRANDCHILDREN = frozenset({"maternalgrandchildren", "chau ngoai"})
+INVITER_RELATION_CHILDREN_SPOUSE = frozenset(
+    {"childrenspouse", "con dau con re", "con dau", "con re"}
+)

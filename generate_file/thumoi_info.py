@@ -8,6 +8,18 @@ import re
 
 from docxtpl import DocxTemplate
 
+from constants import (
+    INVITER_RELATION_SPOUSE,
+    INVITER_RELATION_PARENTS,
+    INVITER_RELATION_SIBLINGS,
+    INVITER_RELATION_CHILDREN,
+    INVITER_RELATION_SPOUSE_PARENTS,
+    INVITER_RELATION_PATERNAL_GRANDPARENTS,
+    INVITER_RELATION_MATERNAL_GRANDPARENTS,
+    INVITER_RELATION_GRANDCHILDREN,
+    INVITER_RELATION_MATERNAL_GRANDCHILDREN,
+    INVITER_RELATION_CHILDREN_SPOUSE,
+)
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
@@ -146,71 +158,25 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         )
     )
 
-    if explicit_flags["spouse"] is None and relation_hint in {
-        "spouse",
-        "vo chong",
-        "vợ chồng",
-        "husband",
-        "wife",
-        "chong",
-        "vo",
-    }:
+    if explicit_flags["spouse"] is None and relation_hint in INVITER_RELATION_SPOUSE:
         explicit_flags["spouse"] = CHECKED
-    if explicit_flags["parents"] is None and relation_hint in {
-        "parents",
-        "bo me",
-        "ba me",
-        "father",
-        "mother",
-    }:
+    if explicit_flags["parents"] is None and relation_hint in INVITER_RELATION_PARENTS:
         explicit_flags["children"] = CHECKED
-    if explicit_flags["siblings"] is None and relation_hint in {
-        "siblings",
-        "brother",
-        "sister",
-        "anh em",
-    }:
+    if explicit_flags["siblings"] is None and relation_hint in INVITER_RELATION_SIBLINGS:
         explicit_flags["siblings"] = CHECKED
-    if explicit_flags["children"] is None and relation_hint in {
-        "children",
-        "child",
-        "son",
-        "daughter",
-        "con",
-        "con cai",
-    }:
+    if explicit_flags["children"] is None and relation_hint in INVITER_RELATION_CHILDREN:
         explicit_flags["parents"] = CHECKED
-    if explicit_flags["spouseParents"] is None and relation_hint in {
-        "spouseparents",
-        "cha me vo chong",
-    }:
+    if explicit_flags["spouseParents"] is None and relation_hint in INVITER_RELATION_SPOUSE_PARENTS:
         explicit_flags["childrenSpouse"] = CHECKED
-    if explicit_flags["paternalGrandparents"] is None and relation_hint in {
-        "paternalgrandparents",
-        "ong ba noi",
-    }:
+    if explicit_flags["paternalGrandparents"] is None and relation_hint in INVITER_RELATION_PATERNAL_GRANDPARENTS:
         explicit_flags["grandchildren"] = CHECKED
-    if explicit_flags["maternalGrandparents"] is None and relation_hint in {
-        "maternalgrandparents",
-        "ong ba ngoai",
-    }:
+    if explicit_flags["maternalGrandparents"] is None and relation_hint in INVITER_RELATION_MATERNAL_GRANDPARENTS:
         explicit_flags["maternalGrandchildren"] = CHECKED
-    if explicit_flags["grandchildren"] is None and relation_hint in {
-        "grandchildren",
-        "chau noi",
-    }:
+    if explicit_flags["grandchildren"] is None and relation_hint in INVITER_RELATION_GRANDCHILDREN:
         explicit_flags["paternalGrandparents"] = CHECKED
-    if explicit_flags["maternalGrandchildren"] is None and relation_hint in {
-        "maternalgrandchildren",
-        "chau ngoai",
-    }:
+    if explicit_flags["maternalGrandchildren"] is None and relation_hint in INVITER_RELATION_MATERNAL_GRANDCHILDREN:
         explicit_flags["maternalGrandparents"] = CHECKED
-    if explicit_flags["childrenSpouse"] is None and relation_hint in {
-        "childrenspouse",
-        "con dau con re",
-        "con dau",
-        "con re",
-    }:
+    if explicit_flags["childrenSpouse"] is None and relation_hint in INVITER_RELATION_CHILDREN_SPOUSE:
         explicit_flags["spouseParents"] = CHECKED
 
     relation_matched_specific_flag = any(
