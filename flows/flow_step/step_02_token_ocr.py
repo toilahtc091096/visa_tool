@@ -82,5 +82,14 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
         ctx.is_under_18 = date_util.is_under_18(ocr_data.dateOfBirth)
         ctx.is_retired = date_util.is_retired(ocr_data.dateOfBirth, ocr_data.sex)
         ctx.passportNumber = ocr_data.passportNumber
+    log_event(
+        {
+            "step": ctx.step,
+            "dateOfBirth": ocr_data.dateOfBirth,
+            "sex": ocr_data.sex,
+            "is_under_18": ctx.is_under_18,
+            "is_retired": ctx.is_retired,
+        }
+    )
 
     return True
