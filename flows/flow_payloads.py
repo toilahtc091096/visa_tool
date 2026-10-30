@@ -6,6 +6,8 @@ from typing import Any, Dict
 from utils import date_util, log_event, mobile_utils
 from dataclasses import asdict, dataclass, is_dataclass
 from constants import (
+    RETIRED_JOB_TYPE,
+    RETIRED_NOT_APPLY_REMARK,
     APPLY_VISA_VALIDITY,
     DEFAULT_EMBASSY,
     DEFAULT_LANG,
@@ -269,6 +271,7 @@ def build_work_info_profile(
     supervisor_mobile: str = "",
     position: str = "",
     duty: str = "",
+    is_retired: bool = False,
 ) -> WorkInfoProfile:
     def _normalize_ascii_upper(value: str) -> str:
         if not value:
@@ -410,6 +413,15 @@ def build_work_info_profile(
                 "remark": "CHUA DI LAM",
             }
         ]
+    elif is_retired and not has_custom_work:
+        we_src = []
+        not_apply_items = [
+            {
+                "notApplyCode": "workExperience",
+                "remark": RETIRED_NOT_APPLY_REMARK,
+            }
+        ]
+        job_type = RETIRED_JOB_TYPE
 
     work_info_json: dict[str, Any] = {
         "applyCountry": "",

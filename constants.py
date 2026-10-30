@@ -1255,3 +1255,13 @@ INVITER_RELATION_MATERNAL_GRANDCHILDREN = frozenset({"maternalgrandchildren", "c
 INVITER_RELATION_CHILDREN_SPOUSE = frozenset(
     {"childrenspouse", "con dau con re", "con dau", "con re"}
 )
+
+# Vietnam retirement age (Labour Code 2019, Decree 135/2020), in months, by
+# passport sex code ("1" male, "2" female): starts at the 2021 age and rises by
+# a fixed step each year until the final age. Applicants at or above it are
+# declared retired on the work info step.
+RETIREMENT_AGE_BASE_YEAR = 2021
+RETIREMENT_AGE_MALE_MONTHS = (60 * 12 + 3, 3, 62 * 12)  # (2021 age, step/year, max)
+RETIREMENT_AGE_FEMALE_MONTHS = (55 * 12 + 4, 4, 60 * 12)
+RETIRED_JOB_TYPE = "713001"
+RETIRED_NOT_APPLY_REMARK = "NGHI HUU"

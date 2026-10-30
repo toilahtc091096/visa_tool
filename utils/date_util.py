@@ -75,6 +75,35 @@ def is_under_18(date_str: str) -> bool:
     return age(date_str) < 18
 
 
+def retirement_age_months(sex: str | None, year: int | None = None) -> int:
+    """Legal retirement age in months for ``sex`` ("1"/"2") in ``year``."""
+    from constants import (
+        RETIREMENT_AGE_BASE_YEAR,
+        RETIREMENT_AGE_FEMALE_MONTHS,
+        RETIREMENT_AGE_MALE_MONTHS,
+    )
+
+    start, step, final = (
+        RETIREMENT_AGE_FEMALE_MONTHS
+        if str(sex or "").strip() == "2"
+        else RETIREMENT_AGE_MALE_MONTHS
+    )
+    years_passed = max(0, (year or date.today().year) - RETIREMENT_AGE_BASE_YEAR)
+    return min(start + step * years_passed, final)
+
+
+def is_retired(date_str: str, sex: str | None) -> bool:
+    """True when the age today has reached the retirement age for ``sex``."""
+    birth_date = parse_date(date_str)
+    if birth_date is None:
+        return False
+    today = date.today()
+    age_months = (today.year - birth_date.year) * 12 + today.month - birth_date.month
+    if today.day < birth_date.day:
+        age_months -= 1
+    return age_months >= retirement_age_months(sex, today.year)
+
+
 # đang ở trong utils/date_util.py (hoặc module utils có date_util),
 # nên gọi thẳng iso_date_str(...) không cần truyền date_util vào.
 

@@ -77,8 +77,10 @@ async def check_token_and_get_ocr(ctx, client) -> bool:
 
     ctx.fileId = file_id
     ctx.is_under_18 = False
+    ctx.is_retired = False
     if ocr_data.dateOfBirth is not None:
         ctx.is_under_18 = date_util.is_under_18(ocr_data.dateOfBirth)
+        ctx.is_retired = date_util.is_retired(ocr_data.dateOfBirth, ocr_data.sex)
         ctx.passportNumber = ocr_data.passportNumber
 
     return True

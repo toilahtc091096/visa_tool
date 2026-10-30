@@ -122,6 +122,7 @@ class VisaProfile:
             getattr(ctx, "supervisor_mobile", ""),
             getattr(ctx, "position", ""),
             getattr(ctx, "duty", ""),
+            is_retired=getattr(ctx, "is_retired", False),
         )
 
     def build_travel_json(self, travel) -> dict[str, Any]:

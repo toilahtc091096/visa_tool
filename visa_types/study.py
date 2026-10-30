@@ -7,7 +7,13 @@ import unicodedata
 from datetime import date
 from typing import Any
 
-from constants import DEFAULT_EMBASSY, DEFAULT_LANG, JOB_TYPE_BY_LABEL
+from constants import (
+    DEFAULT_EMBASSY,
+    DEFAULT_LANG,
+    JOB_TYPE_BY_LABEL,
+    RETIRED_JOB_TYPE,
+    RETIRED_NOT_APPLY_REMARK,
+)
 from flows.flow_payloads import _to_dict, _work_experience_entry, getL30TravelInfo
 from models import WorkInfoProfile
 from utils import date_util, ensure_school_downloaded, mobile_utils
@@ -108,7 +114,25 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
     Otherwise: student, no work experience.
     An approved previous visa (ctx.job_type / ctx.experiences, loaded in
     step 5) takes precedence over all of the above.
+    Retired applicants (ctx.is_retired) without work in the request are
+    declared retired with no work experience, before everything else.
     """
+    has_custom_work = any(
+        str(getattr(ctx, key, "") or "").strip()
+        for key in (
+            "work_from", "work_to", "employer_name", "employer_address",
+            "employer_phone", "supervisor_name", "supervisor_mobile",
+            "position", "duty",
+        )
+    )
+    if getattr(ctx, "is_retired", False) and not has_custom_work:
+        return _work_info_profile(
+            ctx,
+            RETIRED_JOB_TYPE,
+            [{"notApplyCode": "workExperience", "remark": RETIRED_NOT_APPLY_REMARK}],
+            [],
+        )
+
     if ctx.job_type or ctx.experiences:
         work_end_date = date_util.work_experience_end_date()
         for experience in ctx.experiences:
