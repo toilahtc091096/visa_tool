@@ -1,13 +1,45 @@
+from io import BytesIO
+from pathlib import Path
 from typing import Any
 import os
 import mimetypes
 
 import httpx
+from PIL import Image, UnidentifiedImageError
 from models import UploadMaterialBody
 from utils import build_upload_headers
 from constants import (
     BASE_FILE_UPLOAD_URL
 )
+
+_JPEG_FORMATS = {"JPEG", "MPO"}  # MPO: multi-picture JPEG from phone cameras
+_JPEG_SUFFIXES = {".jpg", ".jpeg"}
+
+
+def _prepare_upload_file(file_path: str, file_name: str) -> tuple[str, bytes]:
+    """Return ``(file_name, content)`` whose extension matches the real format.
+
+    COVA checks the file content (FileRealTypeInvalid), so a JPEG saved as
+    ``.png`` is renamed to ``.jpg``, and other image formats (webp, bmp...)
+    are converted to JPEG. Non-images (pdf...) are sent unchanged.
+    """
+    with open(file_path, "rb") as f:
+        content = f.read()
+    try:
+        with Image.open(BytesIO(content)) as img:
+            real_format = (img.format or "").upper()
+            stem = Path(file_name).stem
+            suffix = Path(file_name).suffix.lower()
+            if real_format in _JPEG_FORMATS:
+                return (file_name if suffix in _JPEG_SUFFIXES else f"{stem}.jpg"), content
+            if real_format == "PNG":
+                return (file_name if suffix == ".png" else f"{stem}.png"), content
+            out = BytesIO()
+            img.convert("RGB").save(out, format="JPEG", quality=92)
+            return f"{stem}.jpg", out.getvalue()
+    except (UnidentifiedImageError, OSError):
+        return file_name, content
+
 
 async def api_upload_file(
     client: httpx.AsyncClient,
@@ -24,17 +56,18 @@ async def api_upload_file(
     try:
         url = f"{BASE_FILE_UPLOAD_URL}/SaveUploadAccessory"
         headers = build_upload_headers(token, tmp_secret)
-        filename = os.path.basename(body.fileName or body.filePath)
-        mime = mimetypes.guess_type(body.fileName)[0] or "application/octet-stream"
+        filename, content = _prepare_upload_file(
+            body.filePath, os.path.basename(body.fileName or body.filePath)
+        )
+        mime = mimetypes.guess_type(filename)[0] or "application/octet-stream"
         data = {
             "fileName": filename,
             "categoryCode": body.categoryCode,
             "materialCode": body.materialCode,
             "businessId": body.businessId,
         }
-        with open(body.filePath, "rb") as f:
-            files = {"file": (body.fileName, f, mime)}
-            resp = await client.post(url, headers = headers, data=data, files=files)
+        files = {"file": (filename, content, mime)}
+        resp = await client.post(url, headers=headers, data=data, files=files)
         data_resp = (
             resp.json()
             if resp.headers.get("content-type", "").startswith("application/json")
