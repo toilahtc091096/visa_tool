@@ -8,7 +8,3 @@ resources/phong_token.json
 resources/viet_token.json
 resources/han_approval_downloads/
 logs/
-zalo-bridge/node_modules/
-zalo-bridge/.env
-zalo-bridge/credentials.json
-zalo-bridge/qr.png
