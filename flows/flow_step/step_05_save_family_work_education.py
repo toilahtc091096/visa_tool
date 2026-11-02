@@ -201,6 +201,7 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.inviterFamilyName,
         ctx.inviterGivenName,
         ctx.inviterRelation,
+        employer_phone=str(getattr(ctx, "employer_phone", "") or "").strip(),
     )
     parents = body_save_family_info.parents or []
 

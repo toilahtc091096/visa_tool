@@ -682,6 +682,7 @@ def build_family_info_profile(
     inviterFamilyName: str = "",
     inviterGivenName: str = "",
     inviterRelation: str = "",
+    employer_phone: str = "",
 ) -> FamilyInfoProfile:
 
     not_apply_items = []
@@ -890,10 +891,9 @@ def build_family_info_profile(
         "city": "",
         "county": "",
         "zipCode": "",
-        "mobilePhoneNumber": (
-            old_mobilePhoneNumber if old_mobilePhoneNumber != "" else phone
-        ),
-        "phoneNumber": old_phoneNumber if old_phoneNumber != "" else phone,
+        # Priority: old application > employer_phone from /run > generated.
+        "mobilePhoneNumber": old_mobilePhoneNumber or employer_phone or phone,
+        "phoneNumber": old_phoneNumber or employer_phone or phone,
         "email": "",
         "streetAddr": (
             old_streetAddr
