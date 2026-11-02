@@ -140,7 +140,16 @@ VISA_TYPE_VALUE = {
         "SPM": {"visaPurpose": 709007, "visaType": 710021},
     },
 }
-APPLY_VISA_VALIDITY = {"L": 3, "M": 3, "Q1": 6, "Q2": 6, "F": 3, "X1": 3, "X2": 3, "S2": 6}
+APPLY_VISA_VALIDITY = {
+    "L": 3,
+    "M": 3,
+    "Q1": 6,
+    "Q2": 6,
+    "F": 3,
+    "X1": 3,
+    "X2": 3,
+    "S2": 6,
+}
 VISA_TYPE_DAY_VALUE = {"L": ({"15", "30"}), "M": ({"MT", "MP", "MO", "30", "90"})}
 SERVICE_TYPE_NORMAL_EXPRESS = {"N": "701001", "E": "701002"}
 
@@ -696,12 +705,12 @@ TRAVEL_PLAN_21D = "Init_goc.docx"
 Q1_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q1_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
-Q1_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
+Q1_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
 
 Q2_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
-Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\tai-lieu-khac"
+Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
 
 # S2 uploads the applicant's own invitation letter (not generated).
 S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
@@ -840,7 +849,9 @@ class CovaMaterial:
 
 # Same category on every form that has it.
 MAT_PASSPORT_BLANK_PAGES = CovaMaterial("22025070216180808782737", "mfa-017")
-MAT_RESIDENCE_CERTIFICATE = CovaMaterial("22025062114073725280378", "mfa-030")  # hukou / CT07 / employment letter
+MAT_RESIDENCE_CERTIFICATE = CovaMaterial(
+    "22025062114073725280378", "mfa-030"
+)  # hukou / CT07 / employment letter
 MAT_PREV_CHINESE_VISA = CovaMaterial("22025062114131912554297", "mfa-033")
 MAT_BANK_STATEMENT = CovaMaterial("12025062216413672273869", "mfa-007")
 MAT_OTHER_COUNTRY_VISAS = CovaMaterial("12025062114213765489140", "mfa-011")
@@ -850,12 +861,18 @@ MAT_FLIGHT_TICKET = CovaMaterial("12025062020000706552852", "mfa-003")
 MAT_HOTEL_RESERVATION = CovaMaterial("12025063014542307352106", "mfa-002")
 # Known categories not uploaded by any visa type yet.
 MAT_PROOF_OF_LEGAL_STAY = CovaMaterial("22025062114095544389381", "mfa-031")
-MAT_EX_CHINESE_PREV_PASSPORT_OR_VISA = CovaMaterial("22025062418014204043091", "mfa-036")
+MAT_EX_CHINESE_PREV_PASSPORT_OR_VISA = CovaMaterial(
+    "22025062418014204043091", "mfa-036"
+)
 
 # L - tourism
-MAT_L_OTHER_DOCUMENTS = CovaMaterial("12025062114211484037531", "mfa-044")  # _5 = visa center confirmation
+MAT_L_OTHER_DOCUMENTS = CovaMaterial(
+    "12025062114211484037531", "mfa-044"
+)  # _5 = visa center confirmation
 # M - business
-MAT_M_OTHER_DOCUMENTS = CovaMaterial("12025062114365564197636", "mfa-053")  # _1 = visa center confirmation
+MAT_M_OTHER_DOCUMENTS = CovaMaterial(
+    "12025062114365564197636", "mfa-053"
+)  # _1 = visa center confirmation
 MAT_M_INVITATION_LETTER = CovaMaterial("12026072917273869111112", "mfa-049")
 MAT_M_ASSIGNMENT_DECISION = CovaMaterial("12025062114271519280895", "mfa-050")
 MAT_M_BUSINESS_REGISTRATION = CovaMaterial("12025062114301276922307", "mfa-051")
@@ -878,7 +895,9 @@ MAT_F_OTHER_DOCUMENTS = CovaMaterial("12025062115000341540359", "mfa-065")
 MAT_X1_ADMISSION_NOTICE = CovaMaterial("12025062116113060399385", "mfa-155")
 MAT_X1_JW_FORM = CovaMaterial("12025062116141116750122", "mfa-164")
 MAT_X1_OTHER_DOCUMENTS = CovaMaterial("12025062116171641916688", "mfa-165")
-MAT_X2_ADMISSION_DOCUMENTS = CovaMaterial("12025062116191142931178", "mfa-169")  # _1 admission notice, _2 JW form
+MAT_X2_ADMISSION_DOCUMENTS = CovaMaterial(
+    "12025062116191142931178", "mfa-169"
+)  # _1 admission notice, _2 JW form
 MAT_X2_OTHER_DOCUMENTS = CovaMaterial("12025062116215851186649", "mfa-172")
 # S2 - foreigner's family member / personal matters
 MAT_S2_INVITATION_LETTER = CovaMaterial("12025062115424944966353", "mfa-122")
@@ -1048,7 +1067,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
             _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         ],
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
         "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     },
@@ -1062,7 +1083,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
             _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         ],
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
         "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
@@ -1075,8 +1098,12 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
             _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
             _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
         ],
-        "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "VISA_CENTER_CONFIRMATION": _files(
+            L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1
+        ),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
         # "OTHER_COUNTRY_VISAS": not uploaded for M (photos go to OTHER_MATERIALS)
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
@@ -1087,31 +1114,37 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
     "Q1": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
         "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 1),
         "CCCD_NGUOI_MOI": _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
         "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 4),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
-            _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 1),
+            _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 3),
         ],
     },
     "Q2": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
         "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 1),
         "CCCD_NGUOI_MOI": _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
         "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
-            _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 1),
+            _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 3),
         ],
     },
     "F": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
         "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "THU_MOI": _files(F_THU_MOI_OUTPUT_PATH, 1),
         "QUYET_DINH_DU_HOC": _files(F_QUYET_DINH_DU_HOC_OUTPUT_PATH, 2),
         "OTHER_MATERIALS": [
@@ -1122,7 +1155,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
     "X1": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
         "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
             _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 2),
@@ -1133,7 +1168,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
     "X2": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
         "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
             _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 2),
@@ -1144,7 +1181,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
     "S2": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
         "PASSPORT_BLANK_PAGES": _files(L_15_PASSPORT_EMPTY_PAGES_OUTPUT_PATH, 2),
-        "PREV_CHINESE_VISA": _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        "PREV_CHINESE_VISA": _files(
+            L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
+        ),
         # The applicant's own invitation letter (not generated).
         "THU_MOI": _files(S2_THU_MOI_OUTPUT_PATH, 1),
         "CCCD_NGUOI_MOI": _files(S2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
@@ -1272,8 +1311,18 @@ INVITER_RELATION_PARENTS = frozenset(
 )
 INVITER_RELATION_SIBLINGS = frozenset(
     {
-        "siblings", "brother", "sister", "anh em", "anh chi em",
-        "anh", "chi", "em", "anh trai", "chi gai", "em trai", "em gai",
+        "siblings",
+        "brother",
+        "sister",
+        "anh em",
+        "anh chi em",
+        "anh",
+        "chi",
+        "em",
+        "anh trai",
+        "chi gai",
+        "em trai",
+        "em gai",
     }
 )
 INVITER_RELATION_CHILDREN = frozenset(
@@ -1281,10 +1330,20 @@ INVITER_RELATION_CHILDREN = frozenset(
 )
 INVITER_RELATION_SPOUSE_PARENTS = frozenset(
     {
-        "spouseparents", "cha me vo chong",
-        "cha me vo", "cha me chong", "bo me vo", "bo me chong",
-        "cha vo", "cha chong", "bo vo", "bo chong", "ba vo", "ba chong",
-        "me vo", "me chong",
+        "spouseparents",
+        "cha me vo chong",
+        "cha me vo",
+        "cha me chong",
+        "bo me vo",
+        "bo me chong",
+        "cha vo",
+        "cha chong",
+        "bo vo",
+        "bo chong",
+        "ba vo",
+        "ba chong",
+        "me vo",
+        "me chong",
     }
 )
 INVITER_RELATION_PATERNAL_GRANDPARENTS = frozenset(
@@ -1294,10 +1353,29 @@ INVITER_RELATION_MATERNAL_GRANDPARENTS = frozenset(
     {"maternalgrandparents", "ong ba ngoai", "ong ngoai", "ba ngoai"}
 )
 INVITER_RELATION_GRANDCHILDREN = frozenset({"grandchildren", "chau noi"})
-INVITER_RELATION_MATERNAL_GRANDCHILDREN = frozenset({"maternalgrandchildren", "chau ngoai"})
+INVITER_RELATION_MATERNAL_GRANDCHILDREN = frozenset(
+    {"maternalgrandchildren", "chau ngoai"}
+)
 INVITER_RELATION_CHILDREN_SPOUSE = frozenset(
     {"childrenspouse", "con dau con re", "con dau", "con re"}
 )
+
+# Invitation letter signed on behalf of a minor inviter (Q_Template_guarantor):
+# request "guarantorRelation" (lowercase, accents optional) -> who signs.
+# Unaccented "ba" means father, as in INVITER_RELATION_PARENTS; grandmother is "bà".
+GUARANTOR_RELATION_ZH = {
+    **dict.fromkeys(("bo", "bố", "cha", "ba", "father", "父亲"), "父亲"),
+    **dict.fromkeys(("me", "mẹ", "má", "mother", "母亲"), "母亲"),
+    **dict.fromkeys(("ông", "ông nội", "ong", "ong noi", "grandfather", "祖父"), "祖父"),
+    **dict.fromkeys(("bà", "bà nội", "ba noi", "grandmother", "祖母"), "祖母"),
+    **dict.fromkeys(("ông ngoại", "ong ngoai", "外祖父"), "外祖父"),
+    **dict.fromkeys(("bà ngoại", "ba ngoai", "外祖母"), "外祖母"),
+    **dict.fromkeys(("anh", "anh trai", "brother", "哥哥"), "哥哥"),
+    **dict.fromkeys(("chị", "chị gái", "chi", "chi gai", "sister", "姐姐"), "姐姐"),
+    **dict.fromkeys(("người giám hộ", "giám hộ", "nguoi giam ho", "giam ho", "guardian", "监护人"), "监护人"),
+}
+GUARANTOR_DEFAULT_RELATION_ZH = "父亲"
+GUARANTOR_NOTE_TEMPLATE = "因为孩子还小，所以{relation}替签名"
 
 # Vietnam retirement age (Labour Code 2019, Decree 135/2020), in months, by
 # passport sex code ("1" male, "2" female): starts at the 2021 age and rises by

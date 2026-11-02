@@ -9,6 +9,9 @@ import re
 from docxtpl import DocxTemplate
 
 from constants import (
+    GUARANTOR_DEFAULT_RELATION_ZH,
+    GUARANTOR_NOTE_TEMPLATE,
+    GUARANTOR_RELATION_ZH,
     INVITER_RELATION_SPOUSE,
     INVITER_RELATION_PARENTS,
     INVITER_RELATION_SIBLINGS,
@@ -24,7 +27,14 @@ from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
 from utils import pdf_helper
 
+DEFAULT_TEMPLATE_NAME = "Q_Template.docx"
+# Used when tham-than/chu-ki-bao-lanh/ has a signature (someone signs on behalf
+# of the inviter). "Image 1" = inviter signature, "Image 2" = guarantor signature.
+GUARANTOR_TEMPLATE_NAME = "Q_Template_guarantor.docx"
 SIGNATURE_MEDIA_NAME = "Image 1"
+GUARANTOR_SIGNATURE_MEDIA_NAME = "Image 2"
+SIGNATURE_FOLDER = Path("tham-than") / "chu-ki"
+GUARANTOR_SIGNATURE_FOLDER = Path("tham-than") / "chu-ki-bao-lanh"
 
 
 CHECKED = "☑"
@@ -215,6 +225,24 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
     return normalized_flags
 
 
+def _guarantor_note(source: Any) -> str:
+    """Line under the guarantor signature: guarantorNote as given, otherwise
+    built from guarantorRelation (default: father)."""
+    note = _text(_get_value(source, "guarantorNote", "guarantor_note", default=""))
+    if note:
+        return note
+    raw = _text(_get_value(source, "guarantorRelation", "guarantor_relation", default=""))
+    relation = GUARANTOR_RELATION_ZH.get(_normalize_relation_label(raw))
+    if relation is None:
+        if raw and re.search(r"[一-鿿]", raw):
+            relation = raw
+        else:
+            if raw:
+                print(f"[thumoi] unknown guarantorRelation={raw!r}, using default", flush=True)
+            relation = GUARANTOR_DEFAULT_RELATION_ZH
+    return GUARANTOR_NOTE_TEMPLATE.format(relation=relation)
+
+
 def build_thumoi_context(source: Any) -> dict[str, Any]:
     inviter_family = _text(
         _get_value(source, "inviterFamilyName", "inviter_family_name", default="")
@@ -328,17 +356,31 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
         "today_month": today_month,
         "today_day": today_day,
         "visa_duration": visa_duration,
+        "guarantorNote": _guarantor_note(source),
     }
+
+
+def _first_file(folder: Path) -> Path | None:
+    if not folder.is_dir():
+        return None
+    return next((path for path in sorted(folder.iterdir()) if path.is_file()), None)
 
 
 async def render_thumoi_docx_output_pdf(
     source: Any,
     output_path: str = "tham-than/thumoi",
     passport_number: str = "",
-    template_name: str = "Q_Template.docx",
+    template_name: str = "",
 ) -> str:
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = passport_data_dir(passport_number)
+
+    signature_path = _first_file(output_base / SIGNATURE_FOLDER)
+    guarantor_signature_path = _first_file(output_base / GUARANTOR_SIGNATURE_FOLDER)
+    if not template_name:
+        template_name = (
+            GUARANTOR_TEMPLATE_NAME if guarantor_signature_path else DEFAULT_TEMPLATE_NAME
+        )
 
     src = (templates_base / template_name).resolve()
     if not src.exists():
@@ -359,18 +401,18 @@ async def render_thumoi_docx_output_pdf(
 
     out = out_dir / (Path(template_name).stem + ".docx")
     doc = DocxTemplate(str(src))
-    signature_dir = output_base / "tham-than" / "chu-ki"
-    signature_path = None
-    if signature_dir.is_dir():
-        signature_path = next(
-            (path for path in sorted(signature_dir.iterdir()) if path.is_file()),
-            None,
-        )
     if signature_path:
+        doc.replace_pic(SIGNATURE_MEDIA_NAME, BytesIO(signature_path.read_bytes()))
+    if guarantor_signature_path and template_name == GUARANTOR_TEMPLATE_NAME:
         doc.replace_pic(
-            SIGNATURE_MEDIA_NAME,
-            BytesIO(signature_path.read_bytes()),
+            GUARANTOR_SIGNATURE_MEDIA_NAME,
+            BytesIO(guarantor_signature_path.read_bytes()),
         )
+    print(
+        f"[thumoi] template={template_name} signature={signature_path} "
+        f"guarantor_signature={guarantor_signature_path}",
+        flush=True,
+    )
     doc.render(context)
     if out.exists():
         out.unlink()
