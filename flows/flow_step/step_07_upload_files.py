@@ -13,6 +13,12 @@ from .common import check_api_result, fail_step
 
 
 def _source_files(cfg: dict, data_passport_number: str) -> list[Path]:
+    if "first_of" in cfg:
+        for source in cfg["first_of"]:
+            files = _source_files(source, data_passport_number)
+            if files:
+                return files
+        return []
     if cfg.get("passport_image"):
         path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
         return [Path(path)] if path else []

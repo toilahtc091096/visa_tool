@@ -1040,7 +1040,9 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "FLIGHT_TICKET": MAT_SOUTH_L_FLIGHT_TICKET.slots(1),
             "HOTEL_RESERVATION_WITH_PAYMENT": MAT_SOUTH_L_HOTEL_RESERVATION.slots(1),
             "ITINERARY_IN_CHINA": MAT_SOUTH_L_ITINERARY_IN_CHINA.slots(1),
-            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_SOUTH_RESIDENCE_CERTIFICATE.slots(1),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_SOUTH_RESIDENCE_CERTIFICATE.slots(
+                1, 2, 3, 4
+            ),
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1),
         },
     },
@@ -1061,6 +1063,11 @@ def _files(folder: str, limit: int) -> dict[str, object]:
 def _passport_image() -> dict[str, object]:
     """The original passport image (<passport>/passport.png), the file sent to OCR."""
     return {"passport_image": True, "limit": 1}
+
+
+def _first_nonempty(*sources: dict[str, object]) -> dict[str, object]:
+    """Files of the first source that has any; the others are skipped."""
+    return {"first_of": list(sources)}
 
 
 # Local folders filling each doc_type: {visa_type: {doc_type: source | [sources]}}.
@@ -1207,6 +1214,13 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
 # a PASSPORT_INFO_PAGE slot (South so far) actually use it.
 for _visa_config in UPLOAD_CONFIG.values():
     _visa_config["PASSPORT_INFO_PAGE"] = _passport_image()
+    # South: CT07 (giay_cu_tru) when there is one, otherwise the old Chinese visa
+    # photos. Those photos still go to PREV_CHINESE_VISA as well.
+    if REGION == REGION_SOUTH:
+        _visa_config["HUKOU_OR_EMPLOYMENT_LETTER"] = _first_nonempty(
+            _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
+            _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
+        )
 
 
 UNIT_OF_HOTEL = 5870276
