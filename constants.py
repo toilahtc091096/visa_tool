@@ -1033,6 +1033,7 @@ MAT_SOUTH_L_HOTEL_RESERVATION = CovaMaterial("12025062616431978476716", "mfa-089
 UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     "L30": {
         "COMMON": {
+            "PASSPORT_INFO_PAGE": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(1),
             "FLIGHT_TICKET": MAT_SOUTH_L_FLIGHT_TICKET.slots(1),
             "HOTEL_RESERVATION_WITH_PAYMENT": MAT_SOUTH_L_HOTEL_RESERVATION.slots(1),
             "ITINERARY_IN_CHINA": MAT_SOUTH_L_ITINERARY_IN_CHINA.slots(1),
@@ -1052,6 +1053,11 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: UploadCodes = UPLOAD_FILE_CODE_BY_REGION[REGION]
 def _files(folder: str, limit: int) -> dict[str, object]:
     """Take up to ``limit`` files from ``folder`` (relative to data_<passport>)."""
     return {"folder": folder, "limit": limit}
+
+
+def _passport_image() -> dict[str, object]:
+    """The original passport image (<passport>/passport.png), the file sent to OCR."""
+    return {"passport_image": True, "limit": 1}
 
 
 # Local folders filling each doc_type: {visa_type: {doc_type: source | [sources]}}.
@@ -1194,6 +1200,10 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         ],
     },
 }
+# Every visa type can upload the original passport image; only forms that have
+# a PASSPORT_INFO_PAGE slot (South so far) actually use it.
+for _visa_config in UPLOAD_CONFIG.values():
+    _visa_config["PASSPORT_INFO_PAGE"] = _passport_image()
 
 
 UNIT_OF_HOTEL = 5870276

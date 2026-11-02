@@ -1,11 +1,22 @@
+from pathlib import Path
+
 from api import api_remove_upload_file
+from constants import PASSPORT_FILE_FOLDER
 from utils import (
     api_upload_file_common,
     ensure_data_folder_downloaded,
     get_files,
+    get_passport_file_path,
 )
 from utils import log_event
 from .common import check_api_result, fail_step
+
+
+def _source_files(cfg: dict, data_passport_number: str) -> list[Path]:
+    if cfg.get("passport_image"):
+        path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
+        return [Path(path)] if path else []
+    return get_files(cfg["folder"], cfg["limit"])
 
 
 async def upload_files(
@@ -22,7 +33,9 @@ async def upload_files(
 
     for item in ctx.profile.upload_plan():
         all_upload_files = [
-            f for cfg in item.configs for f in get_files(cfg["folder"], cfg["limit"])
+            f
+            for cfg in item.configs
+            for f in _source_files(cfg, data_passport_number)
         ]
         for f_doc, upload_file in zip(item.codes, all_upload_files):
             if not upload_file:
