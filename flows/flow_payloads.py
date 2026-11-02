@@ -493,6 +493,22 @@ def _education_experience_entry(
     }
 
 
+_UNIVERSITY_PREFIXES = ("DAI HOC", "HOC VIEN")
+
+
+def _fix_old_education_degree(entry: Any) -> dict[str, Any]:
+    """Old applications made between 2026-08-03 and 2026-09-03 saved a
+    university with the THPT code (714003). Put the university code back."""
+    item = dict(_to_dict(entry))
+    school = str(item.get("schoolName") or "").strip().upper()
+    specialty = str(item.get("specialty") or "").strip().upper()
+    if str(item.get("highestDegree") or "") == EDUCATION_HIGH_SCHOOL_DEGREE[1] and (
+        specialty == "DAI HOC" or school.startswith(_UNIVERSITY_PREFIXES)
+    ):
+        item["highestDegree"] = EDUCATION_DEGREE_TYPE[0][1]
+    return item
+
+
 def build_education_info_profile(
     applyid: str,
     province_city_code: str,
@@ -531,7 +547,7 @@ def build_education_info_profile(
             }
         ]
     else:
-        we_src = educationExperience or [
+        we_src = [_fix_old_education_degree(i) for i in educationExperience] or [
             _education_experience_entry(province_city_code, birth_date)
         ]
 
