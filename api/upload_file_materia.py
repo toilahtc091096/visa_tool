@@ -5,6 +5,7 @@ import mimetypes
 import httpx
 from models import UploadMaterialBody
 from utils import build_upload_headers
+from utils.image_format import prepare_upload_file
 from constants import (
     BASE_FILE_UPLOAD_URL
 )
@@ -24,17 +25,18 @@ async def api_upload_file(
     try:
         url = f"{BASE_FILE_UPLOAD_URL}/SaveUploadAccessory"
         headers = build_upload_headers(token, tmp_secret)
-        filename = os.path.basename(body.fileName or body.filePath)
-        mime = mimetypes.guess_type(body.fileName)[0] or "application/octet-stream"
+        filename, content = prepare_upload_file(
+            body.filePath, os.path.basename(body.fileName or body.filePath)
+        )
+        mime = mimetypes.guess_type(filename)[0] or "application/octet-stream"
         data = {
             "fileName": filename,
             "categoryCode": body.categoryCode,
             "materialCode": body.materialCode,
             "businessId": body.businessId,
         }
-        with open(body.filePath, "rb") as f:
-            files = {"file": (body.fileName, f, mime)}
-            resp = await client.post(url, headers = headers, data=data, files=files)
+        files = {"file": (filename, content, mime)}
+        resp = await client.post(url, headers=headers, data=data, files=files)
         data_resp = (
             resp.json()
             if resp.headers.get("content-type", "").startswith("application/json")

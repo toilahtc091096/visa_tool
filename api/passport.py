@@ -4,6 +4,7 @@ from typing import Any
 import httpx
 
 from utils import build_upload_headers
+from utils.image_format import prepare_upload_file
 from constants import (
     BASE_URL
 )
@@ -31,15 +32,13 @@ async def api_passport_ocr(
 
     # multipart/form-data: httpx sẽ tự set Content-Type phù hợp, vì vậy không nên set Content-Type thủ công
     try:
-        with open(file_path, "rb") as f:
-            files = {
-                form_field_name: (
-                    os.path.basename(file_path),
-                    f,
-                    "application/octet-stream",
-                )
-            }
-            resp = await client.post(url, headers=headers, files=files)
+        file_name, content = prepare_upload_file(
+            file_path, os.path.basename(file_path)
+        )
+        files = {
+            form_field_name: (file_name, content, "application/octet-stream")
+        }
+        resp = await client.post(url, headers=headers, files=files)
         data: Any
         if resp.headers.get("content-type", "").startswith("application/json"):
             data = resp.json()

@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from utils.image_format import fix_image_name
 from utils.r2_env import build_r2_client
 
 
@@ -212,6 +213,12 @@ def api_sign_and_push_image_to_r2(
     else:
         return {"ok": False, "error": "missing_image"}
 
+    fixed_key = fix_image_name(target_key, payload)
+    if fixed_key != target_key:
+        # The extension did not match the real format (e.g. JPEG named .png).
+        target_key = fixed_key
+        source_name = fixed_key
+        source_content_type = ""
     resolved_content_type = _guess_content_type(source_name, source_content_type)
     client.upload_fileobj(
         Fileobj=io.BytesIO(payload),
