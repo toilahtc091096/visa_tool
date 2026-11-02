@@ -6,10 +6,10 @@ import random
 from typing import Any
 
 from constants import (
-    FLIGHT_TEMPLATE,
     L_15_HOTEL_INFO,
     REGION,
     REGION_SOUTH,
+    SOUTH_FLIGHT_TEMPLATE,
     SOUTH_L30_HOTEL_INFO,
     WEEK_SKIP_BY_TYPE,
 )
@@ -98,7 +98,7 @@ class SouthL30Visa(L15Visa):
 
     @property
     def flight_templates(self) -> list[dict[str, str]]:
-        return FLIGHT_TEMPLATE["L15"]
+        return SOUTH_FLIGHT_TEMPLATE
 
     @property
     def week_skip(self) -> int | None:

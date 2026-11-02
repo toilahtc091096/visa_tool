@@ -39,8 +39,9 @@ def generate_phone_pair(prefix: str):
         ("0512", "0518")
     """
 
-    if len(prefix) != 2 or not prefix.isdigit():
-        raise ValueError("prefix must be 2 digits string")
+    # 1-digit prefix ("3" -> "374") is used by the South 3-digit flight numbers.
+    if len(prefix) not in (1, 2) or not prefix.isdigit():
+        raise ValueError("prefix must be a 1 or 2 digits string")
 
     # số đầu
     first_suffix = random.randint(10, 89)

@@ -858,6 +858,14 @@ FLIGHT_TEMPLATE = {
 }
 FLIGHT_TEMPLATE["M"] = FLIGHT_TEMPLATE["L30"]
 FLIGHT_TEMPLATE["M90"] = FLIGHT_TEMPLATE["L30"]
+# South (HCMC): China Southern SGN <-> CAN ticket, 3-digit flight numbers CZ 3xx.
+SOUTH_FLIGHT_TEMPLATE = [
+    {
+        "name": "ve_MAY_BAY_Mien_NAM.docx",
+        "prefix_flight_text": "CZ",
+        "prefix_number": "3",
+    },
+]
 
 # ---------------------------------------------------------------------------
 # Upload to COVA
