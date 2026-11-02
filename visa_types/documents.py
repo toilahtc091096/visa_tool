@@ -219,7 +219,8 @@ class FlightTicket(DocumentStep):
             "departure_city": departure_info.get("place_city"),
             "end": ctx.f,
             "type": "flight_ticket",
-            "visa_type": ctx.visa_type,
+            # South L30 dates its ticket like L15 (see SouthL30Visa).
+            "visa_type": getattr(ctx.profile, "flight_visa_type", ctx.visa_type),
         }
         await flight_info.render_flight_ticket_output_pdf(
             payload, self.output_folder, ctx.input_passportNumber

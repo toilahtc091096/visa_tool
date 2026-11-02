@@ -94,6 +94,7 @@ class SouthL30Visa(L15Visa):
 
     code = "L30"
     hotels = SOUTH_L30_HOTEL_INFO
+    flight_visa_type = "L15"
 
     @property
     def flight_templates(self) -> list[dict[str, str]]:
