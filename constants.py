@@ -19,7 +19,21 @@ BASE_FILE_UPLOAD_URL = (
     "https://consular.mfa.gov.cn/VISA/api/cova-service/VaApMaterial/V1"
 )
 PASSPORT_FILE_FOLDER = "resrouces/data"
-DEFAULT_EMBASSY = "3001VNVNMA"
+# Region served by this server (set REGION in its .env): "north" = Hanoi
+# embassy, "south" = Ho Chi Minh City consulate. The region picks the embassy
+# code and the COVA material codes (UPLOAD_FILE_CODE_BY_VISA_TYPE).
+REGION_NORTH = "north"
+REGION_SOUTH = "south"
+REGION = os.getenv("REGION", REGION_NORTH).strip().lower() or REGION_NORTH
+if REGION not in (REGION_NORTH, REGION_SOUTH):
+    raise RuntimeError(f"REGION must be 'north' or 'south', got {REGION!r}")
+EMBASSY_BY_REGION = {
+    REGION_NORTH: "3001VNVNMA",
+    REGION_SOUTH: "",  # TODO: HCMC consulate embassy code
+}
+DEFAULT_EMBASSY = os.getenv("EMBASSY", "").strip() or EMBASSY_BY_REGION[REGION]
+if not DEFAULT_EMBASSY:
+    raise RuntimeError(f"No embassy code for REGION={REGION!r}; set EMBASSY in .env")
 DEFAULT_LANG = "en_US"
 cityzen_status = "702001"
 OLD_APPLY_STATUS_APPROVED = "审核通过"
@@ -875,7 +889,8 @@ MAT_S2_OTHER_DOCUMENTS = CovaMaterial("12025062115571999891100", "mfa-134")
 
 # Material slots per visa type: {visa_type: {group: {doc_type: slots}}}.
 # Files are uploaded into the slots in this order.
-UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]]]]] = {
+UploadCodes = dict[str, dict[str, dict[str, list[dict[str, str]]]]]
+UPLOAD_FILE_CODE_NORTH: UploadCodes = {
     "L15": {
         "COMMON": {
             "FLIGHT_TICKET": MAT_FLIGHT_TICKET.slots(1),
@@ -985,6 +1000,34 @@ UPLOAD_FILE_CODE_BY_VISA_TYPE: dict[str, dict[str, dict[str, list[dict[str, str]
         },
     },
 }
+
+# South (HCMC consulate) forms use their own material codes.
+# TODO: only L30 is known so far (from a filled application, so slot counts
+# are the uploaded ones); add the other visa types from their material lists.
+MAT_SOUTH_PASSPORT_INFO_PAGE = CovaMaterial("22025062618255280352880", "mfa-079")
+MAT_SOUTH_RESIDENCE_CERTIFICATE = CovaMaterial("22025062618224586258771", "mfa-097")
+MAT_SOUTH_OTHER_DOCUMENTS = CovaMaterial("22025070216133602452066", "mfa-130")
+MAT_SOUTH_L_ITINERARY_IN_CHINA = CovaMaterial("12025062616415987523440", "mfa-087")
+MAT_SOUTH_L_FLIGHT_TICKET = CovaMaterial("12025062616424538491658", "mfa-088")
+MAT_SOUTH_L_HOTEL_RESERVATION = CovaMaterial("12025062616431978476716", "mfa-089")
+
+UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
+    "L30": {
+        "COMMON": {
+            "FLIGHT_TICKET": MAT_SOUTH_L_FLIGHT_TICKET.slots(1),
+            "HOTEL_RESERVATION_WITH_PAYMENT": MAT_SOUTH_L_HOTEL_RESERVATION.slots(1),
+            "ITINERARY_IN_CHINA": MAT_SOUTH_L_ITINERARY_IN_CHINA.slots(1),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_SOUTH_RESIDENCE_CERTIFICATE.slots(1),
+            "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1),
+        },
+    },
+}
+
+UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
+    REGION_NORTH: UPLOAD_FILE_CODE_NORTH,
+    REGION_SOUTH: UPLOAD_FILE_CODE_SOUTH,
+}
+UPLOAD_FILE_CODE_BY_VISA_TYPE: UploadCodes = UPLOAD_FILE_CODE_BY_REGION[REGION]
 
 
 def _files(folder: str, limit: int) -> dict[str, object]:

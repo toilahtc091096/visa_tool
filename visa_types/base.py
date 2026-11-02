@@ -13,6 +13,7 @@ from typing import Any, ClassVar, Iterator
 
 from constants import (
     FLIGHT_TEMPLATE,
+    REGION,
     UPLOAD_CONFIG,
     UPLOAD_FILE_CODE_BY_VISA_TYPE,
     VISA_TYPE_VALUE,
@@ -132,7 +133,13 @@ class VisaProfile:
     def upload_plan(self) -> Iterator[UploadItem]:
         """Material slots on COVA joined with the local folders that fill them."""
         configs = UPLOAD_CONFIG[self.code]
-        for group in UPLOAD_FILE_CODE_BY_VISA_TYPE[self.code].values():
+        region_codes = UPLOAD_FILE_CODE_BY_VISA_TYPE.get(self.code)
+        if region_codes is None:
+            raise RuntimeError(
+                f"No COVA material codes for visa type {self.code} in "
+                f"REGION={REGION}; add them to UPLOAD_FILE_CODE_{REGION.upper()}"
+            )
+        for group in region_codes.values():
             for doc_type, codes in group.items():
                 config = configs.get(doc_type)
                 if not config:
