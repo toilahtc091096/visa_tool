@@ -1317,6 +1317,23 @@ INVITER_RELATION_CHILDREN_SPOUSE = frozenset(
     {"childrenspouse", "con dau con re", "con dau", "con re"}
 )
 
+# Invitation letter signed on behalf of a minor inviter (Q_Template_guarantor):
+# request "guarantorRelation" (lowercase, accents optional) -> who signs.
+# Unaccented "ba" means father, as in INVITER_RELATION_PARENTS; grandmother is "bà".
+GUARANTOR_RELATION_ZH = {
+    **dict.fromkeys(("bo", "bố", "cha", "ba", "father", "父亲"), "父亲"),
+    **dict.fromkeys(("me", "mẹ", "má", "mother", "母亲"), "母亲"),
+    **dict.fromkeys(("ông", "ông nội", "ong", "ong noi", "grandfather", "祖父"), "祖父"),
+    **dict.fromkeys(("bà", "bà nội", "ba noi", "grandmother", "祖母"), "祖母"),
+    **dict.fromkeys(("ông ngoại", "ong ngoai", "外祖父"), "外祖父"),
+    **dict.fromkeys(("bà ngoại", "ba ngoai", "外祖母"), "外祖母"),
+    **dict.fromkeys(("anh", "anh trai", "brother", "哥哥"), "哥哥"),
+    **dict.fromkeys(("chị", "chị gái", "chi", "chi gai", "sister", "姐姐"), "姐姐"),
+    **dict.fromkeys(("người giám hộ", "giám hộ", "nguoi giam ho", "giam ho", "guardian", "监护人"), "监护人"),
+}
+GUARANTOR_DEFAULT_RELATION_ZH = "父亲"
+GUARANTOR_NOTE_TEMPLATE = "因为孩子还小，所以{relation}替签名"
+
 # Vietnam retirement age (Labour Code 2019, Decree 135/2020), in months, by
 # passport sex code ("1" male, "2" female): starts at the 2021 age and rises by
 # a fixed step each year until the final age. Applicants at or above it are

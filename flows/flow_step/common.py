@@ -92,6 +92,8 @@ def build_flow_context(**kwargs):
             if part
         ),
     )
+    ctx.guarantorRelation = kwargs.get("guarantorRelation", "")
+    ctx.guarantorNote = kwargs.get("guarantorNote", "")
     ctx.emergencyFamilyName = kwargs.get("emergencyFamilyName", "")
     ctx.emergencyGivenName = kwargs.get("emergencyGivenName", "")
     ctx.emergencyRelationship = kwargs.get("emergencyRelationship", "")
