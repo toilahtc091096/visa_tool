@@ -739,6 +739,7 @@ L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH = "duoi_18_tuoi\\giay_to_cho_nguoi_duoi_18"
 L_15_AUTHORIZATION_LETTER_OUTPUT_PATH = "duoi_18_tuoi\\giay_uy_quyen"
 L_15_TRAVEL_PLAN_OUTPUT_PATH = "lich_trinh_du_lich"
 TRAVEL_PLAN_21D = "Init_goc.docx"
+TRAVEL_PLAN_SOUTH = "Init_MN_goc.docx"  # South only: one-hotel Guangzhou trip
 
 Q1_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q1_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"

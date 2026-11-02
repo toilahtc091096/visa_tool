@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+import random
 import re
 
 from docxtpl import DocxTemplate
@@ -236,4 +237,99 @@ async def render_init_pdf(
 
     out.unlink()
 
+    return str(pdf_out)
+
+
+# ---------------------------------------------------------------------------
+# South (HCMC): one-hotel Guangzhou trip, day-by-day table (Init_MN_goc.docx).
+# Each file picks its own wording and sightseeing days, so files differ a bit.
+# ---------------------------------------------------------------------------
+
+SOUTH_ARRIVAL_DAY = (
+    "- Đáp chuyến bay từ Sân bay Tân Sơn Nhất Tp. Hồ Chí Minh đi Quảng Châu, đến sân bay "
+    "sẽ đi xe di chuyển về khách sạn {hotel} nhận phòng và nghỉ ngơi.",
+    "- Bay từ Sân bay Tân Sơn Nhất Tp. Hồ Chí Minh đến Sân bay quốc tế Bạch Vân Quảng Châu, "
+    "đi xe về khách sạn {hotel} làm thủ tục nhận phòng, nghỉ ngơi.",
+    "- Khởi hành từ Sân bay Tân Sơn Nhất Tp. Hồ Chí Minh đi Quảng Châu. Đến nơi di chuyển "
+    "về khách sạn {hotel} nhận phòng và nghỉ ngơi.",
+)
+SOUTH_ARRIVAL_EVENING = (
+    "- Buổi tối đi dạo và tham quan mua sắm tại trung tâm thương mại Citic Plaza.",
+    "- Buổi tối dạo phố và mua sắm tại khu Thiên Hà.",
+    "- Buổi tối tự do ăn tối và dạo chơi quanh khách sạn.",
+)
+SOUTH_SIGHTSEEING_DAYS = (
+    "Tham quan Công viên Việt Tú, Nhà tưởng niệm Tôn Trung Sơn… thưởng thức các món đặc sản Quảng Châu.",
+    "Tham quan Núi Bạch Vân.",
+    "Tham quan Thiên đường giải trí Chimelong.",
+    "Tham quan Tháp truyền hình Quảng Châu (Canton Tower).\nBuổi tối đi du thuyền ngắm cảnh trên sông Châu Giang.",
+    "Tham quan Trần Gia Từ (Từ đường họ Trần).\nDạo phố đi bộ Thượng Hạ Cửu, thưởng thức ẩm thực đường phố.",
+    "Tham quan đảo Sa Diện.\nMua sắm tại phố đi bộ Bắc Kinh Lộ.",
+    "Tham quan Bảo tàng Quảng Đông và Quảng trường Hoa Thành.",
+    "Tham quan Công viên Liên Hoa Sơn.",
+    "Tham quan Vườn Bảo Mặc.",
+    "Tham quan Chùa Lục Dung và Chùa Quang Hiếu.",
+)
+SOUTH_FREE_DAY = "Tự do mua sắm và dạo chơi tại Quảng Châu."
+SOUTH_DEPARTURE_DAY = (
+    "- Trả phòng khách sạn, di chuyển ra sân bay đáp chuyến bay về Tp. Hồ Chí Minh, Việt Nam.",
+    "- Ăn sáng, trả phòng khách sạn, di chuyển ra Sân bay quốc tế Bạch Vân đáp chuyến bay "
+    "về Tp. Hồ Chí Minh, Việt Nam.",
+    "- Sau bữa sáng, làm thủ tục trả phòng, ra sân bay đáp chuyến bay về Tp. Hồ Chí Minh, "
+    "Việt Nam. Kết thúc chuyến đi.",
+)
+
+
+def build_south_itinerary(first: date, end: date, hotel_name: str) -> list[dict]:
+    """One row per day from arrival (``first``) to departure (``end``)."""
+    days = max((end - first).days + 1, 2)
+    middle = days - 2
+    sights = random.sample(SOUTH_SIGHTSEEING_DAYS, min(middle, len(SOUTH_SIGHTSEEING_DAYS)))
+    sights += [SOUTH_FREE_DAY] * (middle - len(sights))
+    contents = [
+        random.choice(SOUTH_ARRIVAL_DAY).format(hotel=hotel_name)
+        + "\n"
+        + random.choice(SOUTH_ARRIVAL_EVENING),
+        *sights,
+        random.choice(SOUTH_DEPARTURE_DAY),
+    ]
+    return [
+        {"date": (first + timedelta(days=i)).strftime("%d/%m/%Y"), "content": text}
+        for i, text in enumerate(contents)
+    ]
+
+
+async def render_south_itinerary_pdf(
+    payload: dict[str, Any],
+    output_path: str = "",
+    passport_number: str = "",
+) -> str:
+    file_name: str = payload["file_name"]
+    first: date = payload["first"]
+    end: date = payload["end"]
+    name: str = payload.get("name", "")
+
+    src = (Path(__file__).resolve().parent / ".." / "resources" / file_name).resolve()
+    if not src.exists():
+        raise FileNotFoundError(f"Docx not found: {src}")
+    out_dir = (passport_data_dir(passport_number) / output_path).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / (Path(file_name).stem + ".docx")
+
+    doc = DocxTemplate(str(src))
+    doc.render(
+        {
+            "name": name,
+            "passport_no": payload.get("passport_no", ""),
+            "itinerary": build_south_itinerary(first, end, payload.get("hotel_name", "")),
+        }
+    )
+    _remove_if_exists(out)
+    doc.save(str(out))
+
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name).strip("_") or "NONAME"
+    pdf_out = out.with_name(f"{out.stem}_{safe}.pdf")
+    convert_docx_to_pdf(str(out), str(pdf_out))
+    pdf_helper.remove_last_blank_page(str(pdf_out))
+    out.unlink()
     return str(pdf_out)

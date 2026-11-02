@@ -20,6 +20,7 @@ from constants import (
     NATIONALITY_MAP,
     SEX_MAP,
     TRAVEL_PLAN_21D,
+    TRAVEL_PLAN_SOUTH,
     UNDER_18_HOTEL_INFO,
     VIETNAMESE_NAMES,
 )
@@ -317,4 +318,33 @@ class Itinerary(DocumentStep):
                 "ok": "ok",
                 "file": TRAVEL_PLAN_21D,
             }
+        )
+
+
+class SouthItinerary(DocumentStep):
+    """South only: day-by-day table for the one-hotel Guangzhou trip, same
+    dates and hotel as the hotel booking and flight ticket."""
+
+    output_folder = L_15_TRAVEL_PLAN_OUTPUT_PATH
+
+    async def render(self, ctx) -> None:
+        if ctx.is_under_18 or has_additional_names(ctx):
+            hotel = UNDER_18_HOTEL_INFO[0]
+        else:
+            hotel = _profile_hotels(ctx)[ctx.hotel_type]
+        ocr = ctx.ocr_data.Response.Data
+        await file_init_info.render_south_itinerary_pdf(
+            {
+                "file_name": TRAVEL_PLAN_SOUTH,
+                "first": ctx.m,
+                "end": ctx.f,
+                "name": ctx.vietnamese_name,
+                "passport_no": ocr.passportNumber or ctx.passportNumber,
+                "hotel_name": hotel["name"],
+            },
+            self.output_folder,
+            ctx.input_passportNumber,
+        )
+        log_event(
+            {"step": "generate travel itinerary file", "ok": "ok", "file": TRAVEL_PLAN_SOUTH}
         )
