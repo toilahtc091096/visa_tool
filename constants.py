@@ -1024,6 +1024,8 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
 # TODO: only L30 is known so far (from a filled application, so slot counts
 # are the uploaded ones); add the other visa types from their material lists.
 MAT_SOUTH_PASSPORT_INFO_PAGE = CovaMaterial("22025062618255280352880", "mfa-079")
+# Old passport used to travel to China (slot _4).
+MAT_SOUTH_OLD_PASSPORT = CovaMaterial("22025062618253037080107", "mfa-079")
 MAT_SOUTH_RESIDENCE_CERTIFICATE = CovaMaterial("22025062618224586258771", "mfa-097")
 MAT_SOUTH_OTHER_DOCUMENTS = CovaMaterial("22025070216133602452066", "mfa-130")
 MAT_SOUTH_L_ITINERARY_IN_CHINA = CovaMaterial("12025062616415987523440", "mfa-087")
@@ -1034,6 +1036,7 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     "L30": {
         "COMMON": {
             "PASSPORT_INFO_PAGE": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(1),
+            "PREV_CHINESE_VISA": MAT_SOUTH_OLD_PASSPORT.slots(4),
             "FLIGHT_TICKET": MAT_SOUTH_L_FLIGHT_TICKET.slots(1),
             "HOTEL_RESERVATION_WITH_PAYMENT": MAT_SOUTH_L_HOTEL_RESERVATION.slots(1),
             "ITINERARY_IN_CHINA": MAT_SOUTH_L_ITINERARY_IN_CHINA.slots(1),
