@@ -1078,6 +1078,7 @@ def getL15TravelInfo(
     arrivalVehicleType: str,
     leaveVehicleType: str,
     is_private: bool,
+    hotels: list[dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     """
     Full travel_json = #same + specific (hotel/flight/date) part.
@@ -1089,7 +1090,7 @@ def getL15TravelInfo(
         emergency_phone_number=emergency_phone_number,
         emergency_relation=emergency_relation,
     )
-    item_travel = L_15_HOTEL_INFO[hotel_type]
+    item_travel = (hotels or L_15_HOTEL_INFO)[hotel_type]
     if is_under_18 or has_additional_names:
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()

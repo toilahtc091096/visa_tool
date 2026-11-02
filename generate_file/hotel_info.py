@@ -14,6 +14,26 @@ from utils import pdf_helper
 from generate_file.path_utils import passport_data_dir
 
 
+def _usd_price_fields(hotel: dict[str, Any], rooms: int, nights: int) -> dict[str, str]:
+    """Price lines of a USD-priced booking (South hotel); empty for VND hotels."""
+    per_night_range = hotel.get("price_per_night_usd")
+    if not per_night_range:
+        return {}
+    per_night = random.randint(*per_night_range)
+    usd_to_cny = round(random.uniform(*hotel.get("usd_to_cny", (6.86, 6.92))), 3)
+    price = rooms * nights * per_night
+    vat = round(price * 0.06)
+    total = price + vat
+    total_cny = total * usd_to_cny
+    return {
+        "price_usd": f"{price:,}",
+        "vat_usd": f"{vat:,}",
+        "total_usd": f"{total:,}",
+        "total_cny": f"{total_cny:,.2f}",
+        "cancel_fee_cny": f"{total_cny * 0.43:,.2f}",
+    }
+
+
 def _remove_if_exists(path: Path) -> None:
     if path.exists():
         path.unlink()
@@ -139,6 +159,10 @@ async def render_docx_template_output_pdf(
                     random.randint(100, 999)
                     if not is_under_18 and not has_additional_names
                     else "231"
+                ),
+                "nights": (end - first).days,
+                **_usd_price_fields(
+                    payload.get("hotel") or {}, len(names), (end - first).days
                 ),
             },
             jinja_env=jinja_env,

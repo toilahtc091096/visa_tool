@@ -37,6 +37,11 @@ COMMON_DOC_FOLDERS = (
 CV_DOC_FOLDERS = ("chung/xac_nhan_tu_trung_tam_visa",)
 
 
+def _profile_hotels(ctx) -> list[dict[str, Any]]:
+    """Hotels of a one-hotel profile (L15, or L30 in the South)."""
+    return getattr(ctx.profile, "hotels", L_15_HOTEL_INFO)
+
+
 def has_additional_names(ctx) -> bool:
     return bool(getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", []))
 
@@ -113,9 +118,10 @@ class L15HotelBooking(DocumentStep):
                 ctx.guest_name = [ctx.vietnamese_name, adult]
                 print(f"guest_name: {ctx.guest_name}")
         if ctx.is_under_18 or additional:
-            hotel = UNDER_18_HOTEL_INFO[0]["documentName"]
+            hotel_info_item = UNDER_18_HOTEL_INFO[0]
         else:
-            hotel = L_15_HOTEL_INFO[ctx.hotel_type]["documentName"]
+            hotel_info_item = _profile_hotels(ctx)[ctx.hotel_type]
+        hotel = hotel_info_item["documentName"]
         if not ctx.guest_name:
             ctx.guest_name = [ctx.vietnamese_name]
 
@@ -131,6 +137,9 @@ class L15HotelBooking(DocumentStep):
             "child_number": child_number,
             "has_additional_names": additional,
         }
+        # Only the South hotel is priced in USD from constants; north payload unchanged.
+        if "price_per_night_usd" in hotel_info_item:
+            payload["hotel"] = hotel_info_item
         print(f"payload for hotel file: {payload}")
         try:
             await hotel_info.render_docx_template_output_pdf(
@@ -194,7 +203,7 @@ class FlightTicket(DocumentStep):
         elif ctx.is_under_18 or additional:
             arrival_info = departure_info = UNDER_18_HOTEL_INFO[0]
         else:
-            arrival_info = departure_info = L_15_HOTEL_INFO[ctx.hotel_type]
+            arrival_info = departure_info = _profile_hotels(ctx)[ctx.hotel_type]
         if ctx.is_under_18 or additional:
             ctx.arrive_flight_number = ctx.arrive_flight_number[-4:]
             ctx.departure_flight_number = ctx.departure_flight_number[-4:]

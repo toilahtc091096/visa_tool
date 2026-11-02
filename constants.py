@@ -675,6 +675,44 @@ L_30_HOTEL_INFO = [
         "citySelectedBox": "CAN1",
     },
 ]
+# South (HCMC) only has L30, which runs like the north L15 (one hotel, same
+# dates) but with one of these hotels, picked at random. Price fields fill the
+# hotel_mien_nam_L30_*.docx templates.
+SOUTH_L30_HOTEL_INFO = [
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Guangzhou Yashe Smart Hotel Apartment",
+        "address": "1F, Huayu Plaza, No. 183, Longkou West Road, Tianhe District, Guangzhou, Tianhe, Guangzhou, 510635, China",
+        "city": "CAN",
+        "arrivalCounty": "440106",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "13926285957",
+        "inviteProvince": "GD",
+        "documentName": "hotel_mien_nam_L30_1.docx",
+        "citySelectedBox": "CAN1",
+        # Random per booking within these ranges so files are not identical.
+        "price_per_night_usd": (44, 50),
+        "usd_to_cny": (6.86, 6.92),
+    },
+    {
+        "place_city": "GUANGZHOU",
+        "iata_code": "CAN",
+        "name": "Longxiang intelligent Hotel",
+        "address": "No. 34, Longkou West Road, Tianhe District, Guangzhou, Tianhe, Guangzhou, 510635, China",
+        "city": "CAN",
+        "arrivalCounty": "440106",
+        "relationship": "KHACH SAN",
+        "districtCounty": "",
+        "invitePhoneNumber": "17675755898",
+        "inviteProvince": "GD",
+        "documentName": "hotel_mien_nam_L30_2.docx",
+        "citySelectedBox": "CAN1",
+        "price_per_night_usd": (34, 39),
+        "usd_to_cny": (6.90, 7.00),
+    },
+]
 L_15_HOTEL_OUTPUT_PATH = "chung\\khach_san"
 L_15_TICKET_OUTPUT_PATH = "chung\\ve_may_bay"
 L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH = "chung\\xac_nhan_tu_trung_tam_visa"

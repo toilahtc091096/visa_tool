@@ -5,7 +5,14 @@ from __future__ import annotations
 import random
 from typing import Any
 
-from constants import HOTEL_DATA
+from constants import (
+    FLIGHT_TEMPLATE,
+    L_15_HOTEL_INFO,
+    REGION,
+    REGION_SOUTH,
+    SOUTH_L30_HOTEL_INFO,
+    WEEK_SKIP_BY_TYPE,
+)
 from flows.flow_payloads import getL15TravelInfo, getL30TravelInfo
 
 from .base import ReuseRule, VisaProfile, register
@@ -36,10 +43,11 @@ class L15Visa(TourismVisa):
     """15 days, one hotel, generated hotel booking + flight ticket."""
 
     code = "L15"
+    hotels = L_15_HOTEL_INFO
     documents = (L15HotelBooking(), FlightTicket(), VisaCenterConfirmation())
 
     def choose_hotel(self, ctx) -> None:
-        ctx.hotel_type = random.randrange(len(HOTEL_DATA[self.code]["hotel"]))
+        ctx.hotel_type = random.randrange(len(self.hotels))
 
     def build_travel_json(self, travel) -> dict[str, Any]:
         return getL15TravelInfo(
@@ -53,10 +61,10 @@ class L15Visa(TourismVisa):
             arrivalVehicleType=travel.arrivalVehicleType,
             leaveVehicleType=travel.leaveVehicleType,
             is_private=travel.is_private,
+            hotels=self.hotels,
         )
 
 
-@register
 class L30Visa(TourismVisa):
     """30 days over three cities, with a day-by-day itinerary."""
 
@@ -78,3 +86,22 @@ class L30Visa(TourismVisa):
             leaveVehicleType=travel.leaveVehicleType,
             is_private=travel.is_private,
         )
+
+
+class SouthL30Visa(L15Visa):
+    """South (HCMC) L30: works exactly like the north L15 (one hotel, same
+    dates and flight tickets), with the South hotel."""
+
+    code = "L30"
+    hotels = SOUTH_L30_HOTEL_INFO
+
+    @property
+    def flight_templates(self) -> list[dict[str, str]]:
+        return FLIGHT_TEMPLATE["L15"]
+
+    @property
+    def week_skip(self) -> int | None:
+        return WEEK_SKIP_BY_TYPE["L15"]
+
+
+register(SouthL30Visa if REGION == REGION_SOUTH else L30Visa)
