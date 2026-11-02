@@ -29,7 +29,7 @@ if REGION not in (REGION_NORTH, REGION_SOUTH):
     raise RuntimeError(f"REGION must be 'north' or 'south', got {REGION!r}")
 EMBASSY_BY_REGION = {
     REGION_NORTH: "3001VNVNMA",
-    REGION_SOUTH: "",  # TODO: HCMC consulate embassy code
+    REGION_SOUTH: "3001VNVNMB",
 }
 DEFAULT_EMBASSY = os.getenv("EMBASSY", "").strip() or EMBASSY_BY_REGION[REGION]
 if not DEFAULT_EMBASSY:
