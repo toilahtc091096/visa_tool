@@ -19,7 +19,11 @@ from constants import (
     VIETNAMESE_NAMES,
     VISA_TYPE_VALUE,
     EDUCATION_DEGREE_TYPE,
-    EDUCATION_UNIVERSITY_SCHOOL_NAMES_HANOI,
+    EDUCATION_HIGH_SCHOOL_DEGREE,
+    EDUCATION_HIGH_SCHOOL_MIN_AGE,
+    EDUCATION_HIGH_SCHOOL_NAMES,
+    EDUCATION_HIGH_SCHOOL_RATIO,
+    EDUCATION_UNIVERSITY_SCHOOL_NAMES,
     FAMILY_DEFAULT_PHONE,
     FAMILY_FATHER_NOT_APPLY_REMARK,
     FAMILY_PARENT_RELATION_MOTHER,
@@ -451,8 +455,29 @@ def _to_dict(x: Any) -> dict[str, Any]:
     return dict(vars(x))
 
 
-def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
+def _age_on(birth_date: date | None, today: date) -> int | None:
+    if birth_date is None:
+        return None
+    return today.year - birth_date.year - (
+        (today.month, today.day) < (birth_date.month, birth_date.day)
+    )
+
+
+def _education_experience_entry(
+    province_city_code: str, birth_date: date | None = None
+) -> dict[str, Any]:
     _, degree_code, degree_label = random.choice(EDUCATION_DEGREE_TYPE)
+    school_names = EDUCATION_UNIVERSITY_SCHOOL_NAMES
+    # Older applicants: mostly THPT (both regions). The extra random draw only
+    # happens for them, so younger applicants keep the same random sequence.
+    age = _age_on(birth_date, date.today())
+    if (
+        age is not None
+        and age >= EDUCATION_HIGH_SCHOOL_MIN_AGE
+        and random.random() < EDUCATION_HIGH_SCHOOL_RATIO
+    ):
+        _, degree_code, degree_label = EDUCATION_HIGH_SCHOOL_DEGREE
+        school_names = EDUCATION_HIGH_SCHOOL_NAMES
     base_entry = {
         "sort": "1",
         "beginDate": "",
@@ -461,7 +486,7 @@ def _education_experience_entry(province_city_code: str) -> dict[str, Any]:
         "highestDegree": degree_code,
         "specialty": degree_label,
     }
-    school_name = random.choice(EDUCATION_UNIVERSITY_SCHOOL_NAMES_HANOI)
+    school_name = random.choice(school_names)
     return {
         **base_entry,
         "schoolName": school_name,
@@ -476,6 +501,7 @@ def build_education_info_profile(
     name_of_institute: str = "",
     diploma_degree: str = "",
     major: str = "",
+    birth_date: date | None = None,
 ) -> EducationInfoProfile:
     has_custom_education = any(
         str(value or "").strip() for value in (name_of_institute, diploma_degree, major)
@@ -506,7 +532,7 @@ def build_education_info_profile(
         ]
     else:
         we_src = educationExperience or [
-            _education_experience_entry(province_city_code)
+            _education_experience_entry(province_city_code, birth_date)
         ]
 
     education_json: dict[str, Any] = {

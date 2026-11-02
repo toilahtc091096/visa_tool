@@ -102,6 +102,7 @@ async def save_family_work_education(ctx, client) -> bool:
         getattr(ctx, "name_of_institute", ""),
         getattr(ctx, "diploma_degree", ""),
         getattr(ctx, "major", ""),
+        birth_date=date_util.parse_date(ctx.ocr_data.Response.Data.dateOfBirth),
     )
     ok5, meta5 = await api_save_education_info(
         client,
