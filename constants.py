@@ -1184,7 +1184,10 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     "L30": {
         "COMMON": {
             "PASSPORT_INFO_PAGE": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(1),
-            "PREV_CHINESE_VISA": MAT_SOUTH_OLD_PASSPORT.slots(1,2,3,4),
+            # Same material as the passport page: _1 is the passport. Slots
+            # _2.._7: old Chinese visa photos, then other countries' visa
+            # photos right after the last one (see the South UPLOAD_CONFIG).
+            "PREV_CHINESE_VISA": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(2, 3, 4, 5, 6, 7),
             "FLIGHT_TICKET": MAT_SOUTH_L_FLIGHT_TICKET.slots(1),
             "HOTEL_RESERVATION_WITH_PAYMENT": MAT_SOUTH_L_HOTEL_RESERVATION.slots(1),
             "ITINERARY_IN_CHINA": MAT_SOUTH_L_ITINERARY_IN_CHINA.slots(1),
@@ -1363,11 +1366,19 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
 for _visa_config in UPLOAD_CONFIG.values():
     _visa_config["PASSPORT_INFO_PAGE"] = _passport_image()
     # South: CT07 (giay_cu_tru) when there is one, otherwise the old Chinese visa
-    # photos. Those photos still go to PREV_CHINESE_VISA as well.
+    # photos, otherwise the other countries' visa photos. The old Chinese visa
+    # photos still go to PREV_CHINESE_VISA as well.
     if REGION == REGION_SOUTH:
+        # Old Chinese visa (up to 3), then other countries' visas (up to 3)
+        # in the next free slots.
+        _visa_config["PREV_CHINESE_VISA"] = [
+            _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
+        ]
         _visa_config["HUKOU_OR_EMPLOYMENT_LETTER"] = _first_nonempty(
             _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
             _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
+            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
         )
 
 
