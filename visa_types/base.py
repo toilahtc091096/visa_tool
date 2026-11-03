@@ -56,6 +56,11 @@ class VisaProfile:
     accepts_requested_dates: ClassVar[bool] = True
     """Use arrivalDate/departureDate from the request when both are given;
     set False on a profile that must always compute its own dates."""
+    start_extra_weeks: ClassVar[int] = 0
+    """Extra weeks added to the computed arrival date (not to request dates)."""
+    trip_days: ClassVar[int | None] = None
+    """Fixed trip length in days (arrival..departure inclusive) for computed
+    dates; None keeps the default Monday-based length."""
     cleans_local_common_docs: ClassVar[bool] = False
     """Wipe the local ``chung/*`` folders before generating documents."""
     job_type_label: ClassVar[str | None] = None

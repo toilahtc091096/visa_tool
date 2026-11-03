@@ -104,6 +104,9 @@ class SouthL30Visa(L15Visa):
     code = "L30"
     hotels = SOUTH_L30_HOTEL_INFO
     flight_visa_type = "L15"
+    # Arrival about one month later than the L15 timing, 4-day trip.
+    start_extra_weeks = 4
+    trip_days = 4
     documents = (
         L15HotelBooking(),
         FlightTicket(),

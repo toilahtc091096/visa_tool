@@ -245,13 +245,15 @@ async def render_init_pdf(
 # Each file picks its own wording and sightseeing days, so files differ a bit.
 # ---------------------------------------------------------------------------
 
+SOUTH_ITINERARY_DAYS = 4
+# No hotel name in the itinerary.
 SOUTH_ARRIVAL_DAY = (
     "- Đáp chuyến bay từ Sân bay Tân Sơn Nhất Tp. Hồ Chí Minh đi Quảng Châu, đến sân bay "
-    "sẽ đi xe di chuyển về khách sạn {hotel} nhận phòng và nghỉ ngơi.",
+    "sẽ đi xe di chuyển về khách sạn nhận phòng và nghỉ ngơi.",
     "- Bay từ Sân bay Tân Sơn Nhất Tp. Hồ Chí Minh đến Sân bay quốc tế Bạch Vân Quảng Châu, "
-    "đi xe về khách sạn {hotel} làm thủ tục nhận phòng, nghỉ ngơi.",
+    "đi xe về khách sạn làm thủ tục nhận phòng, nghỉ ngơi.",
     "- Khởi hành từ Sân bay Tân Sơn Nhất Tp. Hồ Chí Minh đi Quảng Châu. Đến nơi di chuyển "
-    "về khách sạn {hotel} nhận phòng và nghỉ ngơi.",
+    "về khách sạn nhận phòng và nghỉ ngơi.",
 )
 SOUTH_ARRIVAL_EVENING = (
     "- Buổi tối đi dạo và tham quan mua sắm tại trung tâm thương mại Citic Plaza.",
@@ -280,14 +282,14 @@ SOUTH_DEPARTURE_DAY = (
 )
 
 
-def build_south_itinerary(first: date, end: date, hotel_name: str) -> list[dict]:
-    """One row per day from arrival (``first``) to departure (``end``)."""
-    days = max((end - first).days + 1, 2)
+def build_south_itinerary(first: date, days: int = SOUTH_ITINERARY_DAYS) -> list[dict]:
+    """``days`` rows from arrival (``first``); the last row is departure."""
+    days = max(days, 2)
     middle = days - 2
     sights = random.sample(SOUTH_SIGHTSEEING_DAYS, min(middle, len(SOUTH_SIGHTSEEING_DAYS)))
     sights += [SOUTH_FREE_DAY] * (middle - len(sights))
     contents = [
-        random.choice(SOUTH_ARRIVAL_DAY).format(hotel=hotel_name)
+        random.choice(SOUTH_ARRIVAL_DAY)
         + "\n"
         + random.choice(SOUTH_ARRIVAL_EVENING),
         *sights,
@@ -306,7 +308,6 @@ async def render_south_itinerary_pdf(
 ) -> str:
     file_name: str = payload["file_name"]
     first: date = payload["first"]
-    end: date = payload["end"]
     name: str = payload.get("name", "")
 
     src = (Path(__file__).resolve().parent / ".." / "resources" / file_name).resolve()
@@ -321,7 +322,7 @@ async def render_south_itinerary_pdf(
         {
             "name": name,
             "passport_no": payload.get("passport_no", ""),
-            "itinerary": build_south_itinerary(first, end, payload.get("hotel_name", "")),
+            "itinerary": build_south_itinerary(first),
         }
     )
     _remove_if_exists(out)

@@ -1,5 +1,6 @@
 import mimetypes
 import shutil
+from datetime import timedelta
 from pathlib import Path
 
 from api import (
@@ -209,6 +210,16 @@ def _plan_trip(ctx, has_additional: bool) -> tuple[str, str]:
         departure_flight = f"{ctx.prefix_flight_text} {template['prefix_number']}23"
         ctx.arrive_flight_number = arrive_flight
         ctx.departure_flight_number = departure_flight
+
+    using_request_dates = (
+        profile.accepts_requested_dates and requested_arrival and requested_departure
+    )
+    if not using_request_dates:
+        if profile.start_extra_weeks:
+            shift = timedelta(weeks=profile.start_extra_weeks)
+            ctx.m, ctx.f = ctx.m + shift, ctx.f + shift
+        if profile.trip_days:
+            ctx.f = ctx.m + timedelta(days=profile.trip_days - 1)
 
     fixed_arrived = _maybe_parse_date(getattr(ctx, "fixed_arrived", ""))
     fixed_departure = _maybe_parse_date(getattr(ctx, "fixed_departure", ""))
