@@ -5,6 +5,7 @@ it (perspective warp, background cut away) -> mild contrast + sharpen.
 Colors are kept as in the photo.
 
 When no clear page outline is found the photo is not cropped, only cleaned.
+Portrait photos (a big face in the picture) are returned untouched.
 Any error returns the original bytes, so scanning can never break a run.
 The output keeps the input's file format, so the name/extension stays valid
 (COVA checks the real file type).
@@ -32,7 +33,12 @@ SCAN_JPEG_QUALITY = 90
 _DETECT_SIDE = 600  # GrabCut runs on this size (fast)
 _MIN_PAGE_AREA = 0.25  # page outline must cover at least 25% of the photo
 _WHITE_BORDER_L = 235
-_OUTLINE_PAD = 0.02  # grow the found outline by 2% (never cut the edge)  # OpenCV Lab lightness (0..255) of a scanner's white margin
+_OUTLINE_PAD = 0.02  # grow the found outline by 2% (never cut the edge)
+# A face at least this wide (share of the photo width) = portrait photo, not a
+# document: left untouched. The face on a passport / ID card photo is much
+# smaller (about 0.2 or less even in a close-up of the page).
+_PORTRAIT_FACE_WIDTH = 0.3
+_face_cascade = None
 
 
 def should_scan(path: str) -> bool:
@@ -42,6 +48,24 @@ def should_scan(path: str) -> bool:
         return False
     folders = [part.replace("-", "_") for part in p.parts[:-1]]
     return not any(key in folder for folder in folders for key in SCAN_SKIP_FOLDER_KEYWORDS)
+
+
+def _is_portrait(bgr: np.ndarray) -> bool:
+    """True when the photo shows a big face (a portrait / selfie)."""
+    global _face_cascade
+    if _face_cascade is None:
+        if not hasattr(cv2, "CascadeClassifier"):  # removed in OpenCV 5
+            return False
+        _face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+    h, w = bgr.shape[:2]
+    ratio = min(1.0, _DETECT_SIDE / max(h, w))
+    small = cv2.resize(bgr, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_AREA)
+    gray = cv2.equalizeHist(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY))
+    min_side = int(small.shape[1] * _PORTRAIT_FACE_WIDTH)
+    faces = _face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(min_side, min_side))
+    return len(faces) > 0
 
 
 def _order_corners(pts: np.ndarray) -> np.ndarray:
@@ -157,6 +181,9 @@ def scan_document_bytes(path: str, content: bytes) -> bytes:
         with Image.open(BytesIO(content)) as img:
             rgb = ImageOps.exif_transpose(img).convert("RGB")
         bgr = cv2.cvtColor(np.asarray(rgb), cv2.COLOR_RGB2BGR)
+        if _is_portrait(bgr):
+            log_event({"step": "doc_scan", "file": path, "ok": True, "skipped": "portrait"})
+            return content
         scanned, cropped = scan_image(bgr)
         out = Image.fromarray(cv2.cvtColor(scanned, cv2.COLOR_BGR2RGB))
         buf = BytesIO()

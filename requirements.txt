@@ -24,4 +24,4 @@ pillow
 python-multipart
 
 docx2pdf
-opencv-python-headless
+opencv-python-headless<5
