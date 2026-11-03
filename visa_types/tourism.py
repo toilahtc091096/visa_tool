@@ -69,6 +69,8 @@ class L15Visa(TourismVisa):
             travel_json["notApplyItems"] = [
                 {"notApplyCode": "invitation", "remark": "N/A"}
             ]
+            # One hotel: arrive at and leave from the same county.
+            travel_json["leaveCounty"] = travel_json.get("arrivalCounty") or ""
         return travel_json
 
 
