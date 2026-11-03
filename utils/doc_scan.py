@@ -1,8 +1,8 @@
 """Turn a phone photo of a document into a flat "scanned" image.
 
-Steps: fix EXIF rotation -> find the 4 paper corners and flatten the page
-(perspective warp) -> remove shadows / whiten the background -> sharpen.
-The result stays in color (red stamps, passport photo).
+Steps: fix EXIF rotation -> find the whole document (all pages) and flatten
+it (perspective warp, background cut away) -> mild contrast + sharpen.
+Colors are kept as in the photo.
 
 When no clear page outline is found the photo is not cropped, only cleaned.
 Any error returns the original bytes, so scanning can never break a run.
@@ -31,6 +31,7 @@ SCAN_MAX_SIDE = 2000
 SCAN_JPEG_QUALITY = 90
 _DETECT_SIDE = 1000
 _MIN_PAGE_AREA = 0.25  # page outline must cover at least 25% of the photo
+_WHITE_BORDER_L = 235  # OpenCV Lab lightness (0..255) of a scanner's white margin
 
 
 def should_scan(path: str) -> bool:
@@ -53,25 +54,59 @@ def _order_corners(pts: np.ndarray) -> np.ndarray:
     )
 
 
+def _quad_from_hull(hull: np.ndarray) -> np.ndarray:
+    """4 corners of a convex hull (falls back to the min-area rectangle)."""
+    peri = cv2.arcLength(hull, True)
+    for eps in (0.02, 0.03, 0.04, 0.05, 0.07):
+        approx = cv2.approxPolyDP(hull, eps * peri, True)
+        if len(approx) == 4:
+            return approx.reshape(4, 2).astype("float32")
+    return cv2.boxPoints(cv2.minAreaRect(hull)).astype("float32")
+
+
 def _find_page(bgr: np.ndarray) -> np.ndarray | None:
-    """Corners of the page in ``bgr`` coordinates, or None."""
+    """Corners of the whole document (e.g. both pages of an open passport)
+    in ``bgr`` coordinates, or None when it cannot be told from the background.
+
+    The background color is read from the photo border; everything that
+    differs from it is the document. Its convex hull keeps all pages together
+    (an inner line such as the passport fold is ignored)."""
     h, w = bgr.shape[:2]
     ratio = min(1.0, _DETECT_SIDE / max(h, w))
     small = cv2.resize(bgr, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_AREA)
-    gray = cv2.GaussianBlur(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), (5, 5), 0)
-    min_area = _MIN_PAGE_AREA * small.shape[0] * small.shape[1]
+    small = cv2.GaussianBlur(small, (7, 7), 0)
+    lab = cv2.cvtColor(small, cv2.COLOR_BGR2LAB).astype("float32")
+    sh, sw = lab.shape[:2]
+    b = max(4, min(sh, sw) // 50)
+    border = np.concatenate(
+        [lab[:b].reshape(-1, 3), lab[-b:].reshape(-1, 3),
+         lab[:, :b].reshape(-1, 3), lab[:, -b:].reshape(-1, 3)]
+    )
+    bg = np.median(border, axis=0)
+    # Plain white, even border = already a scan (white margin): do not crop.
+    if bg[0] > _WHITE_BORDER_L and np.median(np.linalg.norm(border - bg, axis=1)) < 8:
+        return None
+    dist = np.linalg.norm(lab - bg, axis=2)
+    # Threshold between background noise and document (Otsu on the distance).
+    dist8 = np.clip(dist * 2, 0, 255).astype(np.uint8)
+    _, mask = cv2.threshold(dist8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    k = np.ones((9, 9), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, k, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, k)
 
-    edges = cv2.dilate(cv2.Canny(gray, 50, 150), np.ones((3, 3), np.uint8), iterations=2)
-    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    for mask in (edges, otsu):
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for c in sorted(contours, key=cv2.contourArea, reverse=True)[:5]:
-            if cv2.contourArea(c) < min_area:
-                break
-            approx = cv2.approxPolyDP(c, 0.02 * cv2.arcLength(c, True), True)
-            if len(approx) == 4 and cv2.isContourConvex(approx):
-                return _order_corners(approx) / ratio
-    return None
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+    total = sh * sw
+    # Join every big piece (pages split by a fold / shadow stay one document).
+    big = [c for c in contours if cv2.contourArea(c) > 0.02 * total]
+    if not big:
+        return None
+    hull = cv2.convexHull(np.vstack(big))
+    area = cv2.contourArea(hull)
+    if area < _MIN_PAGE_AREA * total or area > 0.97 * total:
+        return None  # nothing found, or the photo is already just the document
+    return _order_corners(_quad_from_hull(hull)) / ratio
 
 
 def _warp(bgr: np.ndarray, corners: np.ndarray) -> np.ndarray:
@@ -89,20 +124,13 @@ def _warp(bgr: np.ndarray, corners: np.ndarray) -> np.ndarray:
 
 
 def _enhance(bgr: np.ndarray) -> np.ndarray:
-    """Color "magic" clean-up: even white background, no shadows, crisp text."""
-    kernel_size = max(15, (min(bgr.shape[:2]) // 40) | 1)
-    channels = []
-    for ch in cv2.split(bgr):
-        background = cv2.medianBlur(
-            cv2.dilate(ch, np.ones((7, 7), np.uint8)), kernel_size
-        )
-        flat = cv2.divide(ch, background, scale=255)
-        channels.append(flat)
-    out = cv2.merge(channels)
-    # Gentle contrast stretch, then unsharp mask.
-    out = cv2.convertScaleAbs(out, alpha=1.1, beta=-15)
-    blur = cv2.GaussianBlur(out, (0, 0), 1.5)
-    return cv2.addWeighted(out, 1.5, blur, -0.5, 0)
+    """Keep the original colors: mild local contrast on lightness + sharpen."""
+    lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    l = cv2.createCLAHE(clipLimit=1.3, tileGridSize=(8, 8)).apply(l)
+    out = cv2.cvtColor(cv2.merge((l, a, b)), cv2.COLOR_LAB2BGR)
+    blur = cv2.GaussianBlur(out, (0, 0), 1.2)
+    return cv2.addWeighted(out, 1.4, blur, -0.4, 0)
 
 
 def scan_image(bgr: np.ndarray) -> tuple[np.ndarray, bool]:
