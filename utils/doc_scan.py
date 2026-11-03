@@ -34,6 +34,11 @@ _DETECT_SIDE = 600  # GrabCut runs on this size (fast)
 _MIN_PAGE_AREA = 0.25  # page outline must cover at least 25% of the photo
 _WHITE_BORDER_L = 235
 _OUTLINE_PAD = 0.02  # grow the found outline by 2% (never cut the edge)
+# Trust the outline only when the found document fills its 4-corner shape
+# (an L-shape = part of a page was missed) and the shape is not badly skewed
+# (shorter / longer of two opposite sides). Otherwise do not crop.
+_MIN_QUAD_FILL = 0.93
+_MIN_SIDE_RATIO = 0.8
 # A face at least this wide (share of the photo width) = portrait photo, not a
 # document: left untouched. The face on a passport / ID card photo is much
 # smaller (about 0.2 or less even in a close-up of the page).
@@ -89,6 +94,22 @@ def _quad_from_hull(hull: np.ndarray) -> np.ndarray:
     return cv2.boxPoints(cv2.minAreaRect(hull)).astype("float32")
 
 
+def _quad_is_reliable(fg: np.ndarray, quad: np.ndarray) -> bool:
+    """``quad`` (ordered corners) really outlines the found document ``fg``."""
+    quad_mask = np.zeros_like(fg)
+    cv2.fillPoly(quad_mask, [quad.astype(np.int32)], 255)
+    quad_area = int(np.count_nonzero(quad_mask))
+    if quad_area == 0:
+        return False
+    fill = np.count_nonzero(cv2.bitwise_and(fg, quad_mask)) / quad_area
+    tl, tr, br, bl = quad
+    sides = [np.linalg.norm(tr - tl), np.linalg.norm(br - bl),
+             np.linalg.norm(bl - tl), np.linalg.norm(br - tr)]
+    side_ratio = min(min(sides[0], sides[1]) / max(sides[0], sides[1], 1e-6),
+                     min(sides[2], sides[3]) / max(sides[2], sides[3], 1e-6))
+    return fill >= _MIN_QUAD_FILL and side_ratio >= _MIN_SIDE_RATIO
+
+
 def _find_page(bgr: np.ndarray) -> np.ndarray | None:
     """Corners of the whole document (e.g. both pages of an open passport)
     in ``bgr`` coordinates, or None when no clear document is found.
@@ -131,7 +152,10 @@ def _find_page(bgr: np.ndarray) -> np.ndarray | None:
     area = cv2.contourArea(hull)
     if area < _MIN_PAGE_AREA * total or area > 0.95 * total:
         return None  # nothing found, or the photo is already just the document
-    corners = _order_corners(_quad_from_hull(hull)) / ratio
+    quad = _order_corners(_quad_from_hull(hull))
+    if not _quad_is_reliable(fg, quad):
+        return None
+    corners = quad / ratio
     # Grow the outline a little so the document edge is never cut off.
     center = corners.mean(axis=0)
     return (center + (corners - center) * (1 + _OUTLINE_PAD)).astype("float32")
