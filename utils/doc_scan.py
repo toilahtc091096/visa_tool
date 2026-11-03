@@ -29,9 +29,10 @@ SCAN_SKIP_FOLDER_KEYWORDS = ("anh_the", "anh_4x6", "chu_ki", "chu_ky")
 
 SCAN_MAX_SIDE = 2000
 SCAN_JPEG_QUALITY = 90
-_DETECT_SIDE = 1000
+_DETECT_SIDE = 600  # GrabCut runs on this size (fast)
 _MIN_PAGE_AREA = 0.25  # page outline must cover at least 25% of the photo
-_WHITE_BORDER_L = 235  # OpenCV Lab lightness (0..255) of a scanner's white margin
+_WHITE_BORDER_L = 235
+_OUTLINE_PAD = 0.02  # grow the found outline by 2% (never cut the edge)  # OpenCV Lab lightness (0..255) of a scanner's white margin
 
 
 def should_scan(path: str) -> bool:
@@ -66,17 +67,17 @@ def _quad_from_hull(hull: np.ndarray) -> np.ndarray:
 
 def _find_page(bgr: np.ndarray) -> np.ndarray | None:
     """Corners of the whole document (e.g. both pages of an open passport)
-    in ``bgr`` coordinates, or None when it cannot be told from the background.
+    in ``bgr`` coordinates, or None when no clear document is found.
 
-    The background color is read from the photo border; everything that
-    differs from it is the document. Its convex hull keeps all pages together
-    (an inner line such as the passport fold is ignored)."""
+    GrabCut learns the background (desk) colors from the photo border and the
+    document colors from the middle, so uneven light on the desk is handled.
+    The convex hull of the result keeps every page together."""
     h, w = bgr.shape[:2]
     ratio = min(1.0, _DETECT_SIDE / max(h, w))
     small = cv2.resize(bgr, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_AREA)
-    small = cv2.GaussianBlur(small, (7, 7), 0)
+    sh, sw = small.shape[:2]
+
     lab = cv2.cvtColor(small, cv2.COLOR_BGR2LAB).astype("float32")
-    sh, sw = lab.shape[:2]
     b = max(4, min(sh, sw) // 50)
     border = np.concatenate(
         [lab[:b].reshape(-1, 3), lab[-b:].reshape(-1, 3),
@@ -86,27 +87,30 @@ def _find_page(bgr: np.ndarray) -> np.ndarray | None:
     # Plain white, even border = already a scan (white margin): do not crop.
     if bg[0] > _WHITE_BORDER_L and np.median(np.linalg.norm(border - bg, axis=1)) < 8:
         return None
-    dist = np.linalg.norm(lab - bg, axis=2)
-    # Threshold between background noise and document (Otsu on the distance).
-    dist8 = np.clip(dist * 2, 0, 255).astype(np.uint8)
-    _, mask = cv2.threshold(dist8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    k = np.ones((9, 9), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, k, iterations=2)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, k)
 
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    m = max(2, int(min(sh, sw) * 0.01))
+    mask = np.zeros((sh, sw), np.uint8)
+    bgd, fgd = np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64)
+    cv2.grabCut(small, mask, (m, m, sw - 2 * m, sh - 2 * m), bgd, fgd, 4, cv2.GC_INIT_WITH_RECT)
+    fg = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
+    k = np.ones((7, 7), np.uint8)
+    fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, k, iterations=2)
+
+    contours, _ = cv2.findContours(fg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return None
     total = sh * sw
-    # Join every big piece (pages split by a fold / shadow stay one document).
-    big = [c for c in contours if cv2.contourArea(c) > 0.02 * total]
-    if not big:
-        return None
+    biggest = max(cv2.contourArea(c) for c in contours)
+    # Join the big pieces (pages split by the fold stay one document).
+    big = [c for c in contours if cv2.contourArea(c) > max(0.02 * total, 0.15 * biggest)]
     hull = cv2.convexHull(np.vstack(big))
     area = cv2.contourArea(hull)
-    if area < _MIN_PAGE_AREA * total or area > 0.97 * total:
+    if area < _MIN_PAGE_AREA * total or area > 0.95 * total:
         return None  # nothing found, or the photo is already just the document
-    return _order_corners(_quad_from_hull(hull)) / ratio
+    corners = _order_corners(_quad_from_hull(hull)) / ratio
+    # Grow the outline a little so the document edge is never cut off.
+    center = corners.mean(axis=0)
+    return (center + (corners - center) * (1 + _OUTLINE_PAD)).astype("float32")
 
 
 def _warp(bgr: np.ndarray, corners: np.ndarray) -> np.ndarray:
@@ -117,10 +121,9 @@ def _warp(bgr: np.ndarray, corners: np.ndarray) -> np.ndarray:
         [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]], dtype="float32"
     )
     matrix = cv2.getPerspectiveTransform(corners.astype("float32"), dst)
-    page = cv2.warpPerspective(bgr, matrix, (width, height), flags=cv2.INTER_CUBIC)
-    # Trim a thin margin so no desk edge is left around the page.
-    mx, my = max(2, int(width * 0.006)), max(2, int(height * 0.006))
-    return page[my : height - my, mx : width - mx]
+    return cv2.warpPerspective(
+        bgr, matrix, (width, height), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+    )
 
 
 def _enhance(bgr: np.ndarray) -> np.ndarray:
