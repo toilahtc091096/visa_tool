@@ -76,7 +76,9 @@ def api_download_r2_object_bytes(key: str) -> dict[str, Any]:
     }
 
 
-def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
+def api_download_r2_folder_zip(prefix: str, scan: bool = False) -> dict[str, Any]:
+    """Zip every object under ``prefix``; ``scan`` flattens document photos
+    (see utils.doc_scan) before they are zipped."""
     prefix = str(prefix or "").strip().lstrip("/")
     if not prefix:
         return {
@@ -100,7 +102,12 @@ def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
     listed_at = time.perf_counter()
 
     def fetch(key: str) -> bytes:
-        return client.get_object(Bucket=config.bucket_name, Key=key)["Body"].read()
+        body = client.get_object(Bucket=config.bucket_name, Key=key)["Body"].read()
+        if scan:
+            from utils.doc_scan import scan_document_bytes
+
+            body = scan_document_bytes(key[len(prefix):].lstrip("/") or key, body)
+        return body
 
     zip_buffer = io.BytesIO()
     total_size = 0
@@ -123,6 +130,7 @@ def api_download_r2_folder_zip(prefix: str) -> dict[str, Any]:
             "step": "timing",
             "phase": "r2_folder_zip",
             "prefix": prefix,
+            "scan": scan,
             "files": file_count,
             "bytes": total_size,
             "list_seconds": round(listed_at - started_at, 2),

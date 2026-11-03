@@ -18,6 +18,7 @@ from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
 from api import api_sign_and_push_image_to_r2
+from constants import REGION, REGION_SOUTH
 from database.connection import init_database
 from main import build_case, main
 from services.han_approval import (
@@ -488,8 +489,10 @@ def r2_images_get(
 
 
 @app.get("/r2/folders/download")
-def r2_folders_download(prefix: str = Query("")):
-    result = api_download_r2_folder_zip(prefix)
+def r2_folders_download(prefix: str = Query(""), scan: bool = Query(False)):
+    # scan=1: flatten document photos like a scanner. South only for now.
+    do_scan = scan and REGION == REGION_SOUTH
+    result = api_download_r2_folder_zip(prefix, scan=do_scan)
     if not result.get("ok"):
         raise HTTPException(status_code=404, detail=result)
 
@@ -500,6 +503,7 @@ def r2_folders_download(prefix: str = Query("")):
         "Content-Disposition": f'attachment; filename="{folder_name}.zip"',
         "X-R2-File-Count": str(result.get("file_count", 0)),
         "X-R2-Total-Size": str(result.get("total_size", 0)),
+        "X-Scan-Applied": "1" if do_scan else "0",
     }
     return Response(
         content=content,
