@@ -67,15 +67,25 @@ def convert_html_to_pdf(html_content: bytes) -> str:
 from pypdf import PdfReader, PdfWriter
 
 
+def _is_blank_page(page) -> bool:
+    if (page.extract_text() or "").strip():
+        return False
+    try:
+        return len(page.images) == 0
+    except Exception:
+        return False
+
+
 def remove_last_blank_page(pdf_path: str):
+    """Drop the last page only when it is really blank (no text, no images).
+    A last page with content is kept, even if the PDF then has 2 pages."""
     reader = PdfReader(pdf_path)
 
-    if len(reader.pages) <= 1:
+    if len(reader.pages) <= 1 or not _is_blank_page(reader.pages[-1]):
         return
 
     writer = PdfWriter()
 
-    # giữ tất cả trang trừ trang cuối
     for page in reader.pages[:-1]:
         writer.add_page(page)
 
