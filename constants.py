@@ -527,6 +527,10 @@ SELF_EMPLOYED_NOT_APPLY_REMARK = "KINH DOANH TU DO"
 EDUCATION_NOT_APPLY_REMARK = "DAI HOC"
 
 JOB_TYPE_BY_LABEL = dict(JOB_TYPE)
+# Family info, children[].profession (both regions): Student up to this age,
+# then one of CHILD_WORKING_JOB_TYPES.
+CHILD_STUDENT_MAX_AGE = 22
+CHILD_WORKING_JOB_TYPES = ("Businessperson", "Company employee")
 SELF_EMPLOYED_JOB_DESCS = (
     "GIAM DOC",
     "PHO GIAM DOC",

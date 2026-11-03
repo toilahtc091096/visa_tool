@@ -106,7 +106,26 @@ class VisaProfile:
             build_work_info_profile,
         )
 
-        if REGION == REGION_SOUTH and not self._has_work_input(ctx):
+        from utils import log_event
+
+        has_input = self._has_work_input(ctx)
+        log_event(
+            {
+                "step": "work_info_source",
+                "region": REGION,
+                "visa_type": self.code,
+                "has_work_input": has_input,
+                "is_under_18": bool(ctx.is_under_18),
+                "is_retired": bool(getattr(ctx, "is_retired", False)),
+                "old_item_id": getattr(ctx, "old_item_id", ""),
+                "old_job_type": ctx.job_type,
+                "old_experiences": len(ctx.experiences or []),
+                "branch": "south_no_input"
+                if REGION == REGION_SOUTH and not has_input
+                else "default",
+            }
+        )
+        if REGION == REGION_SOUTH and not has_input:
             return build_south_work_info_without_input(
                 ctx.first_applyid,
                 ctx.job_type,

@@ -51,7 +51,7 @@ class L15Visa(TourismVisa):
         ctx.hotel_type = random.randrange(len(self.hotels))
 
     def build_travel_json(self, travel) -> dict[str, Any]:
-        return getL15TravelInfo(
+        travel_json = getL15TravelInfo(
             **travel.emergency(),
             is_under_18=travel.is_under_18,
             has_additional_names=travel.has_additional_names,
@@ -64,6 +64,12 @@ class L15Visa(TourismVisa):
             is_private=travel.is_private,
             hotels=self.hotels,
         )
+        if REGION == REGION_SOUTH:
+            # South L15 / L30: no invitation letter.
+            travel_json["notApplyItems"] = [
+                {"notApplyCode": "invitation", "remark": "N/A"}
+            ]
+        return travel_json
 
 
 class L30Visa(TourismVisa):

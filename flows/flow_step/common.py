@@ -94,6 +94,8 @@ def build_flow_context(**kwargs):
     )
     ctx.guarantorRelation = kwargs.get("guarantorRelation", "")
     ctx.guarantorNote = kwargs.get("guarantorNote", "")
+    # Applicant phone from the request; South: used for SaveFamilyInfo phones.
+    ctx.phone = str(kwargs.get("phone", "") or "").strip()
     ctx.emergencyFamilyName = kwargs.get("emergencyFamilyName", "")
     ctx.emergencyGivenName = kwargs.get("emergencyGivenName", "")
     ctx.emergencyRelationship = kwargs.get("emergencyRelationship", "")

@@ -17,6 +17,10 @@ from constants import (
     SELF_EMPLOYED_JOB_DESCS,
     SELF_EMPLOYED_NOT_APPLY_REMARK,
     EDUCATION_NOT_APPLY_REMARK,
+    REGION,
+    REGION_SOUTH,
+    CHILD_STUDENT_MAX_AGE,
+    CHILD_WORKING_JOB_TYPES,
     SERVICE_TYPE_NORMAL_EXPRESS,
     VIETNAMESE_NAMES,
     VISA_TYPE_VALUE,
@@ -735,6 +739,27 @@ def _child_entry(
     }
 
 
+def _child_profession(birthday: str, current: str = "") -> str:
+    """Job type of a child (both regions): Student up to CHILD_STUDENT_MAX_AGE
+    or when the birthday is unknown, otherwise Businessperson / Company employee
+    (an old value among those two is kept)."""
+    student = JOB_TYPE_BY_LABEL["Student"]
+    working = tuple(JOB_TYPE_BY_LABEL[label] for label in CHILD_WORKING_JOB_TYPES)
+    birth_date = date_util.parse_date(str(birthday or "").strip()) if birthday else None
+    if birth_date is None:
+        return student
+    if _age_on(birth_date, date.today()) <= CHILD_STUDENT_MAX_AGE:
+        return student
+    return current if current in working else random.choice(working)
+
+
+def _with_child_profession(child: dict[str, Any]) -> dict[str, Any]:
+    child["profession"] = _child_profession(
+        child.get("birthday", ""), str(child.get("profession", "") or "")
+    )
+    return child
+
+
 def _relative_entry(
     inviterFamilyName: str = "",
     inviterGivenName: str = "",
@@ -1026,7 +1051,9 @@ def build_family_info_profile(
             "" if effective_have_child_flag is not True else effective_have_child_flag
         ),
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
-        "children": [_to_dict(i) for i in (children_src or [])],
+        "children": [
+            _with_child_profession(_to_dict(i)) for i in (children_src or [])
+        ],
         "relatives": [_to_dict(i) for i in (relative_src or [])],
         "relativeRelativeFlag": bool(relative_src),
         "applyid": applyid,
@@ -1461,7 +1488,23 @@ def build_travel_info_profile(
                 "payForTravelEmail": "",
             }
         )
+    if REGION == REGION_SOUTH:
+        travel_json["inviteCounty"] = travel_json.get("arrivalCounty") or ""
+        travel_json["emergencyEmail"] = name_to_gmail(
+            travel_json.get("emergencyContactFamilyName", ""),
+            travel_json.get("emergencyContactFirstName", ""),
+        )
     return TravelInfoProfile.from_dict(travel_json)
+
+
+def name_to_gmail(*name_parts: str) -> str:
+    """"Nguyễn Văn" + "Đức" -> "nguyenvanduc@gmail.com"; "" when there is no name."""
+    text = " ".join(str(part or "") for part in name_parts).replace("đ", "d").replace("Đ", "D")
+    text = unicodedata.normalize("NFD", text)
+    local = "".join(
+        ch for ch in text if unicodedata.category(ch) != "Mn" and ch.isascii() and ch.isalnum()
+    ).lower()
+    return f"{local}@gmail.com" if local else ""
 
 
 def _previous_travel_base(applyid: str) -> dict[str, Any]:
