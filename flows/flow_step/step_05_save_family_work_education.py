@@ -9,9 +9,16 @@ from api import (
     api_save_family_info,
     api_save_work_info,
 )
-from constants import OLD_APPLY_STATUS_APPROVED, FAMILY_PARENT_RELATION_MOTHER, FAMILY_PARENT_RELATION_FATHER
+from constants import (
+    FAMILY_PARENT_RELATION_FATHER,
+    FAMILY_PARENT_RELATION_MOTHER,
+    OLD_APPLY_STATUS_APPROVED,
+    REGION,
+    REGION_SOUTH,
+)
 from flows.flow_payloads import (
     build_education_info_profile,
+    build_south_education_info_without_input,
     build_family_info_profile,
 )
 from models import (
@@ -77,6 +84,7 @@ async def save_family_work_education(ctx, client) -> bool:
 
     ctx.step = "save_education_info"
     ctx.educationExperience = []
+    ctx.old_education_not_apply_items = []
     if ctx.old_item_id != "":
         ok, res = await api_get_education_info(
             client=client,
@@ -89,21 +97,33 @@ async def save_family_work_education(ctx, client) -> bool:
             data = model.data
             if data:
                 ctx.educationExperience = data.educationExperience
+                ctx.old_education_not_apply_items = data.notApplyItems
 
-    body_save_education_info = build_education_info_profile(
-        ctx.first_applyid,
-        (
-            ctx.ct08_province_city_code
-            if ctx.ct08_province_city_code != ""
-            else ctx.province_city_code
-        ),
-        ctx.educationExperience,
-        ctx.is_under_18,
-        getattr(ctx, "name_of_institute", ""),
-        getattr(ctx, "diploma_degree", ""),
-        getattr(ctx, "major", ""),
-        birth_date=date_util.parse_date(ctx.ocr_data.Response.Data.dateOfBirth),
+    has_education_input = any(
+        str(getattr(ctx, key, "") or "").strip()
+        for key in ("name_of_institute", "diploma_degree", "major")
     )
+    if REGION == REGION_SOUTH and not ctx.is_under_18 and not has_education_input:
+        body_save_education_info = build_south_education_info_without_input(
+            ctx.first_applyid,
+            ctx.educationExperience,
+            ctx.old_education_not_apply_items,
+        )
+    else:
+        body_save_education_info = build_education_info_profile(
+            ctx.first_applyid,
+            (
+                ctx.ct08_province_city_code
+                if ctx.ct08_province_city_code != ""
+                else ctx.province_city_code
+            ),
+            ctx.educationExperience,
+            ctx.is_under_18,
+            getattr(ctx, "name_of_institute", ""),
+            getattr(ctx, "diploma_degree", ""),
+            getattr(ctx, "major", ""),
+            birth_date=date_util.parse_date(ctx.ocr_data.Response.Data.dateOfBirth),
+        )
     ok5, meta5 = await api_save_education_info(
         client,
         ctx.token,

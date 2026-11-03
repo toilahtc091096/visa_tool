@@ -519,6 +519,12 @@ JOB_TYPE = (
 )
 
 PREFER_JOB_TYPE = ("Self-employed", "Businessperson")
+# Work info when neither the request nor an approved previous visa gives any:
+# job type Self-employed, no work experience, with this remark.
+SELF_EMPLOYED_NOT_APPLY_REMARK = "KINH DOANH TU DO"
+# South: education info when neither the request nor an approved previous visa
+# gives any: no education experience, with this remark.
+EDUCATION_NOT_APPLY_REMARK = "DAI HOC"
 
 JOB_TYPE_BY_LABEL = dict(JOB_TYPE)
 SELF_EMPLOYED_JOB_DESCS = (

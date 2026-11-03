@@ -14,6 +14,7 @@ from typing import Any, ClassVar, Iterator
 from constants import (
     FLIGHT_TEMPLATE,
     REGION,
+    REGION_SOUTH,
     UPLOAD_CONFIG,
     UPLOAD_FILE_CODE_BY_VISA_TYPE,
     VISA_TYPE_VALUE,
@@ -100,8 +101,18 @@ class VisaProfile:
 
     def build_work_info(self, ctx):
         """Return the SaveWorkInfo body (WorkInfoProfile) for ``ctx``."""
-        from flows.flow_payloads import build_work_info_profile
+        from flows.flow_payloads import (
+            build_south_work_info_without_input,
+            build_work_info_profile,
+        )
 
+        if REGION == REGION_SOUTH and not self._has_work_input(ctx):
+            return build_south_work_info_without_input(
+                ctx.first_applyid,
+                ctx.job_type,
+                ctx.experiences,
+                getattr(ctx, "old_work_not_apply_items", []),
+            )
         return build_work_info_profile(
             ctx.first_applyid,
             ctx.register_date,
@@ -124,6 +135,22 @@ class VisaProfile:
             getattr(ctx, "position", ""),
             getattr(ctx, "duty", ""),
             is_retired=getattr(ctx, "is_retired", False),
+        )
+
+    _WORK_INPUT_FIELDS: ClassVar[tuple[str, ...]] = (
+        "work_from", "work_to", "employer_name", "employer_address",
+        "employer_phone", "supervisor_name", "supervisor_mobile", "position", "duty",
+    )
+
+    def _has_work_input(self, ctx) -> bool:
+        """Under 18, retired, work fields or the inviting company in the request:
+        cases handled by build_work_info_profile in both regions."""
+        if ctx.is_under_18 or getattr(ctx, "is_retired", False):
+            return True
+        if any(str(getattr(ctx, key, "") or "").strip() for key in self._WORK_INPUT_FIELDS):
+            return True
+        return self.works_at_inviting_company and bool(
+            str(getattr(ctx, "companyNameVi", "") or "").strip()
         )
 
     def build_travel_json(self, travel) -> dict[str, Any]:

@@ -15,6 +15,8 @@ from constants import (
     JOB_TYPE_BY_LABEL,
     PREFER_JOB_TYPE,
     SELF_EMPLOYED_JOB_DESCS,
+    SELF_EMPLOYED_NOT_APPLY_REMARK,
+    EDUCATION_NOT_APPLY_REMARK,
     SERVICE_TYPE_NORMAL_EXPRESS,
     VIETNAMESE_NAMES,
     VISA_TYPE_VALUE,
@@ -446,6 +448,44 @@ def build_work_info_profile(
     return WorkInfoProfile.from_dict(work_info_json)
 
 
+def build_south_work_info_without_input(
+    applyid: str,
+    job_type: str = "",
+    experiences: list[Any] | None = None,
+    old_not_apply_items: list[Any] | None = None,
+) -> WorkInfoProfile:
+    """South only, when the request gives no work: reuse the approved previous
+    visa (job type, experiences, notApplyItems); without one, self-employed
+    with no work experience ("KINH DOANH TU DO")."""
+    work_end_date = date_util.work_experience_end_date()
+    work_experience = list(experiences or [])
+    for experience in work_experience:
+        experience.endDate = work_end_date
+    not_apply_items = [_to_dict(item) for item in (old_not_apply_items or [])]
+    if not work_experience and not not_apply_items:
+        not_apply_items = [
+            {"notApplyCode": "workExperience", "remark": SELF_EMPLOYED_NOT_APPLY_REMARK}
+        ]
+    return WorkInfoProfile.from_dict(
+        {
+            "applyCountry": "",
+            "finishedStep": 9,
+            "embassy": DEFAULT_EMBASSY,
+            "tempSaveFlag": False,
+            "userId": "",
+            "otherSpecify": "",
+            "d3": False,
+            "annualIncome": "",
+            "currency": "",
+            "notApplyItems": not_apply_items,
+            "workExperience": [_to_dict(i) for i in work_experience],
+            "applyid": applyid,
+            "lang": DEFAULT_LANG,
+            "jobType": job_type or JOB_TYPE_BY_LABEL["Self-employed"],
+        }
+    )
+
+
 def _to_dict(x: Any) -> dict[str, Any]:
     if isinstance(x, dict):
         return x
@@ -564,6 +604,36 @@ def build_education_info_profile(
         "lang": DEFAULT_LANG,
     }
     return EducationInfoProfile.from_dict(education_json)
+
+
+def build_south_education_info_without_input(
+    applyid: str,
+    educationExperience: list[Any] | None = None,
+    old_not_apply_items: list[Any] | None = None,
+) -> EducationInfoProfile:
+    """South only, when the request gives no education: reuse the approved
+    previous visa (educationExperience, notApplyItems); without one, no
+    education experience with remark "DAI HOC"."""
+    education_experience = [_fix_old_education_degree(i) for i in (educationExperience or [])]
+    not_apply_items = [_to_dict(item) for item in (old_not_apply_items or [])]
+    if not education_experience and not not_apply_items:
+        not_apply_items = [
+            {"notApplyCode": "educationExperience", "remark": EDUCATION_NOT_APPLY_REMARK}
+        ]
+    return EducationInfoProfile.from_dict(
+        {
+            "applyCountry": "",
+            "finishedStep": 9,
+            "embassy": DEFAULT_EMBASSY,
+            "tempSaveFlag": False,
+            "userId": "",
+            "language": "",
+            "notApplyItems": not_apply_items,
+            "educationExperience": education_experience,
+            "applyid": applyid,
+            "lang": DEFAULT_LANG,
+        }
+    )
 
 
 def _parent_birthday(main_account_birth_date: date) -> str:
