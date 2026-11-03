@@ -1111,7 +1111,8 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
             "THU_MOI": MAT_Q1_INVITATION_LETTER.slots(1),
             "CCCD_NGUOI_MOI": MAT_Q1_INVITER_ID.slots(1, 2),
             "CHUNG_MINH_QUAN_HE": MAT_Q1_RELATIONSHIP_PROOF.slots(1, 2, 3, 4),
-            "OTHER_MATERIALS": MAT_Q1_OTHER_DOCUMENTS.slots(1, 2),
+            # _1: visa center confirmation, then up to 4 files of tham-than\khac.
+            "OTHER_MATERIALS": MAT_Q1_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5),
         },
     },
     "Q2": {
@@ -1121,7 +1122,8 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
             "THU_MOI": MAT_Q2_INVITATION_LETTER.slots(1),
             "CCCD_NGUOI_MOI": MAT_Q2_INVITER_ID.slots(1, 2),
             "CHUNG_MINH_QUAN_HE": MAT_Q2_RELATIONSHIP_PROOF.slots(1, 2, 3),
-            "OTHER_MATERIALS": MAT_Q2_OTHER_DOCUMENTS.slots(1),
+            # _1: visa center confirmation, then up to 4 files of tham-than\khac.
+            "OTHER_MATERIALS": MAT_Q2_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5),
             "HUKOU_OR_EMPLOYMENT_LETTER": MAT_Q_RESIDENCE_CERTIFICATE.slots(4),
         },
     },
@@ -1289,7 +1291,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 4),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
-            _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 3),
+            _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 4),
         ],
     },
     "Q2": {
@@ -1303,7 +1305,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
-            _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 3),
+            _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 4),
         ],
     },
     "F": {
