@@ -53,6 +53,7 @@ class FamilyVisa(VisaProfile):
             departureCity=travel.departureCity,
             departureDistrict=travel.departureDistrict,
             apply_visa_validity=travel.apply_visa_validity,
+            stay_one_year=self.code == "Q1",
         )
         return travel_json
 
@@ -130,6 +131,7 @@ def _apply_q_single_stay_overrides(
     departureCity: str = "",
     departureDistrict: str = "",
     apply_visa_validity: Any | None = None,
+    stay_one_year: bool = False,
 ) -> None:
     """
     Q-specific travel override.
@@ -152,7 +154,11 @@ def _apply_q_single_stay_overrides(
         validity_months = int(str(apply_visa_validity or "").strip() or "6")
     except (TypeError, ValueError):
         validity_months = 6
-    departure_date = _add_months_to_date(arrival_date, validity_months)
+    # Q1 (long stay, both regions): leave exactly one year after arrival (same
+    # month and day; 29 Feb -> 28 Feb). Others: arrival + visa validity.
+    departure_date = _add_months_to_date(
+        arrival_date, 12 if stay_one_year else validity_months
+    )
 
     arrival_date_str = date_util.iso_date_str(arrival_date)
     departure_date_str = date_util.iso_date_str(departure_date)
