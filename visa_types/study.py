@@ -104,13 +104,20 @@ class SouthLongStudyVisa(LongStudyVisa):
 register(SouthLongStudyVisa if REGION == REGION_SOUTH else LongStudyVisa)
 
 
-@register
 class ShortStudyVisa(StudyVisa):
     """X2: study up to 180 days (half a year). Same as X1."""
 
     code = "X2"
     service_key = "X2"
     academic_over_25 = False
+
+
+class SouthShortStudyVisa(ShortStudyVisa):
+    """South (HCMC) X2: same flow as the North X2 for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_X2."""
+
+
+register(SouthShortStudyVisa if REGION == REGION_SOUTH else ShortStudyVisa)
 
 
 def _ascii_upper(value: str) -> str:
