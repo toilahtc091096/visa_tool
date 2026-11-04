@@ -88,7 +88,6 @@ class SouthQ2Visa(Q2Visa):
 register(SouthQ2Visa if REGION == REGION_SOUTH else Q2Visa)
 
 
-@register
 class S2Visa(FamilyVisa):
     """S2: family member of a foreigner living in China (short visit), or other
     personal matters. Same flow as Q2, but the invitation letter is not
@@ -96,6 +95,14 @@ class S2Visa(FamilyVisa):
 
     code = "S2"
     documents = (VisaCenterConfirmation(),)
+
+
+class SouthS2Visa(S2Visa):
+    """South (HCMC) S2: same flow as the North S2 for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_S2."""
+
+
+register(SouthS2Visa if REGION == REGION_SOUTH else S2Visa)
 
 
 def _add_months_to_date(source_date: date, months: int) -> date:
