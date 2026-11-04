@@ -1184,6 +1184,16 @@ MAT_SOUTH_OTHER_DOCUMENTS = CovaMaterial("22025070216133602452066", "mfa-130")
 MAT_SOUTH_L_ITINERARY_IN_CHINA = CovaMaterial("12025062616415987523440", "mfa-087")
 MAT_SOUTH_L_FLIGHT_TICKET = CovaMaterial("12025062616424538491658", "mfa-088")
 MAT_SOUTH_L_HOTEL_RESERVATION = CovaMaterial("12025062616431978476716", "mfa-089")
+# M - business. The form also has "old passport within five years"
+# (22025062618250312540888 / mfa-079), uploaded by hand.
+MAT_SOUTH_M_INVITATION_LETTER = CovaMaterial("12025062617011389841743", "mfa-057")
+MAT_SOUTH_M_CHINA_BUSINESS_REGISTRATION = CovaMaterial(
+    "12025062617021236736326", "mfa-105"
+)
+MAT_SOUTH_M_ASSIGNMENT_DECISION = CovaMaterial("12025062617024509363425", "mfa-108")
+MAT_SOUTH_M_VN_BUSINESS_REGISTRATION = CovaMaterial(
+    "12025062617032656175842", "mfa-111"
+)
 
 UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     "L30": {
@@ -1200,6 +1210,28 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
                 1, 2, 3, 4
             ),
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1),
+        },
+    },
+    "M": {
+        "COMMON": {
+            "PASSPORT_INFO_PAGE": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(1),
+            # _2.._8: old Chinese visa photos, then other countries' visa photos.
+            "PREV_CHINESE_VISA": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(
+                2, 3, 4, 5, 6, 7, 8
+            ),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_SOUTH_RESIDENCE_CERTIFICATE.slots(
+                1, 2, 3, 4
+            ),
+            # "Other documents" holds only the visa center confirmation for now.
+            "VISA_CENTER_CONFIRMATION": MAT_SOUTH_OTHER_DOCUMENTS.slots(1),
+            "THU_MOI": MAT_SOUTH_M_INVITATION_LETTER.slots(1, 2),
+            "DANG_KY_DOANH_NGHIEP_TQ": MAT_SOUTH_M_CHINA_BUSINESS_REGISTRATION.slots(
+                1, 2, 3
+            ),
+            "QUYET_DINH": MAT_SOUTH_M_ASSIGNMENT_DECISION.slots(1, 2, 3),
+            "DANG_KY_DOANH_NGHIEP_VN": MAT_SOUTH_M_VN_BUSINESS_REGISTRATION.slots(
+                1, 2, 3
+            ),
         },
     },
 }
@@ -1394,16 +1426,27 @@ for _visa_config in UPLOAD_CONFIG.values():
             _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
             _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
         )
+# South M has its own complete table (started from the North M one) so it can
+# change without touching the North.
+UPLOAD_CONFIG_SOUTH_M: dict[str, object] = {
+    "PASSPORT_INFO_PAGE": _passport_image(),
+    "PREV_CHINESE_VISA": [
+        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
+    ],
+    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
+        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
+        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
+        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
+    ),
+    "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+    "THU_MOI": _files(DOANH_NGHIEP_THU_MOI_OUTPUT_PATH, 2),
+    "DANG_KY_DOANH_NGHIEP_TQ": _files(DOANH_NGHIEP_DANG_KY_TQ_OUTPUT_PATH, 3),
+    "QUYET_DINH": _files(DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH, 3),
+    "DANG_KY_DOANH_NGHIEP_VN": _files(DOANH_NGHIEP_DANG_KY_VN_OUTPUT_PATH, 3),
+}
 if REGION == REGION_SOUTH:
-    # South M: the Chinese and Vietnamese business registrations are two
-    # separate materials, each filled from its own folder.
-    del UPLOAD_CONFIG["M"]["DANG_KY_DOANH_NGHIEP"]
-    UPLOAD_CONFIG["M"]["DANG_KY_DOANH_NGHIEP_TQ"] = _files(
-        DOANH_NGHIEP_DANG_KY_TQ_OUTPUT_PATH, 2
-    )
-    UPLOAD_CONFIG["M"]["DANG_KY_DOANH_NGHIEP_VN"] = _files(
-        DOANH_NGHIEP_DANG_KY_VN_OUTPUT_PATH, 2
-    )
+    UPLOAD_CONFIG["M"] = UPLOAD_CONFIG_SOUTH_M
 
 
 UNIT_OF_HOTEL = 5870276

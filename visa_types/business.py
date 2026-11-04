@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from constants import REGION, REGION_SOUTH
 from flows.flow_payloads import getL30TravelInfo
 from utils import date_util, ensure_company_doanh_nghiep_downloaded
 
@@ -18,7 +19,6 @@ COMPANY_REUSE = ReuseRule(
 )
 
 
-@register
 class BusinessVisa(VisaProfile):
     code = "M"
     service_key = "M"
@@ -61,6 +61,14 @@ class BusinessVisa(VisaProfile):
             departureDate=travel.leave_date,
         )
         return travel_json
+
+
+class SouthBusinessVisa(BusinessVisa):
+    """South (HCMC) M: same flow as the North M for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_M."""
+
+
+register(SouthBusinessVisa if REGION == REGION_SOUTH else BusinessVisa)
 
 
 def _apply_m90_single_stay_overrides(

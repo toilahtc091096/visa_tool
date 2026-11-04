@@ -56,24 +56,26 @@ Cột **Bắc** lấy từ code hiện tại (giữ nguyên). Bạn điền các
 
 ## M
 
+Nam: đã code (profile `SouthBusinessVisa`, bảng file `UPLOAD_CONFIG_SOUTH_M`).
+
 | doc_type | Giấy tờ | File lấy từ (Bắc) | Bắc: categoryCode | Bắc: material / slot | Nam: label trên form | Nam: categoryCode | Nam: materialCode | Nam: slot | Ghi chú |
 |---|---|---|---|---|---|---|---|---|---|
-| PASSPORT_INFO_PAGE | Trang thông tin hộ chiếu | ảnh hộ chiếu gốc | — | Bắc không có | |  |  |  | |
-| PASSPORT_BLANK_PAGES | Trang trắng hộ chiếu (护照空白页) | `chung\2_trang_ho_chieu_trang` (2) | `22025070216180808782737` | `mfa-017 _1,2` | |  |  |  | |
-| BANK_STATEMENT | Sao kê ngân hàng | `chung\sao_ke_ngan_hang` (2) | `12025062216413672273869` | `mfa-007 _1,2,3,4` | |  |  |  | |
-| HUKOU_OR_EMPLOYMENT_LETTER | Giấy cư trú CT07 / xác nhận việc làm | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang\giay_cu_tru` (1) | `22025062114073725280378` | `mfa-030 _1` | |  |  |  | |
-| OTHER_MATERIALS | Tài liệu khác (其他文件) | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang` (4)<br>`lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_cac_nuoc_khac_anh_ho_chieu` (3) | `12025062114365564197636` | `mfa-053 _2,3,4,5` | |  |  |  | |
-| VISA_CENTER_CONFIRMATION | Xác nhận trung tâm visa | `chung\xac_nhan_tu_trung_tam_visa` (1) | `12025062114365564197636` | `mfa-053 _1` | |  |  |  | |
-| PREV_CHINESE_VISA | Visa TQ cũ (原中国签证) | `lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_trung_quoc_cu` (3) | `22025062114131912554297` | `mfa-033 _1,2` | |  |  |  | |
-| UNDER_18 | Giấy tờ dưới 18 tuổi | `duoi_18_tuoi\giay_to_cho_nguoi_duoi_18` (5) | `22026072917255869849620` | `mfa-039 _1,2,3,4,5` | |  |  |  | |
-| OTHER_COUNTRY_VISAS | Visa nước khác | — | `12025062114213765489140` | `mfa-011 _1,2,3` | |  |  |  | |
-| ITINERARY_IN_CHINA | Lịch trình tại TQ | `lich_trinh_du_lich` (1) | `12025062019595907456262` | `mfa-004 _1` | |  |  |  | |
-| THU_MOI | Thư mời (邀请函) | `doanh-nghiep\thu-moi` (1) | `12026072917273869111112` | `mfa-049 _1` | |  |  |  | |
-| QUYET_DINH | Quyết định cử đi | `doanh-nghiep\quyet-dinh` (1) | `12025062114271519280895` | `mfa-050 _1` | |  |  |  | |
-| DANG_KY_DOANH_NGHIEP | Đăng ký kinh doanh | `doanh-nghiep\dangky` (2) | `12025062114301276922307` | `mfa-051 _1,2` | |  |  |  | |
-| (mới) | | | — | — | | | | | |
-| (mới) | | | — | — | | | | | |
-| (mới) | | | — | — | | | | | |
+| PASSPORT_INFO_PAGE | Trang thông tin hộ chiếu | ảnh hộ chiếu gốc | — | Bắc không có | Passport information page / Trang thông tin Hộ Chiếu | `22025062618255280352880` | mfa-079 | _1 | |
+| PREV_CHINESE_VISA | Visa TQ cũ (原中国签证) | `lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_trung_quoc_cu` (3) | `22025062114131912554297` | `mfa-033 _1,2` | (chung mục trang thông tin hộ chiếu) | `22025062618255280352880` | mfa-079 | _2 → _8 | Nam: visa TQ cũ (3) rồi visa nước khác (3) |
+| HUKOU_OR_EMPLOYMENT_LETTER | Giấy cư trú CT07 / xác nhận việc làm | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang\giay_cu_tru` (1) | `22025062114073725280378` | `mfa-030 _1` | Sổ hộ khẩu hoặc Xác nhận thông tin cư trú CT07 / CT08 | `22025062618224586258771` | mfa-097 | _1 → _4 | Nam: CT07, không có thì visa TQ cũ, không có thì visa nước khác |
+| VISA_CENTER_CONFIRMATION | Xác nhận trung tâm visa | `chung\xac_nhan_tu_trung_tam_visa` (1) | `12025062114365564197636` | `mfa-053 _1` | Tài liệu bổ sung khác | `22025070216133602452066` | mfa-130 | _1 | Nam: mục "tài liệu khác" (_2 → _6 chưa dùng) |
+| OTHER_MATERIALS | Tài liệu khác (其他文件) | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang` (4)<br>`lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_cac_nuoc_khac_anh_ho_chieu` (3) | `12025062114365564197636` | `mfa-053 _2,3,4,5` | | | KHÔNG | | Nam chưa cần |
+| THU_MOI | Thư mời (邀请函) | `doanh-nghiep\thu-moi` (1) | `12026072917273869111112` | `mfa-049 _1` | Thư mời / Invitation letter | `12025062617011389841743` | mfa-057 | _1, _2 | Nam lấy tối đa 2 file |
+| QUYET_DINH | Quyết định cử đi | `doanh-nghiep\quyet-dinh` (1) | `12025062114271519280895` | `mfa-050 _1` | Quyết định cử đi công tác | `12025062617024509363425` | mfa-108 | _1 → _3 | Nam lấy tối đa 3 file |
+| DANG_KY_DOANH_NGHIEP | Đăng ký kinh doanh | `doanh-nghiep\dangky-tq` (1) + `doanh-nghiep\dangky-vn` (1); không có thì `doanh-nghiep\dangky` (2) | `12025062114301276922307` | `mfa-051 _1,2` | | | (tách 2 dòng dưới) | | Bắc: _1 = TQ, _2 = VN |
+| DANG_KY_DOANH_NGHIEP_TQ | GPKD đơn vị Trung Quốc | — | — | Bắc không có | Giấy phép kinh doanh của đơn vị Trung Quốc | `12025062617021236736326` | mfa-105 | _1 → _3 | `doanh-nghiep\dangky-tq` (3) |
+| DANG_KY_DOANH_NGHIEP_VN | GPKD công ty VN | — | — | Bắc không có | Giấy phép kinh doanh công ty VN | `12025062617032656175842` | mfa-111 | _1 → _3 | `doanh-nghiep\dangky-vn` (3) |
+| (mới) Hộ chiếu cũ 5 năm | Hộ chiếu cũ (trong vòng 5 năm) | — | — | Bắc không có | Old passport within five years / Hộ chiếu cũ | `22025062618250312540888` | mfa-079 | _1 → _4 | Không upload, tự up tay |
+| PASSPORT_BLANK_PAGES | Trang trắng hộ chiếu (护照空白页) | `chung\2_trang_ho_chieu_trang` (2) | `22025070216180808782737` | `mfa-017 _1,2` | | | KHÔNG | | |
+| BANK_STATEMENT | Sao kê ngân hàng | `chung\sao_ke_ngan_hang` (2) | `12025062216413672273869` | `mfa-007 _1,2,3,4` | | | KHÔNG | | |
+| UNDER_18 | Giấy tờ dưới 18 tuổi | `duoi_18_tuoi\giay_to_cho_nguoi_duoi_18` (5) | `22026072917255869849620` | `mfa-039 _1,2,3,4,5` | | | KHÔNG | | |
+| OTHER_COUNTRY_VISAS | Visa nước khác | — | `12025062114213765489140` | `mfa-011 _1,2,3` | | | KHÔNG | | Nam: nằm trong mfa-079 |
+| ITINERARY_IN_CHINA | Lịch trình tại TQ | `lich_trinh_du_lich` (1) | `12025062019595907456262` | `mfa-004 _1` | | | KHÔNG | | |
 
 ## Q1
 
