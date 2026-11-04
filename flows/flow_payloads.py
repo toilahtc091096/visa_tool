@@ -307,9 +307,7 @@ def build_work_info_profile(
         job_type_label = random.choice(PREFER_JOB_TYPE)
     work_begin_date = date_util.work_experience_begin_date(register_date)
     work_end_date = date_util.work_experience_end_date()
-    works_at_inviting_company = bool(
-        profile and profile.works_at_inviting_company
-    )
+    works_at_inviting_company = bool(profile and profile.works_at_inviting_company)
     if profile and profile.job_type_label:
         job_type_label = profile.job_type_label
     if is_under_18:
@@ -339,8 +337,8 @@ def build_work_info_profile(
                 str(work_from or work_begin_date).strip() or work_begin_date,
                 str(work_to or work_end_date).strip() or work_end_date,
                 _normalize_ascii_upper(employer_address) or province_city_code,
-                _normalize_ascii_upper(position) or "GIAM DOC",
-                _normalize_ascii_upper(duty) or "GIAM DOC",
+                _normalize_ascii_upper(position) or "NHAN VIEN",
+                _normalize_ascii_upper(duty) or "NHAN VIEN",
                 job_name=_normalize_ascii_upper(employer_name),
                 job_addr=_normalize_ascii_upper(employer_address) or province_city_code,
                 job_tel=str(employer_phone or "").strip()
@@ -365,8 +363,8 @@ def build_work_info_profile(
                 work_begin_date,
                 work_end_date,
                 companyAddressUpperNoAccent or province_city_code,
-                _normalize_ascii_upper(position) or "GIAM DOC",
-                _normalize_ascii_upper(duty) or "GIAM DOC",
+                _normalize_ascii_upper(position) or "NHAN VIEN",
+                _normalize_ascii_upper(duty) or "NHAN VIEN",
                 job_name=_build_company_job_name(companyNameVi),
                 job_addr=companyAddressUpperNoAccent or province_city_code,
                 job_tel=companyPhone,
@@ -502,8 +500,10 @@ def _to_dict(x: Any) -> dict[str, Any]:
 def _age_on(birth_date: date | None, today: date) -> int | None:
     if birth_date is None:
         return None
-    return today.year - birth_date.year - (
-        (today.month, today.day) < (birth_date.month, birth_date.day)
+    return (
+        today.year
+        - birth_date.year
+        - ((today.month, today.day) < (birth_date.month, birth_date.day))
     )
 
 
@@ -618,11 +618,16 @@ def build_south_education_info_without_input(
     """South only, when the request gives no education: reuse the approved
     previous visa (educationExperience, notApplyItems); without one, no
     education experience with remark "DAI HOC"."""
-    education_experience = [_fix_old_education_degree(i) for i in (educationExperience or [])]
+    education_experience = [
+        _fix_old_education_degree(i) for i in (educationExperience or [])
+    ]
     not_apply_items = [_to_dict(item) for item in (old_not_apply_items or [])]
     if not education_experience and not not_apply_items:
         not_apply_items = [
-            {"notApplyCode": "educationExperience", "remark": EDUCATION_NOT_APPLY_REMARK}
+            {
+                "notApplyCode": "educationExperience",
+                "remark": EDUCATION_NOT_APPLY_REMARK,
+            }
         ]
     return EducationInfoProfile.from_dict(
         {
@@ -1051,9 +1056,7 @@ def build_family_info_profile(
             "" if effective_have_child_flag is not True else effective_have_child_flag
         ),
         "spouses": [_to_dict(i) for i in (spouses_src or [])],
-        "children": [
-            _with_child_profession(_to_dict(i)) for i in (children_src or [])
-        ],
+        "children": [_with_child_profession(_to_dict(i)) for i in (children_src or [])],
         "relatives": [_to_dict(i) for i in (relative_src or [])],
         "relativeRelativeFlag": bool(relative_src),
         "applyid": applyid,
@@ -1498,11 +1501,17 @@ def build_travel_info_profile(
 
 
 def name_to_gmail(*name_parts: str) -> str:
-    """"Nguyễn Văn" + "Đức" -> "nguyenvanduc@gmail.com"; "" when there is no name."""
-    text = " ".join(str(part or "") for part in name_parts).replace("đ", "d").replace("Đ", "D")
+    """ "Nguyễn Văn" + "Đức" -> "nguyenvanduc@gmail.com"; "" when there is no name."""
+    text = (
+        " ".join(str(part or "") for part in name_parts)
+        .replace("đ", "d")
+        .replace("Đ", "D")
+    )
     text = unicodedata.normalize("NFD", text)
     local = "".join(
-        ch for ch in text if unicodedata.category(ch) != "Mn" and ch.isascii() and ch.isalnum()
+        ch
+        for ch in text
+        if unicodedata.category(ch) != "Mn" and ch.isascii() and ch.isalnum()
     ).lower()
     return f"{local}@gmail.com" if local else ""
 
