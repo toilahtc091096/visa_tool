@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from constants import REGION, REGION_SOUTH
-from flows.flow_payloads import getL30TravelInfo
+from constants import REGION, REGION_SOUTH, TRAVEL_PAY_FOR_ORGANIZATION
+from flows.flow_payloads import _normalize_ascii_upper, getL30TravelInfo
 from utils import date_util, ensure_company_doanh_nghiep_downloaded
 
 from .base import ReuseRule, VisaProfile, register
@@ -66,8 +66,28 @@ class BusinessVisa(VisaProfile):
 
 
 class SouthBusinessVisa(BusinessVisa):
-    """South (HCMC) M: same flow as the North M for now; override here to
-    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_M."""
+    """South (HCMC) M: same flow as the North M, plus the Vietnamese company
+    as the payer. Its upload table is UPLOAD_CONFIG_SOUTH_M."""
+
+    def finalize_travel_json(self, travel_json: dict[str, Any], travel) -> None:
+        # The applicant's company (companyNameVi) pays for the trip.
+        company_name = _normalize_ascii_upper(travel.companyNameVi)
+        if not company_name:
+            return
+        travel_json.update(
+            {
+                "payForTravel": TRAVEL_PAY_FOR_ORGANIZATION,
+                "payForTravelName": "",
+                "payForTravelPhoneNumber": "",
+                "payForTravelEmail": "",
+                "payForTravelOrganizationName": company_name,
+                "payForTravelRelation": "CONG TY",
+                "payForTravelAddr": _normalize_ascii_upper(
+                    travel.companyAddressUpperNoAccent
+                ),
+                "payForTravelCountry": "VNM",
+            }
+        )
 
 
 register(SouthBusinessVisa if REGION == REGION_SOUTH else BusinessVisa)

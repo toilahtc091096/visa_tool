@@ -181,6 +181,10 @@ class VisaProfile:
         """Return the SaveTravelInfo body for ``travel`` (a TravelInputs)."""
         raise NotImplementedError
 
+    def finalize_travel_json(self, travel_json: dict[str, Any], travel) -> None:
+        """Last changes to the SaveTravelInfo body, after the common payer
+        logic (payName / payMobile) has run."""
+
     def upload_plan(self) -> Iterator[UploadItem]:
         """Material slots on COVA joined with the local folders that fill them."""
         configs = UPLOAD_CONFIG[self.code]

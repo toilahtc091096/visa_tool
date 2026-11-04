@@ -1125,6 +1125,8 @@ class TravelInputs:
     inviterPhone: str = ""
     inviteCompanyPhone: str = ""
     inviteZipCode: str = ""
+    companyNameVi: str = ""
+    companyAddressUpperNoAccent: str = ""
 
     @property
     def arrival_str(self) -> str:
@@ -1407,6 +1409,8 @@ def build_travel_info_profile(
     inviterPhone: str = "",
     inviteCompanyPhone: str = "",
     inviteZipCode: str = "",
+    companyNameVi: str = "",
+    companyAddressUpperNoAccent: str = "",
     emergencyFamilyName: str = "",
     emergencyGivenName: str = "",
     emergencyRelationship: str = "",
@@ -1447,44 +1451,45 @@ def build_travel_info_profile(
         emergency_relation = str(emergencyRelationship).strip()
     if str(emergencyPhone or "").strip():
         emergency_phone_number = str(emergencyPhone).strip()
-    travel_json = profile.build_travel_json(
-        TravelInputs(
-            applyid=applyid,
-            emergency_family=emergency_family,
-            emergency_first=emergency_first,
-            emergency_phone_number=emergency_phone_number,
-            emergency_relation=emergency_relation,
-            is_under_18=is_under_18,
-            has_additional_names=has_additional_names,
-            haveChildFlag=haveChildFlag,
-            hotel_type=hotel_type,
-            arrival_date=arrival_date,
-            leave_date=leave_date,
-            arrivalVehicleType=arrivalVehicleType,
-            leaveVehicleType=leaveVehicleType,
-            is_private=is_private,
-            inviteCompanyName=inviteCompanyName,
-            company_address=company_address,
-            inviteSchoolName=inviteSchoolName,
-            school_address=school_address,
-            inviteProvince=inviteProvince,
-            arrivalCity=arrivalCity,
-            arrivalDistrict=arrivalDistrict,
-            stayCity=stayCity,
-            stayDistrict=stayDistrict,
-            departureCity=departureCity,
-            departureDistrict=departureDistrict,
-            apply_visa_validity=apply_visa_validity,
-            inviterFamilyName=inviterFamilyName,
-            inviterGivenName=inviterGivenName,
-            inviterIdCard=inviterIdCard,
-            inviterRelation=inviterRelation,
-            inviterAddress=inviterAddress,
-            inviterPhone=inviterPhone,
-            inviteCompanyPhone=inviteCompanyPhone,
-            inviteZipCode=inviteZipCode,
-        )
+    travel = TravelInputs(
+        applyid=applyid,
+        emergency_family=emergency_family,
+        emergency_first=emergency_first,
+        emergency_phone_number=emergency_phone_number,
+        emergency_relation=emergency_relation,
+        is_under_18=is_under_18,
+        has_additional_names=has_additional_names,
+        haveChildFlag=haveChildFlag,
+        hotel_type=hotel_type,
+        arrival_date=arrival_date,
+        leave_date=leave_date,
+        arrivalVehicleType=arrivalVehicleType,
+        leaveVehicleType=leaveVehicleType,
+        is_private=is_private,
+        inviteCompanyName=inviteCompanyName,
+        company_address=company_address,
+        inviteSchoolName=inviteSchoolName,
+        school_address=school_address,
+        inviteProvince=inviteProvince,
+        arrivalCity=arrivalCity,
+        arrivalDistrict=arrivalDistrict,
+        stayCity=stayCity,
+        stayDistrict=stayDistrict,
+        departureCity=departureCity,
+        departureDistrict=departureDistrict,
+        apply_visa_validity=apply_visa_validity,
+        inviterFamilyName=inviterFamilyName,
+        inviterGivenName=inviterGivenName,
+        inviterIdCard=inviterIdCard,
+        inviterRelation=inviterRelation,
+        inviterAddress=inviterAddress,
+        inviterPhone=inviterPhone,
+        inviteCompanyPhone=inviteCompanyPhone,
+        inviteZipCode=inviteZipCode,
+        companyNameVi=companyNameVi,
+        companyAddressUpperNoAccent=companyAddressUpperNoAccent,
     )
+    travel_json = profile.build_travel_json(travel)
 
     if profile.always_self_paid:
         travel_json.setdefault("payForTravel", TRAVEL_PAY_FOR_SELF)
@@ -1497,6 +1502,7 @@ def build_travel_info_profile(
                 "payForTravelEmail": "",
             }
         )
+    profile.finalize_travel_json(travel_json, travel)
     if REGION == REGION_SOUTH:
         travel_json["inviteCounty"] = travel_json.get("arrivalCounty") or ""
         travel_json["emergencyEmail"] = name_to_gmail(
