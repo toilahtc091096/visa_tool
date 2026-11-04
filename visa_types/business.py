@@ -105,7 +105,7 @@ def _apply_m90_single_stay_overrides(
             "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
             "inviteName": inviteCompanyName or travel_json.get("inviteName", ""),
             "inviteRelation": (
-                "DOI TAC"
+                "PARTNER"
                 if inviteCompanyName
                 else travel_json.get("inviteRelation", "")
             ),
