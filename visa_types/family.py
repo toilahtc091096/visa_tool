@@ -7,7 +7,12 @@ from calendar import monthrange
 from datetime import date
 from typing import Any
 
-from constants import Q1_THU_MOI_OUTPUT_PATH, Q2_THU_MOI_OUTPUT_PATH
+from constants import (
+    Q1_THU_MOI_OUTPUT_PATH,
+    Q2_THU_MOI_OUTPUT_PATH,
+    REGION,
+    REGION_SOUTH,
+)
 from flows.flow_payloads import getL30TravelInfo
 from utils import date_util
 
@@ -52,13 +57,20 @@ class FamilyVisa(VisaProfile):
         return travel_json
 
 
-@register
 class Q1Visa(FamilyVisa):
     """Family reunion / long stay with relatives living in China."""
 
     code = "Q1"
     cv_visa_type_number = "000"
     documents = (VisaCenterConfirmation(), InvitationLetter(Q1_THU_MOI_OUTPUT_PATH))
+
+
+class SouthQ1Visa(Q1Visa):
+    """South (HCMC) Q1: same flow as the North Q1 for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
+
+
+register(SouthQ1Visa if REGION == REGION_SOUTH else Q1Visa)
 
 
 @register
