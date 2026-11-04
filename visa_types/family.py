@@ -73,12 +73,19 @@ class SouthQ1Visa(Q1Visa):
 register(SouthQ1Visa if REGION == REGION_SOUTH else Q1Visa)
 
 
-@register
 class Q2Visa(FamilyVisa):
     """Short visit to relatives living in China."""
 
     code = "Q2"
     documents = (VisaCenterConfirmation(), InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
+
+
+class SouthQ2Visa(Q2Visa):
+    """South (HCMC) Q2: same flow as the North Q2 for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
+
+
+register(SouthQ2Visa if REGION == REGION_SOUTH else Q2Visa)
 
 
 @register

@@ -94,19 +94,18 @@ Nam: đã code (profile `SouthQ1Visa`, bảng file `UPLOAD_CONFIG_SOUTH_Q1`).
 
 ## Q2
 
+Nam: đã code (profile `SouthQ2Visa`, bảng file `UPLOAD_CONFIG_SOUTH_Q2`). Bỏ qua: "If you are a non-Vietnamese foreigner", "If you once had Chinese nationality...", "Old passport within five years".
+
 | doc_type | Giấy tờ | File lấy từ (Bắc) | Bắc: categoryCode | Bắc: material / slot | Nam: label trên form | Nam: categoryCode | Nam: materialCode | Nam: slot | Ghi chú |
 |---|---|---|---|---|---|---|---|---|---|
-| PASSPORT_INFO_PAGE | Trang thông tin hộ chiếu | ảnh hộ chiếu gốc | — | Bắc không có | |  |  |  | |
-| PASSPORT_BLANK_PAGES | Trang trắng hộ chiếu (护照空白页) | `chung\2_trang_ho_chieu_trang` (2) | `22025070216180808782737` | `mfa-017 _1,2` | |  |  |  | |
-| PREV_CHINESE_VISA | Visa TQ cũ (原中国签证) | `lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_trung_quoc_cu` (3) | `22025062114131912554297` | `mfa-033 _1` | |  |  |  | |
-| THU_MOI | Thư mời (邀请函) | `tham-than\thumoi` (1) | `12025062115191056099712` | `mfa-091 _1` | |  |  |  | |
-| CCCD_NGUOI_MOI | CCCD / giấy tờ người mời | `tham-than\cccd` (2) | `12025062115202108210397` | `mfa-092 _1,2` | |  |  |  | |
-| CHUNG_MINH_QUAN_HE | Chứng minh quan hệ (关系证明) | `tham-than\quan-he` (3) | `12025062115232232717451` | `mfa-094 _1,2,3` | |  |  |  | |
-| OTHER_MATERIALS | Tài liệu khác (其他文件) | `chung\xac_nhan_tu_trung_tam_visa` (1)<br>`tham-than\khac` (4) | `12025062115255295051217` | `mfa-099 _1,2,3,4,5` | |  |  |  | |
-| HUKOU_OR_EMPLOYMENT_LETTER | Giấy cư trú CT07 / xác nhận việc làm | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang\giay_cu_tru` (1) | `12025062115232232717451` | `mfa-030 _4` | |  |  |  | |
-| (mới) | | | — | — | | | | | |
-| (mới) | | | — | — | | | | | |
-| (mới) | | | — | — | | | | | |
+| PASSPORT_INFO_PAGE | Trang thông tin hộ chiếu | ảnh hộ chiếu gốc | — | Bắc không có | Passport information page / Trang thông tin Hộ Chiếu | `22025062618255280352880` | mfa-079 | _1 | |
+| PREV_CHINESE_VISA | Visa TQ cũ (原中国签证) | `lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_trung_quoc_cu` (3) | `22025062114131912554297` | `mfa-033 _1` | (chung mục trang thông tin hộ chiếu) | `22025062618255280352880` | mfa-079 | _2 → _8 | Nam: visa TQ cũ (3) rồi visa nước khác (3) |
+| HUKOU_OR_EMPLOYMENT_LETTER | Giấy cư trú CT07 | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang\giay_cu_tru` (1) | `12025062115232232717451` | `mfa-030 _4` | Sổ hộ khẩu hoặc Xác nhận thông tin cư trú CT07 / CT08 | `22025062618224586258771` | mfa-097 | _1 → _4 | Nam: CT07, không có thì visa TQ cũ, không có thì visa nước khác |
+| CCCD_NGUOI_MOI | CCCD người mời | `tham-than\cccd` (2) | `12025062115202108210397` | `mfa-092 _1,2` | Căn cước công dân người mời | `12025062617342103276497` | mfa-015 | _1 → _3 | Nam lấy tối đa 3 file từ `tham-than\cccd` |
+| THU_MOI | Thư mời (邀请函) | `tham-than\thumoi` (1) | `12025062115191056099712` | `mfa-091 _1` | Thư mời | `12025062617423948560682` | mfa-015 | _1, _2 | Nam lấy tối đa 2 file |
+| CHUNG_MINH_QUAN_HE | Chứng minh quan hệ (关系证明) | `tham-than\quan-he` (3) | `12025062115232232717451` | `mfa-094 _1,2,3` | (nằm trong mục Thư mời, nhãn 亲属关系证明) | `12025062617423948560682` | mfa-015 | _3 → _5 | Nam không có mục quan hệ riêng |
+| OTHER_MATERIALS | Tài liệu khác (其他文件) | `chung\xac_nhan_tu_trung_tam_visa` (1)<br>`tham-than\khac` (4) | `12025062115255295051217` | `mfa-099 _1,2,3,4,5` | Tài liệu bổ sung khác | `22025070216133602452066` | mfa-130 | _1 → _6 | _1 = xác nhận TT visa, _2 → _6 = `tham-than\khac` (5) |
+| PASSPORT_BLANK_PAGES | Trang trắng hộ chiếu (护照空白页) | `chung\2_trang_ho_chieu_trang` (2) | `22025070216180808782737` | `mfa-017 _1,2` | | | KHÔNG | | |
 
 ## F
 
