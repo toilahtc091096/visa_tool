@@ -340,6 +340,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         inviterRelation=getattr(ctx, "inviterRelation", ""),
         inviterAddress=getattr(ctx, "inviterAddress", ""),
         inviterPhone=getattr(ctx, "inviterPhone", ""),
+        inviteCompanyPhone=getattr(ctx, "inviteCompanyPhone", ""),
+        inviteZipCode=getattr(ctx, "inviteZipCode", ""),
         emergencyFamilyName=getattr(ctx, "emergencyFamilyName", ""),
         emergencyGivenName=getattr(ctx, "emergencyGivenName", ""),
         emergencyRelationship=getattr(ctx, "emergencyRelationship", ""),

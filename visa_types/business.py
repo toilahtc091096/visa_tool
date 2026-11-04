@@ -50,6 +50,8 @@ class BusinessVisa(VisaProfile):
             travel_json,
             inviteCompanyName=travel.inviteCompanyName,
             company_address=travel.company_address,
+            inviteCompanyPhone=travel.inviteCompanyPhone,
+            inviteZipCode=travel.inviteZipCode,
             inviteProvince=travel.inviteProvince,
             arrivalCity=travel.arrivalCity,
             arrivalDistrict=travel.arrivalDistrict,
@@ -76,6 +78,8 @@ def _apply_m90_single_stay_overrides(
     *,
     inviteCompanyName: str = "",
     company_address: str = "",
+    inviteCompanyPhone: str = "",
+    inviteZipCode: str = "",
     inviteProvince: str = "",
     arrivalCity: str = "",
     arrivalDistrict: str = "",
@@ -133,6 +137,17 @@ def _apply_m90_single_stay_overrides(
             "departureDate": departure_date_str,
         }
     )
+    # Inviting company's phone from the request replaces the generated one.
+    invite_phone = str(inviteCompanyPhone or "").strip()
+    if invite_phone:
+        travel_json["invitePhoneNumber"] = invite_phone
+    # The inviter's email is always <invitePhoneNumber>@qq.cn.
+    phone = str(travel_json.get("invitePhoneNumber") or "").strip()
+    if phone:
+        travel_json["inviteEmail"] = f"{phone}@qq.cn"
+    invite_zip = str(inviteZipCode or "").strip()
+    if invite_zip:
+        travel_json["inviteZipCode"] = invite_zip
     travel_json["stayInfo"] = [
         {
             "sort": 1,

@@ -79,6 +79,8 @@ def build_flow_context(**kwargs):
     ctx.inviterGivenName = kwargs.get("inviterGivenName", "")
     ctx.inviterIdCard = kwargs.get("inviterIdCard", "")
     ctx.inviterPhone = kwargs.get("inviterPhone", "")
+    ctx.inviteCompanyPhone = kwargs.get("inviteCompanyPhone", "")
+    ctx.inviteZipCode = kwargs.get("inviteZipCode", "")
     ctx.inviterAddress = kwargs.get("inviterAddress", "")
     ctx.inviterRelation = kwargs.get("inviterRelation", "")
     ctx.inviterName = kwargs.get(

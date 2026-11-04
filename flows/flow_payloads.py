@@ -1123,6 +1123,8 @@ class TravelInputs:
     inviterRelation: str = ""
     inviterAddress: str = ""
     inviterPhone: str = ""
+    inviteCompanyPhone: str = ""
+    inviteZipCode: str = ""
 
     @property
     def arrival_str(self) -> str:
@@ -1403,6 +1405,8 @@ def build_travel_info_profile(
     inviterRelation: str = "",
     inviterAddress: str = "",
     inviterPhone: str = "",
+    inviteCompanyPhone: str = "",
+    inviteZipCode: str = "",
     emergencyFamilyName: str = "",
     emergencyGivenName: str = "",
     emergencyRelationship: str = "",
@@ -1477,6 +1481,8 @@ def build_travel_info_profile(
             inviterRelation=inviterRelation,
             inviterAddress=inviterAddress,
             inviterPhone=inviterPhone,
+            inviteCompanyPhone=inviteCompanyPhone,
+            inviteZipCode=inviteZipCode,
         )
     )
 
