@@ -85,7 +85,6 @@ class SouthStudyVisa(StudyVisa):
 register(SouthStudyVisa if REGION == REGION_SOUTH else StudyVisa)
 
 
-@register
 class LongStudyVisa(StudyVisa):
     """X1: study longer than 180 days (365 days). Same flow as F but always a
     student; codes and uploaded school files (Admission Notice + JW201/JW202
@@ -95,6 +94,14 @@ class LongStudyVisa(StudyVisa):
     service_key = "X1"
     academic_over_25 = False
     cv_visa_type_number = "000"
+
+
+class SouthLongStudyVisa(LongStudyVisa):
+    """South (HCMC) X1: same flow as the North X1 for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_X1."""
+
+
+register(SouthLongStudyVisa if REGION == REGION_SOUTH else LongStudyVisa)
 
 
 @register
