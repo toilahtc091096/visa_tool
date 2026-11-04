@@ -1272,7 +1272,11 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
                 1, 2, 3, 4
             ),
             "THU_MOI": MAT_SOUTH_Q1_INVITATION_LETTER.slots(1, 2, 3),
-            "CCCD_NGUOI_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(1, 2, 3),
+            # Inviter ID category: _1 inviter ID, _2 invitation letter (same
+            # file as THU_MOI _1), _3 relationship proof (qcm_* files).
+            "CCCD_NGUOI_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(1),
+            "CCCD_NGUOI_MOI_THU_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(2),
+            "CCCD_NGUOI_MOI_QUAN_HE": MAT_SOUTH_Q1_INVITER_ID.slots(3),
             "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q1_RELATIONSHIP_PROOF.slots(
                 1, 2, 3, 4, 5, 6
             ),
@@ -1371,9 +1375,19 @@ UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
 UPLOAD_FILE_CODE_BY_VISA_TYPE: UploadCodes = UPLOAD_FILE_CODE_BY_REGION[REGION]
 
 
-def _files(folder: str, limit: int) -> dict[str, object]:
-    """Take up to ``limit`` files from ``folder`` (relative to data_<passport>)."""
-    return {"folder": folder, "limit": limit}
+def _files(folder: str, limit: int, prefix: str = "") -> dict[str, object]:
+    """Take up to ``limit`` files from ``folder`` (relative to data_<passport>);
+    with ``prefix``, only files whose name starts with it (any case)."""
+    source: dict[str, object] = {"folder": folder, "limit": limit}
+    if prefix:
+        source["prefix"] = prefix
+    return source
+
+
+def _merged_pdf(name: str, *sources: dict[str, object] | list) -> dict[str, object]:
+    """All files of ``sources`` (PDFs or images, by file name) merged into one
+    PDF ``name``; nothing when the sources have no file."""
+    return {"merge_pdf": list(sources), "name": name}
 
 
 def _passport_image() -> dict[str, object]:
@@ -1586,7 +1600,15 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
     ),
     "THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 3),
-    "CCCD_NGUOI_MOI": _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 3),
+    # One PDF of every file in tham-than\cccd.
+    "CCCD_NGUOI_MOI": _merged_pdf(
+        "cccd_nguoi_moi.pdf", _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 100)
+    ),
+    "CCCD_NGUOI_MOI_THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 1),
+    # One PDF of every qcm_* file in tham-than\quan-he.
+    "CCCD_NGUOI_MOI_QUAN_HE": _merged_pdf(
+        "quan_he_qcm.pdf", _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
+    ),
     "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 6),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
