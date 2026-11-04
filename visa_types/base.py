@@ -13,6 +13,7 @@ from typing import Any, ClassVar, Iterator
 
 from constants import (
     FLIGHT_TEMPLATE,
+    JOB_TYPE_BY_LABEL,
     REGION,
     REGION_SOUTH,
     UPLOAD_CONFIG,
@@ -114,6 +115,11 @@ class VisaProfile:
         from utils import log_event
 
         has_input = self._has_work_input(ctx)
+        south_position = (
+            self._south_position(ctx)
+            if REGION == REGION_SOUTH and not ctx.is_under_18
+            else ""
+        )
         log_event(
             {
                 "step": "work_info_source",
@@ -125,11 +131,20 @@ class VisaProfile:
                 "old_item_id": getattr(ctx, "old_item_id", ""),
                 "old_job_type": ctx.job_type,
                 "old_experiences": len(ctx.experiences or []),
-                "branch": "south_no_input"
+                "branch": "south_position"
+                if south_position
+                else "south_no_input"
                 if REGION == REGION_SOUTH and not has_input
                 else "default",
             }
         )
+        if south_position:
+            return build_south_work_info_without_input(
+                ctx.first_applyid,
+                JOB_TYPE_BY_LABEL["Self-employed"],
+                [],
+                [{"notApplyCode": "workExperience", "remark": south_position}],
+            )
         if REGION == REGION_SOUTH and not has_input:
             return build_south_work_info_without_input(
                 ctx.first_applyid,
@@ -165,6 +180,18 @@ class VisaProfile:
         "work_from", "work_to", "employer_name", "employer_address",
         "employer_phone", "supervisor_name", "supervisor_mobile", "position", "duty",
     )
+
+    @staticmethod
+    def _south_position(ctx) -> str:
+        """South: request position (else duty), upper case without accents, used
+        as the remark of "no work experience" (e.g. "CONG NHAN")."""
+        from flows.flow_payloads import _normalize_ascii_upper
+
+        for key in ("position", "duty"):
+            text = " ".join(_normalize_ascii_upper(str(getattr(ctx, key, "") or "")).split())
+            if text:
+                return text
+        return ""
 
     def _has_work_input(self, ctx) -> bool:
         """Under 18, retired, work fields or the inviting company in the request:
