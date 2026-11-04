@@ -29,7 +29,13 @@ def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
     if cfg.get("passport_image"):
         path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
         return [Path(path)] if path else []
-    return get_files(cfg["folder"], cfg["limit"], cfg.get("prefix", ""))
+    return get_files(
+        cfg["folder"],
+        cfg["limit"],
+        cfg.get("prefix", ""),
+        cfg.get("exclude", ()),
+        cfg.get("names", ()),
+    )
 
 
 async def upload_files(

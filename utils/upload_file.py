@@ -82,7 +82,7 @@ def cleanup_data_folder() -> None:
     _CURRENT_DATA_FOLDER = None
 
 
-def get_files(folder_path, x, prefix: str = ""):
+def get_files(folder_path, x, prefix: str = "", exclude=(), names=()):
     relative_folder = folder_path.lstrip("/\\")
     search_bases = []
     if _CURRENT_DATA_FOLDER:
@@ -102,6 +102,14 @@ def get_files(folder_path, x, prefix: str = ""):
     files = [f for f in folder.iterdir() if f.is_file()]
     if prefix:
         files = [f for f in files if f.name.lower().startswith(prefix.lower())]
+    if exclude:
+        skipped = {name.lower() for name in exclude}
+        files = [f for f in files if f.stem.lower() not in skipped]
+    if names:
+        by_stem: dict[str, Path] = {}
+        for f in sorted(files, key=lambda f: f.name.lower()):
+            by_stem.setdefault(f.stem.lower(), f)
+        files = [by_stem[n.lower()] for n in names if n.lower() in by_stem]
     return files[:x]
 
 

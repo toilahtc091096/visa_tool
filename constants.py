@@ -1201,6 +1201,10 @@ MAT_SOUTH_M_VN_BUSINESS_REGISTRATION = CovaMaterial(
 MAT_SOUTH_Q1_INVITATION_LETTER = CovaMaterial("12025062617103405430938", "mfa-012")
 MAT_SOUTH_Q1_INVITER_ID = CovaMaterial("12025062617162059612389", "mfa-012")
 MAT_SOUTH_Q1_RELATIONSHIP_PROOF = CovaMaterial("12025062617242615028456", "mfa-012")
+# Q1 - guardian relationship: _1 birth certificate, _2,_3 guardian's passport / ID.
+MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP = CovaMaterial(
+    "22025062618301525858044", "mfa-079"
+)
 # Q2 - short family visit. No relationship category: the proof goes in slots
 # _3.._5 of the invitation letter category (as labelled on the form).
 MAT_SOUTH_Q2_INVITER_ID = CovaMaterial("12025062617342103276497", "mfa-015")
@@ -1280,6 +1284,8 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q1_RELATIONSHIP_PROOF.slots(
                 1, 2, 3, 4, 5, 6
             ),
+            "GUARDIAN_BIRTH_CERTIFICATE": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(1),
+            "GUARDIAN_ID": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(2, 3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
         },
@@ -1375,13 +1381,38 @@ UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
 UPLOAD_FILE_CODE_BY_VISA_TYPE: UploadCodes = UPLOAD_FILE_CODE_BY_REGION[REGION]
 
 
-def _files(folder: str, limit: int, prefix: str = "") -> dict[str, object]:
+def _files(
+    folder: str,
+    limit: int,
+    prefix: str = "",
+    exclude: tuple[str, ...] = (),
+    names: tuple[str, ...] = (),
+) -> dict[str, object]:
     """Take up to ``limit`` files from ``folder`` (relative to data_<passport>);
-    with ``prefix``, only files whose name starts with it (any case)."""
+    with ``prefix``, only files whose name starts with it (any case); files
+    whose name without extension is in ``exclude`` (any case) are skipped.
+    With ``names``, only those files (name without extension, any case), in
+    that order; a missing one is skipped."""
     source: dict[str, object] = {"folder": folder, "limit": limit}
     if prefix:
         source["prefix"] = prefix
+    if exclude:
+        source["exclude"] = list(exclude)
+    if names:
+        source["names"] = list(names)
     return source
+
+
+# North: files of the under-18 folder that are not uploaded (any extension).
+UNDER_18_EXCLUDED_NORTH = ("duoi18_dc1", "duoi18_dc2", "duoi18_ks")
+
+
+def _under_18_files() -> dict[str, object]:
+    return _files(
+        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+        5,
+        exclude=UNDER_18_EXCLUDED_NORTH if REGION == REGION_NORTH else (),
+    )
 
 
 def _merged_pdf(name: str, *sources: dict[str, object] | list) -> dict[str, object]:
@@ -1417,7 +1448,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "UNDER_18": _under_18_files(),
         "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     },
     "L30": {
@@ -1433,7 +1464,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "UNDER_18": _under_18_files(),
         "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
     },
@@ -1451,7 +1482,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "UNDER_18": _under_18_files(),
         # "OTHER_COUNTRY_VISAS": not uploaded for M (photos go to OTHER_MATERIALS)
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
         "THU_MOI": _files(DOANH_NGHIEP_THU_MOI_OUTPUT_PATH, 1),
@@ -1610,6 +1641,13 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
         "quan_he_qcm.pdf", _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
     ),
     "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 6),
+    # Guardian relationship, from the under-18 folder.
+    "GUARDIAN_BIRTH_CERTIFICATE": _files(
+        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 1, names=("duoi18_ks",)
+    ),
+    "GUARDIAN_ID": _files(
+        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 2, names=("duoi18_dc1", "duoi18_dc2")
+    ),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
