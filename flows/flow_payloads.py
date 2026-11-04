@@ -21,6 +21,7 @@ from constants import (
     REGION_SOUTH,
     CHILD_STUDENT_MAX_AGE,
     CHILD_WORKING_JOB_TYPES,
+    SPOUSE_JOB_TYPES,
     SERVICE_TYPE_NORMAL_EXPRESS,
     VIETNAMESE_NAMES,
     VISA_TYPE_VALUE,
@@ -765,6 +766,19 @@ def _with_child_profession(child: dict[str, Any]) -> dict[str, Any]:
     return child
 
 
+def _with_spouse_defaults(spouse: dict[str, Any], street_addr: str) -> dict[str, Any]:
+    """Spouse (both regions): lives with the applicant (same address as
+    streetAddr) and is a company employee or self-employed (an old value among
+    those two is kept). An empty spouse slot (no spouse) is left as is."""
+    if not (str(spouse.get("familyName") or "").strip() or str(spouse.get("firstName") or "").strip()):
+        return spouse
+    spouse["address"] = street_addr
+    allowed = tuple(JOB_TYPE_BY_LABEL[label] for label in SPOUSE_JOB_TYPES)
+    current = str(spouse.get("profession", "") or "")
+    spouse["profession"] = current if current in allowed else random.choice(allowed)
+    return spouse
+
+
 def _relative_entry(
     inviterFamilyName: str = "",
     inviterGivenName: str = "",
@@ -1022,6 +1036,17 @@ def build_family_info_profile(
         spouses_src = spouses_info
     spouses_src = [_order_spouse_fields(spouse) for spouse in (spouses_src or [])]
 
+    street_addr = (
+        old_streetAddr
+        if old_streetAddr != ""
+        else (
+            f"{random.choice(VIETNAM_ADMIN[province_city_code])}, {province_city_code}"
+            if VIETNAM_ADMIN.get(province_city_code)
+            else province_city_code
+        )
+    )
+    spouses_src = [_with_spouse_defaults(spouse, street_addr) for spouse in spouses_src]
+
     family_json: dict[str, Any] = {
         "applyCountry": "",
         "finishedStep": 9,
@@ -1037,15 +1062,7 @@ def build_family_info_profile(
         "mobilePhoneNumber": old_mobilePhoneNumber or employer_phone or phone,
         "phoneNumber": old_phoneNumber or employer_phone or phone,
         "email": "",
-        "streetAddr": (
-            old_streetAddr
-            if old_streetAddr != ""
-            else (
-                f"{random.choice(VIETNAM_ADMIN[province_city_code])}, {province_city_code}"
-                if VIETNAM_ADMIN.get(province_city_code)
-                else province_city_code
-            )
-        ),
+        "streetAddr": street_addr,
         "notApplyItems": [_to_dict(i) for i in (notApplyItems_src or [])],
         "haveSpouseFlag": (
             old_haveSpouseFlag

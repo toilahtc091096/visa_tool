@@ -532,6 +532,8 @@ JOB_TYPE_BY_LABEL = dict(JOB_TYPE)
 # then one of CHILD_WORKING_JOB_TYPES.
 CHILD_STUDENT_MAX_AGE = 22
 CHILD_WORKING_JOB_TYPES = ("Businessperson", "Company employee")
+# Family info, spouses[].profession (both regions): one of these.
+SPOUSE_JOB_TYPES = ("Company employee", "Self-employed")
 SELF_EMPLOYED_JOB_DESCS = (
     "GIAM DOC",
     "PHO GIAM DOC",
