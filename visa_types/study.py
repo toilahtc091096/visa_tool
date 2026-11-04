@@ -11,6 +11,8 @@ from constants import (
     DEFAULT_EMBASSY,
     DEFAULT_LANG,
     JOB_TYPE_BY_LABEL,
+    REGION,
+    REGION_SOUTH,
     RETIRED_JOB_TYPE,
     RETIRED_NOT_APPLY_REMARK,
 )
@@ -28,7 +30,6 @@ SCHOOL_REUSE = ReuseRule(
 )
 
 
-@register
 class StudyVisa(VisaProfile):
     code = "F"
     service_key = "F"
@@ -74,6 +75,14 @@ class StudyVisa(VisaProfile):
             departureDate=travel.leave_date,
         )
         return travel_json
+
+
+class SouthStudyVisa(StudyVisa):
+    """South (HCMC) F: same flow as the North F for now; override here to
+    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_F."""
+
+
+register(SouthStudyVisa if REGION == REGION_SOUTH else StudyVisa)
 
 
 @register

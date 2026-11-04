@@ -1208,6 +1208,11 @@ MAT_SOUTH_S2_INVITER_RESIDENCE_PERMIT = CovaMaterial(
 )
 MAT_SOUTH_S2_INVITATION_LETTER = CovaMaterial("12025062617543110673775", "mfa-020")
 MAT_SOUTH_S2_RELATIONSHIP_PROOF = CovaMaterial("12025062617562957535303", "mfa-020")
+# F - exchange / study visit. One category: _1,_2 invitation letter,
+# _3,_4 dispatch letter (decision) from the Vietnamese unit.
+MAT_SOUTH_F_INVITATION_AND_DECISION = CovaMaterial(
+    "12025062617062816111097", "mfa-009"
+)
 
 UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     "L30": {
@@ -1299,6 +1304,22 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "CHUNG_MINH_QUAN_HE": MAT_SOUTH_S2_RELATIONSHIP_PROOF.slots(1),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
+        },
+    },
+    "F": {
+        "COMMON": {
+            "PASSPORT_INFO_PAGE": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(1),
+            # _2.._8: old Chinese visa photos, then other countries' visa photos.
+            "PREV_CHINESE_VISA": MAT_SOUTH_PASSPORT_INFO_PAGE.slots(
+                2, 3, 4, 5, 6, 7, 8
+            ),
+            "HUKOU_OR_EMPLOYMENT_LETTER": MAT_SOUTH_RESIDENCE_CERTIFICATE.slots(
+                1, 2, 3, 4
+            ),
+            "THU_MOI": MAT_SOUTH_F_INVITATION_AND_DECISION.slots(1, 2),
+            "QUYET_DINH_DU_HOC": MAT_SOUTH_F_INVITATION_AND_DECISION.slots(3, 4),
+            # Other countries' visa photos already go to mfa-079 above.
+            "VISA_CENTER_CONFIRMATION": MAT_SOUTH_OTHER_DOCUMENTS.slots(1),
         },
     },
 }
@@ -1572,11 +1593,28 @@ UPLOAD_CONFIG_SOUTH_S2: dict[str, object] = {
         _files(S2_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
     ],
 }
+# South F, same idea: started from the North F table.
+UPLOAD_CONFIG_SOUTH_F: dict[str, object] = {
+    "PASSPORT_INFO_PAGE": _passport_image(),
+    "PREV_CHINESE_VISA": [
+        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
+        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
+    ],
+    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
+        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
+        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
+        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
+    ),
+    "THU_MOI": _files(F_THU_MOI_OUTPUT_PATH, 2),
+    "QUYET_DINH_DU_HOC": _files(F_QUYET_DINH_DU_HOC_OUTPUT_PATH, 2),
+    "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
+}
 if REGION == REGION_SOUTH:
     UPLOAD_CONFIG["M"] = UPLOAD_CONFIG_SOUTH_M
     UPLOAD_CONFIG["Q1"] = UPLOAD_CONFIG_SOUTH_Q1
     UPLOAD_CONFIG["Q2"] = UPLOAD_CONFIG_SOUTH_Q2
     UPLOAD_CONFIG["S2"] = UPLOAD_CONFIG_SOUTH_S2
+    UPLOAD_CONFIG["F"] = UPLOAD_CONFIG_SOUTH_F
 
 
 UNIT_OF_HOTEL = 5870276

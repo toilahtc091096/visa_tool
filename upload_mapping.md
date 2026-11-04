@@ -109,18 +109,18 @@ Nam: đã code (profile `SouthQ2Visa`, bảng file `UPLOAD_CONFIG_SOUTH_Q2`). B�
 
 ## F
 
+Nam: đã code (profile `SouthStudyVisa`, bảng file `UPLOAD_CONFIG_SOUTH_F`). Bỏ qua: "If you are a non-Vietnamese foreigner", "If you once had Chinese nationality...", "Old passport within five years".
+
 | doc_type | Giấy tờ | File lấy từ (Bắc) | Bắc: categoryCode | Bắc: material / slot | Nam: label trên form | Nam: categoryCode | Nam: materialCode | Nam: slot | Ghi chú |
 |---|---|---|---|---|---|---|---|---|---|
-| PASSPORT_INFO_PAGE | Trang thông tin hộ chiếu | ảnh hộ chiếu gốc | — | Bắc không có | |  |  |  | |
-| PASSPORT_BLANK_PAGES | Trang trắng hộ chiếu (护照空白页) | `chung\2_trang_ho_chieu_trang` (2) | `22025070216180808782737` | `mfa-017 _1,2` | |  |  |  | |
-| HUKOU_OR_EMPLOYMENT_LETTER | Giấy cư trú CT07 / xác nhận việc làm | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang\giay_cu_tru` (1) | `22025062114073725280378` | `mfa-030 _1` | |  |  |  | |
-| PREV_CHINESE_VISA | Visa TQ cũ (原中国签证) | `lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_trung_quoc_cu` (3) | `22025062114131912554297` | `mfa-033 _1,2` | |  |  |  | |
-| THU_MOI | Thư mời (邀请函) | `du-hoc\thu-moi` (1) | `12026072917284901619425` | `mfa-061 _1` | |  |  |  | |
-| QUYET_DINH_DU_HOC | Quyết định du học | `du-hoc\quyet-dinh` (2) | `12025062114560885950076` | `mfa-062 _1` | |  |  |  | |
-| OTHER_MATERIALS | Tài liệu khác (其他文件) | `chung\xac_nhan_tu_trung_tam_visa` (1)<br>`lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_cac_nuoc_khac_anh_ho_chieu` (2) | `12025062115000341540359` | `mfa-065 _1,2,3,4` | |  |  |  | |
-| (mới) | | | — | — | | | | | |
-| (mới) | | | — | — | | | | | |
-| (mới) | | | — | — | | | | | |
+| PASSPORT_INFO_PAGE | Trang thông tin hộ chiếu | ảnh hộ chiếu gốc | — | Bắc không có | Passport information page / Trang thông tin Hộ Chiếu | `22025062618255280352880` | mfa-079 | _1 | |
+| PREV_CHINESE_VISA | Visa TQ cũ (原中国签证) | `lich_su_xuat_canh\da_tung_di_nuoc_ngoai\visa_trung_quoc_cu` (3) | `22025062114131912554297` | `mfa-033 _1,2` | (chung mục trang thông tin hộ chiếu) | `22025062618255280352880` | mfa-079 | _2 → _8 | Nam: visa TQ cũ (3) rồi visa nước khác (3) |
+| HUKOU_OR_EMPLOYMENT_LETTER | Giấy cư trú CT07 | `lich_su_xuat_canh\chua_tung_di_ho_chieu_trang\giay_cu_tru` (1) | `22025062114073725280378` | `mfa-030 _1` | Sổ hộ khẩu hoặc Xác nhận thông tin cư trú CT07 / CT08 | `22025062618224586258771` | mfa-097 | _1 → _4 | Nam: CT07, không có thì visa TQ cũ, không có thì visa nước khác |
+| THU_MOI | Thư mời (邀请函) | `du-hoc\thu-moi` (1) | `12026072917284901619425` | `mfa-061 _1` | Invitation Letter (邀请函) | `12025062617062816111097` | mfa-009 | _1, _2 | Nam lấy tối đa 2 file |
+| QUYET_DINH_DU_HOC | Quyết định cử đi | `du-hoc\quyet-dinh` (2) | `12025062114560885950076` | `mfa-062 _1` | (cùng mục Invitation Letter, nhãn 派遣函) | `12025062617062816111097` | mfa-009 | _3, _4 | |
+| VISA_CENTER_CONFIRMATION | Xác nhận trung tâm visa | (Bắc nằm trong OTHER_MATERIALS) | `12025062115000341540359` | `mfa-065 _1` | Tài liệu bổ sung khác | `22025070216133602452066` | mfa-130 | _1 | |
+| OTHER_MATERIALS | Tài liệu khác (其他文件) | `chung\xac_nhan_tu_trung_tam_visa` (1)<br>`...\visa_cac_nuoc_khac_anh_ho_chieu` (2) | `12025062115000341540359` | `mfa-065 _1,2,3,4` | | | KHÔNG | | Nam: visa nước khác đã ở mfa-079 |
+| PASSPORT_BLANK_PAGES | Trang trắng hộ chiếu (护照空白页) | `chung\2_trang_ho_chieu_trang` (2) | `22025070216180808782737` | `mfa-017 _1,2` | | | KHÔNG | | |
 
 ## X1
 
