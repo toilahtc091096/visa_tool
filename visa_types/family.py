@@ -13,7 +13,7 @@ from constants import (
     REGION,
     REGION_SOUTH,
 )
-from flows.flow_payloads import getL30TravelInfo
+from flows.flow_payloads import form_inviter_relation, getL30TravelInfo
 from utils import date_util
 
 from .base import VisaProfile, register
@@ -169,7 +169,7 @@ def _apply_q_single_stay_overrides(
         {
             "inviteName": invite_person,
             "inviteCompanyName": invite_person,
-            "inviteRelation": str(inviterRelation or "").strip(),
+            "inviteRelation": form_inviter_relation(inviterRelation),
             "invitePhoneNumber": str(inviterPhone or "").strip(),
             "inviteProvince": invite_province,
             "inviteCity": arrival_city,

@@ -1877,6 +1877,83 @@ GUARANTOR_RELATION_ZH = {
 GUARANTOR_DEFAULT_RELATION_ZH = "父亲"
 GUARANTOR_NOTE_TEMPLATE = "因为孩子还小，所以{relation}替签名"
 
+# South only: inviter relation written on the COVA form (Q1 / Q2 / S2), Vietnamese
+# -> Chinese. Keys are normalized: lowercase, no accents ("đ" -> "d"), single
+# spaces, e.g. "CHONG" / "Chồng" -> "chong" -> 丈夫. Labels that become ambiguous
+# once accents are gone are left out: "ba" (bố / bà), "ong", "em", "chau".
+# Unknown labels are sent as given.
+INVITER_RELATION_ZH_SOUTH = {
+    # Spouse
+    **dict.fromkeys(("vo chong", "spouse"), "配偶"),
+    **dict.fromkeys(("phu the",), "夫妻"),
+    **dict.fromkeys(("chong", "ck", "ong xa", "husband"), "丈夫"),
+    **dict.fromkeys(("vo", "vk", "ba xa", "wife"), "妻子"),
+    # Parents
+    **dict.fromkeys(("cha", "bo", "cha ruot", "bo ruot", "father"), "父亲"),
+    **dict.fromkeys(("me", "ma", "me ruot", "mother"), "母亲"),
+    **dict.fromkeys(("cha me", "bo me", "parents"), "父母"),
+    **dict.fromkeys(("cha duong", "bo duong", "stepfather"), "继父"),
+    **dict.fromkeys(("me ke", "me duong", "di ghe", "stepmother"), "继母"),
+    # Children
+    **dict.fromkeys(("con", "con cai", "children", "child"), "子女"),
+    **dict.fromkeys(("con trai", "son"), "儿子"),
+    **dict.fromkeys(("con gai", "daughter"), "女儿"),
+    **dict.fromkeys(
+        (
+            "con rieng",
+            "con vo",
+            "con chong",
+            "con rieng cua vo",
+            "con rieng cua chong",
+            "con rieng (con vo)",
+            "con rieng (con chong)",
+            "con trai rieng",
+            "stepson",
+            "stepchild",
+        ),
+        "继子",
+    ),
+    **dict.fromkeys(("con gai rieng", "stepdaughter"), "继女"),
+    **dict.fromkeys(("con re", "son-in-law"), "女婿"),
+    **dict.fromkeys(("con dau", "daughter-in-law"), "儿媳"),
+    # Spouse's parents
+    **dict.fromkeys(("cha vo", "bo vo"), "岳父"),
+    **dict.fromkeys(("me vo",), "岳母"),
+    **dict.fromkeys(("cha chong", "bo chong"), "公公"),
+    **dict.fromkeys(("me chong",), "婆婆"),
+    # Siblings and their spouses
+    **dict.fromkeys(("anh chi em", "anh em", "chi em", "siblings"), "兄弟姐妹"),
+    **dict.fromkeys(("anh", "anh trai", "anh ruot", "brother"), "哥哥"),
+    **dict.fromkeys(("chi", "chi gai", "chi ruot", "sister"), "姐姐"),
+    **dict.fromkeys(("em trai", "em trai ruot"), "弟弟"),
+    **dict.fromkeys(("em gai", "em gai ruot"), "妹妹"),
+    **dict.fromkeys(("anh re",), "姐夫"),
+    **dict.fromkeys(("em re",), "妹夫"),
+    **dict.fromkeys(("chi dau",), "嫂子"),
+    **dict.fromkeys(("em dau",), "弟媳"),
+    # Grandparents / grandchildren
+    **dict.fromkeys(("ong ba noi",), "祖父母"),
+    **dict.fromkeys(("ong noi",), "祖父"),
+    **dict.fromkeys(("ba noi",), "祖母"),
+    **dict.fromkeys(("ong ba ngoai",), "外祖父母"),
+    **dict.fromkeys(("ong ngoai",), "外祖父"),
+    **dict.fromkeys(("ba ngoai",), "外祖母"),
+    **dict.fromkeys(("chau noi",), "孙子女"),
+    **dict.fromkeys(("chau ngoai",), "外孙子女"),
+    # Uncles / aunts
+    **dict.fromkeys(("chu",), "叔叔"),
+    **dict.fromkeys(("bac",), "伯伯"),
+    **dict.fromkeys(("co",), "姑姑"),
+    **dict.fromkeys(("cau",), "舅舅"),
+    **dict.fromkeys(("di",), "阿姨"),
+    # S2: ex-spouse, fiancé(e), marriage registration
+    **dict.fromkeys(("chong cu", "ex-husband"), "前夫"),
+    **dict.fromkeys(("vo cu", "ex-wife"), "前妻"),
+    **dict.fromkeys(("vi hon phu", "chong sap cuoi", "hon phu", "fiance"), "未婚夫"),
+    **dict.fromkeys(("vi hon the", "vo sap cuoi", "hon the", "fiancee"), "未婚妻"),
+    **dict.fromkeys(("dang ky ket hon",), "登记结婚"),
+}
+
 # Vietnam retirement age (Labour Code 2019, Decree 135/2020), in months, by
 # passport sex code ("1" male, "2" female): starts at the 2021 age and rises by
 # a fixed step each year until the final age. Applicants at or above it are

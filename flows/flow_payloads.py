@@ -51,6 +51,7 @@ from constants import (
     UNDER_18_HOTEL_INFO,
     EMERGENCY_RELATION_FATHER,
     EMERGENCY_RELATION_MOTHER,
+    INVITER_RELATION_ZH_SOUTH,
     VIETNAMESE_COMPANY_NAMES,
     cityzen_status,
 )
@@ -79,6 +80,16 @@ def _normalize_ascii_upper(value: str) -> str:
         return ""
     normalized = unicodedata.normalize("NFD", value.upper())
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+
+
+def form_inviter_relation(value: Any) -> str:
+    """Inviter relation for the COVA form. South: Vietnamese label -> Chinese
+    (INVITER_RELATION_ZH_SOUTH). North and unknown labels are sent as given."""
+    text = str(value or "").strip()
+    if REGION != REGION_SOUTH or not text:
+        return text
+    key = " ".join(_normalize_ascii_upper(text).replace("Đ", "D").lower().split())
+    return INVITER_RELATION_ZH_SOUTH.get(key, text)
 
 
 def full_name_from_ocr(ocr_data: PassportOCRResult) -> str:
@@ -218,7 +229,7 @@ def build_apply_info_profile(
             "otherSpecify": "",
             "personalMatters": "",
             "predecessorName": "",
-            "relation": str(inviter_relation or "").strip(),
+            "relation": form_inviter_relation(inviter_relation),
             "residencePermit": str(inviter_id_card or "").strip(),
             "residentName": "",
             "talentProgrammeName": "",
@@ -788,7 +799,7 @@ def _relative_entry(
         "sort": "1",
         "familyName": inviterFamilyName,
         "firstName": inviterGivenName,
-        "relation": inviterRelation,
+        "relation": form_inviter_relation(inviterRelation),
         "address": "",
         "statusInChina": cityzen_status,
         "statusInChinaDetail": "",
