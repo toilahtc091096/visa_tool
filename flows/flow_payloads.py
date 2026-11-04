@@ -1029,6 +1029,9 @@ def build_family_info_profile(
         if has_inviter
         else old_relatives
     )
+    # South: no relatives in China, even with an inviter or an old application.
+    if REGION == REGION_SOUTH:
+        relative_src = []
 
     notApplyItems_src = []
     if old_notApplyItems != []:
