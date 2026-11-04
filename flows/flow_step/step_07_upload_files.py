@@ -12,7 +12,9 @@ from utils import log_event
 from .common import check_api_result, fail_step
 
 
-def _source_files(cfg: dict, data_passport_number: str) -> list[Path]:
+def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
+    if isinstance(cfg, list):
+        return [f for source in cfg for f in _source_files(source, data_passport_number)]
     if "first_of" in cfg:
         for source in cfg["first_of"]:
             files = _source_files(source, data_passport_number)

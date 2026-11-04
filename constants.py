@@ -860,6 +860,10 @@ S2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
 
 DOANH_NGHIEP_THU_MOI_OUTPUT_PATH = "doanh-nghiep\\thu-moi"
 DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH = "doanh-nghiep\\quyet-dinh"
+# Business registrations: the Chinese inviting company and the Vietnamese
+# company, one folder each. The old shared folder is only a North fallback.
+DOANH_NGHIEP_DANG_KY_TQ_OUTPUT_PATH = "doanh-nghiep\\dangky-tq"
+DOANH_NGHIEP_DANG_KY_VN_OUTPUT_PATH = "doanh-nghiep\\dangky-vn"
 DOANH_NGHIEP_DANG_KY_OUTPUT_PATH = "doanh-nghiep\\dangky"
 
 F_THU_MOI_OUTPUT_PATH = "du-hoc\\thu-moi"
@@ -1175,7 +1179,6 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
 # are the uploaded ones); add the other visa types from their material lists.
 MAT_SOUTH_PASSPORT_INFO_PAGE = CovaMaterial("22025062618255280352880", "mfa-079")
 # Old passport used to travel to China (slot _4).
-MAT_SOUTH_OLD_PASSPORT = CovaMaterial("22025062618253037080107", "mfa-079")
 MAT_SOUTH_RESIDENCE_CERTIFICATE = CovaMaterial("22025062618224586258771", "mfa-097")
 MAT_SOUTH_OTHER_DOCUMENTS = CovaMaterial("22025070216133602452066", "mfa-130")
 MAT_SOUTH_L_ITINERARY_IN_CHINA = CovaMaterial("12025062616415987523440", "mfa-087")
@@ -1218,8 +1221,9 @@ def _passport_image() -> dict[str, object]:
     return {"passport_image": True, "limit": 1}
 
 
-def _first_nonempty(*sources: dict[str, object]) -> dict[str, object]:
-    """Files of the first source that has any; the others are skipped."""
+def _first_nonempty(*sources: dict[str, object] | list) -> dict[str, object]:
+    """Files of the first source that has any; the others are skipped.
+    A source may be a list of sources, whose files are taken together."""
     return {"first_of": list(sources)}
 
 
@@ -1278,7 +1282,15 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
         "THU_MOI": _files(DOANH_NGHIEP_THU_MOI_OUTPUT_PATH, 1),
         "QUYET_DINH": _files(DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH, 1),
-        "DANG_KY_DOANH_NGHIEP": _files(DOANH_NGHIEP_DANG_KY_OUTPUT_PATH, 2),
+        # Chinese company in _1, Vietnamese company in _2; companies not
+        # re-uploaded yet still have both files in the old dangky folder.
+        "DANG_KY_DOANH_NGHIEP": _first_nonempty(
+            [
+                _files(DOANH_NGHIEP_DANG_KY_TQ_OUTPUT_PATH, 1),
+                _files(DOANH_NGHIEP_DANG_KY_VN_OUTPUT_PATH, 1),
+            ],
+            _files(DOANH_NGHIEP_DANG_KY_OUTPUT_PATH, 2),
+        ),
     },
     "Q1": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
@@ -1382,6 +1394,16 @@ for _visa_config in UPLOAD_CONFIG.values():
             _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
             _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
         )
+if REGION == REGION_SOUTH:
+    # South M: the Chinese and Vietnamese business registrations are two
+    # separate materials, each filled from its own folder.
+    del UPLOAD_CONFIG["M"]["DANG_KY_DOANH_NGHIEP"]
+    UPLOAD_CONFIG["M"]["DANG_KY_DOANH_NGHIEP_TQ"] = _files(
+        DOANH_NGHIEP_DANG_KY_TQ_OUTPUT_PATH, 2
+    )
+    UPLOAD_CONFIG["M"]["DANG_KY_DOANH_NGHIEP_VN"] = _files(
+        DOANH_NGHIEP_DANG_KY_VN_OUTPUT_PATH, 2
+    )
 
 
 UNIT_OF_HOTEL = 5870276
@@ -1554,13 +1576,18 @@ INVITER_RELATION_CHILDREN_SPOUSE = frozenset(
 GUARANTOR_RELATION_ZH = {
     **dict.fromkeys(("bo", "bố", "cha", "ba", "father", "父亲"), "父亲"),
     **dict.fromkeys(("me", "mẹ", "má", "mother", "母亲"), "母亲"),
-    **dict.fromkeys(("ông", "ông nội", "ong", "ong noi", "grandfather", "祖父"), "祖父"),
+    **dict.fromkeys(
+        ("ông", "ông nội", "ong", "ong noi", "grandfather", "祖父"), "祖父"
+    ),
     **dict.fromkeys(("bà", "bà nội", "ba noi", "grandmother", "祖母"), "祖母"),
     **dict.fromkeys(("ông ngoại", "ong ngoai", "外祖父"), "外祖父"),
     **dict.fromkeys(("bà ngoại", "ba ngoai", "外祖母"), "外祖母"),
     **dict.fromkeys(("anh", "anh trai", "brother", "哥哥"), "哥哥"),
     **dict.fromkeys(("chị", "chị gái", "chi", "chi gai", "sister", "姐姐"), "姐姐"),
-    **dict.fromkeys(("người giám hộ", "giám hộ", "nguoi giam ho", "giam ho", "guardian", "监护人"), "监护人"),
+    **dict.fromkeys(
+        ("người giám hộ", "giám hộ", "nguoi giam ho", "giam ho", "guardian", "监护人"),
+        "监护人",
+    ),
 }
 GUARANTOR_DEFAULT_RELATION_ZH = "父亲"
 GUARANTOR_NOTE_TEMPLATE = "因为孩子还小，所以{relation}替签名"
