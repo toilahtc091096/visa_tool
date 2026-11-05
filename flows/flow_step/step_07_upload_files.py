@@ -9,6 +9,7 @@ from utils import (
     get_passport_file_path,
 )
 from utils import log_event
+from utils.upload_file import merge_files_to_pdf
 from .common import check_api_result, fail_step
 
 
@@ -21,10 +22,20 @@ def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
             if files:
                 return files
         return []
+    if "merge_pdf" in cfg:
+        files = [f for source in cfg["merge_pdf"] for f in _source_files(source, data_passport_number)]
+        merged = merge_files_to_pdf(files, cfg["name"]) if files else None
+        return [merged] if merged else []
     if cfg.get("passport_image"):
         path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
         return [Path(path)] if path else []
-    return get_files(cfg["folder"], cfg["limit"])
+    return get_files(
+        cfg["folder"],
+        cfg["limit"],
+        cfg.get("prefix", ""),
+        cfg.get("exclude", ()),
+        cfg.get("names", ()),
+    )
 
 
 async def upload_files(

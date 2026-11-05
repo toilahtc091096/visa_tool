@@ -1201,6 +1201,10 @@ MAT_SOUTH_M_VN_BUSINESS_REGISTRATION = CovaMaterial(
 MAT_SOUTH_Q1_INVITATION_LETTER = CovaMaterial("12025062617103405430938", "mfa-012")
 MAT_SOUTH_Q1_INVITER_ID = CovaMaterial("12025062617162059612389", "mfa-012")
 MAT_SOUTH_Q1_RELATIONSHIP_PROOF = CovaMaterial("12025062617242615028456", "mfa-012")
+# Q1 - guardian relationship: _1 birth certificate, _2,_3 guardian's passport / ID.
+MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP = CovaMaterial(
+    "22025062618301525858044", "mfa-079"
+)
 # Q2 - short family visit. No relationship category: the proof goes in slots
 # _3.._5 of the invitation letter category (as labelled on the form).
 MAT_SOUTH_Q2_INVITER_ID = CovaMaterial("12025062617342103276497", "mfa-015")
@@ -1272,10 +1276,16 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
                 1, 2, 3, 4
             ),
             "THU_MOI": MAT_SOUTH_Q1_INVITATION_LETTER.slots(1, 2, 3),
-            "CCCD_NGUOI_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(1, 2, 3),
+            # Inviter ID category: _1 inviter ID, _2 invitation letter (same
+            # file as THU_MOI _1), _3 relationship proof (qcm_* files).
+            "CCCD_NGUOI_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(1),
+            "CCCD_NGUOI_MOI_THU_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(2),
+            "CCCD_NGUOI_MOI_QUAN_HE": MAT_SOUTH_Q1_INVITER_ID.slots(3),
             "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q1_RELATIONSHIP_PROOF.slots(
                 1, 2, 3, 4, 5, 6
             ),
+            "GUARDIAN_BIRTH_CERTIFICATE": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(1),
+            "GUARDIAN_ID": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(2, 3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
         },
@@ -1371,9 +1381,44 @@ UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
 UPLOAD_FILE_CODE_BY_VISA_TYPE: UploadCodes = UPLOAD_FILE_CODE_BY_REGION[REGION]
 
 
-def _files(folder: str, limit: int) -> dict[str, object]:
-    """Take up to ``limit`` files from ``folder`` (relative to data_<passport>)."""
-    return {"folder": folder, "limit": limit}
+def _files(
+    folder: str,
+    limit: int,
+    prefix: str = "",
+    exclude: tuple[str, ...] = (),
+    names: tuple[str, ...] = (),
+) -> dict[str, object]:
+    """Take up to ``limit`` files from ``folder`` (relative to data_<passport>);
+    with ``prefix``, only files whose name starts with it (any case); files
+    whose name without extension is in ``exclude`` (any case) are skipped.
+    With ``names``, only those files (name without extension, any case), in
+    that order; a missing one is skipped."""
+    source: dict[str, object] = {"folder": folder, "limit": limit}
+    if prefix:
+        source["prefix"] = prefix
+    if exclude:
+        source["exclude"] = list(exclude)
+    if names:
+        source["names"] = list(names)
+    return source
+
+
+# North: files of the under-18 folder that are not uploaded (any extension).
+UNDER_18_EXCLUDED_NORTH = ("duoi18_dc1", "duoi18_dc2", "duoi18_ks")
+
+
+def _under_18_files() -> dict[str, object]:
+    return _files(
+        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+        5,
+        exclude=UNDER_18_EXCLUDED_NORTH if REGION == REGION_NORTH else (),
+    )
+
+
+def _merged_pdf(name: str, *sources: dict[str, object] | list) -> dict[str, object]:
+    """All files of ``sources`` (PDFs or images, by file name) merged into one
+    PDF ``name``; nothing when the sources have no file."""
+    return {"merge_pdf": list(sources), "name": name}
 
 
 def _passport_image() -> dict[str, object]:
@@ -1403,7 +1448,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "UNDER_18": _under_18_files(),
         "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     },
     "L30": {
@@ -1419,7 +1464,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "UNDER_18": _under_18_files(),
         "OTHER_COUNTRY_VISAS": _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
     },
@@ -1437,7 +1482,7 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
+        "UNDER_18": _under_18_files(),
         # "OTHER_COUNTRY_VISAS": not uploaded for M (photos go to OTHER_MATERIALS)
         "ITINERARY_IN_CHINA": _files(L_15_TRAVEL_PLAN_OUTPUT_PATH, 1),
         "THU_MOI": _files(DOANH_NGHIEP_THU_MOI_OUTPUT_PATH, 1),
@@ -1586,8 +1631,23 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
     ),
     "THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 3),
-    "CCCD_NGUOI_MOI": _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 3),
+    # One PDF of every file in tham-than\cccd.
+    "CCCD_NGUOI_MOI": _merged_pdf(
+        "cccd_nguoi_moi.pdf", _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 100)
+    ),
+    "CCCD_NGUOI_MOI_THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 1),
+    # One PDF of every qcm_* file in tham-than\quan-he.
+    "CCCD_NGUOI_MOI_QUAN_HE": _merged_pdf(
+        "quan_he_qcm.pdf", _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
+    ),
     "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 6),
+    # Guardian relationship, from the under-18 folder.
+    "GUARDIAN_BIRTH_CERTIFICATE": _files(
+        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 1, names=("duoi18_ks",)
+    ),
+    "GUARDIAN_ID": _files(
+        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 2, names=("duoi18_dc1", "duoi18_dc2")
+    ),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
@@ -1891,6 +1951,83 @@ SOUTH_INVITE_RELATION_ZH = {
     "em gai": "妹妹",
 }
 GUARANTOR_NOTE_TEMPLATE = "因为孩子还小，所以{relation}替签名"
+
+# South only: inviter relation written on the COVA form (Q1 / Q2 / S2), Vietnamese
+# -> Chinese. Keys are normalized: lowercase, no accents ("đ" -> "d"), single
+# spaces, e.g. "CHONG" / "Chồng" -> "chong" -> 丈夫. Labels that become ambiguous
+# once accents are gone are left out: "ba" (bố / bà), "ong", "em", "chau".
+# Unknown labels are sent as given.
+INVITER_RELATION_ZH_SOUTH = {
+    # Spouse
+    **dict.fromkeys(("vo chong", "spouse"), "配偶"),
+    **dict.fromkeys(("phu the",), "夫妻"),
+    **dict.fromkeys(("chong", "ck", "ong xa", "husband"), "丈夫"),
+    **dict.fromkeys(("vo", "vk", "ba xa", "wife"), "妻子"),
+    # Parents
+    **dict.fromkeys(("cha", "bo", "cha ruot", "bo ruot", "father"), "父亲"),
+    **dict.fromkeys(("me", "ma", "me ruot", "mother"), "母亲"),
+    **dict.fromkeys(("cha me", "bo me", "parents"), "父母"),
+    **dict.fromkeys(("cha duong", "bo duong", "stepfather"), "继父"),
+    **dict.fromkeys(("me ke", "me duong", "di ghe", "stepmother"), "继母"),
+    # Children
+    **dict.fromkeys(("con", "con cai", "children", "child"), "子女"),
+    **dict.fromkeys(("con trai", "son"), "儿子"),
+    **dict.fromkeys(("con gai", "daughter"), "女儿"),
+    **dict.fromkeys(
+        (
+            "con rieng",
+            "con vo",
+            "con chong",
+            "con rieng cua vo",
+            "con rieng cua chong",
+            "con rieng (con vo)",
+            "con rieng (con chong)",
+            "con trai rieng",
+            "stepson",
+            "stepchild",
+        ),
+        "继子",
+    ),
+    **dict.fromkeys(("con gai rieng", "stepdaughter"), "继女"),
+    **dict.fromkeys(("con re", "son-in-law"), "女婿"),
+    **dict.fromkeys(("con dau", "daughter-in-law"), "儿媳"),
+    # Spouse's parents
+    **dict.fromkeys(("cha vo", "bo vo"), "岳父"),
+    **dict.fromkeys(("me vo",), "岳母"),
+    **dict.fromkeys(("cha chong", "bo chong"), "公公"),
+    **dict.fromkeys(("me chong",), "婆婆"),
+    # Siblings and their spouses
+    **dict.fromkeys(("anh chi em", "anh em", "chi em", "siblings"), "兄弟姐妹"),
+    **dict.fromkeys(("anh", "anh trai", "anh ruot", "brother"), "哥哥"),
+    **dict.fromkeys(("chi", "chi gai", "chi ruot", "sister"), "姐姐"),
+    **dict.fromkeys(("em trai", "em trai ruot"), "弟弟"),
+    **dict.fromkeys(("em gai", "em gai ruot"), "妹妹"),
+    **dict.fromkeys(("anh re",), "姐夫"),
+    **dict.fromkeys(("em re",), "妹夫"),
+    **dict.fromkeys(("chi dau",), "嫂子"),
+    **dict.fromkeys(("em dau",), "弟媳"),
+    # Grandparents / grandchildren
+    **dict.fromkeys(("ong ba noi",), "祖父母"),
+    **dict.fromkeys(("ong noi",), "祖父"),
+    **dict.fromkeys(("ba noi",), "祖母"),
+    **dict.fromkeys(("ong ba ngoai",), "外祖父母"),
+    **dict.fromkeys(("ong ngoai",), "外祖父"),
+    **dict.fromkeys(("ba ngoai",), "外祖母"),
+    **dict.fromkeys(("chau noi",), "孙子女"),
+    **dict.fromkeys(("chau ngoai",), "外孙子女"),
+    # Uncles / aunts
+    **dict.fromkeys(("chu",), "叔叔"),
+    **dict.fromkeys(("bac",), "伯伯"),
+    **dict.fromkeys(("co",), "姑姑"),
+    **dict.fromkeys(("cau",), "舅舅"),
+    **dict.fromkeys(("di",), "阿姨"),
+    # S2: ex-spouse, fiancé(e), marriage registration
+    **dict.fromkeys(("chong cu", "ex-husband"), "前夫"),
+    **dict.fromkeys(("vo cu", "ex-wife"), "前妻"),
+    **dict.fromkeys(("vi hon phu", "chong sap cuoi", "hon phu", "fiance"), "未婚夫"),
+    **dict.fromkeys(("vi hon the", "vo sap cuoi", "hon the", "fiancee"), "未婚妻"),
+    **dict.fromkeys(("dang ky ket hon",), "登记结婚"),
+}
 
 # Vietnam retirement age (Labour Code 2019, Decree 135/2020), in months, by
 # passport sex code ("1" male, "2" female): starts at the 2021 age and rises by

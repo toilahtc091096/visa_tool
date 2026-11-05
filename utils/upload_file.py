@@ -82,7 +82,7 @@ def cleanup_data_folder() -> None:
     _CURRENT_DATA_FOLDER = None
 
 
-def get_files(folder_path, x):
+def get_files(folder_path, x, prefix: str = "", exclude=(), names=()):
     relative_folder = folder_path.lstrip("/\\")
     search_bases = []
     if _CURRENT_DATA_FOLDER:
@@ -100,7 +100,49 @@ def get_files(folder_path, x):
         return []
 
     files = [f for f in folder.iterdir() if f.is_file()]
+    if prefix:
+        files = [f for f in files if f.name.lower().startswith(prefix.lower())]
+    if exclude:
+        skipped = {name.lower() for name in exclude}
+        files = [f for f in files if f.stem.lower() not in skipped]
+    if names:
+        by_stem: dict[str, Path] = {}
+        for f in sorted(files, key=lambda f: f.name.lower()):
+            by_stem.setdefault(f.stem.lower(), f)
+        files = [by_stem[n.lower()] for n in names if n.lower() in by_stem]
     return files[:x]
+
+
+MERGED_PDF_FOLDER = "_merged"
+
+
+def merge_files_to_pdf(files: list[Path], name: str) -> Path | None:
+    """Merge ``files`` (PDFs or images), sorted by name, into one PDF saved as
+    data_<passport>/_merged/<name>. None when no page could be added."""
+    import fitz
+
+    out_dir = (_CURRENT_DATA_FOLDER or DATA_RESOURCE_DIR) / MERGED_PDF_FOLDER
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / name
+    merged = fitz.open()
+    try:
+        for path in sorted(files, key=lambda f: f.name.lower()):
+            try:
+                with fitz.open(str(path)) as src:
+                    if src.is_pdf:
+                        merged.insert_pdf(src)
+                    else:
+                        with fitz.open("pdf", src.convert_to_pdf()) as page_pdf:
+                            merged.insert_pdf(page_pdf)
+            except Exception as exc:  # unreadable file: skip it, keep the rest
+                print(f"[merge_pdf] skip {path.name}: {exc}", flush=True)
+        if merged.page_count == 0:
+            return None
+        out.unlink(missing_ok=True)
+        merged.save(str(out), garbage=3, deflate=True)
+        return out
+    finally:
+        merged.close()
 
 
 async def api_upload_file_common(
