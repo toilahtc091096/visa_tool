@@ -237,10 +237,11 @@ class InviterLocationFromPinyin:
     """Mixin (put before the profile class): the inviter's place in China comes
     from inviterProvincePinyin / inviterCityPinyin / inviterDistrictPinyin.
 
-    When the pinyin resolves (utils.china_location), it replaces inviteProvince
-    and the arrival / stay / departure city + district, and fills
-    inviteZipCode with the district postcode. When it doesn't, the request
-    values are kept and the miss is logged.
+    The request's arrivalCity / stayCity / departureCity (+ districts) are
+    ignored: city and district come only from the pinyin (utils.china_location),
+    and inviteZipCode from the district postcode. A level the pinyin does not
+    resolve is left empty and the miss is logged. inviteProvince from the
+    request is kept only when the province pinyin does not resolve.
     """
 
     def build_travel_json(self, travel) -> dict[str, Any]:
@@ -264,7 +265,7 @@ class InviterLocationFromPinyin:
                 "resolved": place,
             }
             if "city_code" not in place:
-                # Request city/district values are kept: check them by hand.
+                # City / district are sent empty: check them by hand.
                 event["warning"] = "inviter city not found from pinyin"
             elif (
                 "county_code" in place
@@ -276,14 +277,17 @@ class InviterLocationFromPinyin:
             log_event(event)
         if "province_code" in place:
             travel = replace(travel, inviteProvince=place["province_code"])
-        if "city_code" in place:
-            city = place["city_code"]
-            travel = replace(travel, arrivalCity=city, stayCity=city, departureCity=city)
-        if "county_code" in place:
-            county = place["county_code"]
-            travel = replace(
-                travel, arrivalDistrict=county, stayDistrict=county, departureDistrict=county
-            )
+        city = place.get("city_code", "")
+        county = place.get("county_code", "")
+        travel = replace(
+            travel,
+            arrivalCity=city,
+            stayCity=city,
+            departureCity=city,
+            arrivalDistrict=county,
+            stayDistrict=county,
+            departureDistrict=county,
+        )
         travel_json = super().build_travel_json(travel)
         if place.get("postcode"):
             travel_json["inviteZipCode"] = place["postcode"]
