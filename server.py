@@ -140,6 +140,7 @@ def run(payload: dict[str, Any] = Body(...)):
     if authorization:
         append_authorization(authorization)
     case = build_case(payload)
+    location_pinyin = _location_pinyin(case)
     result = main(
         case,
         first_applyid=case.get("first_applyid", ""),
@@ -152,9 +153,9 @@ def run(payload: dict[str, Any] = Body(...)):
         inviterPhone=case.get("inviterPhone", case.get("inviter_id_phone", "")),
         inviteCompanyPhone=case.get("inviteCompanyPhone", ""),
         inviteZipCode=case.get("inviteZipCode", ""),
-        inviterProvincePinyin=case.get("inviterProvincePinyin", ""),
-        inviterCityPinyin=case.get("inviterCityPinyin", ""),
-        inviterDistrictPinyin=case.get("inviterDistrictPinyin", ""),
+        inviterProvincePinyin=location_pinyin[0],
+        inviterCityPinyin=location_pinyin[1],
+        inviterDistrictPinyin=location_pinyin[2],
         inviterAddress=case.get("inviterAddress", ""),
         inviterRelation=case.get("inviterRelation", case.get("inviterrelation", "")),
         inviterName=case.get("inviterName", case.get("inviter_name", "")),
@@ -164,6 +165,24 @@ def run(payload: dict[str, Any] = Body(...)):
         emergencyPhone=case.get("emergencyPhone", ""),
     )
     return JSONResponse(status_code=_run_status_code(result), content=result)
+
+
+# Place in China as pinyin (province, city, district), by visa type:
+#   M (inviting company): provinceNamePinyin / cityNamePinyin / districtNamePinyin
+#   others, e.g. Q1/Q2 (inviter): inviterProvincePinyin / inviterCityPinyin /
+#   inviterDistrictPinyin
+_M_LOCATION_PINYIN_KEYS = ("provinceNamePinyin", "cityNamePinyin", "districtNamePinyin")
+_INVITER_LOCATION_PINYIN_KEYS = (
+    "inviterProvincePinyin",
+    "inviterCityPinyin",
+    "inviterDistrictPinyin",
+)
+
+
+def _location_pinyin(case: dict[str, Any]) -> tuple[str, str, str]:
+    is_m = str(case.get("visa_type", "") or "").strip().upper().startswith("M")
+    keys = _M_LOCATION_PINYIN_KEYS if is_m else _INVITER_LOCATION_PINYIN_KEYS
+    return tuple(str(case.get(key, "") or "").strip() for key in keys)
 
 
 def _run_status_code(result: dict[str, Any]) -> int:

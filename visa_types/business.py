@@ -9,7 +9,7 @@ from constants import REGION, REGION_SOUTH, TRAVEL_PAY_FOR_ORGANIZATION
 from flows.flow_payloads import _normalize_ascii_upper, getL30TravelInfo
 from utils import date_util, ensure_company_doanh_nghiep_downloaded
 
-from .base import ReuseRule, VisaProfile, register
+from .base import InviterLocationFromPinyin, ReuseRule, VisaProfile, register
 from .documents import CV_DOC_FOLDERS, VisaCenterConfirmation
 
 COMPANY_REUSE = ReuseRule(
@@ -65,7 +65,7 @@ class BusinessVisa(VisaProfile):
         return travel_json
 
 
-class SouthBusinessVisa(BusinessVisa):
+class SouthBusinessVisa(InviterLocationFromPinyin, BusinessVisa):
     """South (HCMC) M: same flow as the North M, plus the Vietnamese company
     as the payer. With employer_name in the request, the work info is a
     "Company employee" experience at that employer (begin date from
@@ -73,6 +73,9 @@ class SouthBusinessVisa(BusinessVisa):
     UPLOAD_CONFIG_SOUTH_M."""
 
     south_employer_work = True
+    # Inviting company's place from provinceNamePinyin / cityNamePinyin /
+    # districtNamePinyin; request values kept for levels not resolved.
+    pinyin_only_location = False
 
     def finalize_travel_json(self, travel_json: dict[str, Any], travel) -> None:
         # The applicant's company (companyNameVi) pays for the trip.

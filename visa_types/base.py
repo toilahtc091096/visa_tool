@@ -253,7 +253,12 @@ class InviterLocationFromPinyin:
     and inviteZipCode from the district postcode. A level the pinyin does not
     resolve is left empty and the miss is logged. inviteProvince from the
     request is kept only when the province pinyin does not resolve.
+
+    pinyin_only_location = False (South M): a level the pinyin does not
+    resolve keeps the request value, and a request inviteZipCode wins.
     """
+
+    pinyin_only_location: ClassVar[bool] = True
 
     def build_travel_json(self, travel) -> dict[str, Any]:
         from dataclasses import replace
@@ -290,17 +295,16 @@ class InviterLocationFromPinyin:
             travel = replace(travel, inviteProvince=place["province_code"])
         city = place.get("city_code", "")
         county = place.get("county_code", "")
-        travel = replace(
-            travel,
-            arrivalCity=city,
-            stayCity=city,
-            departureCity=city,
-            arrivalDistrict=county,
-            stayDistrict=county,
-            departureDistrict=county,
-        )
+        if self.pinyin_only_location or city:
+            travel = replace(travel, arrivalCity=city, stayCity=city, departureCity=city)
+        if self.pinyin_only_location or county:
+            travel = replace(
+                travel, arrivalDistrict=county, stayDistrict=county, departureDistrict=county
+            )
         travel_json = super().build_travel_json(travel)
-        if place.get("postcode"):
+        if place.get("postcode") and (
+            self.pinyin_only_location or not travel_json.get("inviteZipCode")
+        ):
             travel_json["inviteZipCode"] = place["postcode"]
         return travel_json
 
