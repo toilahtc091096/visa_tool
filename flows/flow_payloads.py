@@ -1156,6 +1156,9 @@ class TravelInputs:
     inviterPhone: str = ""
     inviteCompanyPhone: str = ""
     inviteZipCode: str = ""
+    inviterProvincePinyin: str = ""
+    inviterCityPinyin: str = ""
+    inviterDistrictPinyin: str = ""
     companyNameVi: str = ""
     companyAddressUpperNoAccent: str = ""
 
@@ -1440,6 +1443,9 @@ def build_travel_info_profile(
     inviterPhone: str = "",
     inviteCompanyPhone: str = "",
     inviteZipCode: str = "",
+    inviterProvincePinyin: str = "",
+    inviterCityPinyin: str = "",
+    inviterDistrictPinyin: str = "",
     companyNameVi: str = "",
     companyAddressUpperNoAccent: str = "",
     emergencyFamilyName: str = "",
@@ -1517,6 +1523,9 @@ def build_travel_info_profile(
         inviterPhone=inviterPhone,
         inviteCompanyPhone=inviteCompanyPhone,
         inviteZipCode=inviteZipCode,
+        inviterProvincePinyin=inviterProvincePinyin,
+        inviterCityPinyin=inviterCityPinyin,
+        inviterDistrictPinyin=inviterDistrictPinyin,
         companyNameVi=companyNameVi,
         companyAddressUpperNoAccent=companyAddressUpperNoAccent,
     )

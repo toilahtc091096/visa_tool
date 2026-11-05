@@ -233,6 +233,47 @@ class VisaProfile:
                 )
 
 
+class InviterLocationFromPinyin:
+    """Mixin (put before the profile class): the inviter's place in China comes
+    from inviterProvincePinyin / inviterCityPinyin / inviterDistrictPinyin.
+
+    When the pinyin resolves (utils.china_location), it replaces inviteProvince
+    and the arrival / stay / departure city + district, and fills
+    inviteZipCode with the district postcode. When it doesn't, the request
+    values are kept and the miss is logged.
+    """
+
+    def build_travel_json(self, travel) -> dict[str, Any]:
+        from dataclasses import replace
+
+        from utils import log_event
+        from utils.china_location import resolve_china_location
+
+        names = (
+            travel.inviterProvincePinyin,
+            travel.inviterCityPinyin,
+            travel.inviterDistrictPinyin,
+        )
+        place: dict[str, str] = {}
+        if any(str(n or "").strip() for n in names):
+            place = resolve_china_location(*names)
+            log_event({"step": "inviter_location", "pinyin": list(names), "resolved": place})
+        if "province_code" in place:
+            travel = replace(travel, inviteProvince=place["province_code"])
+        if "city_code" in place:
+            city = place["city_code"]
+            travel = replace(travel, arrivalCity=city, stayCity=city, departureCity=city)
+        if "county_code" in place:
+            county = place["county_code"]
+            travel = replace(
+                travel, arrivalDistrict=county, stayDistrict=county, departureDistrict=county
+            )
+        travel_json = super().build_travel_json(travel)
+        if place.get("postcode"):
+            travel_json["inviteZipCode"] = place["postcode"]
+        return travel_json
+
+
 _REGISTRY: dict[str, VisaProfile] = {}
 
 

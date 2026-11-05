@@ -18,7 +18,7 @@ from constants import (
 from flows.flow_payloads import form_inviter_relation, getL30TravelInfo
 from utils import date_util
 
-from .base import VisaProfile, register
+from .base import InviterLocationFromPinyin, VisaProfile, register
 from .documents import InvitationLetter, VisaCenterConfirmation
 
 
@@ -89,9 +89,10 @@ class SouthInviteRelationZh:
         return travel_json
 
 
-class SouthQ1Visa(SouthInviteRelationZh, Q1Visa):
+class SouthQ1Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q1Visa):
     """South (HCMC) Q1: same flow as the North Q1, with inviteRelation in
-    Chinese. Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
+    Chinese and the inviter's place from pinyin. Its upload table is
+    UPLOAD_CONFIG_SOUTH_Q1."""
 
 
 register(SouthQ1Visa if REGION == REGION_SOUTH else Q1Visa)
@@ -104,9 +105,10 @@ class Q2Visa(FamilyVisa):
     documents = (VisaCenterConfirmation(), InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
 
 
-class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
+class SouthQ2Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q2Visa):
     """South (HCMC) Q2: same flow as the North Q2, with inviteRelation in
-    Chinese. Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
+    Chinese and the inviter's place from pinyin. Its upload table is
+    UPLOAD_CONFIG_SOUTH_Q2."""
 
 
 register(SouthQ2Visa if REGION == REGION_SOUTH else Q2Visa)

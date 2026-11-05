@@ -24,6 +24,9 @@ DEFAULT_CASE: dict[str, Any] = {
     "inviterPhone": "",
     "inviteCompanyPhone": "",
     "inviteZipCode": "",
+    "inviterProvincePinyin": "",
+    "inviterCityPinyin": "",
+    "inviterDistrictPinyin": "",
     "inviterAddress": "",
     "inviterRelation": "",
     "inviterName": "",
@@ -286,6 +289,9 @@ def main(
     inviterPhone: str = "",
     inviteCompanyPhone: str = "",
     inviteZipCode: str = "",
+    inviterProvincePinyin: str = "",
+    inviterCityPinyin: str = "",
+    inviterDistrictPinyin: str = "",
     inviterAddress: str = "",
     inviterRelation: str = "",
     inviterName: str = "",
@@ -374,6 +380,12 @@ def main(
         data["inviteCompanyPhone"] = str(inviteCompanyPhone).strip()
     if inviteZipCode:
         data["inviteZipCode"] = str(inviteZipCode).strip()
+    if inviterProvincePinyin:
+        data["inviterProvincePinyin"] = str(inviterProvincePinyin).strip()
+    if inviterCityPinyin:
+        data["inviterCityPinyin"] = str(inviterCityPinyin).strip()
+    if inviterDistrictPinyin:
+        data["inviterDistrictPinyin"] = str(inviterDistrictPinyin).strip()
     if inviterAddress:
         data["inviterAddress"] = str(inviterAddress).strip()
     if inviterRelation:
@@ -499,6 +511,9 @@ def main(
             inviterPhone=data.get("inviterPhone", ""),
             inviteCompanyPhone=data.get("inviteCompanyPhone", ""),
             inviteZipCode=data.get("inviteZipCode", ""),
+            inviterProvincePinyin=data.get("inviterProvincePinyin", ""),
+            inviterCityPinyin=data.get("inviterCityPinyin", ""),
+            inviterDistrictPinyin=data.get("inviterDistrictPinyin", ""),
             inviterAddress=data.get("inviterAddress", ""),
             inviterRelation=data.get("inviterRelation", ""),
             inviterName=data.get("inviterName", ""),
