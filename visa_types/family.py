@@ -6,7 +6,7 @@ from __future__ import annotations
 import unicodedata
 from calendar import monthrange
 from datetime import date
-from typing import Any
+from typing import Any, ClassVar
 
 from constants import (
     Q1_THU_MOI_OUTPUT_PATH,
@@ -24,6 +24,9 @@ from .documents import InvitationLetter, VisaCenterConfirmation
 
 class FamilyVisa(VisaProfile):
     always_self_paid = True
+    # True: leave date = arrival + visa_duration (stay days) rounded to
+    # months, instead of arrival + apply_visa_validity months.
+    leave_after_stay_days: ClassVar[bool] = False
 
     @property
     def service_key(self) -> str:
@@ -56,8 +59,17 @@ class FamilyVisa(VisaProfile):
             departureDistrict=travel.departureDistrict,
             apply_visa_validity=travel.apply_visa_validity,
             stay_one_year=self.code == "Q1",
+            stay_days=_stay_days(travel.visa_duration)
+            if self.leave_after_stay_days
+            else None,
         )
         return travel_json
+
+
+def _stay_days(value: Any) -> int | None:
+    """visa_duration "30" -> 30; None when it is not a positive number."""
+    text = str(value or "").strip()
+    return int(text) if text.isdigit() and int(text) > 0 else None
 
 
 class Q1Visa(FamilyVisa):
@@ -116,8 +128,10 @@ class Q2Visa(FamilyVisa):
 class SouthQ2Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q2Visa):
     """South (HCMC) Q2: same flow as the North Q2, with inviteRelation in
     Chinese, the inviter's place from pinyin and the South invitation letter.
+    Leave date = arrival + visa_duration stay days, rounded to months.
     Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
 
+    leave_after_stay_days = True
     documents = (
         VisaCenterConfirmation(),
         InvitationLetter(Q2_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
@@ -170,6 +184,7 @@ def _apply_q_single_stay_overrides(
     departureDistrict: str = "",
     apply_visa_validity: Any | None = None,
     stay_one_year: bool = False,
+    stay_days: int | None = None,
 ) -> None:
     """
     Q-specific travel override.
@@ -193,10 +208,14 @@ def _apply_q_single_stay_overrides(
     except (TypeError, ValueError):
         validity_months = 6
     # Q1 (long stay, both regions): leave exactly one year after arrival (same
-    # month and day; 29 Feb -> 28 Feb). Others: arrival + visa validity.
-    departure_date = _add_months_to_date(
-        arrival_date, 12 if stay_one_year else validity_months
-    )
+    # month and day; 29 Feb -> 28 Feb). South Q2: stay days rounded to months
+    # (30 days = 1 month, at least 1), same day of the month: 30 -> +1 month,
+    # 90 -> +3. Others: arrival + visa validity.
+    if stay_days and not stay_one_year:
+        months = max(1, int(stay_days / 30 + 0.5))
+    else:
+        months = 12 if stay_one_year else validity_months
+    departure_date = _add_months_to_date(arrival_date, months)
 
     arrival_date_str = date_util.iso_date_str(arrival_date)
     departure_date_str = date_util.iso_date_str(departure_date)

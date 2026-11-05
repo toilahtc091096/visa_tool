@@ -345,6 +345,7 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         inviterProvincePinyin=getattr(ctx, "inviterProvincePinyin", ""),
         inviterCityPinyin=getattr(ctx, "inviterCityPinyin", ""),
         inviterDistrictPinyin=getattr(ctx, "inviterDistrictPinyin", ""),
+        visa_duration=getattr(ctx, "visa_duration", ""),
         companyNameVi=getattr(ctx, "companyNameVi", ""),
         companyAddressUpperNoAccent=getattr(ctx, "companyAddressUpperNoAccent", ""),
         emergencyFamilyName=getattr(ctx, "emergencyFamilyName", ""),
