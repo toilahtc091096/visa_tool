@@ -62,12 +62,42 @@ def _match(rows: list[dict[str, Any]], key: str, suffixes: tuple[str, ...]) -> d
     return hits[0] if len(hits) == 1 else None
 
 
-def resolve_china_location(province: str, city: str, district: str = "") -> dict[str, str]:
+_COUNTY_SUFFIXES = ("zizhixian", "shi", "xian", "qu", "qi")
+
+
+def _county_in_province(
+    data: dict[str, list[dict[str, Any]]], province_id: str, name: str, id_card: str
+) -> dict | None:
+    """A county-level place given as the city ("Nánān Shì" = 南安市, under
+    Quanzhou): search every county of the province. Several hits (same name)
+    are told apart only by the ID card's first 6 digits; otherwise no guess."""
+    key = name_key(name)
+    if not key:
+        return None
+    city_ids = {r["id"] for r in data["cities"] if r["parent_id"] == province_id}
+    rows = [r for r in data["counties"] if r["parent_id"] in city_ids]
+    hits = [r for r in rows if r["key"] == key]
+    if not hits:
+        bare = _strip_suffix(key, _COUNTY_SUFFIXES)
+        hits = [r for r in rows if _strip_suffix(r["key"], _COUNTY_SUFFIXES) == bare]
+    if len(hits) > 1:
+        hits = [r for r in hits if r["code"] == str(id_card or "").strip()[:6]]
+    return hits[0] if len(hits) == 1 else None
+
+
+def resolve_china_location(
+    province: str, city: str, district: str = "", id_card: str = ""
+) -> dict[str, str]:
     """Pinyin names -> COVA codes, matched level by level under the parent.
 
     Returns the levels found, e.g. {"province_code": "GX", "city_code": "QZH",
     "county_code": "450703", "postcode": "535000"}; a level that is not found
     (and every level below it) is left out.
+
+    When the city name is not a prefecture-level city but a county-level one
+    of the province (南安市 "Nánān Shì"), the city becomes its parent city and
+    the county that place. id_card (the inviter's ID number) only breaks ties
+    between counties with the same name.
     """
     data = _load()
     found: dict[str, str] = {}
@@ -77,11 +107,16 @@ def resolve_china_location(province: str, city: str, district: str = "") -> dict
     found["province_code"] = prov["code"]
     cities = [r for r in data["cities"] if r["parent_id"] == prov["id"]]
     cty = _match(cities, name_key(city), _CITY_SUFFIXES)
+    if cty:
+        counties = [r for r in data["counties"] if r["parent_id"] == cty["id"]]
+        cnty = _match(counties, name_key(district), ())
+    else:
+        cnty = _county_in_province(data, prov["id"], city, id_card)
+        if cnty:
+            cty = next(r for r in cities if r["id"] == cnty["parent_id"])
     if not cty:
         return found
     found["city_code"] = cty["code"]
-    counties = [r for r in data["counties"] if r["parent_id"] == cty["id"]]
-    cnty = _match(counties, name_key(district), ())
     if not cnty:
         return found
     found["county_code"] = cnty["code"]

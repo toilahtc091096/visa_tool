@@ -254,10 +254,26 @@ class InviterLocationFromPinyin:
             travel.inviterCityPinyin,
             travel.inviterDistrictPinyin,
         )
+        id_card = str(getattr(travel, "inviterIdCard", "") or "").strip()
         place: dict[str, str] = {}
         if any(str(n or "").strip() for n in names):
-            place = resolve_china_location(*names)
-            log_event({"step": "inviter_location", "pinyin": list(names), "resolved": place})
+            place = resolve_china_location(*names, id_card=id_card)
+            event: dict[str, Any] = {
+                "step": "inviter_location",
+                "pinyin": list(names),
+                "resolved": place,
+            }
+            if "city_code" not in place:
+                # Request city/district values are kept: check them by hand.
+                event["warning"] = "inviter city not found from pinyin"
+            elif (
+                "county_code" in place
+                and len(id_card) >= 6
+                and id_card[:6] != place["county_code"]
+            ):
+                # Only a note: the inviter may live away from the ID's county.
+                event["note"] = f"ID card county {id_card[:6]} != {place['county_code']}"
+            log_event(event)
         if "province_code" in place:
             travel = replace(travel, inviteProvince=place["province_code"])
         if "city_code" in place:
