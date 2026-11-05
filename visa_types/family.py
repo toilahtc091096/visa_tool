@@ -3,6 +3,7 @@ S2 (foreigner's family member / personal matters) reuses the Q2 flow."""
 
 from __future__ import annotations
 
+import unicodedata
 from calendar import monthrange
 from datetime import date
 from typing import Any
@@ -12,6 +13,7 @@ from constants import (
     Q2_THU_MOI_OUTPUT_PATH,
     REGION,
     REGION_SOUTH,
+    SOUTH_INVITE_RELATION_ZH,
 )
 from flows.flow_payloads import getL30TravelInfo
 from utils import date_util
@@ -65,9 +67,30 @@ class Q1Visa(FamilyVisa):
     documents = (VisaCenterConfirmation(), InvitationLetter(Q1_THU_MOI_OUTPUT_PATH))
 
 
-class SouthQ1Visa(Q1Visa):
-    """South (HCMC) Q1: same flow as the North Q1 for now; override here to
-    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
+def _relation_key(value: str) -> str:
+    """'Chồng' / 'CHONG' -> 'chong' (lowercase, no accents, single spaces)."""
+    text = str(value or "").replace("đ", "d").replace("Đ", "D")
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return " ".join(text.lower().split())
+
+
+class SouthInviteRelationZh:
+    """South Q1 / Q2: send inviteRelation in Chinese (CHONG -> 丈夫)."""
+
+    def build_travel_json(self, travel) -> dict[str, Any]:
+        travel_json = super().build_travel_json(travel)
+        relation = SOUTH_INVITE_RELATION_ZH.get(
+            _relation_key(travel_json.get("inviteRelation", ""))
+        )
+        if relation:
+            travel_json["inviteRelation"] = relation
+        return travel_json
+
+
+class SouthQ1Visa(SouthInviteRelationZh, Q1Visa):
+    """South (HCMC) Q1: same flow as the North Q1, with inviteRelation in
+    Chinese. Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
 
 
 register(SouthQ1Visa if REGION == REGION_SOUTH else Q1Visa)
@@ -80,9 +103,9 @@ class Q2Visa(FamilyVisa):
     documents = (VisaCenterConfirmation(), InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
 
 
-class SouthQ2Visa(Q2Visa):
-    """South (HCMC) Q2: same flow as the North Q2 for now; override here to
-    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
+class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
+    """South (HCMC) Q2: same flow as the North Q2, with inviteRelation in
+    Chinese. Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
 
 
 register(SouthQ2Visa if REGION == REGION_SOUTH else Q2Visa)

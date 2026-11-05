@@ -1875,6 +1875,21 @@ GUARANTOR_RELATION_ZH = {
     ),
 }
 GUARANTOR_DEFAULT_RELATION_ZH = "父亲"
+
+# South Q1 / Q2: travel info "inviteRelation" in Chinese. Keys are the request
+# inviterRelation, lowercase without accents; other values are sent as given.
+SOUTH_INVITE_RELATION_ZH = {
+    "chong": "丈夫",
+    "vo": "妻子",
+    **dict.fromkeys(("bo", "cha", "ba"), "父亲"),
+    "me": "母亲",
+    "con trai": "儿子",
+    "con gai": "女儿",
+    **dict.fromkeys(("anh", "anh trai"), "哥哥"),
+    **dict.fromkeys(("chi", "chi gai"), "姐姐"),
+    "em trai": "弟弟",
+    "em gai": "妹妹",
+}
 GUARANTOR_NOTE_TEMPLATE = "因为孩子还小，所以{relation}替签名"
 
 # Vietnam retirement age (Labour Code 2019, Decree 135/2020), in months, by
