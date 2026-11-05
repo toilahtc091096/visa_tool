@@ -1432,6 +1432,16 @@ def _first_nonempty(*sources: dict[str, object] | list) -> dict[str, object]:
     return {"first_of": list(sources)}
 
 
+def _south_hukou() -> dict[str, object]:
+    """South HUKOU_OR_EMPLOYMENT_LETTER (mfa-097): only the first of these that
+    has files: old Chinese visa photos, other countries' visa photos, CT07."""
+    return _first_nonempty(
+        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
+        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
+        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
+    )
+
+
 # Local folders filling each doc_type: {visa_type: {doc_type: source | [sources]}}.
 # With several sources, files are taken from them in order.
 UPLOAD_CONFIG: dict[str, dict[str, object]] = {
@@ -1584,9 +1594,8 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
 # a PASSPORT_INFO_PAGE slot (South so far) actually use it.
 for _visa_config in UPLOAD_CONFIG.values():
     _visa_config["PASSPORT_INFO_PAGE"] = _passport_image()
-    # South: CT07 (giay_cu_tru) when there is one, otherwise the old Chinese visa
-    # photos, otherwise the other countries' visa photos. The old Chinese visa
-    # photos still go to PREV_CHINESE_VISA as well.
+    # South HUKOU: see _south_hukou (old Chinese visa, other visas, then CT07).
+    # The old Chinese visa photos still go to PREV_CHINESE_VISA as well.
     if REGION == REGION_SOUTH:
         # Old Chinese visa (up to 3), then other countries' visas (up to 3)
         # in the next free slots.
@@ -1594,11 +1603,7 @@ for _visa_config in UPLOAD_CONFIG.values():
             _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
             _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
         ]
-        _visa_config["HUKOU_OR_EMPLOYMENT_LETTER"] = _first_nonempty(
-            _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-            _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-            _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-        )
+        _visa_config["HUKOU_OR_EMPLOYMENT_LETTER"] = _south_hukou()
 # South M has its own complete table (started from the North M one) so it can
 # change without touching the North.
 UPLOAD_CONFIG_SOUTH_M: dict[str, object] = {
@@ -1607,11 +1612,7 @@ UPLOAD_CONFIG_SOUTH_M: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
     "THU_MOI": _files(DOANH_NGHIEP_THU_MOI_OUTPUT_PATH, 2),
     "DANG_KY_DOANH_NGHIEP_TQ": _files(DOANH_NGHIEP_DANG_KY_TQ_OUTPUT_PATH, 3),
@@ -1625,11 +1626,7 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "THU_MOI": _files(Q1_THU_MOI_OUTPUT_PATH, 3),
     # One PDF of every file in tham-than\cccd.
     "CCCD_NGUOI_MOI": _merged_pdf(
@@ -1660,11 +1657,7 @@ UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "CCCD_NGUOI_MOI": _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 3),
     "THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 2),
     "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
@@ -1680,11 +1673,7 @@ UPLOAD_CONFIG_SOUTH_S2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "CCCD_NGUOI_MOI": _files(S2_CCCD_NGUOI_MOI_OUTPUT_PATH, 1),
     "THU_MOI": _files(S2_THU_MOI_OUTPUT_PATH, 1),
     "CHUNG_MINH_QUAN_HE": _files(S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 1),
@@ -1700,11 +1689,7 @@ UPLOAD_CONFIG_SOUTH_F: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "THU_MOI": _files(F_THU_MOI_OUTPUT_PATH, 2),
     "QUYET_DINH_DU_HOC": _files(F_QUYET_DINH_DU_HOC_OUTPUT_PATH, 2),
     "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
@@ -1716,11 +1701,7 @@ UPLOAD_CONFIG_SOUTH_X1: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "GIAY_BAO_NHAP_HOC": _files(X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH, 2),
     "JW": _files(X_JW_OUTPUT_PATH, 3),
     "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
@@ -1732,11 +1713,7 @@ UPLOAD_CONFIG_SOUTH_X2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3),
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
-    "HUKOU_OR_EMPLOYMENT_LETTER": _first_nonempty(
-        _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 4),
-        _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 4),
-    ),
+    "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
     "GIAY_BAO_NHAP_HOC": _files(X_GIAY_BAO_NHAP_HOC_OUTPUT_PATH, 2),
     "JW": _files(X_JW_OUTPUT_PATH, 1),
     "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
