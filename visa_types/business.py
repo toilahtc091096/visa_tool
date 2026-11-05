@@ -67,7 +67,12 @@ class BusinessVisa(VisaProfile):
 
 class SouthBusinessVisa(BusinessVisa):
     """South (HCMC) M: same flow as the North M, plus the Vietnamese company
-    as the payer. Its upload table is UPLOAD_CONFIG_SOUTH_M."""
+    as the payer. With employer_name in the request, the work info is a
+    "Company employee" experience at that employer (begin date from
+    date_util.work_experience_begin_date). Its upload table is
+    UPLOAD_CONFIG_SOUTH_M."""
+
+    south_employer_work = True
 
     def finalize_travel_json(self, travel_json: dict[str, Any], travel) -> None:
         # The applicant's company (companyNameVi) pays for the trip.

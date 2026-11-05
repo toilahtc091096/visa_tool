@@ -67,6 +67,9 @@ class VisaProfile:
     job_type_label: ClassVar[str | None] = None
     """Forced work-info job type; None picks a random preferred one."""
     works_at_inviting_company: ClassVar[bool] = False
+    # South: an employer in the request (employer_name) gives a "Company
+    # employee" work experience instead of the position-only remark.
+    south_employer_work: ClassVar[bool] = False
     """Work experience is the company given in the request (company* fields)."""
     manager_is_emergency_contact: ClassVar[bool] = False
     always_self_paid: ClassVar[bool] = False
@@ -115,9 +118,15 @@ class VisaProfile:
         from utils import log_event
 
         has_input = self._has_work_input(ctx)
+        south_employer = (
+            REGION == REGION_SOUTH
+            and self.south_employer_work
+            and not ctx.is_under_18
+            and bool(str(getattr(ctx, "employer_name", "") or "").strip())
+        )
         south_position = (
             self._south_position(ctx)
-            if REGION == REGION_SOUTH and not ctx.is_under_18
+            if REGION == REGION_SOUTH and not ctx.is_under_18 and not south_employer
             else ""
         )
         log_event(
@@ -131,7 +140,9 @@ class VisaProfile:
                 "old_item_id": getattr(ctx, "old_item_id", ""),
                 "old_job_type": ctx.job_type,
                 "old_experiences": len(ctx.experiences or []),
-                "branch": "south_position"
+                "branch": "south_employer"
+                if south_employer
+                else "south_position"
                 if south_position
                 else "south_no_input"
                 if REGION == REGION_SOUTH and not has_input
@@ -156,7 +167,7 @@ class VisaProfile:
             ctx.first_applyid,
             ctx.register_date,
             ctx.ct08_province_city_code or ctx.province_city_code,
-            ctx.job_type,
+            JOB_TYPE_BY_LABEL["Company employee"] if south_employer else ctx.job_type,
             ctx.experiences,
             ctx.is_under_18,
             self,
