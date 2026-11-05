@@ -89,10 +89,18 @@ class SouthInviteRelationZh:
         return travel_json
 
 
+SOUTH_Q_TEMPLATE = "Q_Template_MN.docx"
+
+
 class SouthQ1Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q1Visa):
     """South (HCMC) Q1: same flow as the North Q1, with inviteRelation in
-    Chinese and the inviter's place from pinyin. Its upload table is
-    UPLOAD_CONFIG_SOUTH_Q1."""
+    Chinese, the inviter's place from pinyin and the South invitation letter.
+    Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
+
+    documents = (
+        VisaCenterConfirmation(),
+        InvitationLetter(Q1_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
+    )
 
 
 register(SouthQ1Visa if REGION == REGION_SOUTH else Q1Visa)
@@ -107,8 +115,13 @@ class Q2Visa(FamilyVisa):
 
 class SouthQ2Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q2Visa):
     """South (HCMC) Q2: same flow as the North Q2, with inviteRelation in
-    Chinese and the inviter's place from pinyin. Its upload table is
-    UPLOAD_CONFIG_SOUTH_Q2."""
+    Chinese, the inviter's place from pinyin and the South invitation letter.
+    Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
+
+    documents = (
+        VisaCenterConfirmation(),
+        InvitationLetter(Q2_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
+    )
 
 
 register(SouthQ2Visa if REGION == REGION_SOUTH else Q2Visa)

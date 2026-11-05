@@ -279,25 +279,27 @@ class VisaCenterConfirmation(DocumentStep):
 class InvitationLetter(DocumentStep):
     """Invitation letter (thu moi) from the inviter given in the request."""
 
-    template_name = "Q_Template.docx"
-
-    def __init__(self, output_folder: str) -> None:
+    def __init__(self, output_folder: str, template_name: str = "") -> None:
         self.output_folder = output_folder
+        # "" = default choice in thumoi_info (Q_Template / guarantor template).
+        self.template_name = template_name
 
     async def render(self, ctx) -> None:
         log_event(
             {
                 "step": "generate invitation letter file",
                 "ok": "ok",
-                "file": self.template_name,
+                "file": self.template_name or "Q_Template.docx",
             }
         )
         try:
             await thumoi_info.render_thumoi_docx_output_pdf(
-                ctx, self.output_folder, ctx.input_passportNumber
+                ctx, self.output_folder, ctx.input_passportNumber, self.template_name
             )
         except Exception as e:
-            log_exception(e, {"event": "render_failed", "file": self.template_name})
+            log_exception(
+                e, {"event": "render_failed", "file": self.template_name or "Q_Template.docx"}
+            )
             raise
 
 
