@@ -47,6 +47,12 @@ LOGIN_DEFAULT_ORIGIN = "https://bio.visaforchina.cn"
 
 DEFAULT_EMAIL = os.getenv("DEFAULT_EMAIL", "dulichgiangson03@gmail.com").strip()
 DEFAULT_GUID = os.getenv("DEFAULT_GUID", "17097129405490").strip()
+# Fixed emergency contact (both regions), used when the /run payload has none.
+# Name "NGUYỄN THỊ YẾN LY" -> family "NGUYEN", given "THI YEN LY".
+EMERGENCY_CONTACT_NAME = os.getenv("EMERGENCY_CONTACT_NAME", "").strip()
+EMERGENCY_CONTACT_PHONE = os.getenv("EMERGENCY_CONTACT_PHONE", "").strip()
+EMERGENCY_CONTACT_EMAIL = os.getenv("EMERGENCY_CONTACT_EMAIL", "").strip()
+EMERGENCY_CONTACT_RELATION = os.getenv("EMERGENCY_CONTACT_RELATION", "BAN").strip()
 DEFAULT_UID = os.getenv("DEFAULT_UID", "b1faa1d7dbe749acbf94c6818cdebcb7").strip()
 ORIGIN = "https://consular.mfa.gov.cn"
 REFERER = "https://consular.mfa.gov.cn/VISA/node"

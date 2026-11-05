@@ -19,6 +19,7 @@ from constants import (
 from flows.flow_payloads import (
     build_education_info_profile,
     build_south_education_info_without_input,
+    contact_email,
     name_to_gmail,
     build_family_info_profile,
 )
@@ -234,6 +235,14 @@ async def save_family_work_education(ctx, client) -> bool:
     if REGION == REGION_SOUTH and getattr(ctx, "phone", ""):
         body_save_family_info.mobilePhoneNumber = ctx.phone
         body_save_family_info.phoneNumber = ctx.phone
+    # South: email chosen by phone (Vietnamese -> name_123@gmail.com,
+    # Chinese mobile -> phone_123@qq.cn).
+    if REGION == REGION_SOUTH:
+        body_save_family_info.email = contact_email(
+            body_save_family_info.mobilePhoneNumber or body_save_family_info.phoneNumber,
+            ctx.ocr_data.Response.Data.passportFamilyName or "",
+            ctx.ocr_data.Response.Data.passportFirstName or "",
+        )
     parents = body_save_family_info.parents or []
 
     father = next((p for p in parents if p.relation == FAMILY_PARENT_RELATION_FATHER), None)

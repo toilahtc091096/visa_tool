@@ -51,6 +51,10 @@ from constants import (
     UNDER_18_HOTEL_INFO,
     EMERGENCY_RELATION_FATHER,
     EMERGENCY_RELATION_MOTHER,
+    EMERGENCY_CONTACT_EMAIL,
+    EMERGENCY_CONTACT_NAME,
+    EMERGENCY_CONTACT_PHONE,
+    EMERGENCY_CONTACT_RELATION,
     INVITER_RELATION_ZH_SOUTH,
     VIETNAMESE_COMPANY_NAMES,
     cityzen_status,
@@ -1479,6 +1483,20 @@ def build_travel_info_profile(
         emergency_relation = TRAVEL_EMERGENCY_RELATION_MANAGER
         emergency_phone_number = companyPhone.strip()
 
+    # Emergency contact: /run payload, else the fixed one from env, else the
+    # defaults above (parents / manager / random name).
+    emergency_email = ""
+    payload_has_emergency = any(
+        str(v or "").strip()
+        for v in (emergencyFamilyName, emergencyGivenName, emergencyPhone)
+    )
+    if not payload_has_emergency and EMERGENCY_CONTACT_NAME:
+        env_name = _normalize_ascii_upper(EMERGENCY_CONTACT_NAME.replace("đ", "d").replace("Đ", "D")).split()
+        emergency_family = env_name[0]
+        emergency_first = " ".join(env_name[1:])
+        emergency_relation = EMERGENCY_CONTACT_RELATION or emergency_relation
+        emergency_phone_number = EMERGENCY_CONTACT_PHONE or emergency_phone_number
+        emergency_email = EMERGENCY_CONTACT_EMAIL
     # Explicit emergency contact data from /run has the highest priority.
     if str(emergencyFamilyName or "").strip():
         emergency_family = str(emergencyFamilyName).strip()
@@ -1545,11 +1563,41 @@ def build_travel_info_profile(
     profile.finalize_travel_json(travel_json, travel)
     if REGION == REGION_SOUTH:
         travel_json["inviteCounty"] = travel_json.get("arrivalCounty") or ""
-        travel_json["emergencyEmail"] = name_to_gmail(
+        travel_json["emergencyEmail"] = contact_email(
+            travel_json.get("emergencyPhoneNumber", ""),
             travel_json.get("emergencyContactFamilyName", ""),
             travel_json.get("emergencyContactFirstName", ""),
         )
+        if profile.code in ("M", "Q1", "Q2"):
+            travel_json["inviteEmail"] = contact_email(
+                travel_json.get("invitePhoneNumber", ""),
+                travel_json.get("inviteName", ""),
+            )
+    if emergency_email:
+        travel_json["emergencyEmail"] = emergency_email
     return TravelInfoProfile.from_dict(travel_json)
+
+
+def china_mobile(phone: Any) -> str:
+    """'13799464249' / '+86 137-9946-4249' -> '13799464249'; '' when the number
+    is not a Chinese mobile (11 digits starting with 1, optional 86 prefix)."""
+    digits = "".join(ch for ch in str(phone or "") if ch.isdigit())
+    if len(digits) == 13 and digits.startswith("86"):
+        digits = digits[2:]
+    return digits if len(digits) == 11 and digits.startswith("1") else ""
+
+
+def contact_email(phone: Any, *name_parts: str) -> str:
+    """South email for a person, chosen by their phone number:
+    Chinese mobile -> "<phone>@qq.cn";
+    otherwise (Vietnamese) -> "<name>_<3 random digits>@gmail.com".
+    "" when there is neither a Chinese phone nor a latin name."""
+    cn_phone = china_mobile(phone)
+    if cn_phone:
+        return f"{cn_phone}@qq.cn"
+    gmail = name_to_gmail(*name_parts)
+    suffix = f"{random.randrange(1000):03d}"
+    return gmail.replace("@gmail.com", f"_{suffix}@gmail.com") if gmail else ""
 
 
 def name_to_gmail(*name_parts: str) -> str:
