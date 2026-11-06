@@ -1,3 +1,4 @@
+import re
 import os
 import random
 import unicodedata
@@ -1571,11 +1572,11 @@ def build_travel_info_profile(
             travel_json.get("emergencyContactFamilyName", ""),
             travel_json.get("emergencyContactFirstName", ""),
         )
-        if profile.code in ("M", "Q1", "Q2"):
-            travel_json["inviteEmail"] = contact_email(
-                travel_json.get("invitePhoneNumber", ""),
-                travel_json.get("inviteName", ""),
-            )
+    # M / Q1 / Q2, both regions: the inviter's email comes from their phone.
+    if profile.code in ("M", "Q1", "Q2"):
+        email = invite_email(travel_json.get("invitePhoneNumber", ""))
+        if email:
+            travel_json["inviteEmail"] = email
     if emergency_email:
         travel_json["emergencyEmail"] = emergency_email
     return TravelInfoProfile.from_dict(travel_json)
@@ -1588,6 +1589,15 @@ def china_mobile(phone: Any) -> str:
     if len(digits) == 13 and digits.startswith("86"):
         digits = digits[2:]
     return digits if len(digits) == 11 and digits.startswith("1") else ""
+
+
+def invite_email(phone: Any) -> str:
+    """Inviter's email: "<phone digits>@qq.cn" (COVA allows 50 characters).
+    A Chinese mobile drops its 86 prefix; with several numbers ("a / b"),
+    only the first is used. "" when there is no digit."""
+    first = re.split(r"[/,;]", str(phone or ""), maxsplit=1)[0]
+    digits = china_mobile(first) or "".join(ch for ch in first if ch.isdigit())
+    return f"{digits[:40]}@qq.cn" if digits else ""
 
 
 def contact_email(phone: Any, *name_parts: str) -> str:

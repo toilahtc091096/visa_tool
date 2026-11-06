@@ -169,10 +169,7 @@ def _apply_m90_single_stay_overrides(
     invite_phone = str(inviteCompanyPhone or "").strip()
     if invite_phone:
         travel_json["invitePhoneNumber"] = invite_phone
-    # The inviter's email is always <invitePhoneNumber>@qq.cn.
-    phone = str(travel_json.get("invitePhoneNumber") or "").strip()
-    if phone:
-        travel_json["inviteEmail"] = f"{phone}@qq.cn"
+    # inviteEmail (<invitePhoneNumber digits>@qq.cn) is set in build_travel_info_profile.
     invite_zip = str(inviteZipCode or "").strip()
     if invite_zip:
         travel_json["inviteZipCode"] = invite_zip
