@@ -1287,9 +1287,8 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "CCCD_NGUOI_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(1),
             "CCCD_NGUOI_MOI_THU_MOI": MAT_SOUTH_Q1_INVITER_ID.slots(2),
             "CCCD_NGUOI_MOI_QUAN_HE": MAT_SOUTH_Q1_INVITER_ID.slots(3),
-            "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q1_RELATIONSHIP_PROOF.slots(
-                1, 2, 3, 4, 5, 6
-            ),
+            # One merged PDF of tham-than\quan-he.
+            "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q1_RELATIONSHIP_PROOF.slots(1),
             "GUARDIAN_BIRTH_CERTIFICATE": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(1),
             "GUARDIAN_ID": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(2, 3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
@@ -1306,9 +1305,16 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "HUKOU_OR_EMPLOYMENT_LETTER": MAT_SOUTH_RESIDENCE_CERTIFICATE.slots(
                 1, 2, 3, 4
             ),
-            "CCCD_NGUOI_MOI": MAT_SOUTH_Q2_INVITER_ID.slots(1, 2, 3),
+            # Inviter ID category (as South Q1): _1 inviter ID (merged PDF),
+            # _2 invitation letter (same file as THU_MOI _1), _3 relationship
+            # proof (qcm_* files, merged PDF).
+            "CCCD_NGUOI_MOI": MAT_SOUTH_Q2_INVITER_ID.slots(1),
+            "CCCD_NGUOI_MOI_THU_MOI": MAT_SOUTH_Q2_INVITER_ID.slots(2),
+            "CCCD_NGUOI_MOI_QUAN_HE": MAT_SOUTH_Q2_INVITER_ID.slots(3),
+            # Invitation letter category: _1(,_2) letter, _3 relationship proof
+            # (every file of tham-than\quan-he, merged PDF).
             "THU_MOI": MAT_SOUTH_Q2_INVITATION_LETTER.slots(1, 2),
-            "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q2_INVITATION_LETTER.slots(3, 4, 5),
+            "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q2_INVITATION_LETTER.slots(3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
         },
@@ -1643,7 +1649,10 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
     "CCCD_NGUOI_MOI_QUAN_HE": _merged_pdf(
         "quan_he_qcm.pdf", _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
     ),
-    "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 6),
+    # One PDF of every file in tham-than\quan-he (qcm_* included).
+    "CHUNG_MINH_QUAN_HE": _merged_pdf(
+        "quan_he.pdf", _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100)
+    ),
     # Guardian relationship, from the under-18 folder.
     "GUARDIAN_BIRTH_CERTIFICATE": _files(
         L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 1, names=("duoi18_ks",)
@@ -1664,9 +1673,20 @@ UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
     "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
-    "CCCD_NGUOI_MOI": _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 3),
     "THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 2),
-    "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
+    # Same layout as South Q1. One PDF of every file in tham-than\cccd.
+    "CCCD_NGUOI_MOI": _merged_pdf(
+        "cccd_nguoi_moi.pdf", _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 100)
+    ),
+    "CCCD_NGUOI_MOI_THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 1),
+    # One PDF of every qcm_* file in tham-than\quan-he.
+    "CCCD_NGUOI_MOI_QUAN_HE": _merged_pdf(
+        "quan_he_qcm.pdf", _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
+    ),
+    # One PDF of every file in tham-than\quan-he (qcm_* included).
+    "CHUNG_MINH_QUAN_HE": _merged_pdf(
+        "quan_he.pdf", _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100)
+    ),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
