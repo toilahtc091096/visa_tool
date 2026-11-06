@@ -19,4 +19,15 @@ async def validate_initial_inputs(ctx) -> bool:
             f"type_of_visa_sub_value {sub_value!r} not supported for {profile.service_key}",
         )
 
+    # M (both regions): the trip dates must come with the request.
+    if profile.code == "M" and not all(
+        str(getattr(ctx, key, "") or "").strip() for key in ("arrivalDate", "departureDate")
+    ):
+        return await fail_step(
+            ctx,
+            'Phải điền 2 trường "arrivalDate" và "departureDate" '
+            '(ví dụ: "arrivalDate": "2026-12-07", "departureDate": "2026-12-11"), '
+            "hãy tìm trong file để điền",
+        )
+
     return True
