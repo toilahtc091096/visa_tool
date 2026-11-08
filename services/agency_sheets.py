@@ -273,23 +273,55 @@ def write_agency_sheets(summary_items: list[dict[str, Any]]) -> dict[str, Any]:
         build_agency_sheet_row(record, items_by_id.get(record["id"], {}), checked_at)
         for record in records
     ]
-    return _write_rows(rows)
+    return _write_rows(rows, remove_moved=True)
 
 
 def write_agency_sheet_for_record(record_id: int | None) -> dict[str, Any]:
-    """After a successful /run: put the new registration on its agency's sheet."""
+    """Put one registration on its agency's sheet (used by /agency/reassign)."""
     if not record_id or not is_agency_sheet_enabled():
         return {"ok": True, "skipped": "disabled"}
     records = list_visa_registrations_with_agency(
         [record_id],
         exclude_codes=[NORTH_AGENCY_CODE],
     )
-    # Not checked against the visa system yet: checked_at stays empty.
+    # Not checked against the visa system here: checked_at stays empty.
     rows = [build_agency_sheet_row(record, {}, "") for record in records]
     return _write_rows(rows)
 
 
-def _write_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _remove_moved_rows(spreadsheet: Any, agency_by_key: dict[str, str]) -> dict[str, int]:
+    """
+    Delete rows whose registration now belongs to another agency (re-run
+    /run with a different agency code), so it is listed only in its own tab.
+    """
+    removed: dict[str, int] = {}
+    for worksheet in spreadsheet.worksheets():
+        all_values = worksheet.get_all_values()
+        if not all_values:
+            continue
+        header = [str(cell).strip() for cell in all_values[0]]
+        if KEY_COLUMN not in header:
+            continue
+        key_idx = header.index(KEY_COLUMN)
+        row_nums = [
+            row_num
+            for row_num, values in enumerate(all_values[1:], start=2)
+            if len(values) > key_idx
+            and agency_by_key.get(str(values[key_idx]).strip(), worksheet.title)
+            != worksheet.title
+        ]
+        # Bottom-up so the row numbers above stay valid.
+        for row_num in reversed(row_nums):
+            worksheet.delete_rows(row_num)
+        if row_nums:
+            removed[worksheet.title] = len(row_nums)
+    return removed
+
+
+def _write_rows(
+    rows: list[dict[str, Any]],
+    remove_moved: bool = False,
+) -> dict[str, Any]:
     rows_by_agency: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         rows_by_agency.setdefault(row["agency_code"], []).append(row)
@@ -298,9 +330,18 @@ def _write_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     written: dict[str, dict[str, int]] = {}
     errors: dict[str, str] = {}
+    result: dict[str, Any] = {}
     with _SHEET_LOCK:
         client = _load_service_account_client()
         spreadsheet = client.open_by_key(extract_spreadsheet_id(_agency_sheet_url()))
+        if remove_moved:
+            agency_by_key = {
+                row[KEY_COLUMN]: row["agency_code"] for row in rows if row[KEY_COLUMN]
+            }
+            try:
+                result["removed_moved"] = _remove_moved_rows(spreadsheet, agency_by_key)
+            except Exception as exc:
+                errors["remove_moved"] = f"{type(exc).__name__}: {exc}"
         for agency_code, agency_rows in sorted(rows_by_agency.items()):
             try:
                 written[agency_code] = _upsert_worksheet(
@@ -308,7 +349,7 @@ def _write_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 )
             except Exception as exc:
                 errors[agency_code] = f"{type(exc).__name__}: {exc}"
-    return {"ok": not errors, "written": written, "errors": errors}
+    return {"ok": not errors, "written": written, "errors": errors, **result}
 
 
 def remove_record_from_agency_sheet(agency_code: str, visa_apply_id: str) -> int:
