@@ -29,6 +29,10 @@ from services.han_approval import (
 )
 from services import sync_draft_visa_registrations
 from services.agency import assign_agency_to_registration, reassign_agency
+from services.agency_sheets import (
+    remove_record_from_agency_sheet,
+    write_agency_sheet_for_record,
+)
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
@@ -167,10 +171,39 @@ def run(payload: dict[str, Any] = Body(...)):
     )
     if result.get("ok"):
         agency = assign_agency_to_registration(result.get("record_id"), payload)
-        # Google Sheets are written by the sync only, not here.
         if agency:
             result["agency_code"] = agency["agency_code"]
+            # Agency Google Sheet in the background: the response does not wait.
+            # The sync later fills in the visa status columns.
+            threading.Thread(
+                target=_write_agency_sheet_safely,
+                args=(result.get("record_id"), result.get("first_applyid"), agency),
+                daemon=True,
+            ).start()
     return JSONResponse(status_code=_run_status_code(result), content=result)
+
+
+def _write_agency_sheet_safely(
+    record_id: int | None,
+    first_applyid: str | None,
+    agency: dict[str, Any],
+) -> None:
+    try:
+        previous = agency.get("previous_agency_code") or ""
+        if previous and previous != agency.get("agency_code"):
+            # Re-run with another agency (e.g. was CHUNG): drop the old tab's row.
+            remove_record_from_agency_sheet(previous, str(first_applyid or ""))
+        sheet_result = write_agency_sheet_for_record(record_id)
+        log_event({"step": "agency_sheet_after_run", "record_id": record_id, **sheet_result})
+    except Exception as exc:
+        log_event(
+            {
+                "step": "agency_sheet_after_run",
+                "ok": False,
+                "record_id": record_id,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
 
 
 # Place in China as pinyin (province, city, district), by visa type:
