@@ -28,6 +28,7 @@ from services.han_approval import (
     retry_han_approval_jobs,
 )
 from services import sync_draft_visa_registrations
+from services.agency import assign_agency_to_registration
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
@@ -164,6 +165,10 @@ def run(payload: dict[str, Any] = Body(...)):
         emergencyRelationship=case.get("emergencyRelationship", ""),
         emergencyPhone=case.get("emergencyPhone", ""),
     )
+    if result.get("ok"):
+        agency = assign_agency_to_registration(result.get("record_id"), payload)
+        if agency:
+            result["agency_code"] = agency["agency_code"]
     return JSONResponse(status_code=_run_status_code(result), content=result)
 
 

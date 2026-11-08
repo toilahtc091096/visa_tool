@@ -56,3 +56,40 @@ CREATE INDEX IF NOT EXISTS idx_han_approval_jobs_status
 
 CREATE INDEX IF NOT EXISTS idx_han_approval_jobs_han_code
     ON han_approval_jobs (han_code);
+
+-- Agencies (đại lý gốc). Shared by both regions: MB = every North record,
+-- CHUNG = South records sent without an agency code.
+CREATE TABLE IF NOT EXISTS agencies (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(64) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO agencies (code, name) VALUES
+    ('MB', 'Miền Bắc'),
+    ('CHUNG', 'Đại lý chung')
+ON CONFLICT (code) DO NOTHING;
+
+-- Old records keep agency_id NULL.
+ALTER TABLE visa_registrations
+    ADD COLUMN IF NOT EXISTS agency_id BIGINT REFERENCES agencies (id);
+
+CREATE INDEX IF NOT EXISTS idx_visa_registrations_agency_id
+    ON visa_registrations (agency_id);
+
+-- skip = TRUE: the South sync ignores the record. Added once: every record
+-- already in the table at that moment (old, no agency) is marked skip.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'visa_registrations' AND column_name = 'skip'
+    ) THEN
+        ALTER TABLE visa_registrations
+            ADD COLUMN skip BOOLEAN NOT NULL DEFAULT FALSE;
+        UPDATE visa_registrations SET skip = TRUE;
+    END IF;
+END $$;

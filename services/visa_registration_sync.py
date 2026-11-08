@@ -8,11 +8,13 @@ from typing import Any
 import httpx
 
 from api import api_get_online_application_list_by_passport
+from constants import REGION, REGION_SOUTH
 from database.crud import (
     batch_update_visa_registration_status_and_payload,
     delete_visa_registrations_by_passport_except_status,
     list_visa_registrations_by_status,
 )
+from services.agency_sheets import is_agency_sheet_enabled, write_agency_sheets
 from services.google_sheets import write_sync_summary_to_google_sheet
 from utils import load_authorization, load_login_payload, remove_r2
 
@@ -197,7 +199,11 @@ async def sync_draft_visa_registrations(
     selected_statuses = _parse_statuses(statuses)
     total_rows: list[dict[str, Any]] = []
     for status in selected_statuses:
-        rows = list_visa_registrations_by_status(status)
+        # South: records marked skip (old ones) are not synced.
+        rows = list_visa_registrations_by_status(
+            status,
+            include_skipped=REGION != REGION_SOUTH,
+        )
         total_rows.extend(rows)
         print(
             f"[sync_draft] loaded status={status} count={len(rows)}",
@@ -500,6 +506,33 @@ async def sync_draft_visa_registrations(
         print("[sync_draft] google sheet skipped by request", flush=True)
     else:
         print("[sync_draft] google sheet skipped no sheet_url", flush=True)
+
+    # Sheet v2: one worksheet per agency (env AGENCY_SHEET_ENABLED, South only).
+    if is_agency_sheet_enabled() and not skip_google_sheet:
+        try:
+            agency_started_at = time.perf_counter()
+            agency_result = await asyncio.to_thread(
+                write_agency_sheets, summary["items"]
+            )
+            summary["agency_sheet"] = agency_result
+            print(
+                "[sync_draft] agency sheet done "
+                f"duration={time.perf_counter() - agency_started_at:.2f}s "
+                f"written={agency_result.get('written')} "
+                f"errors={agency_result.get('errors')}",
+                flush=True,
+            )
+        except Exception as exc:
+            summary["agency_sheet"] = {
+                "ok": False,
+                "error": type(exc).__name__,
+                "message": str(exc),
+            }
+            print(
+                "[sync_draft] agency sheet failed "
+                f"error={type(exc).__name__} message={exc}",
+                flush=True,
+            )
 
     print(
         "[sync_draft] done "

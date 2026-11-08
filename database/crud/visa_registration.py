@@ -30,6 +30,7 @@ def create_visa_registration(item: VisaRegistration) -> int:
             visa_type = EXCLUDED.visa_type,
             status = EXCLUDED.status,
             payload = EXCLUDED.payload,
+            skip = FALSE,
             updated_at = NOW()
         RETURNING id
     """
@@ -180,13 +181,16 @@ def list_visa_registrations_by_status(
     status: str,
     limit: int | None = None,
     offset: int = 0,
+    include_skipped: bool = True,
 ) -> list[dict[str, Any]]:
     sql = """
         SELECT *
         FROM visa_registrations
         WHERE status = %s
-        ORDER BY id DESC
     """
+    if not include_skipped:
+        sql += " AND NOT skip"
+    sql += " ORDER BY id DESC"
     params: list[Any] = [status]
     if limit is not None:
         sql += " LIMIT %s OFFSET %s"
