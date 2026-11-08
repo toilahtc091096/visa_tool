@@ -29,6 +29,7 @@ from services.han_approval import (
 )
 from services import sync_draft_visa_registrations
 from services.agency import assign_agency_to_registration
+from services.agency_sheets import write_agency_sheet_for_record
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
@@ -169,6 +170,12 @@ def run(payload: dict[str, Any] = Body(...)):
         agency = assign_agency_to_registration(result.get("record_id"), payload)
         if agency:
             result["agency_code"] = agency["agency_code"]
+            # Agency Google Sheet in the background: the response does not wait.
+            threading.Thread(
+                target=_write_agency_sheet_safely,
+                args=(result.get("record_id"),),
+                daemon=True,
+            ).start()
     return JSONResponse(status_code=_run_status_code(result), content=result)
 
 
@@ -188,6 +195,21 @@ def _location_pinyin(case: dict[str, Any]) -> tuple[str, str, str]:
     is_m = str(case.get("visa_type", "") or "").strip().upper().startswith("M")
     keys = _M_LOCATION_PINYIN_KEYS if is_m else _INVITER_LOCATION_PINYIN_KEYS
     return tuple(str(case.get(key, "") or "").strip() for key in keys)
+
+
+def _write_agency_sheet_safely(record_id: int | None) -> None:
+    try:
+        sheet_result = write_agency_sheet_for_record(record_id)
+        log_event({"step": "agency_sheet_after_run", "record_id": record_id, **sheet_result})
+    except Exception as exc:
+        log_event(
+            {
+                "step": "agency_sheet_after_run",
+                "ok": False,
+                "record_id": record_id,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
 
 
 def _run_status_code(result: dict[str, Any]) -> int:

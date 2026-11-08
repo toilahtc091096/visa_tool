@@ -13,6 +13,7 @@ Rows are matched by visa_apply_id (= first_applyid).
 from __future__ import annotations
 
 import os
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -59,6 +60,25 @@ VISA_STATUS_VI = {
     "missing_passport_number": "Thiếu số hộ chiếu",
     "missing_first_applyid": "Thiếu mã hồ sơ",
 }
+
+
+# A passport whose row is in one of these states is not added again.
+# Matched on the status / visa_status_raw / visa_status_vi columns.
+BLOCKING_STATUS_TEXTS = {
+    "under_review",
+    "pending_review",
+    "初审中",
+    "待审核",
+    "đang thẩm định",
+    "chờ thẩm định",
+    "đang chờ duyệt",
+    "chờ duyệt",
+    "under review",
+}
+BLOCKING_STATUS_COLUMNS = ("status", "visa_status_raw", "visa_status_vi")
+
+# One writer at a time: /run (background thread) and the sync share the sheet.
+_SHEET_LOCK = threading.Lock()
 
 
 def is_agency_sheet_enabled() -> bool:
@@ -118,14 +138,32 @@ def build_agency_sheet_row(
         "status": str(row.get("status") or ""),
         "sent_at": _format_sent_at(row.get("created_at")),
         "visa_status_raw": raw,
-        "visa_status_vi": VISA_STATUS_VI.get(raw, raw),
+        "visa_status_vi": VISA_STATUS_VI.get(raw, raw) if raw else "Chờ kiểm tra",
         "visa_app_no": str(row.get("application_code") or ""),
         "reject_reason": str(matched_row.get("rejectReason") or ""),
         "checked_at": checked_at,
     }
 
 
-def _upsert_worksheet(spreadsheet: Any, title: str, rows: list[dict[str, Any]]) -> int:
+def _is_blocking_row(values: list[Any], col_index: dict[str, int]) -> bool:
+    for name in BLOCKING_STATUS_COLUMNS:
+        idx = col_index[name]
+        if idx < len(values):
+            text = str(values[idx]).strip().casefold()
+            if text in BLOCKING_STATUS_TEXTS:
+                return True
+    return False
+
+
+def _upsert_worksheet(
+    spreadsheet: Any,
+    title: str,
+    rows: list[dict[str, Any]],
+) -> dict[str, int]:
+    """
+    Update rows already in the sheet (same visa_apply_id); append the others,
+    except a passport that already has a row under review / waiting for approval.
+    """
     try:
         worksheet = spreadsheet.worksheet(title)
     except Exception:
@@ -161,16 +199,28 @@ def _upsert_worksheet(spreadsheet: Any, title: str, rows: list[dict[str, Any]]) 
 
     col_index = {name: header.index(name) for name in AGENCY_SHEET_HEADER}
     key_idx = col_index[KEY_COLUMN]
+    passport_idx = col_index["passport_no"]
     existing: dict[str, int] = {}
+    blocked_passports: set[str] = set()
     for row_num, values in enumerate(all_values[1:], start=2):
         if len(values) > key_idx and str(values[key_idx]).strip():
             existing[str(values[key_idx]).strip()] = row_num
+        if len(values) > passport_idx and _is_blocking_row(values, col_index):
+            passport = str(values[passport_idx]).strip().upper()
+            if passport:
+                blocked_passports.add(passport)
 
     cell_updates: list[dict[str, Any]] = []
     new_rows: list[list[Any]] = []
+    skipped = 0
     for row in rows:
         key = row[KEY_COLUMN]
         if not key:
+            continue
+        if key not in existing and (
+            str(row["passport_no"]).strip().upper() in blocked_passports
+        ):
+            skipped += 1
             continue
         if key in existing:
             row_num = existing[key]
@@ -189,7 +239,11 @@ def _upsert_worksheet(spreadsheet: Any, title: str, rows: list[dict[str, Any]]) 
         worksheet.batch_update(chunk, value_input_option="RAW")
     if new_rows:
         worksheet.append_rows(new_rows, value_input_option="RAW")
-    return len(rows)
+    return {
+        "updated": len(rows) - len(new_rows) - skipped,
+        "added": len(new_rows),
+        "skipped_same_passport": skipped,
+    }
 
 
 def write_agency_sheets(summary_items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -210,21 +264,43 @@ def write_agency_sheets(summary_items: list[dict[str, Any]]) -> dict[str, Any]:
     checked_at = (
         datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     )
-    rows_by_agency: dict[str, list[dict[str, Any]]] = {}
-    for record in records:
-        row = build_agency_sheet_row(record, items_by_id.get(record["id"], {}), checked_at)
-        rows_by_agency.setdefault(row["agency_code"], []).append(row)
+    rows = [
+        build_agency_sheet_row(record, items_by_id.get(record["id"], {}), checked_at)
+        for record in records
+    ]
+    return _write_rows(rows)
 
+
+def write_agency_sheet_for_record(record_id: int | None) -> dict[str, Any]:
+    """After a successful /run: put the new registration on its agency's sheet."""
+    if not record_id or not is_agency_sheet_enabled():
+        return {"ok": True, "skipped": "disabled"}
+    records = list_visa_registrations_with_agency(
+        [record_id],
+        exclude_codes=[NORTH_AGENCY_CODE],
+    )
+    # Not checked against the visa system yet: checked_at stays empty.
+    rows = [build_agency_sheet_row(record, {}, "") for record in records]
+    return _write_rows(rows)
+
+
+def _write_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    rows_by_agency: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        rows_by_agency.setdefault(row["agency_code"], []).append(row)
     if not rows_by_agency:
         return {"ok": True, "written": {}}
 
-    client = _load_service_account_client()
-    spreadsheet = client.open_by_key(extract_spreadsheet_id(_agency_sheet_url()))
-    written: dict[str, int] = {}
+    written: dict[str, dict[str, int]] = {}
     errors: dict[str, str] = {}
-    for agency_code, rows in sorted(rows_by_agency.items()):
-        try:
-            written[agency_code] = _upsert_worksheet(spreadsheet, agency_code, rows)
-        except Exception as exc:
-            errors[agency_code] = f"{type(exc).__name__}: {exc}"
+    with _SHEET_LOCK:
+        client = _load_service_account_client()
+        spreadsheet = client.open_by_key(extract_spreadsheet_id(_agency_sheet_url()))
+        for agency_code, agency_rows in sorted(rows_by_agency.items()):
+            try:
+                written[agency_code] = _upsert_worksheet(
+                    spreadsheet, agency_code, agency_rows
+                )
+            except Exception as exc:
+                errors[agency_code] = f"{type(exc).__name__}: {exc}"
     return {"ok": not errors, "written": written, "errors": errors}
