@@ -28,8 +28,11 @@ from services.han_approval import (
     retry_han_approval_jobs,
 )
 from services import sync_draft_visa_registrations
-from services.agency import assign_agency_to_registration
-from services.agency_sheets import write_agency_sheet_for_record
+from services.agency import assign_agency_to_registration, reassign_agency
+from services.agency_sheets import (
+    remove_record_from_agency_sheet,
+    write_agency_sheet_for_record,
+)
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
@@ -173,7 +176,7 @@ def run(payload: dict[str, Any] = Body(...)):
             # Agency Google Sheet in the background: the response does not wait.
             threading.Thread(
                 target=_write_agency_sheet_safely,
-                args=(result.get("record_id"),),
+                args=(result.get("record_id"), result.get("first_applyid"), agency),
                 daemon=True,
             ).start()
     return JSONResponse(status_code=_run_status_code(result), content=result)
@@ -197,8 +200,16 @@ def _location_pinyin(case: dict[str, Any]) -> tuple[str, str, str]:
     return tuple(str(case.get(key, "") or "").strip() for key in keys)
 
 
-def _write_agency_sheet_safely(record_id: int | None) -> None:
+def _write_agency_sheet_safely(
+    record_id: int | None,
+    first_applyid: str | None,
+    agency: dict[str, Any],
+) -> None:
     try:
+        previous = agency.get("previous_agency_code") or ""
+        if previous and previous != agency.get("agency_code"):
+            # Re-run with another agency (e.g. was CHUNG): drop the old tab's row.
+            remove_record_from_agency_sheet(previous, str(first_applyid or ""))
         sheet_result = write_agency_sheet_for_record(record_id)
         log_event({"step": "agency_sheet_after_run", "record_id": record_id, **sheet_result})
     except Exception as exc:
@@ -278,6 +289,26 @@ async def sync_draft_visa_status(
         f"duration={time.perf_counter() - started_at:.2f}s",
         flush=True,
     )
+    return result
+
+
+@app.post("/agency/reassign")
+def agency_reassign(payload: dict[str, Any] = Body(...)):
+    """
+    Move a registration to another agency, e.g. one run with an old-style
+    source_prefix ("L15-HOANG VAN A") that landed in CHUNG.
+    Body: {"agency_code": "MAI", "first_applyid": "..."} or
+          {"agency_code": "MAI", "passport_number": "E05111310"} (latest one);
+          optional "agency_name".
+    """
+    result = reassign_agency(
+        agency_code=str(payload.get("agency_code", "") or ""),
+        first_applyid=str(payload.get("first_applyid", "") or ""),
+        passport_number=str(payload.get("passport_number", "") or ""),
+        agency_name=str(payload.get("agency_name", "") or ""),
+    )
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
     return result
 
 

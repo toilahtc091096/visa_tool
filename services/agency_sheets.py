@@ -309,3 +309,30 @@ def _write_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
             except Exception as exc:
                 errors[agency_code] = f"{type(exc).__name__}: {exc}"
     return {"ok": not errors, "written": written, "errors": errors}
+
+
+def remove_record_from_agency_sheet(agency_code: str, visa_apply_id: str) -> int:
+    """Delete the rows of this visa_apply_id from one agency worksheet."""
+    visa_apply_id = str(visa_apply_id or "").strip()
+    if not is_agency_sheet_enabled() or not agency_code or not visa_apply_id:
+        return 0
+    with _SHEET_LOCK:
+        client = _load_service_account_client()
+        spreadsheet = client.open_by_key(extract_spreadsheet_id(_agency_sheet_url()))
+        try:
+            worksheet = spreadsheet.worksheet(agency_code)
+        except Exception:
+            return 0
+        all_values = worksheet.get_all_values()
+        if not all_values or KEY_COLUMN not in all_values[0]:
+            return 0
+        key_idx = [str(cell).strip() for cell in all_values[0]].index(KEY_COLUMN)
+        row_nums = [
+            row_num
+            for row_num, values in enumerate(all_values[1:], start=2)
+            if len(values) > key_idx and str(values[key_idx]).strip() == visa_apply_id
+        ]
+        # Bottom-up so the row numbers above stay valid.
+        for row_num in reversed(row_nums):
+            worksheet.delete_rows(row_num)
+        return len(row_nums)

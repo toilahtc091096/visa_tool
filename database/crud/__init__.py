@@ -14,6 +14,8 @@ from database.crud.visa_registration import (
     update_visa_registration_status_and_payload,
 )
 from database.crud.agency import (
+    find_visa_registrations_with_agency,
+    update_agency_name,
     get_or_create_agency,
     list_visa_registrations_with_agency,
     set_visa_registration_agency,
@@ -29,6 +31,8 @@ from database.crud.approval_print_job import (
 )
 
 __all__ = [
+    "find_visa_registrations_with_agency",
+    "update_agency_name",
     "get_or_create_agency",
     "list_visa_registrations_with_agency",
     "set_visa_registration_agency",
