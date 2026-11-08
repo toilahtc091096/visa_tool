@@ -317,6 +317,9 @@ def write_rows_to_google_sheet(
                 input_header,
             )
             if sheet_header_row_idx is None or sheet_header_row is None:
+                # Data but no header row: put the header on top (data shifts down).
+                worksheet.insert_row(input_header, 1, value_input_option="RAW")
+                all_values = [input_header[:], *all_values]
                 sheet_header_row_idx = 1
                 sheet_header_row = input_header[:]
 
@@ -433,6 +436,7 @@ def write_rows_to_google_sheet(
                 worksheet.append_rows(
                     rows_to_append,
                     value_input_option="RAW",
+                    table_range="A1",
                 )
 
         except Exception as exc:
@@ -450,11 +454,11 @@ def write_rows_to_google_sheet(
             is_dict_rows = isinstance(rows[0], dict)
             has_header_row = bool(header) or is_dict_rows
             if not existing_values:
-                worksheet.append_rows(normalized_rows, value_input_option="RAW")
+                worksheet.append_rows(normalized_rows, value_input_option="RAW", table_range="A1")
             elif has_header_row:
-                worksheet.append_rows(normalized_rows[1:], value_input_option="RAW")
+                worksheet.append_rows(normalized_rows[1:], value_input_option="RAW", table_range="A1")
             else:
-                worksheet.append_rows(normalized_rows, value_input_option="RAW")
+                worksheet.append_rows(normalized_rows, value_input_option="RAW", table_range="A1")
         except Exception as exc:
             raise PermissionError(
                 _build_permission_error_message(

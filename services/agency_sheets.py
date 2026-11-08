@@ -175,6 +175,11 @@ def _upsert_worksheet(
     header = [str(cell).strip() for cell in all_values[0]] if all_values else []
     if not any(header):
         header = []
+    elif KEY_COLUMN not in header:
+        # Row 1 is data, not a header: put the header on top (data shifts down).
+        worksheet.insert_row(AGENCY_SHEET_HEADER, 1, value_input_option="RAW")
+        all_values = [AGENCY_SHEET_HEADER[:], *all_values]
+        header = AGENCY_SHEET_HEADER[:]
 
     # Add our columns that the sheet does not have yet, after the existing ones.
     missing = [name for name in AGENCY_SHEET_HEADER if name not in header]
@@ -238,7 +243,7 @@ def _upsert_worksheet(
     for chunk in _chunked(cell_updates, 500):
         worksheet.batch_update(chunk, value_input_option="RAW")
     if new_rows:
-        worksheet.append_rows(new_rows, value_input_option="RAW")
+        worksheet.append_rows(new_rows, value_input_option="RAW", table_range="A1")
     return {
         "updated": len(rows) - len(new_rows) - skipped,
         "added": len(new_rows),
