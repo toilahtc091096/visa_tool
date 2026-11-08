@@ -231,11 +231,15 @@ def write_rows_to_google_sheet(
     service_account_email = _get_service_account_email()
     try:
         spreadsheet = client.open_by_key(spreadsheet_id)
-        worksheet = (
-            spreadsheet.worksheet(worksheet_name)
-            if worksheet_name
-            else spreadsheet.get_worksheet(0)
-        )
+        if worksheet_name:
+            try:
+                worksheet = spreadsheet.worksheet(worksheet_name)
+            except gspread.exceptions.WorksheetNotFound:
+                worksheet = spreadsheet.add_worksheet(
+                    title=worksheet_name, rows=1000, cols=26
+                )
+        else:
+            worksheet = spreadsheet.get_worksheet(0)
     except Exception as exc:
         raise PermissionError(
             _build_permission_error_message(

@@ -229,7 +229,7 @@ async def sync_draft_visa_status(
     page_size: int = 1000,
     authorization: str = "",
     spreadsheet_url: str = "",
-    worksheet_name: str = "hai",
+    worksheet_name: str = "",
     sheet_mode: str = "upsert",
     statuses: str = "",
     max_records: int | None = None,
@@ -260,7 +260,9 @@ async def sync_draft_visa_status(
             page_size=page_size,
             authorization=authorization,
             spreadsheet_url=spreadsheet_url,
-            worksheet_name=worksheet_name,
+            # Same tab as the scheduler unless the caller names one.
+            worksheet_name=worksheet_name.strip()
+            or os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "hai").strip(),
             sheet_mode=sheet_mode,
             statuses=statuses or None,
             max_records=max_records,
