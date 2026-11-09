@@ -23,6 +23,7 @@ from services.google_sheets import (
     _chunked,
     _column_number_to_letter,
     _load_service_account_client,
+    _write_rows_below,
     extract_spreadsheet_id,
 )
 
@@ -242,21 +243,8 @@ def _upsert_worksheet(
 
     for chunk in _chunked(cell_updates, 500):
         worksheet.batch_update(chunk, value_input_option="RAW")
-    if new_rows:
-        # Write right under the last row with data. append_rows is not used:
-        # on a sheet formatted as a Table it appends below the whole table
-        # (e.g. row 1001), so the rows look missing.
-        first_row = max(len(all_values), 1) + 1
-        last_row = first_row + len(new_rows) - 1
-        if last_row > worksheet.row_count:
-            worksheet.add_rows(last_row - worksheet.row_count)
-        worksheet.update(
-            values=new_rows,
-            range_name=(
-                f"A{first_row}:{_column_number_to_letter(len(header))}{last_row}"
-            ),
-            value_input_option="RAW",
-        )
+    # Keep row 1 for the header even when the sheet is still empty.
+    _write_rows_below(worksheet, all_values or [header], new_rows)
     return {
         "updated": len(rows) - len(new_rows) - skipped,
         "added": len(new_rows),

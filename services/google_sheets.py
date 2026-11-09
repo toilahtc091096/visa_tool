@@ -213,6 +213,28 @@ def _column_number_to_letter(column_number: int) -> str:
     return letters
 
 
+def _write_rows_below(worksheet: Any, all_values: list[list[Any]], rows: list[list[Any]]) -> None:
+    """Write rows from column A, right under the last row with data.
+
+    append_rows is not used: Google picks the "table" itself, so rows can land
+    in a shifted column or far below (e.g. row 1001 on a Table-formatted sheet).
+    """
+    if not rows:
+        return
+    first_row = len(all_values) + 1
+    last_row = first_row + len(rows) - 1
+    width = max(len(row) for row in rows)
+    if last_row > worksheet.row_count:
+        worksheet.add_rows(last_row - worksheet.row_count)
+    if width > worksheet.col_count:
+        worksheet.add_cols(width - worksheet.col_count)
+    worksheet.update(
+        values=rows,
+        range_name=f"A{first_row}:{_column_number_to_letter(width)}{last_row}",
+        value_input_option="RAW",
+    )
+
+
 def _chunked(values: list[Any], chunk_size: int) -> list[list[Any]]:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be greater than 0")
@@ -432,12 +454,7 @@ def write_rows_to_google_sheet(
                     value_input_option="RAW",
                 )
 
-            if rows_to_append:
-                worksheet.append_rows(
-                    rows_to_append,
-                    value_input_option="RAW",
-                    table_range="A1",
-                )
+            _write_rows_below(worksheet, all_values, rows_to_append)
 
         except Exception as exc:
             raise PermissionError(
@@ -453,12 +470,11 @@ def write_rows_to_google_sheet(
             existing_values = worksheet.get_all_values()
             is_dict_rows = isinstance(rows[0], dict)
             has_header_row = bool(header) or is_dict_rows
-            if not existing_values:
-                worksheet.append_rows(normalized_rows, value_input_option="RAW", table_range="A1")
-            elif has_header_row:
-                worksheet.append_rows(normalized_rows[1:], value_input_option="RAW", table_range="A1")
+            if existing_values and has_header_row:
+                new_rows = normalized_rows[1:]
             else:
-                worksheet.append_rows(normalized_rows, value_input_option="RAW", table_range="A1")
+                new_rows = normalized_rows
+            _write_rows_below(worksheet, existing_values, new_rows)
         except Exception as exc:
             raise PermissionError(
                 _build_permission_error_message(
