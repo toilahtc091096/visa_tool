@@ -863,6 +863,10 @@ Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
 
 # S2 uploads the applicant's own invitation letter (not generated).
 S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
+# South S2: letter generated from S2_Template_MN.docx, saved in
+# S2_THU_MOI_OUTPUT_PATH (and on R2) under this name. A letter the applicant
+# put in that folder is uploaded first; this one only when there is none.
+S2_GENERATED_THU_MOI_NAME = "thumoi_generate"
 S2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
 S2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
@@ -1700,9 +1704,19 @@ UPLOAD_CONFIG_SOUTH_S2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
     "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
-    "CCCD_NGUOI_MOI": _files(S2_CCCD_NGUOI_MOI_OUTPUT_PATH, 1),
-    "THU_MOI": _files(S2_THU_MOI_OUTPUT_PATH, 1),
-    "CHUNG_MINH_QUAN_HE": _files(S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 1),
+    # One PDF of every file in tham-than\cccd (smoi_* files).
+    "CCCD_NGUOI_MOI": _merged_pdf(
+        "cccd_nguoi_moi.pdf", _files(S2_CCCD_NGUOI_MOI_OUTPUT_PATH, 100)
+    ),
+    # The applicant's own letter first; the generated one when there is none.
+    "THU_MOI": _first_nonempty(
+        _files(S2_THU_MOI_OUTPUT_PATH, 1, exclude=(S2_GENERATED_THU_MOI_NAME,)),
+        _files(S2_THU_MOI_OUTPUT_PATH, 1, names=(S2_GENERATED_THU_MOI_NAME,)),
+    ),
+    # One PDF of every file in tham-than\quan-he (scm_* files).
+    "CHUNG_MINH_QUAN_HE": _merged_pdf(
+        "quan_he.pdf", _files(S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100)
+    ),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(S2_TAI_LIEU_KHAC_OUTPUT_PATH, 5),

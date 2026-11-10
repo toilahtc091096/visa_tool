@@ -19,7 +19,11 @@ from flows.flow_payloads import form_inviter_relation, getL30TravelInfo
 from utils import date_util
 
 from .base import InviterLocationFromPinyin, VisaProfile, register
-from .documents import InvitationLetter, VisaCenterConfirmation
+from .documents import (
+    InvitationLetter,
+    SouthS2InvitationLetter,
+    VisaCenterConfirmation,
+)
 
 
 class FamilyVisa(VisaProfile):
@@ -151,8 +155,11 @@ class S2Visa(FamilyVisa):
 
 
 class SouthS2Visa(S2Visa):
-    """South (HCMC) S2: same flow as the North S2 for now; override here to
-    handle the South separately. Its upload table is UPLOAD_CONFIG_SOUTH_S2."""
+    """South (HCMC) S2: same flow as the North S2, plus an invitation letter
+    generated from S2_Template_MN.docx (used only when the applicant gave
+    none). Its upload table is UPLOAD_CONFIG_SOUTH_S2."""
+
+    documents = (VisaCenterConfirmation(), SouthS2InvitationLetter())
 
 
 register(SouthS2Visa if REGION == REGION_SOUTH else S2Visa)

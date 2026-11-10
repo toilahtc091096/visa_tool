@@ -371,12 +371,23 @@ async def render_thumoi_docx_output_pdf(
     output_path: str = "tham-than/thumoi",
     passport_number: str = "",
     template_name: str = "",
+    *,
+    output_name: str = "",
+    use_signature: bool = True,
+    extra_context: dict[str, Any] | None = None,
 ) -> str:
+    """Render the invitation letter to a PDF in ``output_path``; returns its path.
+
+    ``output_name``: fixed PDF file name (default: <template>_<inviter>_<name>.pdf).
+    ``use_signature``: put the tham-than/chu-ki(-bao-lanh) signatures in.
+    ``extra_context``: values added to (or replacing) the template context."""
     templates_base = Path(__file__).resolve().parent / ".." / "resources"
     output_base = passport_data_dir(passport_number)
 
-    signature_path = _first_file(output_base / SIGNATURE_FOLDER)
-    guarantor_signature_path = _first_file(output_base / GUARANTOR_SIGNATURE_FOLDER)
+    signature_path = _first_file(output_base / SIGNATURE_FOLDER) if use_signature else None
+    guarantor_signature_path = (
+        _first_file(output_base / GUARANTOR_SIGNATURE_FOLDER) if use_signature else None
+    )
     if not template_name:
         template_name = (
             GUARANTOR_TEMPLATE_NAME if guarantor_signature_path else DEFAULT_TEMPLATE_NAME
@@ -392,6 +403,7 @@ async def render_thumoi_docx_output_pdf(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     context = build_thumoi_context(source)
+    context.update(extra_context or {})
     safe_name = re.sub(
         r"[^A-Za-z0-9_\-\u4e00-\u9fff]+",
         "_",
@@ -399,7 +411,7 @@ async def render_thumoi_docx_output_pdf(
     ).strip("_")
     safe_name = safe_name or "THUMOI"
 
-    out = out_dir / (Path(template_name).stem + ".docx")
+    out = out_dir / (Path(output_name or template_name).stem + ".docx")
     doc = DocxTemplate(str(src))
     if signature_path:
         doc.replace_pic(SIGNATURE_MEDIA_NAME, BytesIO(signature_path.read_bytes()))
@@ -418,7 +430,11 @@ async def render_thumoi_docx_output_pdf(
         out.unlink()
     doc.save(str(out))
 
-    pdf_out = out.with_name(f"{out.stem}_{safe_name}.pdf")
+    pdf_out = (
+        out.with_name(f"{Path(output_name).stem}.pdf")
+        if output_name
+        else out.with_name(f"{out.stem}_{safe_name}.pdf")
+    )
     convert_docx_to_pdf(str(out), str(pdf_out))
     pdf_helper.remove_last_blank_page(str(pdf_out))
     out.unlink(missing_ok=True)

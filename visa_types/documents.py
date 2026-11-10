@@ -7,8 +7,10 @@ applicant's data folder. A profile lists the steps it needs, in order.
 from __future__ import annotations
 
 import random
+from pathlib import Path
 from typing import Any
 
+from api import api_upload_r2_object
 from constants import (
     CV_DATA,
     L_15_HOTEL_INFO,
@@ -18,6 +20,8 @@ from constants import (
     L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
     L_30_HOTEL_INFO,
     NATIONALITY_MAP,
+    S2_GENERATED_THU_MOI_NAME,
+    S2_THU_MOI_OUTPUT_PATH,
     SEX_MAP,
     TRAVEL_PLAN_21D,
     TRAVEL_PLAN_SOUTH,
@@ -301,6 +305,61 @@ class InvitationLetter(DocumentStep):
                 e, {"event": "render_failed", "file": self.template_name or "Q_Template.docx"}
             )
             raise
+
+
+class SouthS2InvitationLetter(DocumentStep):
+    """South S2 invitation letter from S2_Template_MN.docx (no signature yet).
+
+    Always generated as thumoi_generate.pdf in tham-than/thu-moi and pushed to
+    R2 next to the applicant's files, to use later if needed. A letter the
+    applicant already put in that folder still wins at upload (see
+    UPLOAD_CONFIG_SOUTH_S2)."""
+
+    output_folder = S2_THU_MOI_OUTPUT_PATH
+    template_name = "S2_Template_MN.docx"
+    default_stay_days = "30"
+
+    async def render(self, ctx) -> None:
+        passport = str(ctx.input_passportNumber or "").strip()
+        days = str(getattr(ctx, "visa_duration", "") or "").strip()
+        stay_days = days if days.isdigit() and int(days) > 0 else self.default_stay_days
+        try:
+            pdf_path = await thumoi_info.render_thumoi_docx_output_pdf(
+                ctx,
+                self.output_folder,
+                passport,
+                self.template_name,
+                output_name=f"{S2_GENERATED_THU_MOI_NAME}.pdf",
+                use_signature=False,
+                extra_context={"stay_days": stay_days},
+            )
+        except Exception as e:
+            log_exception(e, {"event": "render_failed", "file": self.template_name})
+            raise
+        folder = Path(pdf_path).parent
+        own_letters = [
+            f.name
+            for f in folder.iterdir()
+            if f.is_file() and f.stem.lower() != S2_GENERATED_THU_MOI_NAME
+        ]
+        key = f"{passport}/{self.output_folder.replace(chr(92), '/')}/{Path(pdf_path).name}"
+        result = api_upload_r2_object(
+            key, Path(pdf_path).read_bytes(), "application/pdf"
+        )
+        if not result.get("ok"):
+            raise RuntimeError(
+                f"Failed to upload {key} to R2: {result.get('error')}"
+            )
+        log_event(
+            {
+                "step": "generate invitation letter file",
+                "ok": "ok",
+                "file": self.template_name,
+                "r2_key": key,
+                # Non-empty: the applicant's letter is uploaded, not this one.
+                "own_letters": own_letters,
+            }
+        )
 
 
 class Itinerary(DocumentStep):
