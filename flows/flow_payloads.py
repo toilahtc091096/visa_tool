@@ -789,15 +789,15 @@ def _with_spouse_defaults(
     streetAddr) and is a company employee or self-employed (an old value among
     those two is kept). An empty spouse slot (no spouse) is left as is.
 
-    South only: a Chinese spouse (nationalityCountry CHN) keeps their own
-    address (input `address`, else the old one) instead of streetAddr."""
+    A Chinese spouse (nationalityCountry CHN) keeps their own address
+    (input `address`, else the old one) instead of streetAddr."""
     if not (str(spouse.get("familyName") or "").strip() or str(spouse.get("firstName") or "").strip()):
         return spouse
     is_chinese = str(spouse.get("nationalityCountry") or "").strip().upper() == "CHN"
     chinese_address = (
         str(own_address or "").strip() or str(spouse.get("address") or "").strip()
     )
-    if REGION == REGION_SOUTH and is_chinese and chinese_address:
+    if is_chinese and chinese_address:
         spouse["address"] = chinese_address
     else:
         spouse["address"] = street_addr
