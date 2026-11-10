@@ -9,7 +9,7 @@ from constants import REGION, REGION_SOUTH, TRAVEL_PAY_FOR_ORGANIZATION
 from flows.flow_payloads import _normalize_ascii_upper, getL30TravelInfo
 from utils import date_util, ensure_company_doanh_nghiep_downloaded
 
-from .base import InviterLocationFromPinyin, ReuseRule, VisaProfile, register
+from .base import ReuseRule, VisaProfile, china_place_from_pinyin, register
 from .documents import CV_DOC_FOLDERS, VisaCenterConfirmation
 
 COMPANY_REUSE = ReuseRule(
@@ -46,26 +46,24 @@ class BusinessVisa(VisaProfile):
             leaveVehicleType="",
             is_private=travel.is_private,
         )
+        place = china_place_from_pinyin(travel)
         _apply_m90_single_stay_overrides(
             travel_json,
             inviteCompanyName=travel.inviteCompanyName,
             company_address=travel.company_address,
             inviteCompanyPhone=travel.inviteCompanyPhone,
-            inviteZipCode=travel.inviteZipCode,
-            inviteProvince=travel.inviteProvince,
-            arrivalCity=travel.arrivalCity,
-            arrivalDistrict=travel.arrivalDistrict,
-            stayCity=travel.stayCity,
-            stayDistrict=travel.stayDistrict,
-            departureCity=travel.departureCity,
-            departureDistrict=travel.departureDistrict,
+            # Request zip code first, then the district postcode.
+            inviteZipCode=travel.inviteZipCode or place.postcode,
+            province=place.province,
+            city=place.city,
+            county=place.county,
             arrivalDate=travel.arrival_date,
             departureDate=travel.leave_date,
         )
         return travel_json
 
 
-class SouthBusinessVisa(InviterLocationFromPinyin, BusinessVisa):
+class SouthBusinessVisa(BusinessVisa):
     """South (HCMC) M: same flow as the North M, plus the Vietnamese company
     as the payer. With employer_name in the request, the work info is a
     "Company employee" experience at that employer (begin date from
@@ -73,9 +71,6 @@ class SouthBusinessVisa(InviterLocationFromPinyin, BusinessVisa):
     UPLOAD_CONFIG_SOUTH_M."""
 
     south_employer_work = True
-    # Inviting company's place from provinceNamePinyin / cityNamePinyin /
-    # districtNamePinyin; request values kept for levels not resolved.
-    pinyin_only_location = False
 
     def finalize_travel_json(self, travel_json: dict[str, Any], travel) -> None:
         # The applicant's company (companyNameVi) pays for the trip.
@@ -108,13 +103,9 @@ def _apply_m90_single_stay_overrides(
     company_address: str = "",
     inviteCompanyPhone: str = "",
     inviteZipCode: str = "",
-    inviteProvince: str = "",
-    arrivalCity: str = "",
-    arrivalDistrict: str = "",
-    stayCity: str = "",
-    stayDistrict: str = "",
-    departureCity: str = "",
-    departureDistrict: str = "",
+    province: str = "",
+    city: str = "",
+    county: str = "",
     arrivalDate: date | str | None = None,
     departureDate: date | str | None = None,
 ) -> None:
@@ -132,34 +123,27 @@ def _apply_m90_single_stay_overrides(
     travel_json.update(
         {
             "inviteCompanyName": inviteCompanyName,
-            "inviteCity": arrivalCity or travel_json.get("inviteCity", ""),
-            "inviteCounty": arrivalDistrict or travel_json.get("inviteCounty", ""),
-            "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
+            "inviteCity": city or travel_json.get("inviteCity", ""),
+            "inviteCounty": county or travel_json.get("inviteCounty", ""),
+            "inviteProvince": province or travel_json.get("inviteProvince", ""),
             "inviteName": inviteCompanyName or travel_json.get("inviteName", ""),
             "inviteRelation": (
                 "PARTNER"
                 if inviteCompanyName
                 else travel_json.get("inviteRelation", "")
             ),
-            "arrivalCity": arrivalCity or travel_json.get("arrivalCity", ""),
-            "arrivalCounty": arrivalDistrict or travel_json.get("arrivalCounty", ""),
-            "arrivalDistrict": arrivalDistrict
-            or travel_json.get("arrivalDistrict", ""),
-            "stayCity": stayCity or arrivalCity or travel_json.get("stayCity", ""),
-            "stayCounty": stayDistrict
-            or arrivalDistrict
-            or travel_json.get("stayCounty", ""),
-            "stayDistrict": stayDistrict
-            or arrivalDistrict
-            or travel_json.get("stayDistrict", ""),
+            "arrivalCity": city or travel_json.get("arrivalCity", ""),
+            "arrivalCounty": county or travel_json.get("arrivalCounty", ""),
+            "arrivalDistrict": county or travel_json.get("arrivalDistrict", ""),
+            "stayCity": city or travel_json.get("stayCity", ""),
+            "stayCounty": county or travel_json.get("stayCounty", ""),
+            "stayDistrict": county or travel_json.get("stayDistrict", ""),
             "travelAddr": travel_address or travel_json.get("travelAddr", ""),
-            "leaveCity": departureCity or travel_json.get("leaveCity", ""),
-            "leaveCounty": departureDistrict or travel_json.get("leaveCounty", ""),
-            "departureCity": departureCity or travel_json.get("departureCity", ""),
-            "departureCounty": departureDistrict
-            or travel_json.get("departureCounty", ""),
-            "departureDistrict": departureDistrict
-            or travel_json.get("departureDistrict", ""),
+            "leaveCity": city or travel_json.get("leaveCity", ""),
+            "leaveCounty": county or travel_json.get("leaveCounty", ""),
+            "departureCity": city or travel_json.get("departureCity", ""),
+            "departureCounty": county or travel_json.get("departureCounty", ""),
+            "departureDistrict": county or travel_json.get("departureDistrict", ""),
             "arrivalDate": arrival_date_str,
             "leaveDate": departure_date_str,
             "departureDate": departure_date_str,
@@ -176,8 +160,8 @@ def _apply_m90_single_stay_overrides(
     travel_json["stayInfo"] = [
         {
             "sort": 1,
-            "stayCity": stayCity or arrivalCity,
-            "stayCounty": stayDistrict or arrivalDistrict,
+            "stayCity": city,
+            "stayCounty": county,
             "travelAddr": travel_address or travel_json.get("travelAddr", ""),
             "arrivalDate": arrival_date_str,
             "leaveDate": departure_date_str,

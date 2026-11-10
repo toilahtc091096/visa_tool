@@ -20,7 +20,7 @@ from flows.flow_payloads import _to_dict, _work_experience_entry, getL30TravelIn
 from models import WorkInfoProfile
 from utils import date_util, ensure_school_downloaded, mobile_utils
 
-from .base import ReuseRule, VisaProfile, register
+from .base import ReuseRule, VisaProfile, china_place_from_pinyin, register
 from .documents import CV_DOC_FOLDERS, VisaCenterConfirmation
 
 SCHOOL_REUSE = ReuseRule(
@@ -60,20 +60,19 @@ class StudyVisa(VisaProfile):
             leaveVehicleType="",
             is_private=travel.is_private,
         )
+        place = china_place_from_pinyin(travel)
         _apply_f_single_stay_overrides(
             travel_json,
             inviteSchoolName=travel.inviteSchoolName,
             school_address=travel.school_address,
-            inviteProvince=travel.inviteProvince,
-            arrivalCity=travel.arrivalCity,
-            arrivalDistrict=travel.arrivalDistrict,
-            stayCity=travel.stayCity,
-            stayDistrict=travel.stayDistrict,
-            departureCity=travel.departureCity,
-            departureDistrict=travel.departureDistrict,
+            province=place.province,
+            city=place.city,
+            county=place.county,
             arrivalDate=travel.arrival_date,
             departureDate=travel.leave_date,
         )
+        if place.postcode:
+            travel_json["inviteZipCode"] = place.postcode
         return travel_json
 
 
@@ -239,13 +238,9 @@ def _apply_f_single_stay_overrides(
     *,
     inviteSchoolName: str = "",
     school_address: str = "",
-    inviteProvince: str = "",
-    arrivalCity: str = "",
-    arrivalDistrict: str = "",
-    stayCity: str = "",
-    stayDistrict: str = "",
-    departureCity: str = "",
-    departureDistrict: str = "",
+    province: str = "",
+    city: str = "",
+    county: str = "",
     arrivalDate: date | str | None = None,
     departureDate: date | str | None = None,
 ) -> None:
@@ -263,34 +258,27 @@ def _apply_f_single_stay_overrides(
     travel_json.update(
         {
             "inviteCompanyName": inviteSchoolName,
-            "inviteCity": arrivalCity or travel_json.get("inviteCity", ""),
-            "inviteCounty": arrivalDistrict or travel_json.get("inviteCounty", ""),
-            "inviteProvince": inviteProvince or travel_json.get("inviteProvince", ""),
+            "inviteCity": city or travel_json.get("inviteCity", ""),
+            "inviteCounty": county or travel_json.get("inviteCounty", ""),
+            "inviteProvince": province or travel_json.get("inviteProvince", ""),
             "inviteName": inviteSchoolName or travel_json.get("inviteName", ""),
             "inviteRelation": (
                 "TRUONG HOC"
                 if inviteSchoolName
                 else travel_json.get("inviteRelation", "")
             ),
-            "arrivalCity": arrivalCity or travel_json.get("arrivalCity", ""),
-            "arrivalCounty": arrivalDistrict or travel_json.get("arrivalCounty", ""),
-            "arrivalDistrict": arrivalDistrict
-            or travel_json.get("arrivalDistrict", ""),
-            "stayCity": stayCity or arrivalCity or travel_json.get("stayCity", ""),
-            "stayCounty": stayDistrict
-            or arrivalDistrict
-            or travel_json.get("stayCounty", ""),
-            "stayDistrict": stayDistrict
-            or arrivalDistrict
-            or travel_json.get("stayDistrict", ""),
+            "arrivalCity": city or travel_json.get("arrivalCity", ""),
+            "arrivalCounty": county or travel_json.get("arrivalCounty", ""),
+            "arrivalDistrict": county or travel_json.get("arrivalDistrict", ""),
+            "stayCity": city or travel_json.get("stayCity", ""),
+            "stayCounty": county or travel_json.get("stayCounty", ""),
+            "stayDistrict": county or travel_json.get("stayDistrict", ""),
             "travelAddr": travel_address or travel_json.get("travelAddr", ""),
-            "leaveCity": departureCity or travel_json.get("leaveCity", ""),
-            "leaveCounty": departureDistrict or travel_json.get("leaveCounty", ""),
-            "departureCity": departureCity or travel_json.get("departureCity", ""),
-            "departureCounty": departureDistrict
-            or travel_json.get("departureCounty", ""),
-            "departureDistrict": departureDistrict
-            or travel_json.get("departureDistrict", ""),
+            "leaveCity": city or travel_json.get("leaveCity", ""),
+            "leaveCounty": county or travel_json.get("leaveCounty", ""),
+            "departureCity": city or travel_json.get("departureCity", ""),
+            "departureCounty": county or travel_json.get("departureCounty", ""),
+            "departureDistrict": county or travel_json.get("departureDistrict", ""),
             "arrivalDate": arrival_date_str,
             "leaveDate": departure_date_str,
             "departureDate": departure_date_str,
@@ -299,8 +287,8 @@ def _apply_f_single_stay_overrides(
     travel_json["stayInfo"] = [
         {
             "sort": 1,
-            "stayCity": stayCity or arrivalCity,
-            "stayCounty": stayDistrict or arrivalDistrict,
+            "stayCity": city,
+            "stayCounty": county,
             "travelAddr": travel_address or travel_json.get("travelAddr", ""),
             "arrivalDate": arrival_date_str,
             "leaveDate": departure_date_str,

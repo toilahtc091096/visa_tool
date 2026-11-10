@@ -206,21 +206,32 @@ def _write_agency_sheet_safely(
         )
 
 
-# Place in China as pinyin (province, city, district), by visa type:
-#   M (inviting company): provinceNamePinyin / cityNamePinyin / districtNamePinyin
-#   others, e.g. Q1/Q2 (inviter): inviterProvincePinyin / inviterCityPinyin /
-#   inviterDistrictPinyin
-_M_LOCATION_PINYIN_KEYS = ("provinceNamePinyin", "cityNamePinyin", "districtNamePinyin")
+# Place in China as pinyin (province, city, district), the only source of the
+# invite / arrival / stay / departure place (both regions), by visa type:
+#   M (inviting company), F / X1 / X2 (school):
+#       provinceNamePinyin / cityNamePinyin / districtNamePinyin
+#   others, e.g. Q1 / Q2 / S2 (inviter):
+#       inviterProvincePinyin / inviterCityPinyin / inviterDistrictPinyin
+_ORGANIZATION_LOCATION_PINYIN_KEYS = (
+    "provinceNamePinyin",
+    "cityNamePinyin",
+    "districtNamePinyin",
+)
 _INVITER_LOCATION_PINYIN_KEYS = (
     "inviterProvincePinyin",
     "inviterCityPinyin",
     "inviterDistrictPinyin",
 )
+_ORGANIZATION_VISA_PREFIXES = ("M", "F", "X")
 
 
 def _location_pinyin(case: dict[str, Any]) -> tuple[str, str, str]:
-    is_m = str(case.get("visa_type", "") or "").strip().upper().startswith("M")
-    keys = _M_LOCATION_PINYIN_KEYS if is_m else _INVITER_LOCATION_PINYIN_KEYS
+    visa_type = str(case.get("visa_type", "") or "").strip().upper()
+    keys = (
+        _ORGANIZATION_LOCATION_PINYIN_KEYS
+        if visa_type.startswith(_ORGANIZATION_VISA_PREFIXES)
+        else _INVITER_LOCATION_PINYIN_KEYS
+    )
     return tuple(str(case.get(key, "") or "").strip() for key in keys)
 
 

@@ -104,9 +104,9 @@ CASES: dict[str, dict[str, Any]] = {
         "departureDate": "2026-10-20",
         "inviteCompanyName": "SHENZHEN TRADING CO",
         "company_address": "1 NANSHAN ROAD",
-        "inviteProvince": "GUANGDONG",
-        "arrivalCity": "SHENZHEN",
-        "arrivalDistrict": "NANSHAN",
+        "provinceNamePinyin": "Guangdong",
+        "cityNamePinyin": "Shenzhen",
+        "districtNamePinyin": "Nanshan",
         "companyNameVi": "Công ty TNHH ABC (Việt Nam)",
         "companyAddressUpperNoAccent": "SO 1 PHO HUE HA NOI",
         "companyPhone": "0901234567",
@@ -129,9 +129,9 @@ CASES: dict[str, dict[str, Any]] = {
         "inviterPhone": "13800000000",
         "inviterAddress": "BEIJING CHAOYANG",
         "inviterRelation": "SPOUSE",
-        "inviteProvince": "BEIJING",
-        "arrivalCity": "BEIJING",
-        "arrivalDistrict": "CHAOYANG",
+        "inviterProvincePinyin": "Beijing",
+        "inviterCityPinyin": "Beijing",
+        "inviterDistrictPinyin": "Chaoyang",
     },
     "Q2_family": {
         "visa_type": "Q2",
@@ -140,7 +140,8 @@ CASES: dict[str, dict[str, Any]] = {
         "inviterFamilyName": "李",
         "inviterGivenName": "娜",
         "inviterRelation": "SISTER",
-        "arrivalCity": "SHANGHAI",
+        "inviterProvincePinyin": "Shanghai",
+        "inviterCityPinyin": "Shanghai",
     },
     "S2_family_member": {
         "visa_type": "S2",
@@ -149,12 +150,14 @@ CASES: dict[str, dict[str, Any]] = {
         "inviterFamilyName": "SMITH",
         "inviterGivenName": "JOHN",
         "inviterRelation": "SPOUSE",
-        "arrivalCity": "SHANGHAI",
+        "inviterProvincePinyin": "Shanghai",
+        "inviterCityPinyin": "Shanghai",
     },
     "S2_personal_matters": {
         "visa_type": "S2",
         "type_of_visa_sub_value": "SPM",
-        "arrivalCity": "SHENZHEN",
+        "inviterProvincePinyin": "Guangdong",
+        "inviterCityPinyin": "Shenzhen",
     },
     "X1_study_long": {
         "visa_type": "X1",
@@ -262,6 +265,18 @@ def _patch_everywhere(original: Any, replacement: Any, patches: list) -> None:
             if value is original:
                 patches.append((module, name, value))
                 setattr(module, name, replacement)
+
+
+def _location_pinyin_kwargs(case: dict[str, Any]) -> dict[str, str]:
+    """Same choice of pinyin keys as server._location_pinyin."""
+    organization = str(case.get("visa_type", "")).upper().startswith(("M", "F", "X"))
+    keys = (
+        ("provinceNamePinyin", "cityNamePinyin", "districtNamePinyin")
+        if organization
+        else ("inviterProvincePinyin", "inviterCityPinyin", "inviterDistrictPinyin")
+    )
+    names = ("inviterProvincePinyin", "inviterCityPinyin", "inviterDistrictPinyin")
+    return {name: str(case.get(key, "") or "") for name, key in zip(names, keys)}
 
 
 def run_case(name: str, overrides: dict[str, Any]) -> dict[str, Any]:
@@ -374,6 +389,7 @@ def run_case(name: str, overrides: dict[str, Any]) -> dict[str, Any]:
                 is_update_info=case.get("is_update_info", False),
                 upload_config_keys=case.get("upload_config_keys", []),
                 apply_visa_validity=case.get("apply_visa_validity"),
+                **_location_pinyin_kwargs(case),
             )
     finally:
         httpx.AsyncClient = original_client

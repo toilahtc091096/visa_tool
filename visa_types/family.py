@@ -18,7 +18,7 @@ from constants import (
 from flows.flow_payloads import form_inviter_relation, getL30TravelInfo
 from utils import date_util
 
-from .base import InviterLocationFromPinyin, VisaProfile, register
+from .base import VisaProfile, china_place_from_pinyin, register
 from .documents import (
     InvitationLetter,
     SouthS2InvitationLetter,
@@ -46,6 +46,7 @@ class FamilyVisa(VisaProfile):
             leaveVehicleType="",
             is_private=travel.is_private,
         )
+        place = china_place_from_pinyin(travel)
         _apply_q_single_stay_overrides(
             travel_json,
             inviterFamilyName=travel.inviterFamilyName,
@@ -54,19 +55,17 @@ class FamilyVisa(VisaProfile):
             inviterRelation=travel.inviterRelation,
             inviterAddress=travel.inviterAddress,
             inviterPhone=travel.inviterPhone,
-            inviteProvince=travel.inviteProvince,
-            arrivalCity=travel.arrivalCity,
-            arrivalDistrict=travel.arrivalDistrict,
-            stayCity=travel.stayCity,
-            stayDistrict=travel.stayDistrict,
-            departureCity=travel.departureCity,
-            departureDistrict=travel.departureDistrict,
+            province=place.province,
+            city=place.city,
+            county=place.county,
             apply_visa_validity=travel.apply_visa_validity,
             stay_one_year=self.code == "Q1",
             stay_days=_stay_days(travel.visa_duration)
             if self.leave_after_stay_days
             else None,
         )
+        if place.postcode:
+            travel_json["inviteZipCode"] = place.postcode
         return travel_json
 
 
@@ -108,10 +107,9 @@ class SouthInviteRelationZh:
 SOUTH_Q_TEMPLATE = "Q_Template_MN.docx"
 
 
-class SouthQ1Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q1Visa):
+class SouthQ1Visa(SouthInviteRelationZh, Q1Visa):
     """South (HCMC) Q1: same flow as the North Q1, with inviteRelation in
-    Chinese, the inviter's place from pinyin and the South invitation letter.
-    Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
+    Chinese and the South invitation letter. Its upload table is UPLOAD_CONFIG_SOUTH_Q1."""
 
     documents = (
         VisaCenterConfirmation(),
@@ -129,9 +127,9 @@ class Q2Visa(FamilyVisa):
     documents = (VisaCenterConfirmation(), InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
 
 
-class SouthQ2Visa(InviterLocationFromPinyin, SouthInviteRelationZh, Q2Visa):
+class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
     """South (HCMC) Q2: same flow as the North Q2, with inviteRelation in
-    Chinese, the inviter's place from pinyin and the South invitation letter.
+    Chinese and the South invitation letter.
     Leave date = arrival + visa_duration stay days, rounded to months.
     Its upload table is UPLOAD_CONFIG_SOUTH_Q2."""
 
@@ -182,13 +180,9 @@ def _apply_q_single_stay_overrides(
     inviterRelation: str = "",
     inviterAddress: str = "",
     inviterPhone: str = "",
-    inviteProvince: str = "",
-    arrivalCity: str = "",
-    arrivalDistrict: str = "",
-    stayCity: str = "",
-    stayDistrict: str = "",
-    departureCity: str = "",
-    departureDistrict: str = "",
+    province: str = "",
+    city: str = "",
+    county: str = "",
     apply_visa_validity: Any | None = None,
     stay_one_year: bool = False,
     stay_days: int | None = None,
@@ -197,7 +191,8 @@ def _apply_q_single_stay_overrides(
     Q-specific travel override.
 
     This is intentionally separate from the M helper so Q can be customized
-    independently later.
+    independently later. province / city / county: the inviter's place (from
+    pinyin), also used for arrival, stay and departure.
     """
     invite_person = " ".join(
         part
@@ -227,13 +222,8 @@ def _apply_q_single_stay_overrides(
     arrival_date_str = date_util.iso_date_str(arrival_date)
     departure_date_str = date_util.iso_date_str(departure_date)
     invite_addr = str(inviterAddress or "").strip()
-    arrival_city = str(arrivalCity or "").strip()
-    arrival_county = str(arrivalDistrict or "").strip()
-    stay_city = str(stayCity or arrivalCity or "").strip()
-    stay_county = str(stayDistrict or arrivalDistrict or "").strip()
-    departure_city = str(departureCity or "").strip()
-    departure_county = str(departureDistrict or "").strip()
-    invite_province = str(inviteProvince or "").strip()
+    city = str(city or "").strip()
+    county = str(county or "").strip()
 
     travel_json.update(
         {
@@ -241,33 +231,33 @@ def _apply_q_single_stay_overrides(
             "inviteCompanyName": invite_person,
             "inviteRelation": form_inviter_relation(inviterRelation),
             "invitePhoneNumber": str(inviterPhone or "").strip(),
-            "inviteProvince": invite_province,
-            "inviteCity": arrival_city,
-            "inviteCounty": arrival_county,
+            "inviteProvince": str(province or "").strip(),
+            "inviteCity": city,
+            "inviteCounty": county,
             "arrivalDate": arrival_date_str,
             "arrivalCityDate": arrival_date_str,
             "arrivalVehicleType": travel_json.get("arrivalVehicleType", ""),
-            "arrivalCity": arrival_city,
-            "arrivalCounty": arrival_county,
+            "arrivalCity": city,
+            "arrivalCounty": county,
             "leaveDate": departure_date_str,
             "leaveVehicleType": travel_json.get("leaveVehicleType", ""),
-            "leaveCity": departure_city or arrival_city,
-            "leaveCounty": departure_county or arrival_county,
-            "departureCity": departure_city or arrival_city,
-            "departureCounty": departure_county or arrival_county,
+            "leaveCity": city,
+            "leaveCounty": county,
+            "departureCity": city,
+            "departureCounty": county,
             "travelAddr": invite_addr,
-            "stayCity": stay_city,
-            "stayCounty": stay_county,
-            "stayDistrict": stay_county,
-            "departureDistrict": departure_county or arrival_county,
+            "stayCity": city,
+            "stayCounty": county,
+            "stayDistrict": county,
+            "departureDistrict": county,
         }
     )
 
     travel_json["stayInfo"] = [
         {
             "sort": 1,
-            "stayCity": stay_city or arrival_city,
-            "stayCounty": stay_county or arrival_county,
+            "stayCity": city,
+            "stayCounty": county,
             "travelAddr": invite_addr,
             "arrivalDate": arrival_date_str,
             "leaveDate": departure_date_str,
