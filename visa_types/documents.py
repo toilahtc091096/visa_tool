@@ -407,6 +407,8 @@ class SouthItinerary(DocumentStep):
                 "first": ctx.m,
                 "name": ctx.vietnamese_name,
                 "passport_no": ocr.passportNumber or ctx.passportNumber,
+                # Same people as the visa center form: name + passport only.
+                "passengers": getattr(ctx, "passengers", []) or [],
             },
             self.output_folder,
             ctx.input_passportNumber,

@@ -317,11 +317,23 @@ async def render_south_itinerary_pdf(
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / (Path(file_name).stem + ".docx")
 
+    passport_no = payload.get("passport_no", "")
+    # Applicant first, then the passengers of the request (name + passport).
+    people = [{"name": name, "passport_no": passport_no}]
+    for item in payload.get("passengers") or []:
+        if not isinstance(item, dict):
+            continue
+        p_name = str(item.get("name", "") or "").strip().upper()
+        p_passport = str(item.get("passportNo", "") or "").strip().upper()
+        if (p_name or p_passport) and p_passport != str(passport_no).upper():
+            people.append({"name": p_name, "passport_no": p_passport})
+
     doc = DocxTemplate(str(src))
     doc.render(
         {
             "name": name,
-            "passport_no": payload.get("passport_no", ""),
+            "passport_no": passport_no,
+            "people": people,
             "itinerary": build_south_itinerary(first),
         }
     )
