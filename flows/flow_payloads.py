@@ -1594,7 +1594,7 @@ def invite_email(phone: Any) -> str:
 
 
 def contact_email(phone: Any, *name_parts: str) -> str:
-    """South email for a person, chosen by their phone number:
+    """Email for a person (both regions), chosen by their phone number:
     Chinese mobile -> "<phone>@qq.cn";
     otherwise (Vietnamese) -> "<name>_<3 random digits>@gmail.com".
     "" when there is neither a Chinese phone nor a latin name."""

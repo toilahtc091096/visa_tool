@@ -20,7 +20,6 @@ from flows.flow_payloads import (
     build_education_info_profile,
     build_south_education_info_without_input,
     contact_email,
-    name_to_gmail,
     build_family_info_profile,
 )
 from models import (
@@ -226,23 +225,18 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.inviterRelation,
         employer_phone=str(getattr(ctx, "employer_phone", "") or "").strip(),
     )
-    # Both regions: applicant email built from the passport full name.
-    body_save_family_info.email = name_to_gmail(
+    # Both regions: a phone from the request wins over the old application /
+    # generated one.
+    if getattr(ctx, "phone", ""):
+        body_save_family_info.mobilePhoneNumber = ctx.phone
+        body_save_family_info.phoneNumber = ctx.phone
+    # Both regions: email chosen by phone (Vietnamese -> name_123@gmail.com,
+    # Chinese mobile -> phone_123@qq.cn).
+    body_save_family_info.email = contact_email(
+        body_save_family_info.mobilePhoneNumber or body_save_family_info.phoneNumber,
         ctx.ocr_data.Response.Data.passportFamilyName or "",
         ctx.ocr_data.Response.Data.passportFirstName or "",
     )
-    # South: a phone from the request wins over the old application / generated one.
-    if REGION == REGION_SOUTH and getattr(ctx, "phone", ""):
-        body_save_family_info.mobilePhoneNumber = ctx.phone
-        body_save_family_info.phoneNumber = ctx.phone
-    # South: email chosen by phone (Vietnamese -> name_123@gmail.com,
-    # Chinese mobile -> phone_123@qq.cn).
-    if REGION == REGION_SOUTH:
-        body_save_family_info.email = contact_email(
-            body_save_family_info.mobilePhoneNumber or body_save_family_info.phoneNumber,
-            ctx.ocr_data.Response.Data.passportFamilyName or "",
-            ctx.ocr_data.Response.Data.passportFirstName or "",
-        )
     parents = body_save_family_info.parents or []
 
     father = next((p for p in parents if p.relation == FAMILY_PARENT_RELATION_FATHER), None)
