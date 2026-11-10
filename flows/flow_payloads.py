@@ -782,13 +782,25 @@ def _with_child_profession(child: dict[str, Any]) -> dict[str, Any]:
     return child
 
 
-def _with_spouse_defaults(spouse: dict[str, Any], street_addr: str) -> dict[str, Any]:
+def _with_spouse_defaults(
+    spouse: dict[str, Any], street_addr: str, own_address: str = ""
+) -> dict[str, Any]:
     """Spouse (both regions): lives with the applicant (same address as
     streetAddr) and is a company employee or self-employed (an old value among
-    those two is kept). An empty spouse slot (no spouse) is left as is."""
+    those two is kept). An empty spouse slot (no spouse) is left as is.
+
+    South only: a Chinese spouse (nationalityCountry CHN) keeps their own
+    address (input `address`, else the old one) instead of streetAddr."""
     if not (str(spouse.get("familyName") or "").strip() or str(spouse.get("firstName") or "").strip()):
         return spouse
-    spouse["address"] = street_addr
+    is_chinese = str(spouse.get("nationalityCountry") or "").strip().upper() == "CHN"
+    chinese_address = (
+        str(own_address or "").strip() or str(spouse.get("address") or "").strip()
+    )
+    if REGION == REGION_SOUTH and is_chinese and chinese_address:
+        spouse["address"] = chinese_address
+    else:
+        spouse["address"] = street_addr
     allowed = tuple(JOB_TYPE_BY_LABEL[label] for label in SPOUSE_JOB_TYPES)
     current = str(spouse.get("profession", "") or "")
     spouse["profession"] = current if current in allowed else random.choice(allowed)
@@ -1064,7 +1076,9 @@ def build_family_info_profile(
             else province_city_code
         )
     )
-    spouses_src = [_with_spouse_defaults(spouse, street_addr) for spouse in spouses_src]
+    spouses_src = [
+        _with_spouse_defaults(spouse, street_addr, spouseAddress) for spouse in spouses_src
+    ]
 
     family_json: dict[str, Any] = {
         "applyCountry": "",
