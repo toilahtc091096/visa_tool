@@ -45,6 +45,8 @@ class L15Visa(TourismVisa):
 
     code = "L15"
     hotels = L_15_HOTEL_INFO
+    # Additional names switch to the Nanxing hotel (see uses_under_18_hotel).
+    additions_keep_hotel = False
     documents = (L15HotelBooking(), FlightTicket(), VisaCenterConfirmation())
 
     def choose_hotel(self, ctx) -> None:
@@ -63,6 +65,7 @@ class L15Visa(TourismVisa):
             leaveVehicleType=travel.leaveVehicleType,
             is_private=travel.is_private,
             hotels=self.hotels,
+            additions_keep_hotel=self.additions_keep_hotel,
         )
         if REGION == REGION_SOUTH:
             # South L15 / L30: no invitation letter.
@@ -103,6 +106,8 @@ class SouthL30Visa(L15Visa):
 
     code = "L30"
     hotels = SOUTH_L30_HOTEL_INFO
+    # A group (additional names) stays in the South hotel, not Nanxing.
+    additions_keep_hotel = True
     flight_visa_type = "L15"
     # Arrival about one month later than the L15 timing, 4-day trip.
     start_extra_weeks = 4

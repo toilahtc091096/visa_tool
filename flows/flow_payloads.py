@@ -1272,9 +1272,13 @@ def getL15TravelInfo(
     leaveVehicleType: str,
     is_private: bool,
     hotels: list[dict[str, Any]] | None = None,
+    additions_keep_hotel: bool = False,
 ) -> Dict[str, Any]:
     """
     Full travel_json = #same + specific (hotel/flight/date) part.
+
+    ``additions_keep_hotel`` (South L30): with additional names keep the
+    chosen hotel instead of Nanxing, matching the generated hotel file.
     """
     travel_json: Dict[str, Any] = getTravelCommonInfo(
         applyid=applyid,
@@ -1284,7 +1288,8 @@ def getL15TravelInfo(
         emergency_relation=emergency_relation,
     )
     item_travel = (hotels or L_15_HOTEL_INFO)[hotel_type]
-    if is_under_18 or has_additional_names:
+    keep_hotel = has_additional_names and additions_keep_hotel
+    if not keep_hotel and (is_under_18 or has_additional_names):
         item_travel = UNDER_18_HOTEL_INFO[0]
     addr = (item_travel.get("address") or "").strip()
     addr_100 = ""

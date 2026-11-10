@@ -51,6 +51,17 @@ def has_additional_names(ctx) -> bool:
     return bool(getattr(ctx, "addition_adults", []) or getattr(ctx, "addition_child", []))
 
 
+def uses_under_18_hotel(profile, is_under_18: bool, additional: bool) -> bool:
+    """Nanxing (UNDER_18_HOTEL_INFO) instead of the profile hotel.
+
+    Profiles with ``additions_keep_hotel`` (South L30) keep their own hotel
+    when there are additional names; Nanxing is then only for a lone minor.
+    """
+    if additional and getattr(profile, "additions_keep_hotel", False):
+        return False
+    return is_under_18 or additional
+
+
 def _extend_unique_names(names: list[str], additions: list[str] | None) -> None:
     for name in additions or []:
         if name and name not in names:
@@ -122,7 +133,7 @@ class L15HotelBooking(DocumentStep):
             if not ctx.guest_name:
                 ctx.guest_name = [ctx.vietnamese_name, adult]
                 print(f"guest_name: {ctx.guest_name}")
-        if ctx.is_under_18 or additional:
+        if uses_under_18_hotel(ctx.profile, ctx.is_under_18, additional):
             hotel_info_item = UNDER_18_HOTEL_INFO[0]
         else:
             hotel_info_item = _profile_hotels(ctx)[ctx.hotel_type]
@@ -205,7 +216,7 @@ class FlightTicket(DocumentStep):
         if self.three_cities:
             arrival_info = L_30_HOTEL_INFO[0]
             departure_info = L_30_HOTEL_INFO[-1]
-        elif ctx.is_under_18 or additional:
+        elif uses_under_18_hotel(ctx.profile, ctx.is_under_18, additional):
             arrival_info = departure_info = UNDER_18_HOTEL_INFO[0]
         else:
             arrival_info = departure_info = _profile_hotels(ctx)[ctx.hotel_type]

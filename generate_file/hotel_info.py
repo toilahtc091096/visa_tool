@@ -161,8 +161,12 @@ async def render_docx_template_output_pdf(
                     else "231"
                 ),
                 "nights": (end - first).days,
+                # Two guests per room, as in Nanxing_hotel.docx.
+                "rooms": (len(names) + 1) // 2,
                 **_usd_price_fields(
-                    payload.get("hotel") or {}, len(names), (end - first).days
+                    payload.get("hotel") or {},
+                    (len(names) + 1) // 2,
+                    (end - first).days,
                 ),
             },
             jinja_env=jinja_env,
