@@ -319,8 +319,9 @@ class InvitationLetter(DocumentStep):
 
 
 class S2InvitationLetter(DocumentStep):
-    """S2 invitation letter from S2_Template_MN.docx (no signature yet), both
-    regions.
+    """S2 invitation letter from S2_Template_MN.docx, both
+    regions. The signature in tham-than/chu-ki (if any) goes on the 邀请人签字
+    line ("Image 1" placeholder, blank when there is none).
 
     Always generated as thumoi_generate.pdf in tham-than/thu-moi and pushed to
     R2 next to the applicant's files, to use later if needed. A letter the
@@ -342,7 +343,7 @@ class S2InvitationLetter(DocumentStep):
                 passport,
                 self.template_name,
                 output_name=f"{S2_GENERATED_THU_MOI_NAME}.pdf",
-                use_signature=False,
+                use_signature=True,
                 extra_context={"stay_days": stay_days},
             )
         except Exception as e:
