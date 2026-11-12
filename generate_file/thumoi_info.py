@@ -286,6 +286,7 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
     )
     today_year, today_month, today_day = _today_parts(source)
     relation_flags = _resolve_relation_flags(source)
+    is_fiance = relation_flags.get("fiance") == CHECKED
 
     visa_type = _text(_get_value(source, "visa_type", "visaType", default="")).upper()
     apply_visa_validity = _normalize_visa_validity_months(
@@ -346,6 +347,9 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
             _get_value(source, "inviterAddress", "inviter_address", default="")
         ),
         **relation_flags,
+        # 来华目的: 登记结婚 only for a fiance (CHONG SAP CUOI), else 探亲/家庭团聚.
+        "purposeFamily": UNCHECKED if is_fiance else CHECKED,
+        "purposeMarriage": CHECKED if is_fiance else UNCHECKED,
         "q1": _checkbox(q1),
         "q2Once": _checkbox(q2_once),
         "q2Twice": _checkbox(q2_twice),
