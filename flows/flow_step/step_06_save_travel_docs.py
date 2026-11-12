@@ -346,6 +346,8 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         emergencyRelationship=getattr(ctx, "emergencyRelationship", ""),
         emergencyPhone=getattr(ctx, "emergencyPhone", ""),
     )
+    # Arrival / leave dates sent to the form, for the S2 invitation letter.
+    ctx.travel_info = body_save_travel_info
     ok7, meta7 = await api_save_travel_info(
         client,
         ctx.token,

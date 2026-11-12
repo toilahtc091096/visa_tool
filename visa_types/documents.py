@@ -7,12 +7,15 @@ applicant's data folder. A profile lists the steps it needs, in order.
 from __future__ import annotations
 
 import random
+import unicodedata
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from api import api_upload_r2_object
 from constants import (
     CV_DATA,
+    INVITER_RELATION_ZH_SOUTH,
     L_15_HOTEL_INFO,
     L_15_HOTEL_OUTPUT_PATH,
     L_15_TICKET_OUTPUT_PATH,
@@ -28,7 +31,7 @@ from constants import (
     UNDER_18_HOTEL_INFO,
     VIETNAMESE_NAMES,
 )
-from flows.flow_payloads import build_L30_guest_names
+from flows.flow_payloads import build_L30_guest_names, invite_email
 from generate_file import cv_info, file_init_info, flight_info, hotel_info, thumoi_info
 from utils import format_date, get_today_parts, log_event, log_exception
 
@@ -318,10 +321,64 @@ class InvitationLetter(DocumentStep):
             raise
 
 
+_ENTRIES_ZH = {"S": "一次", "D": "两次", "M": "多次"}
+_SEX_ZH = {"1": "男", "2": "女", "M": "男", "F": "女"}
+
+
+def _dmy(iso_text: Any) -> str:
+    """ISO "2026-08-15" -> "15/08/2026"; "" when it is not an ISO date."""
+    parts = str(iso_text or "").strip()[:10].split("-")
+    if len(parts) != 3 or not all(p.isdigit() for p in parts):
+        return ""
+    return f"{parts[2]}/{parts[1]}/{parts[0]}"
+
+
+def _relation_key(value: Any) -> str:
+    """'Em gái' / 'EM GAI' -> 'em gai' (lowercase, no accents, single spaces)."""
+    text = str(value or "").replace("đ", "d").replace("Đ", "D")
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return " ".join(text.lower().split())
+
+
+def _s_relative_context(ctx) -> dict[str, str]:
+    """Values for S_MOI_NGUOI_THAN.docx that build_thumoi_context lacks.
+
+    Inviter sex / birth date come from an 18-digit Chinese ID (blank for other
+    IDs). Relation in Chinese as on the South COVA form (unknown: as given).
+    Arrival / leave dates are the ones sent to the form (ctx.travel_info)."""
+    id_card = str(getattr(ctx, "inviterIdCard", "") or "").strip().upper()
+    inviter_sex = inviter_birth = ""
+    if len(id_card) == 18 and id_card[:17].isdigit():
+        inviter_birth = f"{id_card[12:14]}/{id_card[10:12]}/{id_card[6:10]}"
+        inviter_sex = "男" if int(id_card[16]) % 2 else "女"
+    relation = str(getattr(ctx, "inviterRelation", "") or "").strip()
+    ocr = getattr(getattr(getattr(ctx, "ocr_data", None), "Response", None), "Data", None)
+    travel = getattr(ctx, "travel_info", None)
+    return {
+        "inviterSex": inviter_sex,
+        "inviterBirth": inviter_birth,
+        "inviterEmail": invite_email(getattr(ctx, "inviterPhone", "")),
+        "inviterRelationZh": INVITER_RELATION_ZH_SOUTH.get(_relation_key(relation), relation),
+        "sex": _SEX_ZH.get(str(getattr(ocr, "sex", "") or "").strip().upper(), ""),
+        "birth": _dmy(getattr(ocr, "dateOfBirth", "")),
+        "phone": str(getattr(ctx, "applicant_phone", "") or getattr(ctx, "phone", "") or ""),
+        "email": str(getattr(ctx, "applicant_email", "") or ""),
+        "arrival_date": _dmy(getattr(travel, "arrivalDate", "")),
+        "leave_date": _dmy(getattr(travel, "leaveDate", "")),
+        "entries_zh": _ENTRIES_ZH.get(
+            str(getattr(ctx, "entries_type", "") or "").strip().upper(), "一次"
+        ),
+        "today": date.today().strftime("%d/%m/%Y"),
+    }
+
+
 class S2InvitationLetter(DocumentStep):
-    """S2 invitation letter from S2_Template_MN.docx, both
-    regions. The signature in tham-than/chu-ki (if any) goes on the 邀请人签字
-    line ("Image 1" placeholder, blank when there is none).
+    """S2 invitation letter, both regions:
+    - inviterRelation "CHONG SAP CUOI" (fiance): S2_Template_MN.docx;
+    - otherwise: S_MOI_NGUOI_THAN.docx (visit a relative).
+    The signature in tham-than/chu-ki (if any) replaces the "Image 1"
+    placeholder on the inviter signature line (blank when there is none).
 
     Always generated as thumoi_generate.pdf in tham-than/thu-moi and pushed to
     R2 next to the applicant's files, to use later if needed. A letter the
@@ -329,25 +386,32 @@ class S2InvitationLetter(DocumentStep):
     THU_MOI entry in UPLOAD_CONFIG / UPLOAD_CONFIG_SOUTH_S2)."""
 
     output_folder = S2_THU_MOI_OUTPUT_PATH
-    template_name = "S2_Template_MN.docx"
+    fiance_template_name = "S2_Template_MN.docx"
+    relative_template_name = "S_MOI_NGUOI_THAN.docx"
     default_stay_days = "30"
 
     async def render(self, ctx) -> None:
         passport = str(ctx.input_passportNumber or "").strip()
         days = str(getattr(ctx, "visa_duration", "") or "").strip()
         stay_days = days if days.isdigit() and int(days) > 0 else self.default_stay_days
+        extra_context = {"stay_days": stay_days}
+        if thumoi_info.is_fiance(ctx):
+            template_name = self.fiance_template_name
+        else:
+            template_name = self.relative_template_name
+            extra_context.update(_s_relative_context(ctx))
         try:
             pdf_path = await thumoi_info.render_thumoi_docx_output_pdf(
                 ctx,
                 self.output_folder,
                 passport,
-                self.template_name,
+                template_name,
                 output_name=f"{S2_GENERATED_THU_MOI_NAME}.pdf",
                 use_signature=True,
-                extra_context={"stay_days": stay_days},
+                extra_context=extra_context,
             )
         except Exception as e:
-            log_exception(e, {"event": "render_failed", "file": self.template_name})
+            log_exception(e, {"event": "render_failed", "file": template_name})
             raise
         folder = Path(pdf_path).parent
         own_letters = [
@@ -367,7 +431,7 @@ class S2InvitationLetter(DocumentStep):
             {
                 "step": "generate invitation letter file",
                 "ok": "ok",
-                "file": self.template_name,
+                "file": template_name,
                 "r2_key": key,
                 # Non-empty: the applicant's letter is uploaded, not this one.
                 "own_letters": own_letters,

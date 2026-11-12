@@ -230,6 +230,11 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
     return normalized_flags
 
 
+def is_fiance(source: Any) -> bool:
+    """True when the inviter is the fiance(e) (inviterRelation "CHONG SAP CUOI")."""
+    return _resolve_relation_flags(source).get("fiance") == CHECKED
+
+
 def _guarantor_note(source: Any) -> str:
     """Line under the guarantor signature: guarantorNote as given, otherwise
     built from guarantorRelation (default: father)."""

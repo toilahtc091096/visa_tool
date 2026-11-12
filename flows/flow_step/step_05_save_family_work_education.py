@@ -237,6 +237,11 @@ async def save_family_work_education(ctx, client) -> bool:
         ctx.ocr_data.Response.Data.passportFamilyName or "",
         ctx.ocr_data.Response.Data.passportFirstName or "",
     )
+    # Same phone / email as the form, for the S2 invitation letter.
+    ctx.applicant_phone = (
+        body_save_family_info.mobilePhoneNumber or body_save_family_info.phoneNumber or ""
+    )
+    ctx.applicant_email = body_save_family_info.email or ""
     parents = body_save_family_info.parents or []
 
     father = next((p for p in parents if p.relation == FAMILY_PARENT_RELATION_FATHER), None)
