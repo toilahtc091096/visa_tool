@@ -22,6 +22,7 @@ from constants import (
     INVITER_RELATION_GRANDCHILDREN,
     INVITER_RELATION_MATERNAL_GRANDCHILDREN,
     INVITER_RELATION_CHILDREN_SPOUSE,
+    INVITER_RELATION_FIANCE,
 )
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
@@ -151,6 +152,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
             source, "maternalGrandchildren", default=None
         ),
         "childrenSpouse": _get_value(source, "childrenSpouse", default=None),
+        "fiance": _get_value(source, "fiance", default=None),
         "relative": _get_value(source, "relative", default=None),
         "relativeNote": _get_value(source, "relativeNote", default=""),
     }
@@ -188,6 +190,8 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
         explicit_flags["maternalGrandparents"] = CHECKED
     if explicit_flags["childrenSpouse"] is None and relation_hint in INVITER_RELATION_CHILDREN_SPOUSE:
         explicit_flags["spouseParents"] = CHECKED
+    if explicit_flags["fiance"] is None and relation_hint in INVITER_RELATION_FIANCE:
+        explicit_flags["fiance"] = CHECKED
 
     relation_matched_specific_flag = any(
         explicit_flags[key] == CHECKED
@@ -202,6 +206,7 @@ def _resolve_relation_flags(source: Any) -> dict[str, str]:
             "grandchildren",
             "maternalGrandchildren",
             "childrenSpouse",
+            "fiance",
         )
     )
 

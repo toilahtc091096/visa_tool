@@ -1933,6 +1933,8 @@ INVITER_RELATION_MATERNAL_GRANDCHILDREN = frozenset(
 INVITER_RELATION_CHILDREN_SPOUSE = frozenset(
     {"childrenspouse", "con dau con re", "con dau", "con re"}
 )
+# Ticks 未婚妻（夫） ({{ fiance }}): only this label, e.g. S2 "CHONG SAP CUOI".
+INVITER_RELATION_FIANCE = frozenset({"chong sap cuoi"})
 
 # Invitation letter signed on behalf of a minor inviter (Q_Template_guarantor):
 # request "guarantorRelation" (lowercase, accents optional) -> who signs.
