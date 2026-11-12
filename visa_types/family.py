@@ -21,7 +21,7 @@ from utils import date_util
 from .base import VisaProfile, china_place_from_pinyin, register
 from .documents import (
     InvitationLetter,
-    SouthS2InvitationLetter,
+    S2InvitationLetter,
     VisaCenterConfirmation,
 )
 
@@ -145,19 +145,17 @@ register(SouthQ2Visa if REGION == REGION_SOUTH else Q2Visa)
 
 class S2Visa(FamilyVisa):
     """S2: family member of a foreigner living in China (short visit), or other
-    personal matters. Same flow as Q2, but the invitation letter is not
-    generated: the applicant's own letter in tham-than/thu-moi is uploaded."""
+    personal matters. Same flow as Q2. The invitation letter is generated from
+    S2_Template_MN.docx, but the applicant's own letter in tham-than/thu-moi
+    is uploaded first when there is one."""
 
     code = "S2"
-    documents = (VisaCenterConfirmation(),)
+    documents = (VisaCenterConfirmation(), S2InvitationLetter())
 
 
 class SouthS2Visa(S2Visa):
-    """South (HCMC) S2: same flow as the North S2, plus an invitation letter
-    generated from S2_Template_MN.docx (used only when the applicant gave
-    none). Its upload table is UPLOAD_CONFIG_SOUTH_S2."""
-
-    documents = (VisaCenterConfirmation(), SouthS2InvitationLetter())
+    """South (HCMC) S2: same flow as the North S2.
+    Its upload table is UPLOAD_CONFIG_SOUTH_S2."""
 
 
 register(SouthS2Visa if REGION == REGION_SOUTH else S2Visa)

@@ -318,13 +318,14 @@ class InvitationLetter(DocumentStep):
             raise
 
 
-class SouthS2InvitationLetter(DocumentStep):
-    """South S2 invitation letter from S2_Template_MN.docx (no signature yet).
+class S2InvitationLetter(DocumentStep):
+    """S2 invitation letter from S2_Template_MN.docx (no signature yet), both
+    regions.
 
     Always generated as thumoi_generate.pdf in tham-than/thu-moi and pushed to
     R2 next to the applicant's files, to use later if needed. A letter the
-    applicant already put in that folder still wins at upload (see
-    UPLOAD_CONFIG_SOUTH_S2)."""
+    applicant already put in that folder still wins at upload (see the S2
+    THU_MOI entry in UPLOAD_CONFIG / UPLOAD_CONFIG_SOUTH_S2)."""
 
     output_folder = S2_THU_MOI_OUTPUT_PATH
     template_name = "S2_Template_MN.docx"

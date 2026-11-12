@@ -861,9 +861,8 @@ Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
 Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
 
-# S2 uploads the applicant's own invitation letter (not generated).
 S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
-# South S2: letter generated from S2_Template_MN.docx, saved in
+# S2 (both regions): letter generated from S2_Template_MN.docx, saved in
 # S2_THU_MOI_OUTPUT_PATH (and on R2) under this name. A letter the applicant
 # put in that folder is uploaded first; this one only when there is none.
 S2_GENERATED_THU_MOI_NAME = "thumoi_generate"
@@ -1596,8 +1595,11 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        # The applicant's own invitation letter (not generated).
-        "THU_MOI": _files(S2_THU_MOI_OUTPUT_PATH, 1),
+        # The applicant's own letter first; the generated one when there is none.
+        "THU_MOI": _first_nonempty(
+            _files(S2_THU_MOI_OUTPUT_PATH, 1, exclude=(S2_GENERATED_THU_MOI_NAME,)),
+            _files(S2_THU_MOI_OUTPUT_PATH, 1, names=(S2_GENERATED_THU_MOI_NAME,)),
+        ),
         "CCCD_NGUOI_MOI": _files(S2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
         "CHUNG_MINH_QUAN_HE": _files(S2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
         "OTHER_MATERIALS": [
