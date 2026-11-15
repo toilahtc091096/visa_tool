@@ -13,6 +13,25 @@ from utils.upload_file import merge_files_to_pdf
 from .common import check_api_result, fail_step
 
 
+def _named_slot_files(folder: str, names: list[str]) -> list[Path | None]:
+    """One file per slot, in ``names`` order: the file with that name (any
+    extension and case), else the next other file of the folder (by name).
+    None keeps an empty slot so later files stay in their own slot."""
+    files = sorted(get_files(folder, 1000), key=lambda f: f.name.lower())
+    by_stem: dict[str, Path] = {}
+    for f in files:
+        by_stem.setdefault(f.stem.lower(), f)
+    wanted = {name.lower() for name in names}
+    rest = [f for f in files if f.stem.lower() not in wanted]
+    slots: list[Path | None] = []
+    for name in names:
+        f = by_stem.get(name.lower())
+        if f is None and rest:
+            f = rest.pop(0)
+        slots.append(f)
+    return slots
+
+
 def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
     if isinstance(cfg, list):
         return [f for source in cfg for f in _source_files(source, data_passport_number)]
@@ -26,6 +45,8 @@ def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
         files = [f for source in cfg["merge_pdf"] for f in _source_files(source, data_passport_number)]
         merged = merge_files_to_pdf(files, cfg["name"]) if files else None
         return [merged] if merged else []
+    if "named_slots" in cfg:
+        return _named_slot_files(cfg["folder"], cfg["named_slots"])
     if cfg.get("passport_image"):
         path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
         return [Path(path)] if path else []

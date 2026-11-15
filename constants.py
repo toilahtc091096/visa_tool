@@ -1210,8 +1210,9 @@ MAT_SOUTH_M_VN_BUSINESS_REGISTRATION = CovaMaterial(
 MAT_SOUTH_Q1_INVITATION_LETTER = CovaMaterial("12025062617103405430938", "mfa-012")
 MAT_SOUTH_Q1_INVITER_ID = CovaMaterial("12025062617162059612389", "mfa-012")
 MAT_SOUTH_Q1_RELATIONSHIP_PROOF = CovaMaterial("12025062617242615028456", "mfa-012")
-# Q1 - guardian relationship: _1 birth certificate, _2,_3 guardian's passport / ID.
-MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP = CovaMaterial(
+# Guardian relationship (under 18), used by L30 and Q1: _1 birth certificate
+# (duoi18_ks), _2,_3 guardian's passport / ID (duoi18_dc1, duoi18_dc2).
+MAT_SOUTH_GUARDIAN_RELATIONSHIP = CovaMaterial(
     "22025062618301525858044", "mfa-079"
 )
 # Q2 - short family visit. No relationship category: the proof goes in slots
@@ -1250,6 +1251,7 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
                 1, 2, 3, 4
             ),
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1),
+            "GUARDIAN_DOCUMENTS": MAT_SOUTH_GUARDIAN_RELATIONSHIP.slots(1, 2, 3),
         },
     },
     "M": {
@@ -1292,8 +1294,7 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "CCCD_NGUOI_MOI_QUAN_HE": MAT_SOUTH_Q1_INVITER_ID.slots(3),
             # One merged PDF of tham-than\quan-he.
             "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q1_RELATIONSHIP_PROOF.slots(1),
-            "GUARDIAN_BIRTH_CERTIFICATE": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(1),
-            "GUARDIAN_ID": MAT_SOUTH_Q1_GUARDIAN_RELATIONSHIP.slots(2, 3),
+            "GUARDIAN_DOCUMENTS": MAT_SOUTH_GUARDIAN_RELATIONSHIP.slots(1, 2, 3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
         },
@@ -1637,6 +1638,15 @@ UPLOAD_CONFIG_SOUTH_M: dict[str, object] = {
     "QUYET_DINH": _files(DOANH_NGHIEP_QUYET_DINH_OUTPUT_PATH, 3),
     "DANG_KY_DOANH_NGHIEP_VN": _files(DOANH_NGHIEP_DANG_KY_VN_OUTPUT_PATH, 3),
 }
+# South guardian relationship (L30, Q1), from the under-18 folder:
+# duoi18_ks -> _1, duoi18_dc1 -> _2, duoi18_dc2 -> _3. A slot whose named
+# file is missing takes the next other file of the folder (by name).
+UPLOAD_CONFIG_SOUTH_GUARDIAN: dict[str, object] = {
+    "GUARDIAN_DOCUMENTS": {
+        "folder": L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH,
+        "named_slots": ["duoi18_ks", "duoi18_dc1", "duoi18_dc2"],
+    },
+}
 # South Q1, same idea: started from the North Q1 table.
 UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
     "PASSPORT_INFO_PAGE": _passport_image(),
@@ -1659,13 +1669,7 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
     "CHUNG_MINH_QUAN_HE": _merged_pdf(
         "quan_he.pdf", _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100)
     ),
-    # Guardian relationship, from the under-18 folder.
-    "GUARDIAN_BIRTH_CERTIFICATE": _files(
-        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 1, names=("duoi18_ks",)
-    ),
-    "GUARDIAN_ID": _files(
-        L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 2, names=("duoi18_dc1", "duoi18_dc2")
-    ),
+    **UPLOAD_CONFIG_SOUTH_GUARDIAN,
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
@@ -1761,6 +1765,7 @@ UPLOAD_CONFIG_SOUTH_X2: dict[str, object] = {
     "VISA_CENTER_CONFIRMATION": _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
 }
 if REGION == REGION_SOUTH:
+    UPLOAD_CONFIG["L30"] = {**UPLOAD_CONFIG["L30"], **UPLOAD_CONFIG_SOUTH_GUARDIAN}
     UPLOAD_CONFIG["M"] = UPLOAD_CONFIG_SOUTH_M
     UPLOAD_CONFIG["Q1"] = UPLOAD_CONFIG_SOUTH_Q1
     UPLOAD_CONFIG["Q2"] = UPLOAD_CONFIG_SOUTH_Q2
