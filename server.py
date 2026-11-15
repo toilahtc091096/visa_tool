@@ -20,6 +20,7 @@ from api import api_delete_r2_objects
 from api import api_sign_and_push_image_to_r2
 from constants import REGION, REGION_SOUTH
 from database.connection import init_database
+from database.crud import set_visa_registration_vip
 from main import build_case, main
 from services.han_approval import (
     list_han_approval_jobs,
@@ -170,6 +171,10 @@ def run(payload: dict[str, Any] = Body(...)):
         emergencyPhone=case.get("emergencyPhone", ""),
     )
     if result.get("ok"):
+        # Before the sheet write below, so the row already has is_vip.
+        is_vip = _save_is_vip(result.get("record_id"), payload)
+        if is_vip is not None:
+            result["is_vip"] = is_vip
         agency = assign_agency_to_registration(result.get("record_id"), payload)
         if agency:
             result["agency_code"] = agency["agency_code"]
@@ -181,6 +186,38 @@ def run(payload: dict[str, Any] = Body(...)):
                 daemon=True,
             ).start()
     return JSONResponse(status_code=_run_status_code(result), content=result)
+
+
+def _parse_is_vip(value: Any) -> bool:
+    return str(value if value is not None else "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _save_is_vip(record_id: int | None, payload: dict[str, Any]) -> int | None:
+    """
+    Store is_vip (0/1 from the curl) on the registration. Without the field
+    the stored value is kept (a new record defaults to 0). Never raises.
+    """
+    if not record_id or "is_vip" not in payload:
+        return None
+    is_vip = _parse_is_vip(payload.get("is_vip"))
+    try:
+        set_visa_registration_vip(record_id, is_vip)
+    except Exception as exc:
+        log_event(
+            {
+                "step": "save_is_vip",
+                "ok": False,
+                "record_id": record_id,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
+        )
+        return None
+    return int(is_vip)
 
 
 def _write_agency_sheet_safely(

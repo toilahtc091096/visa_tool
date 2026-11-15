@@ -12,6 +12,7 @@ from database.crud.visa_registration import (
     batch_update_visa_registration_status_and_payload,
     update_visa_registration_status,
     update_visa_registration_status_and_payload,
+    set_visa_registration_vip,
 )
 from database.crud.agency import (
     find_visa_registrations_with_agency,
@@ -49,6 +50,7 @@ __all__ = [
     "batch_update_visa_registration_status_and_payload",
     "update_visa_registration_status",
     "update_visa_registration_status_and_payload",
+    "set_visa_registration_vip",
     "get_approval_print_job_by_han_code",
     "list_approval_print_jobs",
     "update_approval_print_job_by_han_code",

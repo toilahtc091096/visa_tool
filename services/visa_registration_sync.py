@@ -265,6 +265,7 @@ async def sync_draft_visa_registrations(
             update: dict[str, Any] | None,
             display_only: bool = False,
         ) -> tuple[dict[str, Any], dict[str, Any] | None]:
+            item["is_vip"] = 1 if row.get("is_vip") else 0
             async with progress_lock:
                 progress["done"] += 1
                 if display_only:

@@ -93,3 +93,7 @@ BEGIN
         UPDATE visa_registrations SET skip = TRUE;
     END IF;
 END $$;
+
+-- VIP registration (is_vip = 1 in the /run curl, from source_prefix "... - vip").
+ALTER TABLE visa_registrations
+    ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT FALSE;

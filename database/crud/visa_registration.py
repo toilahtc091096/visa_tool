@@ -335,3 +335,18 @@ def delete_visa_registrations_by_passport_except_status(
                 return cursor.rowcount
     finally:
         conn.close()
+
+
+def set_visa_registration_vip(record_id: int, is_vip: bool) -> None:
+    sql = """
+        UPDATE visa_registrations
+        SET is_vip = %s, updated_at = NOW()
+        WHERE id = %s
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (bool(is_vip), record_id))
+    finally:
+        conn.close()

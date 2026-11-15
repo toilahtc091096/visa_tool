@@ -42,7 +42,12 @@ AGENCY_SHEET_HEADER = [
     "visa_app_no",
     "reject_reason",
     "checked_at",
+    "is_vip",
 ]
+
+# Tab in the same spreadsheet listing the VIP rows of every agency tab.
+VIP_SUMMARY_TITLE = "TONG HOP VIP"
+VIP_SUMMARY_HEADER = ["Ngày", "Mã HC", "visa_app_no"]
 
 VN_TZ = timezone(timedelta(hours=7))
 
@@ -143,6 +148,7 @@ def build_agency_sheet_row(
         "visa_app_no": str(row.get("application_code") or ""),
         "reject_reason": str(matched_row.get("rejectReason") or ""),
         "checked_at": checked_at,
+        "is_vip": 1 if row.get("is_vip") else 0,
     }
 
 
@@ -350,7 +356,78 @@ def _write_rows(
                 )
             except Exception as exc:
                 errors[agency_code] = f"{type(exc).__name__}: {exc}"
+        try:
+            result["vip_summary"] = _rebuild_vip_summary(spreadsheet)
+        except Exception as exc:
+            errors["vip_summary"] = f"{type(exc).__name__}: {exc}"
     return {"ok": not errors, "written": written, "errors": errors, **result}
+
+
+def _is_vip_value(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "vip"}
+
+
+def _sent_at_sort_key(value: str) -> datetime:
+    try:
+        return datetime.strptime(value.strip(), "%d/%m/%Y %H:%M:%S")
+    except ValueError:
+        return datetime.max
+
+
+def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
+    """VIP rows (is_vip = 1) of every agency tab, oldest first, one per visa_apply_id."""
+    found: dict[str, tuple[str, list[str]]] = {}
+    for value_range in value_ranges:
+        values = value_range.get("values") or []
+        if not values:
+            continue
+        header = [str(cell).strip() for cell in values[0]]
+        needed = ("is_vip", "passport_no", "sent_at", "visa_app_no", KEY_COLUMN)
+        if any(name not in header for name in needed):
+            continue
+        idx = {name: header.index(name) for name in needed}
+        for row in values[1:]:
+            cell = lambda name: str(row[idx[name]]).strip() if idx[name] < len(row) else ""
+            if not _is_vip_value(cell("is_vip")):
+                continue
+            sent_at = cell("sent_at")
+            key = cell(KEY_COLUMN) or f"{cell('passport_no')}|{sent_at}"
+            found[key] = (
+                sent_at,
+                [sent_at.split(" ")[0], cell("passport_no"), cell("visa_app_no")],
+            )
+    ordered = sorted(found.values(), key=lambda item: _sent_at_sort_key(item[0]))
+    return [row for _, row in ordered]
+
+
+def _rebuild_vip_summary(spreadsheet: Any) -> dict[str, int]:
+    """
+    Rewrite the TONG HOP VIP tab from the agency tabs (one read for all tabs).
+    The tab is generated: edits made in it are replaced on the next write.
+    """
+    titles = [ws.title for ws in spreadsheet.worksheets() if ws.title != VIP_SUMMARY_TITLE]
+    value_ranges: list[dict[str, Any]] = []
+    if titles:
+        quoted = ["'" + title.replace("'", "''") + "'" for title in titles]
+        value_ranges = spreadsheet.values_batch_get(quoted).get("valueRanges", [])
+    rows = _collect_vip_rows(value_ranges)
+
+    try:
+        worksheet = spreadsheet.worksheet(VIP_SUMMARY_TITLE)
+    except Exception:
+        worksheet = spreadsheet.add_worksheet(
+            title=VIP_SUMMARY_TITLE, rows=max(len(rows) + 1, 100), cols=len(VIP_SUMMARY_HEADER)
+        )
+    values = [VIP_SUMMARY_HEADER, *rows]
+    if len(values) > worksheet.row_count:
+        worksheet.add_rows(len(values) - worksheet.row_count)
+    worksheet.batch_clear([f"A1:{_column_number_to_letter(len(VIP_SUMMARY_HEADER))}"])
+    worksheet.update(
+        values=values,
+        range_name=f"A1:{_column_number_to_letter(len(VIP_SUMMARY_HEADER))}{len(values)}",
+        value_input_option="RAW",
+    )
+    return {"vip_rows": len(rows)}
 
 
 def remove_record_from_agency_sheet(agency_code: str, visa_apply_id: str) -> int:

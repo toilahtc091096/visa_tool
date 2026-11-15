@@ -526,6 +526,7 @@ def write_sync_summary_to_google_sheet(
                 # "remote_applyid": item.get("remote_applyid", ""),
                 # "remote_status": item.get("remote_status", ""),
                 "internal_status": item.get("internal_status", ""),
+                "is_vip": 1 if item.get("is_vip") else 0,
             }
         )
 
@@ -542,6 +543,7 @@ def write_sync_summary_to_google_sheet(
         # "remote_applyid",
         # "remote_status",
         "internal_status",
+        "is_vip",
     ]
     return write_rows_to_google_sheet(
         spreadsheet_url=spreadsheet_url,
