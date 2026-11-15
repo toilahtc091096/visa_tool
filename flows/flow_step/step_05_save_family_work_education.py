@@ -176,6 +176,8 @@ async def save_family_work_education(ctx, client) -> bool:
         today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
     ) > 50
 
+    _fill_spouse_birth_place_in_china(ctx)
+
     body_save_family_info = build_family_info_profile(
         ctx.first_applyid,
         (
@@ -264,3 +266,35 @@ async def save_family_work_education(ctx, client) -> bool:
         return False
 
     return True
+
+
+def _fill_spouse_birth_place_in_china(ctx) -> None:
+    """
+    Spouse born in China (birthCountry CHN): birthCity / birthCounty are the
+    COVA codes of inviterProvincePinyin / inviterCityPinyin /
+    inviterDistrictPinyin (resources/china_locations.json, as for the
+    inviter's place). Codes already sent in the curl are kept. Skipped for M,
+    whose pinyin is the company's place, not the spouse's.
+    """
+    if str(getattr(ctx, "spouseBirthCountry", "") or "").strip().upper() != "CHN":
+        return
+    if str(getattr(ctx, "visa_type", "") or "").upper().startswith("M"):
+        return
+    has_city = str(getattr(ctx, "spouseBirthCity", "") or "").strip()
+    has_county = str(getattr(ctx, "spouseBirthCounty", "") or "").strip()
+    if has_city and has_county:
+        return
+    from visa_types.base import china_place_from_pinyin
+
+    place = china_place_from_pinyin(ctx)
+    if not has_city:
+        ctx.spouseBirthCity = place.city
+    if not has_county:
+        ctx.spouseBirthCounty = place.county
+    log_event(
+        {
+            "step": "spouse_birth_place_in_china",
+            "birthCity": ctx.spouseBirthCity,
+            "birthCounty": ctx.spouseBirthCounty,
+        }
+    )
