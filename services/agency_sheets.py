@@ -13,6 +13,7 @@ Rows are matched by visa_apply_id (= first_applyid).
 from __future__ import annotations
 
 import os
+import re
 import threading
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -47,7 +48,11 @@ AGENCY_SHEET_HEADER = [
 
 # Tab in the same spreadsheet listing the VIP rows of every agency tab.
 VIP_SUMMARY_TITLE = "TONG HOP VIP"
-VIP_SUMMARY_HEADER = ["Ngày", "Mã HC", "visa_app_no"]
+VIP_SUMMARY_HEADER = ["Tên khách hàng", "Mã HC", "visa_code", "Ngày", "visa_app_no"]
+
+# Visa classes whose code carries a sub-type digit (Q1/Q2, S1/S2, X1/X2, J1/J2).
+_VISA_CLASS_WITH_SUBTYPE = re.compile(r"^([QSXJ][12])")
+_VISA_CLASS_LETTERS = re.compile(r"^([A-Z]+)")
 
 VN_TZ = timezone(timedelta(hours=7))
 
@@ -374,6 +379,13 @@ def _sent_at_sort_key(value: str) -> datetime:
         return datetime.max
 
 
+def _visa_class(visa_code: str) -> str:
+    """Visa class without the stay days: Q1365 -> Q1, X2150 -> X2, L30 -> L, M90 -> M."""
+    code = str(visa_code or "").strip().upper()
+    match = _VISA_CLASS_WITH_SUBTYPE.match(code) or _VISA_CLASS_LETTERS.match(code)
+    return match.group(1) if match else code
+
+
 def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
     """VIP rows (is_vip = 1) of every agency tab, oldest first, one per visa_apply_id."""
     found: dict[str, tuple[str, list[str]]] = {}
@@ -386,15 +398,27 @@ def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
         if any(name not in header for name in needed):
             continue
         idx = {name: header.index(name) for name in needed}
+        # Older tabs may not have these columns yet: leave the cell empty.
+        for name in ("name", "visa_code"):
+            if name in header:
+                idx[name] = header.index(name)
         for row in values[1:]:
-            cell = lambda name: str(row[idx[name]]).strip() if idx[name] < len(row) else ""
+            cell = lambda name: (
+                str(row[idx[name]]).strip() if name in idx and idx[name] < len(row) else ""
+            )
             if not _is_vip_value(cell("is_vip")):
                 continue
             sent_at = cell("sent_at")
             key = cell(KEY_COLUMN) or f"{cell('passport_no')}|{sent_at}"
             found[key] = (
                 sent_at,
-                [sent_at.split(" ")[0], cell("passport_no"), cell("visa_app_no")],
+                [
+                    cell("name"),
+                    cell("passport_no"),
+                    _visa_class(cell("visa_code")),
+                    sent_at.split(" ")[0],
+                    cell("visa_app_no"),
+                ],
             )
     ordered = sorted(found.values(), key=lambda item: _sent_at_sort_key(item[0]))
     return [row for _, row in ordered]
@@ -421,7 +445,10 @@ def _rebuild_vip_summary(spreadsheet: Any) -> dict[str, int]:
     values = [VIP_SUMMARY_HEADER, *rows]
     if len(values) > worksheet.row_count:
         worksheet.add_rows(len(values) - worksheet.row_count)
-    worksheet.batch_clear([f"A1:{_column_number_to_letter(len(VIP_SUMMARY_HEADER))}"])
+    # The tab was created with fewer columns before: widen it to the header.
+    if len(VIP_SUMMARY_HEADER) > worksheet.col_count:
+        worksheet.add_cols(len(VIP_SUMMARY_HEADER) - worksheet.col_count)
+    worksheet.batch_clear([f"A1:{_column_number_to_letter(worksheet.col_count)}"])
     worksheet.update(
         values=values,
         range_name=f"A1:{_column_number_to_letter(len(VIP_SUMMARY_HEADER))}{len(values)}",
