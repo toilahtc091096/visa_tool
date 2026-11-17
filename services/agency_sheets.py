@@ -143,7 +143,7 @@ def _visa_status_raw(row: dict[str, Any], item: dict[str, Any]) -> str:
 
 
 # Passport sex as saved by /run (COVA code; letters accepted too).
-GENDER_LABELS = {"1": "Nam", "2": "Nữ", "M": "Nam", "F": "Nữ"}
+GENDER_LABELS = {"1": "M", "2": "F", "M": "M", "F": "F"}
 
 
 def _gender_label(row: dict[str, Any]) -> str:
