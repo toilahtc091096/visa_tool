@@ -48,7 +48,16 @@ AGENCY_SHEET_HEADER = [
 
 # Tab in the same spreadsheet listing the VIP rows of every agency tab.
 VIP_SUMMARY_TITLE = "TONG HOP VIP"
-VIP_SUMMARY_HEADER = ["Tên khách hàng", "Mã HC", "visa_code", "Ngày", "visa_app_no"]
+VIP_SUMMARY_HEADER = [
+    "STT",
+    "apply_id",
+    "Tên khách hàng",
+    "Giới tính KH",
+    "Mã HC",
+    "Loại VISA",
+    "Ghi chú",
+]
+VIP_SUMMARY_NOTE = "VIP"
 
 # Visa classes whose code carries a sub-type digit (Q1/Q2, S1/S2, X1/X2, J1/J2).
 _VISA_CLASS_WITH_SUBTYPE = re.compile(r"^([QSXJ][12])")
@@ -413,15 +422,17 @@ def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
             found[key] = (
                 sent_at,
                 [
+                    cell(KEY_COLUMN),
                     cell("name"),
+                    "",  # Giới tính KH: not stored yet
                     cell("passport_no"),
                     _visa_class(cell("visa_code")),
-                    sent_at.split(" ")[0],
-                    cell("visa_app_no"),
+                    VIP_SUMMARY_NOTE,
                 ],
             )
     ordered = sorted(found.values(), key=lambda item: _sent_at_sort_key(item[0]))
-    return [row for _, row in ordered]
+    # STT: 1, 2, 3... in sent order (oldest first).
+    return [[index, *row] for index, (_, row) in enumerate(ordered, start=1)]
 
 
 def _rebuild_vip_summary(spreadsheet: Any) -> dict[str, int]:
