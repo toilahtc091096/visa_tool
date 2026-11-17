@@ -50,6 +50,7 @@ AGENCY_SHEET_HEADER = [
 VIP_SUMMARY_TITLE = "TONG HOP VIP"
 VIP_SUMMARY_HEADER = [
     "STT",
+    "Ngày",
     "apply_id",
     "Tên khách hàng",
     "Giới tính KH",
@@ -431,8 +432,21 @@ def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
                 ],
             )
     ordered = sorted(found.values(), key=lambda item: _sent_at_sort_key(item[0]))
-    # STT: 1, 2, 3... in sent order (oldest first).
-    return [[index, *row] for index, (_, row) in enumerate(ordered, start=1)]
+    # Grouped by sent date (oldest first): STT restarts at 1 for each date and
+    # an empty row separates the dates.
+    result: list[list[Any]] = []
+    current_date: str | None = None
+    number = 0
+    for sent_at, row in ordered:
+        day = sent_at.split(" ")[0]
+        if day != current_date:
+            if current_date is not None:
+                result.append([""] * len(VIP_SUMMARY_HEADER))
+            current_date = day
+            number = 0
+        number += 1
+        result.append([number, day, *row])
+    return result
 
 
 def _rebuild_vip_summary(spreadsheet: Any) -> dict[str, int]:
@@ -465,7 +479,7 @@ def _rebuild_vip_summary(spreadsheet: Any) -> dict[str, int]:
         range_name=f"A1:{_column_number_to_letter(len(VIP_SUMMARY_HEADER))}{len(values)}",
         value_input_option="RAW",
     )
-    return {"vip_rows": len(rows)}
+    return {"vip_rows": sum(1 for row in rows if row[0] != "")}
 
 
 def remove_record_from_agency_sheet(agency_code: str, visa_apply_id: str) -> int:
