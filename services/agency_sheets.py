@@ -34,6 +34,7 @@ AGENCY_SHEET_HEADER = [
     "agency_code",
     "agency_name",
     "name",
+    "gender",
     "passport_no",
     "visa_code",
     "status",
@@ -141,6 +142,17 @@ def _visa_status_raw(row: dict[str, Any], item: dict[str, Any]) -> str:
     return reason
 
 
+# Passport sex as saved by /run (COVA code; letters accepted too).
+GENDER_LABELS = {"1": "Nam", "2": "Nữ", "M": "Nam", "F": "Nữ"}
+
+
+def _gender_label(row: dict[str, Any]) -> str:
+    payload = row.get("payload")
+    value = payload.get("gender") if isinstance(payload, dict) else ""
+    value = str(value or "").strip().upper()
+    return GENDER_LABELS.get(value, "")
+
+
 def build_agency_sheet_row(
     row: dict[str, Any],
     item: dict[str, Any],
@@ -154,6 +166,7 @@ def build_agency_sheet_row(
         "agency_code": str(row.get("agency_code") or ""),
         "agency_name": str(row.get("agency_name") or ""),
         "name": str(row.get("full_name") or ""),
+        "gender": _gender_label(row),
         "passport_no": str(row.get("passport_number") or ""),
         "visa_code": str(row.get("visa_type") or ""),
         "status": str(row.get("status") or ""),
@@ -409,7 +422,7 @@ def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
             continue
         idx = {name: header.index(name) for name in needed}
         # Older tabs may not have these columns yet: leave the cell empty.
-        for name in ("name", "visa_code"):
+        for name in ("name", "gender", "visa_code"):
             if name in header:
                 idx[name] = header.index(name)
         for row in values[1:]:
@@ -425,7 +438,7 @@ def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
                 [
                     cell(KEY_COLUMN),
                     cell("name"),
-                    "",  # Giới tính KH: not stored yet
+                    cell("gender"),
                     cell("passport_no"),
                     _visa_class(cell("visa_code")),
                     VIP_SUMMARY_NOTE,

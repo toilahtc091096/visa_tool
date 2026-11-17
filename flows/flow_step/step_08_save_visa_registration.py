@@ -18,10 +18,13 @@ def save_draft_visa_registration(ctx) -> int | None:
         ).strip()
 
     passport_number = ""
+    gender = ""
     if getattr(ctx, "ocr_data", None):
         passport_number = (
             getattr(ctx.ocr_data.Response.Data, "passportNumber", "") or ""
         ).strip()
+        # Passport OCR sex, COVA code: "1" male, "2" female.
+        gender = str(getattr(ctx.ocr_data.Response.Data, "sex", "") or "").strip()
 
     visa_type = (
         (getattr(ctx, "visa_type_raw", "") or getattr(ctx, "visa_type", "")) or ""
@@ -48,6 +51,7 @@ def save_draft_visa_registration(ctx) -> int | None:
             passport_number=passport_number,
             visa_type=visa_type,
             status="draft",
+            payload={"gender": gender} if gender else {},
         )
     )
     log_event(
@@ -59,6 +63,7 @@ def save_draft_visa_registration(ctx) -> int | None:
             "full_name": full_name,
             "passport_number": passport_number,
             "visa_type": visa_type,
+            "gender": gender,
         }
     )
     return record_id
