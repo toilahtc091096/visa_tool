@@ -75,15 +75,21 @@ def _server_port() -> int:
         return 10000
 
 
+def _scheduled_sync_kwargs() -> dict[str, str]:
+    """Sheet settings shared by the scheduler and the sync after /run."""
+    return {
+        "spreadsheet_url": os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip(),
+        "worksheet_name": os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "hai").strip(),
+        "sheet_mode": os.getenv("GOOGLE_SHEET_SYNC_MODE", "upsert").strip(),
+    }
+
+
 async def _sync_draft_scheduler_loop() -> None:
     if not _is_sync_draft_enabled():
         print("[sync_draft_scheduler] disabled by SYNC_DRAFT_ENABLED=0", flush=True)
         return
 
     interval_seconds = _sync_scheduler_interval_seconds()
-    spreadsheet_url = os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
-    worksheet_name = os.getenv("GOOGLE_SHEET_SYNC_WORKSHEET", "hai").strip()
-    sheet_mode = os.getenv("GOOGLE_SHEET_SYNC_MODE", "upsert").strip()
 
     while True:
         try:
@@ -91,11 +97,7 @@ async def _sync_draft_scheduler_loop() -> None:
             # riêng với event loop riêng để không làm đứng các request khác.
             result = await asyncio.to_thread(
                 asyncio.run,
-                sync_draft_visa_registrations(
-                    spreadsheet_url=spreadsheet_url,
-                    worksheet_name=worksheet_name,
-                    sheet_mode=sheet_mode,
-                ),
+                sync_draft_visa_registrations(**_scheduled_sync_kwargs()),
             )
             print(
                 "[sync_draft_scheduler] completed "
@@ -185,7 +187,64 @@ def run(payload: dict[str, Any] = Body(...)):
                 args=(result.get("record_id"), result.get("first_applyid"), agency),
                 daemon=True,
             ).start()
+        # Visa status of the new record (and the others) in the background.
+        _request_sync_after_run(result.get("record_id"))
     return JSONResponse(status_code=_run_status_code(result), content=result)
+
+
+def _is_sync_after_run_enabled() -> bool:
+    value = os.getenv("SYNC_DRAFT_AFTER_RUN", "1").strip().lower()
+    return (
+        REGION == REGION_SOUTH
+        and _is_sync_draft_enabled()
+        and value in {"1", "true", "yes", "on"}
+    )
+
+
+# One sync after /run at a time: runs that succeed while it is going only ask
+# for one more pass after it (a sync covers every draft record anyway).
+_SYNC_AFTER_RUN_LOCK = threading.Lock()
+_sync_after_run_state = {"running": False, "pending": False}
+
+
+def _request_sync_after_run(record_id: int | None) -> None:
+    if not _is_sync_after_run_enabled():
+        return
+    with _SYNC_AFTER_RUN_LOCK:
+        if _sync_after_run_state["running"]:
+            _sync_after_run_state["pending"] = True
+            log_event({"step": "sync_after_run", "record_id": record_id, "queued": True})
+            return
+        _sync_after_run_state["running"] = True
+    threading.Thread(
+        target=_sync_after_run_worker, args=(record_id,), daemon=True
+    ).start()
+
+
+def _sync_after_run_worker(record_id: int | None) -> None:
+    while True:
+        started_at = time.perf_counter()
+        try:
+            result = asyncio.run(sync_draft_visa_registrations(**_scheduled_sync_kwargs()))
+            log_event(
+                {
+                    "step": "sync_after_run",
+                    "record_id": record_id,
+                    "ok": True,
+                    "matched": result.get("matched", 0),
+                    "updated": result.get("updated", 0),
+                    "skipped": result.get("skipped", 0),
+                    "duration": round(time.perf_counter() - started_at, 2),
+                }
+            )
+        except Exception as exc:
+            log_exception(exc, {"path": "sync_after_run", "record_id": record_id})
+        with _SYNC_AFTER_RUN_LOCK:
+            if not _sync_after_run_state["pending"]:
+                _sync_after_run_state["running"] = False
+                return
+            _sync_after_run_state["pending"] = False
+            record_id = None  # this pass covers the queued runs
 
 
 def _parse_is_vip(value: Any) -> bool:
