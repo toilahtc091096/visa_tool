@@ -1,19 +1,12 @@
 {
   "info": {
+    "_postman_id": "8ef50ee2-8ad7-4fe6-9aa5-3fdca2987a78",
     "name": "Visa Tool API",
     "description": "Các API của server Visa Tool (FastAPI, server.py), trừ /run.\nĐặt biến collection baseUrl (mặc định http://127.0.0.1:10000) và authorization (token COVA) trước khi gọi.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "2448009",
+    "_collection_link": "https://go.postman.co/collection/2448009-8ef50ee2-8ad7-4fe6-9aa5-3fdca2987a78?source=collection_link"
   },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://127.0.0.1:10000"
-    },
-    {
-      "key": "authorization",
-      "value": ""
-    }
-  ],
   "item": [
     {
       "name": "Đồng bộ & agency",
@@ -104,6 +97,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agency_code\": \"MAI\",\n  \"passport_number\": \"E05111310\",\n  \"first_applyid\": \"\",\n  \"agency_name\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/agency/reassign",
               "host": [
@@ -114,16 +116,7 @@
                 "reassign"
               ]
             },
-            "description": "Chuyển một hồ sơ sang agency khác. Chọn hồ sơ theo first_applyid HOẶC passport_number (lấy hồ sơ mới nhất). agency_name tùy chọn. Lỗi → 400.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"agency_code\": \"MAI\",\n  \"passport_number\": \"E05111310\",\n  \"first_applyid\": \"\",\n  \"agency_name\": \"\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Chuyển một hồ sơ sang agency khác. Chọn hồ sơ theo first_applyid HOẶC passport_number (lấy hồ sơ mới nhất). agency_name tùy chọn. Lỗi → 400."
           },
           "response": []
         },
@@ -137,6 +130,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"spreadsheet_url\": \"https://docs.google.com/spreadsheets/d/1lKGn2r7YCYWRDXmb6-j1t9ryneeqxkNSbIlUIaQep-U/edit\",\n  \"worksheet_name\": \"hai\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/google-sheets/debug",
               "host": [
@@ -147,16 +149,7 @@
                 "debug"
               ]
             },
-            "description": "Kiểm tra service account có mở/đọc/ghi được Google Sheet và worksheet hay không.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"spreadsheet_url\": \"https://docs.google.com/spreadsheets/d/1lKGn2r7YCYWRDXmb6-j1t9ryneeqxkNSbIlUIaQep-U/edit\",\n  \"worksheet_name\": \"hai\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Kiểm tra service account có mở/đọc/ghi được Google Sheet và worksheet hay không."
           },
           "response": []
         }
@@ -211,6 +204,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passport_numbers\": [\n    \"E05111310\",\n    \"C1234567\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/han-approval/process-by-passports?start-scan=2026-11-01&end-scan=2026-11-09&authorization={{authorization}}",
               "host": [
@@ -238,16 +240,7 @@
                 }
               ]
             },
-            "description": "Giống Process inbox nhưng chỉ xử lý các số hộ chiếu chỉ định. passport_numbers là mảng hoặc chuỗi cách nhau bằng dấu phẩy.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"passport_numbers\": [\n    \"E05111310\",\n    \"C1234567\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Giống Process inbox nhưng chỉ xử lý các số hộ chiếu chỉ định. passport_numbers là mảng hoặc chuỗi cách nhau bằng dấu phẩy."
           },
           "response": []
         },
@@ -323,6 +316,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"record_ids\": [\n    123,\n    124\n  ],\n  \"han_codes\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/han-approval/retry",
               "host": [
@@ -333,16 +335,7 @@
                 "retry"
               ]
             },
-            "description": "Chạy lại job theo record_ids (hoặc ids) và/hoặc han_codes (hoặc codes). Cần ít nhất một trong hai.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"record_ids\": [\n    123,\n    124\n  ],\n  \"han_codes\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Chạy lại job theo record_ids (hoặc ids) và/hoặc han_codes (hoặc codes). Cần ít nhất một trong hai."
           },
           "response": []
         }
@@ -386,6 +379,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"E05111310/input.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/convert-input-pdfs",
               "host": [
@@ -395,16 +397,7 @@
                 "convert-input-pdfs"
               ]
             },
-            "description": "Giống bản GET, truyền key trong body.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key\": \"E05111310/input.pdf\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Giống bản GET, truyền key trong body."
           },
           "response": []
         },
@@ -418,6 +411,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"E05111310/input.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/convert-input-pdfs/cleanup",
               "host": [
@@ -428,16 +430,7 @@
                 "cleanup"
               ]
             },
-            "description": "Xóa ảnh trang sau khi đã ghép lại thành PDF. Dùng \"key\" (xóa mọi <tên>_page_N.png của PDF đó) hoặc \"keys\" (xóa đúng các ảnh liệt kê).",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key\": \"E05111310/input.pdf\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Xóa ảnh trang sau khi đã ghép lại thành PDF. Dùng \"key\" (xóa mọi <tên>_page_N.png của PDF đó) hoặc \"keys\" (xóa đúng các ảnh liệt kê)."
           },
           "response": []
         },
@@ -446,6 +439,23 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "File .html",
+                  "value": ""
+                },
+                {
+                  "key": "folderName",
+                  "type": "text",
+                  "value": "E05111310",
+                  "description": "Folder đích trên R2"
+                }
+              ]
+            },
             "url": {
               "raw": "{{baseUrl}}/upload-html-to-pdf",
               "host": [
@@ -455,24 +465,7 @@
                 "upload-html-to-pdf"
               ]
             },
-            "description": "Render file .html thành PDF (WeasyPrint) rồi upload lên R2 vào folderName. Trả về file_key.",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "File .html"
-                },
-                {
-                  "key": "folderName",
-                  "type": "text",
-                  "value": "E05111310",
-                  "description": "Folder đích trên R2"
-                }
-              ]
-            }
+            "description": "Render file .html thành PDF (WeasyPrint) rồi upload lên R2 vào folderName. Trả về file_key."
           },
           "response": []
         },
@@ -481,6 +474,17 @@
           "request": {
             "method": "POST",
             "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "File .pdf",
+                  "value": ""
+                }
+              ]
+            },
             "url": {
               "raw": "{{baseUrl}}/pdf-to-images",
               "host": [
@@ -490,18 +494,7 @@
                 "pdf-to-images"
               ]
             },
-            "description": "Upload một PDF, tách từng trang thành PNG lưu ở R2 (output/<uuid>_page_N.png). Trả về count + danh sách key/url.",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "File .pdf"
-                }
-              ]
-            }
+            "description": "Upload một PDF, tách từng trang thành PNG lưu ở R2 (output/<uuid>_page_N.png). Trả về count + danh sách key/url."
           },
           "response": []
         }
@@ -515,17 +508,6 @@
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/r2/images",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "r2",
-                "images"
-              ]
-            },
-            "description": "mode=upload: đẩy ảnh lên R2 bằng file hoặc image_base64. Có thể chỉ định key đầy đủ, hoặc folder + filename.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -544,8 +526,8 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "",
-                  "description": "Ảnh cần upload"
+                  "description": "Ảnh cần upload",
+                  "value": ""
                 },
                 {
                   "key": "filename",
@@ -576,15 +558,7 @@
                   "disabled": true
                 }
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Presign URL",
-          "request": {
-            "method": "POST",
-            "header": [],
+            },
             "url": {
               "raw": "{{baseUrl}}/r2/images",
               "host": [
@@ -595,7 +569,15 @@
                 "images"
               ]
             },
-            "description": "mode=presign: tạo URL ký sẵn (upload_url, method PUT) để client tự upload file thẳng lên R2 với đúng Content-Type, trong thời hạn expires_in (tối thiểu 60s).",
+            "description": "mode=upload: đẩy ảnh lên R2 bằng file hoặc image_base64. Có thể chỉ định key đầy đủ, hoặc folder + filename."
+          },
+          "response": []
+        },
+        {
+          "name": "Presign URL",
+          "request": {
+            "method": "POST",
+            "header": [],
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -624,7 +606,18 @@
                   "description": "Thời hạn URL (giây)"
                 }
               ]
-            }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/r2/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "r2",
+                "images"
+              ]
+            },
+            "description": "mode=presign: tạo URL ký sẵn (upload_url, method PUT) để client tự upload file thẳng lên R2 với đúng Content-Type, trong thời hạn expires_in (tối thiểu 60s)."
           },
           "response": []
         },
@@ -638,6 +631,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"E05111310/passport.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/r2/images/delete",
               "host": [
@@ -649,16 +651,7 @@
                 "delete"
               ]
             },
-            "description": "Xóa một object theo key, hoặc mọi object theo prefix (ví dụ {\"prefix\": \"E05111310/\"}).",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key\": \"E05111310/passport.jpg\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Xóa một object theo key, hoặc mọi object theo prefix (ví dụ {\"prefix\": \"E05111310/\"})."
           },
           "response": []
         },
@@ -750,6 +743,16 @@
           "response": []
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:10000"
+    },
+    {
+      "key": "authorization",
+      "value": ""
     }
   ]
 }
