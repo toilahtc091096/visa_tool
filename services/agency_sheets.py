@@ -409,6 +409,17 @@ def _visa_class(visa_code: str) -> str:
     return match.group(1) if match else code
 
 
+def _vietnamese_name_order(name: str) -> str:
+    """
+    full_name is stored given names first, family name last (passport order):
+    "TRAN HIEU NGAN NGUYEN" -> "NGUYEN TRAN HIEU NGAN" (family name first).
+    """
+    parts = str(name or "").split()
+    if len(parts) < 2:
+        return " ".join(parts)
+    return " ".join([parts[-1], *parts[:-1]])
+
+
 def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
     """VIP rows (is_vip = 1) of every agency tab, oldest first, one per visa_apply_id."""
     found: dict[str, tuple[str, list[str]]] = {}
@@ -437,7 +448,7 @@ def _collect_vip_rows(value_ranges: list[dict[str, Any]]) -> list[list[str]]:
                 sent_at,
                 [
                     cell(KEY_COLUMN),
-                    cell("name"),
+                    _vietnamese_name_order(cell("name")),
                     cell("gender"),
                     cell("passport_no"),
                     _visa_class(cell("visa_code")),
