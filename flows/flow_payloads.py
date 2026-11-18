@@ -1767,10 +1767,6 @@ def build_previous_travel_info_profile(
     residence_issuePlace: str = "",
 ) -> PreviousTravelInfoProfile:
     residenceLicenseNumber = str(residenceLicenseNumber or "").strip()
-    if residenceLicenseNumber and REGION != REGION_SOUTH:
-        # Chinese residence permits are filled in for the South only.
-        chinaResidenceLicenseFlag = False
-        residenceLicenseNumber = ""
     has_residence_permit = bool(chinaResidenceLicenseFlag and residenceLicenseNumber)
 
     if has_residence_permit and not haveChinaVisaFlag:
@@ -1814,7 +1810,7 @@ def _build_residence_permit_only_body(
     old_otherCountries: Any = "",
     collectFingerprintFlag: bool = False,
 ) -> dict[str, Any]:
-    """South, Chinese residence permit and no old Chinese visa: the permit
+    """Chinese residence permit and no old Chinese visa (both regions): the permit
     stands in for the visa (visaType "Other", visaNumber = permit number), as
     the COVA form sends it (arrivedChinaFlag stays False)."""
     issue_date = str(residence_issueDate or "").strip()
@@ -1921,7 +1917,7 @@ def validate_payload(p: dict) -> list[str]:
     ):
         errors.append("otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
 
-    # South, residence permit only: COVA sends arrivedChinaFlag=False with
+    # Residence permit only: COVA sends arrivedChinaFlag=False with
     # haveChinaVisaFlag=True and visaType "Other".
     residence_permit_only = bool(p.get("chinaResidenceLicenseFlag")) and (
         str(visaType or "").strip() == CHINA_RESIDENCE_PERMIT_VISA_TYPE

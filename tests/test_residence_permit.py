@@ -1,4 +1,4 @@
-"""SavePreviousTravelInfo body with a Chinese residence permit (South only)."""
+"""SavePreviousTravelInfo body with a Chinese residence permit (both regions)."""
 
 from __future__ import annotations
 
@@ -31,8 +31,12 @@ def _body(region: str, **kwargs) -> dict:
 
 
 class ResidencePermitBodyTest(unittest.TestCase):
-    def test_south_permit_only_matches_cova_form(self) -> None:
-        body = _body(REGION_SOUTH, **PERMIT)
+    def test_permit_only_matches_cova_form(self) -> None:
+        for region in (REGION_NORTH, REGION_SOUTH):
+            with self.subTest(region=region):
+                self._check_permit_only(_body(region, **PERMIT))
+
+    def _check_permit_only(self, body: dict) -> None:
         expected = {
             "arrivedChinaFlag": False,
             "chinaResidenceLicenseFlag": True,
@@ -49,9 +53,14 @@ class ResidencePermitBodyTest(unittest.TestCase):
         }
         self.assertEqual({k: body[k] for k in expected}, expected)
 
-    def test_south_permit_with_old_visa_keeps_visa_and_adds_number(self) -> None:
+    def test_permit_with_old_visa_keeps_visa_and_adds_number(self) -> None:
+        for region in (REGION_NORTH, REGION_SOUTH):
+            with self.subTest(region=region):
+                self._check_with_old_visa(region)
+
+    def _check_with_old_visa(self, region: str) -> None:
         body = _body(
-            REGION_SOUTH,
+            region,
             arrivedChinaFlag=True,
             haveChinaVisaFlag=True,
             old_visaType="L",
@@ -68,8 +77,8 @@ class ResidencePermitBodyTest(unittest.TestCase):
         self.assertEqual(body["issueDate"], "2026-03-09")
         self.assertEqual(body["issuePlace"], "TP HO CHI MINH")
 
-    def test_north_ignores_permit(self) -> None:
-        body = _body(REGION_NORTH, **PERMIT)
+    def test_no_permit_keeps_no_travel_body(self) -> None:
+        body = _body(REGION_NORTH)
         self.assertFalse(body["chinaResidenceLicenseFlag"])
         self.assertFalse(body["haveChinaVisaFlag"])
         self.assertEqual(body["residenceLicenseNumber"], "")

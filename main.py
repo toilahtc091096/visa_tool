@@ -108,7 +108,7 @@ DEFAULT_CASE: dict[str, Any] = {
     "payName": "",
     "payMobile": "",
     "chinaResidenceLicenseFlag": False,
-    # Chinese residence permit (South): number, issue date (yyyy-mm-dd), place.
+    # Chinese residence permit: number, issue date (yyyy-mm-dd), place (pinyin).
     "residenceLicenseNumber": "",
     "residence_issueDate": "",
     "residence_issuePlace": "",

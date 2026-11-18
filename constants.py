@@ -722,7 +722,7 @@ VIETNAM_ADMIN = {
 }
 
 
-# COVA VISA_TYPE "Other" (resources/data-web.json). South: visaType of
+# COVA VISA_TYPE "Other" (resources/data-web.json). Both regions: visaType of
 # SavePreviousTravelInfo when the only earlier Chinese document is a residence
 # permit (外国人居留许可), no old Chinese visa.
 CHINA_RESIDENCE_PERMIT_VISA_TYPE = "722036"
@@ -842,8 +842,8 @@ L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
     "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
 )
 
-# Chinese residence permit photos (n8n WF-09). South: uploaded to "other
-# documents" after the files already there.
+# Chinese residence permit photos (n8n WF-09), both regions: uploaded to
+# "other documents" after the files already there.
 CHINA_RESIDENCE_PERMIT_OUTPUT_PATH = (
     "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\giay_cu_tru_trung_quoc"
 )
@@ -1402,23 +1402,41 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     },
 }
 
-# Chinese residence permit: the "other documents" slot right after the last one
-# each South form already fills (L30 _1; M, F, X1, X2 _1 visa center
-# confirmation; Q1, Q2, S2 _1.._6).
-_CHINA_RESIDENCE_PERMIT_SLOT_SOUTH = {
-    "L30": 2,
-    "M": 2,
-    "Q1": 7,
-    "Q2": 7,
-    "S2": 7,
-    "F": 2,
-    "X1": 2,
-    "X2": 2,
+# Chinese residence permit (both regions): the "other documents" slot right
+# after the last one each form already fills.
+# North: L15, L30 _1.._5; M _1.._5; Q1, Q2 _1.._5; F, X1, X2 _1.._4; S2 _1.._3.
+# South: L30 _1; M, F, X1, X2 _1 visa center confirmation; Q1, Q2, S2 _1.._6.
+_CHINA_RESIDENCE_PERMIT_SLOT: dict[str, dict[str, tuple[CovaMaterial, int]]] = {
+    REGION_NORTH: {
+        "L15": (MAT_L_OTHER_DOCUMENTS, 6),
+        "L30": (MAT_L_OTHER_DOCUMENTS, 6),
+        "M": (MAT_M_OTHER_DOCUMENTS, 6),
+        "Q1": (MAT_Q1_OTHER_DOCUMENTS, 6),
+        "Q2": (MAT_Q2_OTHER_DOCUMENTS, 6),
+        "F": (MAT_F_OTHER_DOCUMENTS, 5),
+        "X1": (MAT_X1_OTHER_DOCUMENTS, 5),
+        "X2": (MAT_X2_OTHER_DOCUMENTS, 5),
+        "S2": (MAT_S2_OTHER_DOCUMENTS, 4),
+    },
+    REGION_SOUTH: {
+        "L30": (MAT_SOUTH_OTHER_DOCUMENTS, 2),
+        "M": (MAT_SOUTH_OTHER_DOCUMENTS, 2),
+        "Q1": (MAT_SOUTH_OTHER_DOCUMENTS, 7),
+        "Q2": (MAT_SOUTH_OTHER_DOCUMENTS, 7),
+        "S2": (MAT_SOUTH_OTHER_DOCUMENTS, 7),
+        "F": (MAT_SOUTH_OTHER_DOCUMENTS, 2),
+        "X1": (MAT_SOUTH_OTHER_DOCUMENTS, 2),
+        "X2": (MAT_SOUTH_OTHER_DOCUMENTS, 2),
+    },
 }
-for _code, _slot in _CHINA_RESIDENCE_PERMIT_SLOT_SOUTH.items():
-    UPLOAD_FILE_CODE_SOUTH[_code]["COMMON"]["CHINA_RESIDENCE_PERMIT"] = (
-        MAT_SOUTH_OTHER_DOCUMENTS.slots(_slot)
-    )
+for _region_codes, _region in (
+    (UPLOAD_FILE_CODE_NORTH, REGION_NORTH),
+    (UPLOAD_FILE_CODE_SOUTH, REGION_SOUTH),
+):
+    for _code, (_material, _slot) in _CHINA_RESIDENCE_PERMIT_SLOT[_region].items():
+        _region_codes[_code]["COMMON"]["CHINA_RESIDENCE_PERMIT"] = _material.slots(
+            _slot
+        )
 
 UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
     REGION_NORTH: UPLOAD_FILE_CODE_NORTH,
@@ -1803,10 +1821,11 @@ if REGION == REGION_SOUTH:
     UPLOAD_CONFIG["F"] = UPLOAD_CONFIG_SOUTH_F
     UPLOAD_CONFIG["X1"] = UPLOAD_CONFIG_SOUTH_X1
     UPLOAD_CONFIG["X2"] = UPLOAD_CONFIG_SOUTH_X2
-    for _visa_config in UPLOAD_CONFIG.values():
-        _visa_config["CHINA_RESIDENCE_PERMIT"] = _files(
-            CHINA_RESIDENCE_PERMIT_OUTPUT_PATH, 1
-        )
+# Chinese residence permit photos, both regions (slots: _CHINA_RESIDENCE_PERMIT_SLOT).
+for _visa_config in UPLOAD_CONFIG.values():
+    _visa_config["CHINA_RESIDENCE_PERMIT"] = _files(
+        CHINA_RESIDENCE_PERMIT_OUTPUT_PATH, 1
+    )
 
 
 UNIT_OF_HOTEL = 5870276
