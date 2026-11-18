@@ -26,6 +26,7 @@ from constants import (
 )
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
+from utils.person_name import join_person_name
 from utils import pdf_helper
 
 DEFAULT_TEMPLATE_NAME = "Q_Template.docx"
@@ -262,7 +263,7 @@ def build_thumoi_context(source: Any) -> dict[str, Any]:
     )
     inviter_name = (
         _text(_get_value(source, "inviterName", "inviter_name", default=""))
-        or f"{inviter_family}{inviter_given}"
+        or join_person_name(inviter_family, inviter_given)
     )
 
     passport_number = _text(

@@ -6,6 +6,7 @@ from typing import Any
 from flows import run_flow
 from visa_types import normalize_visa_type
 from utils import load_authorization
+from utils.person_name import join_person_name
 
 DEFAULT_CASE: dict[str, Any] = {
     "authorization": "",
@@ -387,13 +388,8 @@ def main(
     if inviterName:
         data["inviterName"] = str(inviterName).strip()
     elif not str(data.get("inviterName", "") or "").strip():
-        data["inviterName"] = "".join(
-            part
-            for part in (
-                str(data.get("inviterFamilyName", "") or "").strip(),
-                str(data.get("inviterGivenName", "") or "").strip(),
-            )
-            if part
+        data["inviterName"] = join_person_name(
+            data.get("inviterFamilyName", ""), data.get("inviterGivenName", "")
         )
     if emergencyFamilyName:
         data["emergencyFamilyName"] = str(emergencyFamilyName).strip()

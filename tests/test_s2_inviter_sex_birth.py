@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from utils.person_name import join_person_name  # noqa: E402
 from visa_types.documents import _s_relative_context  # noqa: E402
 
 # 18-digit ID: born 1990-05-17, 17th digit 3 (odd) -> male
@@ -37,6 +38,18 @@ class S2InviterSexBirthTest(unittest.TestCase):
     def test_blank_without_either(self) -> None:
         out = _s_relative_context(_ctx(inviterIdCard="C8469505"))
         self.assertEqual((out["inviterSex"], out["inviterBirth"]), ("", ""))
+
+
+class InviterNameTest(unittest.TestCase):
+    def test_chinese_name_without_space(self) -> None:
+        self.assertEqual(join_person_name("余", "永飞"), "余永飞")
+
+    def test_latin_name_with_space(self) -> None:
+        self.assertEqual(join_person_name("NGUYEN", "THI NGA"), "NGUYEN THI NGA")
+
+    def test_missing_part(self) -> None:
+        self.assertEqual(join_person_name("NGUYEN", ""), "NGUYEN")
+        self.assertEqual(join_person_name(None, None), "")
 
 
 if __name__ == "__main__":

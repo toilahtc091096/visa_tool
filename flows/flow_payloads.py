@@ -5,6 +5,7 @@ import unicodedata
 from datetime import date
 from typing import Any, Dict
 from utils import date_util, log_event, mobile_utils
+from utils.person_name import join_person_name
 from dataclasses import asdict, dataclass, is_dataclass
 from constants import (
     RETIRED_JOB_TYPE,
@@ -230,7 +231,7 @@ def build_apply_info_profile(
         "lang": DEFAULT_LANG,
         "applyReason": {
             "missionName": "",
-            "name": f"{str(inviter_family_name or '').strip()}{str(inviter_given_name or '').strip()}",
+            "name": join_person_name(inviter_family_name, inviter_given_name),
             "newPredecessorFlag": False,
             "otherSpecify": "",
             "personalMatters": "",

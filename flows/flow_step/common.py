@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+from utils.person_name import join_person_name
 from visa_types.base import get_visa_profile, normalize_visa_type
 
 
@@ -86,13 +87,8 @@ def build_flow_context(**kwargs):
     ctx.inviterRelation = kwargs.get("inviterRelation", "")
     ctx.inviterName = kwargs.get(
         "inviterName",
-        "".join(
-            part
-            for part in (
-                str(kwargs.get("inviterFamilyName", "") or "").strip(),
-                str(kwargs.get("inviterGivenName", "") or "").strip(),
-            )
-            if part
+        join_person_name(
+            kwargs.get("inviterFamilyName", ""), kwargs.get("inviterGivenName", "")
         ),
     )
     ctx.guarantorRelation = kwargs.get("guarantorRelation", "")
