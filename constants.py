@@ -841,6 +841,19 @@ L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
 L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
     "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
 )
+# Old passport folder (n8n), file names carry the issue date:
+# - ho_chieu_cu_<issue date>_<n>: biodata page of a passport other than the
+#   current one, the most recently issued (WF-06);
+# - visa_cu_<issue date>_<n>: old Chinese visa whose passport number is not
+#   the current passport's (WF-09).
+# South: one of each (the most recent) goes to "old passport within five
+# years", and these visas go nowhere else. North (no such category): the
+# visas go with the other old Chinese visa photos.
+OLD_PASSPORT_CHINA_VISA_OUTPUT_PATH = (
+    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_ho_chieu_cu"
+)
+OLD_PASSPORT_PAGE_PREFIX = "ho_chieu_cu"
+OLD_PASSPORT_VISA_PREFIX = "visa_cu"
 
 # Chinese residence permit photos (n8n WF-09), both regions: uploaded to
 # "other documents" after the files already there.
@@ -1208,8 +1221,10 @@ MAT_SOUTH_OTHER_DOCUMENTS = CovaMaterial("22025070216133602452066", "mfa-130")
 MAT_SOUTH_L_ITINERARY_IN_CHINA = CovaMaterial("12025062616415987523440", "mfa-087")
 MAT_SOUTH_L_FLIGHT_TICKET = CovaMaterial("12025062616424538491658", "mfa-088")
 MAT_SOUTH_L_HOTEL_RESERVATION = CovaMaterial("12025062616431978476716", "mfa-089")
-# M - business. The form also has "old passport within five years"
-# (22025062618250312540888 / mfa-079), uploaded by hand.
+# Old passport within five years (every South form, 5 slots): _1 the old
+# passport's biodata page, _2 one old Chinese visa from it; _3.._5 by hand.
+MAT_SOUTH_OLD_PASSPORT = CovaMaterial("22025062618250312540888", "mfa-079")
+# M - business.
 MAT_SOUTH_M_INVITATION_LETTER = CovaMaterial("12025062617011389841743", "mfa-057")
 MAT_SOUTH_M_CHINA_BUSINESS_REGISTRATION = CovaMaterial(
     "12025062617021236736326", "mfa-105"
@@ -1437,6 +1452,10 @@ for _region_codes, _region in (
         _region_codes[_code]["COMMON"]["CHINA_RESIDENCE_PERMIT"] = _material.slots(
             _slot
         )
+for _codes in UPLOAD_FILE_CODE_SOUTH.values():
+    # Separate doc types so the visa stays in _2 when there is no passport page.
+    _codes["COMMON"]["OLD_PASSPORT_PAGE"] = MAT_SOUTH_OLD_PASSPORT.slots(1)
+    _codes["COMMON"]["OLD_PASSPORT_CHINA_VISA"] = MAT_SOUTH_OLD_PASSPORT.slots(2)
 
 UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
     REGION_NORTH: UPLOAD_FILE_CODE_NORTH,
@@ -1451,13 +1470,17 @@ def _files(
     prefix: str = "",
     exclude: tuple[str, ...] = (),
     names: tuple[str, ...] = (),
+    newest_first: bool = False,
 ) -> dict[str, object]:
     """Take up to ``limit`` files from ``folder`` (relative to data_<passport>);
     with ``prefix``, only files whose name starts with it (any case); files
     whose name without extension is in ``exclude`` (any case) are skipped.
     With ``names``, only those files (name without extension, any case), in
-    that order; a missing one is skipped."""
+    that order; a missing one is skipped. With ``newest_first``, files are
+    taken by name, last first (names that carry a yyyy-mm-dd date)."""
     source: dict[str, object] = {"folder": folder, "limit": limit}
+    if newest_first:
+        source["sort"] = "name_desc"
     if prefix:
         source["prefix"] = prefix
     if exclude:
@@ -1826,6 +1849,31 @@ for _visa_config in UPLOAD_CONFIG.values():
     _visa_config["CHINA_RESIDENCE_PERMIT"] = _files(
         CHINA_RESIDENCE_PERMIT_OUTPUT_PATH, 1
     )
+    # Old passport and its Chinese visas (see OLD_PASSPORT_CHINA_VISA_OUTPUT_PATH).
+    if REGION == REGION_SOUTH:
+        _visa_config["OLD_PASSPORT_PAGE"] = _files(
+            OLD_PASSPORT_CHINA_VISA_OUTPUT_PATH,
+            1,
+            prefix=OLD_PASSPORT_PAGE_PREFIX,
+            newest_first=True,
+        )
+        _visa_config["OLD_PASSPORT_CHINA_VISA"] = _files(
+            OLD_PASSPORT_CHINA_VISA_OUTPUT_PATH,
+            1,
+            prefix=OLD_PASSPORT_VISA_PREFIX,
+            newest_first=True,
+        )
+    else:
+        _prev = _visa_config["PREV_CHINESE_VISA"]
+        _visa_config["PREV_CHINESE_VISA"] = [
+            *(_prev if isinstance(_prev, list) else [_prev]),
+            _files(
+                OLD_PASSPORT_CHINA_VISA_OUTPUT_PATH,
+                3,
+                prefix=OLD_PASSPORT_VISA_PREFIX,
+                newest_first=True,
+            ),
+        ]
 
 
 UNIT_OF_HOTEL = 5870276

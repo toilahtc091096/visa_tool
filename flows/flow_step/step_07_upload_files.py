@@ -50,6 +50,16 @@ def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
     if cfg.get("passport_image"):
         path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
         return [Path(path)] if path else []
+    if cfg.get("sort") == "name_desc":
+        files = get_files(
+            cfg["folder"],
+            1000,
+            cfg.get("prefix", ""),
+            cfg.get("exclude", ()),
+            cfg.get("names", ()),
+        )
+        files.sort(key=lambda f: f.name.lower(), reverse=True)
+        return files[: cfg["limit"]]
     return get_files(
         cfg["folder"],
         cfg["limit"],
