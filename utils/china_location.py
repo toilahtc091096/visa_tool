@@ -43,8 +43,14 @@ def _strip_suffix(key: str, suffixes: tuple[str, ...]) -> str:
 def _load() -> dict[str, list[dict[str, Any]]]:
     data = json.loads(LOCATIONS_PATH.read_text(encoding="utf-8"))
     for level in ("provinces", "cities", "counties"):
+        # A place with aliases (another pinyin name) is also listed under each
+        # alias, as the same place.
+        extra = []
         for row in data[level]:
             row["key"] = name_key(row["name"])
+            for alias in row.get("aliases") or ():
+                extra.append({**row, "key": name_key(alias)})
+        data[level].extend(extra)
     return data
 
 

@@ -2990,7 +2990,10 @@
    "parent_id": "530600",
    "name": "Shuicheng Shi",
    "cn": "水富市",
-   "postcode": "657800"
+   "postcode": "657800",
+   "aliases": [
+    "Shuifu Shi"
+   ]
   },
   {
    "id": "532302",
@@ -5310,7 +5313,7 @@
    "parent_id": "320300",
    "name": "Tongshan Qu",
    "cn": "铜山区",
-   "postcode": "999999"
+   "postcode": "221100"
   },
   {
    "id": "654321",
@@ -5854,7 +5857,7 @@
    "parent_id": "411600",
    "name": "Taikang Xian",
    "cn": "太康县",
-   "postcode": "475400"
+   "postcode": "461400"
   },
   {
    "id": "652901",
@@ -6110,7 +6113,7 @@
    "parent_id": "152200",
    "name": "Ke'erqin Youyi Qianqi",
    "cn": "科尔沁右翼前旗",
-   "postcode": "137423"
+   "postcode": "137400"
   },
   {
    "id": "530103",
@@ -6334,7 +6337,7 @@
    "parent_id": "520600",
    "name": "Bijiang Qu",
    "cn": "碧江区",
-   "postcode": "551600"
+   "postcode": "554300"
   },
   {
    "id": "621227",
@@ -6670,7 +6673,7 @@
    "parent_id": "320600",
    "name": "Tongzhou Qu",
    "cn": "通州区",
-   "postcode": "999999"
+   "postcode": "226300"
   },
   {
    "id": "230719",
@@ -6966,7 +6969,7 @@
    "parent_id": "632500",
    "name": "Gonghe Xian",
    "cn": "共和县",
-   "postcode": "238200"
+   "postcode": "813000"
   },
   {
    "id": "350582",
@@ -7142,7 +7145,7 @@
    "parent_id": "650200",
    "name": "Dushanzi Qu",
    "cn": "独山子区",
-   "postcode": "838600"
+   "postcode": "833600"
   },
   {
    "id": "420528",
@@ -7390,7 +7393,7 @@
    "parent_id": "430400",
    "name": "Hengnan Xian",
    "cn": "衡南县",
-   "postcode": "430422"
+   "postcode": "421100"
   },
   {
    "id": "420115",
@@ -7446,7 +7449,7 @@
    "parent_id": "520500",
    "name": "Qixingguan Qu",
    "cn": "七星关区",
-   "postcode": "550500"
+   "postcode": "551700"
   },
   {
    "id": "530124",
@@ -8422,7 +8425,7 @@
    "parent_id": "320200",
    "name": "Xinwu Qu",
    "cn": "新吴区",
-   "postcode": "215300"
+   "postcode": "214000"
   },
   {
    "id": "330327",
@@ -9030,7 +9033,7 @@
    "parent_id": "520300",
    "name": "Bozhou Qu",
    "cn": "播州区",
-   "postcode": "553500"
+   "postcode": "563100"
   },
   {
    "id": "450109",
@@ -9246,7 +9249,7 @@
    "parent_id": "621100",
    "name": "Anding Xian",
    "cn": "安定区",
-   "postcode": "744300"
+   "postcode": "743000"
   },
   {
    "id": "410523",
@@ -10694,7 +10697,7 @@
    "parent_id": "430700",
    "name": "Taoyuan Xian",
    "cn": "桃源县",
-   "postcode": "451700"
+   "postcode": "415700"
   },
   {
    "id": "450226",
@@ -10894,7 +10897,7 @@
    "parent_id": "460100",
    "name": "Qiongshan Qu",
    "cn": "琼山区",
-   "postcode": "571199"
+   "postcode": "571100"
   },
   {
    "id": "130425",
@@ -14806,7 +14809,7 @@
    "parent_id": "152500",
    "name": "Er'lianhaote Shi",
    "cn": "二连浩特市",
-   "postcode": "012600"
+   "postcode": "011100"
   },
   {
    "id": "520123",
@@ -17118,7 +17121,7 @@
    "parent_id": "410700",
    "name": "Fengquan Qu",
    "cn": "凤泉区",
-   "postcode": ""
+   "postcode": "453011"
   },
   {
    "id": "220621",
@@ -17246,7 +17249,7 @@
    "parent_id": "340200",
    "name": "Jinghu Qu",
    "cn": "镜湖区",
-   "postcode": "340202"
+   "postcode": "241000"
   },
   {
    "id": "450703",
@@ -19230,7 +19233,7 @@
    "parent_id": "650500",
    "name": "Yizhou Qu",
    "cn": "伊州区",
-   "postcode": "835200"
+   "postcode": "839000"
   },
   {
    "id": "610923",
@@ -19238,7 +19241,7 @@
    "parent_id": "610900",
    "name": "Ningshan Xian",
    "cn": "宁陕县",
-   "postcode": "711699"
+   "postcode": "711600"
   },
   {
    "id": "421281",
@@ -19630,7 +19633,7 @@
    "parent_id": "150700",
    "name": "Molidawada Wo'erzu Zizhiqi",
    "cn": "莫力达瓦达斡尔族自治旗",
-   "postcode": "028000"
+   "postcode": "162850"
   },
   {
    "id": "341824",
@@ -20742,7 +20745,7 @@
    "parent_id": "152200",
    "name": "A'ershan Shi",
    "cn": "阿尔山市",
-   "postcode": "137805"
+   "postcode": "137800"
   },
   {
    "id": "622901",
@@ -21278,7 +21281,7 @@
    "parent_id": "640500",
    "name": "Shapotou Qu",
    "cn": "沙坡头区",
-   "postcode": "524000"
+   "postcode": "755000"
   },
   {
    "id": "450223",
@@ -24894,7 +24897,7 @@
    "parent_id": "620200",
    "name": "Jiayuguan",
    "cn": "嘉峪关市",
-   "postcode": ""
+   "postcode": "735100"
   },
   {
    "id": "441901",
@@ -24910,7 +24913,7 @@
    "parent_id": "442000",
    "name": "Zhongshan",
    "cn": "中山市",
-   "postcode": ""
+   "postcode": "528400"
   },
   {
    "id": "361104",
@@ -24942,7 +24945,7 @@
    "parent_id": "361100",
    "name": "Shangrao Xian",
    "cn": "上饶县",
-   "postcode": ""
+   "postcode": "334100"
   },
   {
    "id": "340281",
@@ -25182,7 +25185,7 @@
    "parent_id": "140200",
    "name": "Yunzhou Qu",
    "cn": "云州区",
-   "postcode": "038300"
+   "postcode": "037300"
   },
   {
    "id": "140403",
@@ -25246,7 +25249,7 @@
    "parent_id": "230700",
    "name": "Tangwang Xian",
    "cn": "汤旺县",
-   "postcode": "154700"
+   "postcode": "153000"
   },
   {
    "id": "230724",
@@ -25278,7 +25281,7 @@
    "parent_id": "230700",
    "name": "Jinlin Qu",
    "cn": "金林区",
-   "postcode": "152000"
+   "postcode": "153000"
   },
   {
    "id": "320614",

@@ -75,6 +75,61 @@ CN_OVERRIDES = {
 }
 
 
+# County postcodes fixed by hand, by id: the source has placeholders (999999),
+# division codes typed as postcodes, numbers of a neighbour county, or none.
+POSTCODE_OVERRIDES = {
+    # placeholder 999999
+    "320312": "221100",  # 江苏 徐州 铜山区
+    "320612": "226300",  # 江苏 南通 通州区
+    # division code instead of a postcode
+    "430422": "421100",  # 湖南 衡阳 衡南县 (was 430422)
+    "340202": "241000",  # 安徽 芜湖 镜湖区 (was 340202)
+    # wrong number (typo, or another county's postcode)
+    "430725": "415700",  # 湖南 常德 桃源县 (was 451700)
+    "640502": "755000",  # 宁夏 中卫 沙坡头区 (was 524000, Zhanjiang)
+    "632521": "813000",  # 青海 海南州 共和县 (was 238200 = 安徽 和县)
+    "150722": "162850",  # 内蒙古 呼伦贝尔 莫力达瓦旗 (was 028000 = 通辽 科尔沁区)
+    "411627": "461400",  # 河南 周口 太康县 (was 475400 = 通许县)
+    "520602": "554300",  # 贵州 铜仁 碧江区 (was 551600 = 大方县)
+    "520502": "551700",  # 贵州 毕节 七星关区 (was 550500 = 福泉市)
+    "520304": "563100",  # 贵州 遵义 播州区 (was 553500 = 盘州市)
+    "320214": "214000",  # 江苏 无锡 新吴区 (was 215300 = 昆山市)
+    "621102": "743000",  # 甘肃 定西 安定区 (was 744300 = 泾川县)
+    "650502": "839000",  # 新疆 哈密 伊州区 (was 835200 = 霍城县)
+    "230723": "153000",  # 黑龙江 伊春 汤旺县 (was 154700 = 汤原县)
+    "140215": "037300",  # 山西 大同 云州区 (was 038300 = 怀仁市)
+    "152501": "011100",  # 内蒙古 二连浩特市 (was 012600)
+    "650202": "833600",  # 新疆 克拉玛依 独山子区 (was 838600)
+    "230751": "153000",  # 黑龙江 伊春 金林区 (was 152000 = 绥化 北林区)
+    "152202": "137800",  # 内蒙古 兴安盟 阿尔山市 (was 137805)
+    "152221": "137400",  # 内蒙古 兴安盟 科右前旗 (was 137423)
+    "460107": "571100",  # 海南 海口 琼山区 (was 571199)
+    "610923": "711600",  # 陕西 安康 宁陕县 (was 711699)
+    # missing in the source
+    "620201": "735100",  # 甘肃 嘉峪关市
+    "442001": "528400",  # 广东 中山市
+    "361121": "334100",  # 江西 上饶县 (now 广信区)
+    "410704": "453011",  # 河南 新乡 凤泉区
+}
+
+# Other pinyin names a place is also found by (the COVA name is kept, n8n
+# sends it): 530681 is 水富市 but COVA names it "Shuicheng Shi".
+NAME_ALIASES = {
+    "530681": ["Shuifu Shi"],
+}
+
+
+def apply_fixes(data: dict) -> None:
+    """Hand fixes on top of the sources (also run on an existing file)."""
+    for level in ("provinces", "cities", "counties"):
+        for row in data[level]:
+            if row["id"] in NAME_ALIASES:
+                row["aliases"] = NAME_ALIASES[row["id"]]
+    for county in data["counties"]:
+        if county["id"] in POSTCODE_OVERRIDES:
+            county["postcode"] = POSTCODE_OVERRIDES[county["id"]]
+
+
 def main() -> None:
     zip_path = Path(sys.argv[1])
     web_path = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "resources" / "data-web.json"
@@ -120,6 +175,7 @@ def main() -> None:
         "cities": rows("CITY_LIST"),
         "counties": counties,
     }
+    apply_fixes(data)
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     with_zip = sum(1 for c in counties if c["postcode"])
     print(
