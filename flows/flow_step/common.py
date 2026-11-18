@@ -38,6 +38,8 @@ def build_flow_context(**kwargs):
     ctx.residenceLicenseNumber = kwargs.get("residenceLicenseNumber", "")
     ctx.residence_issueDate = kwargs.get("residence_issueDate", "")
     ctx.residence_issuePlace = kwargs.get("residence_issuePlace", "")
+    ctx.inviterSex = kwargs.get("inviterSex", "")
+    ctx.inviterBirth = kwargs.get("inviterBirth", "")
     ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", False)
     ctx.is_private = kwargs.get("is_private", False)
     ctx.family_passport = kwargs.get("family_passport", "")

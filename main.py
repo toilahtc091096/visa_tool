@@ -112,6 +112,10 @@ DEFAULT_CASE: dict[str, Any] = {
     "residenceLicenseNumber": "",
     "residence_issueDate": "",
     "residence_issuePlace": "",
+    # S2 letter: inviter sex ("M"/"F") and birth date (yyyy-mm-dd) read by n8n
+    # from smoi_ruot_* (the inviter's own document).
+    "inviterSex": "",
+    "inviterBirth": "",
     "collectFingerprintFlag": False,
     "is_private": False,
 }
@@ -510,6 +514,8 @@ def main(
             residenceLicenseNumber=str(data.get("residenceLicenseNumber", "") or "").strip(),
             residence_issueDate=str(data.get("residence_issueDate", "") or "").strip(),
             residence_issuePlace=str(data.get("residence_issuePlace", "") or "").strip(),
+            inviterSex=str(data.get("inviterSex", "") or "").strip(),
+            inviterBirth=str(data.get("inviterBirth", "") or "").strip(),
         )
     )
 

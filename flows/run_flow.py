@@ -138,6 +138,8 @@ async def run_flow(
     residenceLicenseNumber: str = "",
     residence_issueDate: str = "",
     residence_issuePlace: str = "",
+    inviterSex: str = "",
+    inviterBirth: str = "",
 ) -> dict[str, Any]:
     login_payload = load_login_payload()
     token = login_payload.get("token", "")
@@ -220,6 +222,8 @@ async def run_flow(
         residenceLicenseNumber=residenceLicenseNumber,
         residence_issueDate=residence_issueDate,
         residence_issuePlace=residence_issuePlace,
+        inviterSex=inviterSex,
+        inviterBirth=inviterBirth,
         collectFingerprintFlag=collectFingerprintFlag,
         is_private=is_private,
         arrivalDate=arrivalDate,

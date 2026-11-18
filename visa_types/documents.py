@@ -344,14 +344,17 @@ def _relation_key(value: Any) -> str:
 def _s_relative_context(ctx) -> dict[str, str]:
     """Values for S_MOI_NGUOI_THAN.docx that build_thumoi_context lacks.
 
-    Inviter sex / birth date come from an 18-digit Chinese ID (blank for other
+    Inviter sex / birth date: those read by n8n from smoi_ruot_* (the inviter's
+    own document, ctx.inviterSex "M"/"F" and ctx.inviterBirth yyyy-mm-dd);
+    each one missing there comes from an 18-digit Chinese ID (blank for other
     IDs). Relation in Chinese as on the South COVA form (unknown: as given).
     Arrival / leave dates are the ones sent to the form (ctx.travel_info)."""
+    inviter_sex = _SEX_ZH.get(str(getattr(ctx, "inviterSex", "") or "").strip().upper(), "")
+    inviter_birth = _dmy(getattr(ctx, "inviterBirth", ""))
     id_card = str(getattr(ctx, "inviterIdCard", "") or "").strip().upper()
-    inviter_sex = inviter_birth = ""
     if len(id_card) == 18 and id_card[:17].isdigit():
-        inviter_birth = f"{id_card[12:14]}/{id_card[10:12]}/{id_card[6:10]}"
-        inviter_sex = "男" if int(id_card[16]) % 2 else "女"
+        inviter_birth = inviter_birth or f"{id_card[12:14]}/{id_card[10:12]}/{id_card[6:10]}"
+        inviter_sex = inviter_sex or ("男" if int(id_card[16]) % 2 else "女")
     relation = str(getattr(ctx, "inviterRelation", "") or "").strip()
     ocr = getattr(getattr(getattr(ctx, "ocr_data", None), "Response", None), "Data", None)
     travel = getattr(ctx, "travel_info", None)
