@@ -722,7 +722,13 @@ VIETNAM_ADMIN = {
 }
 
 
+# COVA VISA_TYPE "Other" (resources/data-web.json). South: visaType of
+# SavePreviousTravelInfo when the only earlier Chinese document is a residence
+# permit (外国人居留许可), no old Chinese visa.
+CHINA_RESIDENCE_PERMIT_VISA_TYPE = "722036"
+
 ALLOWED_CHINA_VISA_TYPES = {
+    CHINA_RESIDENCE_PERMIT_VISA_TYPE,
     "L",
     "M",
     "F",
@@ -834,6 +840,12 @@ L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH = (
 )
 L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH = (
     "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\visa_trung_quoc_cu"
+)
+
+# Chinese residence permit photos (n8n WF-09). South: uploaded to "other
+# documents" after the files already there.
+CHINA_RESIDENCE_PERMIT_OUTPUT_PATH = (
+    "lich_su_xuat_canh\\da_tung_di_nuoc_ngoai\\giay_cu_tru_trung_quoc"
 )
 
 L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
@@ -1390,6 +1402,24 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
     },
 }
 
+# Chinese residence permit: the "other documents" slot right after the last one
+# each South form already fills (L30 _1; M, F, X1, X2 _1 visa center
+# confirmation; Q1, Q2, S2 _1.._6).
+_CHINA_RESIDENCE_PERMIT_SLOT_SOUTH = {
+    "L30": 2,
+    "M": 2,
+    "Q1": 7,
+    "Q2": 7,
+    "S2": 7,
+    "F": 2,
+    "X1": 2,
+    "X2": 2,
+}
+for _code, _slot in _CHINA_RESIDENCE_PERMIT_SLOT_SOUTH.items():
+    UPLOAD_FILE_CODE_SOUTH[_code]["COMMON"]["CHINA_RESIDENCE_PERMIT"] = (
+        MAT_SOUTH_OTHER_DOCUMENTS.slots(_slot)
+    )
+
 UPLOAD_FILE_CODE_BY_REGION: dict[str, UploadCodes] = {
     REGION_NORTH: UPLOAD_FILE_CODE_NORTH,
     REGION_SOUTH: UPLOAD_FILE_CODE_SOUTH,
@@ -1773,6 +1803,10 @@ if REGION == REGION_SOUTH:
     UPLOAD_CONFIG["F"] = UPLOAD_CONFIG_SOUTH_F
     UPLOAD_CONFIG["X1"] = UPLOAD_CONFIG_SOUTH_X1
     UPLOAD_CONFIG["X2"] = UPLOAD_CONFIG_SOUTH_X2
+    for _visa_config in UPLOAD_CONFIG.values():
+        _visa_config["CHINA_RESIDENCE_PERMIT"] = _files(
+            CHINA_RESIDENCE_PERMIT_OUTPUT_PATH, 1
+        )
 
 
 UNIT_OF_HOTEL = 5870276

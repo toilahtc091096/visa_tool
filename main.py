@@ -108,6 +108,10 @@ DEFAULT_CASE: dict[str, Any] = {
     "payName": "",
     "payMobile": "",
     "chinaResidenceLicenseFlag": False,
+    # Chinese residence permit (South): number, issue date (yyyy-mm-dd), place.
+    "residenceLicenseNumber": "",
+    "residence_issueDate": "",
+    "residence_issuePlace": "",
     "collectFingerprintFlag": False,
     "is_private": False,
 }
@@ -503,6 +507,9 @@ def main(
             emergencyGivenName=data.get("emergencyGivenName", ""),
             emergencyRelationship=data.get("emergencyRelationship", ""),
             emergencyPhone=data.get("emergencyPhone", ""),
+            residenceLicenseNumber=str(data.get("residenceLicenseNumber", "") or "").strip(),
+            residence_issueDate=str(data.get("residence_issueDate", "") or "").strip(),
+            residence_issuePlace=str(data.get("residence_issuePlace", "") or "").strip(),
         )
     )
 

@@ -40,6 +40,7 @@ from constants import (
     TRAVEL_PAY_FOR_SELF,
     TRAVEL_PAY_FOR_OTHER,
     ALLOWED_CHINA_VISA_TYPES,
+    CHINA_RESIDENCE_PERMIT_VISA_TYPE,
     L_15_HOTEL_INFO,
     MALE_VIETNAMESE_NAMES,
     FEMALE_VIETNAMESE_NAMES,
@@ -1682,8 +1683,10 @@ def build_previous_china_travel_body(
     old_otherCountries: str = "",
     collectFingerprintFlag: bool = False,
     chinaResidenceLicenseFlag: bool = False,
+    residenceLicenseNumber: str = "",
 ) -> dict[str, Any]:
-    """Applicant has been to China before: fill prior-visit and visa fields."""
+    """Applicant has been to China before: fill prior-visit and visa fields.
+    A Chinese residence permit next to the old visa only adds its number."""
 
     errs = validate_payload(
         {
@@ -1723,7 +1726,7 @@ def build_previous_china_travel_body(
         "lostChinaVisaPlace": "",
         "otherCountries": "",
         "provideChinaVisaDetailFlag": False,
-        "residenceLicenseNumber": "",
+        "residenceLicenseNumber": residenceLicenseNumber,
         "previousTravelInChinaInfos": [
             {
                 "sort": 1,
@@ -1759,8 +1762,29 @@ def build_previous_travel_info_profile(
     old_otherCountries: str = "",
     collectFingerprintFlag: bool = False,
     chinaResidenceLicenseFlag: bool = False,
+    residenceLicenseNumber: str = "",
+    residence_issueDate: str = "",
+    residence_issuePlace: str = "",
 ) -> PreviousTravelInfoProfile:
-    if not arrivedChinaFlag:
+    residenceLicenseNumber = str(residenceLicenseNumber or "").strip()
+    if residenceLicenseNumber and REGION != REGION_SOUTH:
+        # Chinese residence permits are filled in for the South only.
+        chinaResidenceLicenseFlag = False
+        residenceLicenseNumber = ""
+    has_residence_permit = bool(chinaResidenceLicenseFlag and residenceLicenseNumber)
+
+    if has_residence_permit and not haveChinaVisaFlag:
+        previous_travel_json = _build_residence_permit_only_body(
+            applyid,
+            residenceLicenseNumber,
+            residence_issueDate,
+            residence_issuePlace,
+            haveOtherVisaFlag,
+            old_otherVisas,
+            old_otherCountries,
+            collectFingerprintFlag,
+        )
+    elif not arrivedChinaFlag:
         previous_travel_json = _build_no_previous_china_travel_body(applyid)
     else:
         previous_travel_json = build_previous_china_travel_body(
@@ -1775,8 +1799,69 @@ def build_previous_travel_info_profile(
             old_otherCountries,
             collectFingerprintFlag,
             chinaResidenceLicenseFlag,
+            residenceLicenseNumber if has_residence_permit else "",
         )
     return PreviousTravelInfoProfile.from_dict(previous_travel_json)
+
+
+def _build_residence_permit_only_body(
+    applyid: str,
+    residenceLicenseNumber: str,
+    residence_issueDate: str = "",
+    residence_issuePlace: str = "",
+    haveOtherVisaFlag: bool = False,
+    old_otherVisas: Any = "",
+    old_otherCountries: Any = "",
+    collectFingerprintFlag: bool = False,
+) -> dict[str, Any]:
+    """South, Chinese residence permit and no old Chinese visa: the permit
+    stands in for the visa (visaType "Other", visaNumber = permit number), as
+    the COVA form sends it (arrivedChinaFlag stays False)."""
+    issue_date = str(residence_issueDate or "").strip()
+    issue_place = str(residence_issuePlace or "").strip().upper()
+    body = {
+        **_previous_travel_base(applyid),
+        "arrivedChinaFlag": False,
+        "chinaResidenceLicenseFlag": True,
+        "collectFingerprintCountry": "",
+        "collectFingerprintDate": "",
+        "collectFingerprintFlag": collectFingerprintFlag,
+        "collectFingerprintPlace": "",
+        "haveChinaVisaFlag": True,
+        "haveOtherVisaFlag": haveOtherVisaFlag,
+        "issueDate": issue_date,
+        "issuePlace": issue_place,
+        "visitedOtherCountryFlag": not _is_blank(old_otherCountries),
+        "lostChinaVisaDate": "",
+        "lostChinaVisaFlag": "",
+        "lostChinaVisaNumber": "",
+        "lostChinaVisaPlace": "",
+        "otherCountries": "",
+        "otherVisas": old_otherVisas,
+        "previousTravelInChinaInfos": [],
+        "provideChinaVisaDetailFlag": "",
+        "residenceLicenseNumber": residenceLicenseNumber,
+        "visaNumber": residenceLicenseNumber,
+        "visaType": CHINA_RESIDENCE_PERMIT_VISA_TYPE,
+        "firstApplyChinaVisaFlag": False,
+    }
+    errs = validate_payload(
+        {
+            **body,
+            "otherVisas": list_to_csv_country_codes(old_otherVisas),
+            "otherCountries": list_to_csv_country_codes(old_otherCountries),
+        }
+    )
+    if not issue_date or not issue_place:
+        errs.append("Giấy cư trú TQ thiếu issueDate hoặc issuePlace.")
+    if errs:
+        log_event(
+            {
+                "step": "Step 8: SavePreviousTravelInfo",
+                "status": f"Validate step previous travel error '{errs}'",
+            }
+        )
+    return body
 
 
 def _is_blank(x: Any) -> bool:
@@ -1836,7 +1921,12 @@ def validate_payload(p: dict) -> list[str]:
     ):
         errors.append("otherCountries có phần tử rỗng, cần loại bỏ hoặc không gửi.")
 
-    if (not arrivedChinaFlag) and haveChinaVisaFlag:
+    # South, residence permit only: COVA sends arrivedChinaFlag=False with
+    # haveChinaVisaFlag=True and visaType "Other".
+    residence_permit_only = bool(p.get("chinaResidenceLicenseFlag")) and (
+        str(visaType or "").strip() == CHINA_RESIDENCE_PERMIT_VISA_TYPE
+    )
+    if (not arrivedChinaFlag) and haveChinaVisaFlag and not residence_permit_only:
         errors.append(
             "arrivedChinaFlag=False nhưng haveChinaVisaFlag=True (kiểm tra lại logic)."
         )

@@ -35,6 +35,9 @@ def build_flow_context(**kwargs):
     ctx.passportNumber = kwargs.get("passportNumber", "")
     ctx.input_passportNumber = ctx.passportNumber
     ctx.chinaResidenceLicenseFlag = kwargs.get("chinaResidenceLicenseFlag", False)
+    ctx.residenceLicenseNumber = kwargs.get("residenceLicenseNumber", "")
+    ctx.residence_issueDate = kwargs.get("residence_issueDate", "")
+    ctx.residence_issuePlace = kwargs.get("residence_issuePlace", "")
     ctx.collectFingerprintFlag = kwargs.get("collectFingerprintFlag", False)
     ctx.is_private = kwargs.get("is_private", False)
     ctx.family_passport = kwargs.get("family_passport", "")
