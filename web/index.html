@@ -203,7 +203,7 @@ function show(el, text, ok) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.te
 function clear(el) { el.className = ''; el.textContent = ''; }
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function fill(sel, items) { sel.innerHTML = items.map((x) => `<option value="${esc(x.value ?? x)}">${esc(x.label ?? x)}</option>`).join(''); }
-const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const mmss = (s) => { s = Math.max(0, s || 0); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
 let toastTimer = null;
 function toast(text) {
@@ -422,7 +422,8 @@ $('startBtn').onclick = async () => {
 // ---------- progress ----------
 let pollTimer = null, clockTimer = null, skew = 0, curJob = null;
 function stopWatch() { clearInterval(pollTimer); clearInterval(clockTimer); pollTimer = clockTimer = null; }
-function secs(iso) { return (Date.parse(iso) - Date.parse(curJob.started_at)) / 1000; }
+// Mốc "Đã nhận" được ghi giờ trước khi DB đặt started_at vài ms -> không để ra số âm
+function secs(iso) { return Math.max(0, (Date.parse(iso) - Date.parse(curJob.started_at)) / 1000); }
 
 function drawJob() {
   const j = curJob;
@@ -442,7 +443,14 @@ function drawJob() {
     html += `<li class="error"><span>❌</span><span>Lỗi</span><span class="t">${mmss(secs(reached.error.at))}</span><span class="sub">${esc(reached.error.message)}</span></li>`;
   }
   $('steps').innerHTML = html;
-  $('jobState').textContent = j.status === 'done' ? 'Hoàn tất' : j.status === 'error' ? 'Dừng vì lỗi' : 'Đang chạy…';
+  let state = j.status === 'done' ? 'Hoàn tất' : j.status === 'error' ? 'Dừng vì lỗi' : 'Đang chạy…';
+  if (j.status === 'running') {
+    // Lâu không có mốc mới: có thể n8n đã dừng mà không báo về được -> nhắc xem Telegram
+    const last = (j.steps || []).slice(-1)[0];
+    const idleMin = last ? (Date.now() + skew - Date.parse(last.at)) / 60000 : 0;
+    if (idleMin >= 15) state = `Đang chạy… (đã ${Math.floor(idleMin)} phút chưa có cập nhật — xem Telegram hoặc n8n)`;
+  }
+  $('jobState').textContent = state;
 }
 
 function tickClock() {
