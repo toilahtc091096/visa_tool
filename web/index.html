@@ -108,6 +108,10 @@
   .st.rejected, .st.cancelled { background: var(--err-bg); color: var(--err); }
   .pager { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--muted); }
   .pager button { margin: 0; padding: 7px 14px; }
+  .card-head { display: flex; justify-content: flex-end; margin: -8px 0 4px; }
+  .card-head button { margin: 0; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
+  .spin-icon { display: inline-block; font-size: 20px; line-height: 1; transition: transform .4s; }
+  .card-head button:hover .spin-icon { transform: rotate(180deg); }
   .tbar { height: 8px; min-width: 2px; background: var(--accent); border-radius: 4px; }
   table.data tr.fail td { background: var(--err-bg); color: var(--err); font-weight: 600; }
   table.data td.barcell { width: 45%; }
@@ -138,7 +142,12 @@
     </div>
 
     <div id="startCard" class="card">
-      <label for="house">Nhà</label>
+      <div class="card-head">
+        <button id="resetBtn" class="secondary" type="button" title="Xoá hết những gì đã nhập, về như lúc mới mở trang">
+          <span class="spin-icon" aria-hidden="true">↻</span> Làm mới
+        </button>
+      </div>
+      <label for="house" style="margin-top:0">Nhà</label>
       <select id="house"></select>
 
       <label>Thư mục hồ sơ trên máy <span class="hint">tuỳ chọn: tải lên bucket của nhà đã chọn</span></label>
@@ -515,6 +524,28 @@ $('startBtn').onclick = async () => {
     watchJob(r.job_id);
   } catch (e) { show($('startMsg'), e.message, false); }
   b.disabled = false; b.textContent = 'Gửi';
+};
+
+// "Làm mới": the start form back to how it is when the page opens.
+function resetStartForm() {
+  picked = []; uploadedTo = '';
+  $('dir').value = ''; $('dirInfo').textContent = '';
+  $('drop').classList.remove('has', 'over');
+  $('upBox').classList.add('hidden'); $('upBar').style.width = '0'; $('upText').textContent = '';
+  $('house').selectedIndex = 0;
+  $('visa').selectedIndex = 0;
+  $('days').value = '';
+  pickRelation(null);
+  onVisa();
+  $('prefix').value = '';
+  clear($('startMsg'));
+  // progress of the previous run (the run itself goes on; Quản trị still lists it)
+  stopWatch(); ls.set('visa_web_job', ''); $('jobCard').classList.add('hidden');
+}
+$('resetBtn').onclick = () => {
+  if ($('startBtn').disabled) { toast('Đang tải lên / đang gửi — chờ xong rồi hãy làm mới'); return; }
+  resetStartForm();
+  toast('Đã làm mới');
 };
 
 // ---------- progress ----------
