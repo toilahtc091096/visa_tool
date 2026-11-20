@@ -572,7 +572,9 @@ function stopTokenPoll() { clearInterval(tokenPoll); tokenPoll = null; }
 $('tokenBtn').onclick = () => ($('tokenCard').classList.contains('hidden') ? openTokenCard() : $('tokenCard').classList.add('hidden'));
 $('tokenClose').onclick = () => { stopTokenPoll(); $('tokenCard').classList.add('hidden'); };
 $('tOpen').onclick = async () => {
-  if (!scriptInstalled()) { $('tokenInstall').classList.remove('hidden'); show($('tokenMsg'), 'Chưa cài script trên máy này — làm theo hướng dẫn ở trên rồi tải lại trang', false); return; }
+  // Not seen on this page does not always mean not installed: open anyway, the bio tab
+  // shows "Visa tool: …" at the top when the script runs there.
+  if (!scriptInstalled()) $('tokenInstall').classList.remove('hidden');
   stopTokenPoll();
   const house = $('tHouse').value;
   const tab = window.open('about:blank', '_blank');   // open now (in the click) so the browser does not block it
@@ -580,7 +582,8 @@ $('tOpen').onclick = async () => {
   try {
     const r = await api('/web/bio/start', { house });
     if (tab) tab.location.href = r.open_url; else window.open(r.open_url, '_blank');
-    show($('tokenMsg'), `Nhà ${house}: tab đăng nhập đã mở. Làm bước xác minh rồi đăng nhập trên tab đó…`, true);
+    show($('tokenMsg'), `Nhà ${house}: tab đăng nhập đã mở. Làm bước xác minh rồi đăng nhập trên tab đó…\n`
+      + 'Tab bio phải hiện dòng xanh "Visa tool: …" ở đầu trang; không thấy thì script chưa chạy (xem Tampermonkey → Dashboard).', true);
     const t0 = Date.now();
     tokenPoll = setInterval(async () => {
       try {

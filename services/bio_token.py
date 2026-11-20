@@ -28,7 +28,7 @@ import requests
 from constants import CHECK_OLD_LIST_BASE_URL
 
 TICKET_TTL = 15 * 60  # seconds a ticket (open login tab) stays usable
-SCRIPT_VERSION = "1.0"
+SCRIPT_VERSION = "1.1"
 
 
 # ---------- house side (each instance, its own .env) ----------
@@ -124,7 +124,11 @@ def ticket_status(ticket: str) -> dict[str, Any] | None:
 def userscript(base_url: str) -> str:
     base = base_url.rstrip("/")
     host = base.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0]
-    return (_USERSCRIPT.replace("__BASE__", base).replace("__HOST__", host)
+    scheme = base.split("://", 1)[0] if "://" in base else "http"
+    # Match patterns with a port are not matched by every Tampermonkey / Chrome version:
+    # match the host on any port, the script itself checks the exact /web address.
+    return (_USERSCRIPT.replace("__ORIGIN_NOPORT__", f"{scheme}://{host}")
+            .replace("__BASE__", base).replace("__HOST__", host)
             .replace("__VERSION__", SCRIPT_VERSION))
 
 
@@ -134,7 +138,7 @@ _USERSCRIPT = r"""// ==UserScript==
 // @version      __VERSION__
 // @description  Tự điền tài khoản của nhà và gửi token bio.visaforchina.cn về trang /web
 // @match        https://bio.visaforchina.cn/*
-// @match        __BASE__/web*
+// @match        __ORIGIN_NOPORT__/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -159,7 +163,8 @@ _USERSCRIPT = r"""// ==UserScript==
     return;
   }
 
-  // ---- bio.visaforchina.cn ----
+  // ---- bio.visaforchina.cn (only there: the VPS host is matched on every port) ----
+  if (location.hostname !== 'bio.visaforchina.cn') return;
   const m = location.hash.match(/visa_tool=([A-Za-z0-9_-]+)/);
   if (m) GM_setValue('visa_tool_ticket', { ticket: m[1], at: Date.now() });
   const saved = GM_getValue('visa_tool_ticket', null);
