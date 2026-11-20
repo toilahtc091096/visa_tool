@@ -12,3 +12,4 @@ logs/
 resources/token_nam.json
 n8n-flow
 resources/TM-S2 MAU.docx
+tests/n8n-baseline/

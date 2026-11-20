@@ -17,6 +17,7 @@ from api.convert_input_pdfs import api_cleanup_pdf_page_images, render_pdf_pages
 from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
+from api import api_archive_r2_folder, api_restore_r2_folder
 from api import api_sign_and_push_image_to_r2
 from constants import REGION, REGION_SOUTH
 from database.connection import init_database
@@ -653,6 +654,29 @@ def r2_images_delete(payload: dict[str, Any] = Body(...)):
         "key": key,
         "prefix": prefix,
     }
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@app.post("/r2/folders/archive")
+def r2_folders_archive(payload: dict[str, Any] = Body(...)):
+    # WF14: move the input folder to _archive/<stamp>/ (lifecycle deletes it after 7 days).
+    prefix = str(payload.get("prefix", "") or "").strip()
+    result = api_archive_r2_folder(prefix)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@app.post("/r2/folders/restore")
+def r2_folders_restore(payload: dict[str, Any] = Body(...)):
+    # WF-15: clear <passport>/ output and move the latest archive back. confirm=false = dry run.
+    result = api_restore_r2_folder(
+        str(payload.get("prefix", "") or ""),
+        str(payload.get("passport_number", "") or ""),
+        confirm=str(payload.get("confirm", "")).strip().lower() in ("true", "1", "yes"),
+    )
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result)
     return result
