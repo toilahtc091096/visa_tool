@@ -8,11 +8,12 @@
   :root {
     --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #667085; --line: #d9dde5;
     --accent: #1f6feb; --accent-text: #fff; --ok-bg: #e8f6ee; --ok: #116b3a; --err-bg: #fdecec; --err: #a4161a;
-    --track: #e6e9ef;
+    --track: #e6e9ef; --warn-bg: #fff4e0; --warn: #9a5b00;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #14171c; --card: #1d2129; --text: #e6e8ec; --muted: #9aa3b2; --line: #333a46;
-            --accent: #4c8dff; --ok-bg: #12301f; --ok: #7fd6a2; --err-bg: #3a1618; --err: #ff9a9a; --track: #2a303b; }
+            --accent: #4c8dff; --ok-bg: #12301f; --ok: #7fd6a2; --err-bg: #3a1618; --err: #ff9a9a; --track: #2a303b;
+            --warn-bg: #3a2c12; --warn: #f5c56b; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -110,6 +111,32 @@
   .pager button { margin: 0; padding: 7px 14px; }
   .bar-actions { display: flex; gap: 8px; }
   #tokenInstall a { color: inherit; font-weight: 700; }
+  /* centered confirm dialog (replaces the browser's confirm()) */
+  .dlg-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+                  padding: 16px; background: rgba(15, 18, 25, .55); animation: dlg-fade .15s ease-out; }
+  .dlg { width: min(480px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--card); color: var(--text);
+         border: 1px solid var(--line); border-radius: 16px; padding: 28px 26px 22px; text-align: center;
+         box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
+  .dlg-icon { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; display: flex; align-items: center;
+              justify-content: center; font-size: 28px; font-weight: 700; background: var(--track); color: var(--accent); }
+  .dlg.warn .dlg-icon { background: var(--warn-bg); color: var(--warn); }
+  .dlg.danger .dlg-icon { background: var(--err-bg); color: var(--err); }
+  .dlg h3 { margin: 0 0 8px; font-size: 21px; }
+  .dlg-body { color: var(--muted); white-space: pre-wrap; }
+  .dlg-details { margin: 16px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--bg); text-align: left;
+                 display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 15px; }
+  .dlg-details dt { color: var(--muted); }
+  .dlg-details dd { margin: 0; font-weight: 600; word-break: break-word; }
+  .dlg-actions { display: flex; gap: 10px; justify-content: center; margin-top: 22px; }
+  .dlg-actions button { margin: 0; min-width: 130px; }
+  .dlg-actions button:focus { outline: none; }
+  .dlg-actions button:focus-visible { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--accent); }
+  .dlg.warn #dlgOk:focus-visible { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--warn); }
+  .dlg.warn #dlgOk { background: var(--warn); color: var(--card); }
+  .dlg.danger #dlgOk { background: var(--err); color: var(--card); }
+  @media (max-width: 420px) { .dlg-actions { flex-direction: column-reverse; } .dlg-actions button { width: 100%; } }
+  @keyframes dlg-fade { from { opacity: 0; } }
+  @keyframes dlg-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } }
   .card-head { display: flex; justify-content: flex-end; margin: -8px 0 4px; }
   .card-head button { margin: 0; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
   .spin-icon { display: inline-block; font-size: 20px; line-height: 1; transition: transform .4s; }
@@ -313,6 +340,18 @@
   </section>
 </main>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<div id="dlg" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
+  <div class="dlg" id="dlgBox">
+    <div class="dlg-icon" id="dlgIcon" aria-hidden="true">?</div>
+    <h3 id="dlgTitle"></h3>
+    <div class="dlg-body" id="dlgBody"></div>
+    <dl class="dlg-details hidden" id="dlgDetails"></dl>
+    <div class="dlg-actions">
+      <button class="secondary" id="dlgCancel" type="button">Huỷ</button>
+      <button id="dlgOk" type="button">Đồng ý</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -347,6 +386,45 @@ function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp
 function fill(sel, items) { sel.innerHTML = items.map((x) => `<option value="${esc(x.value ?? x)}">${esc(x.label ?? x)}</option>`).join(''); }
 const mmss = (s) => { s = Math.max(0, s || 0); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
 const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+// Centered confirm dialog; resolves true (OK) / false (Huỷ, Esc, click outside).
+// opts: {title, message, details: [[label, value]], okText, cancelText, tone: 'info'|'warn'|'danger', icon}
+function ask(opts) {
+  const o = { okText: 'Đồng ý', cancelText: 'Huỷ', tone: 'info', ...opts };
+  const back = $('dlg'), box = $('dlgBox');
+  box.className = 'dlg ' + o.tone;
+  $('dlgIcon').textContent = o.icon || { info: '?', warn: '!', danger: '!' }[o.tone] || '?';
+  $('dlgTitle').textContent = o.title || '';
+  $('dlgBody').textContent = o.message || '';
+  const rows = (o.details || []).filter(([, v]) => v !== undefined && v !== null && v !== '');
+  $('dlgDetails').innerHTML = rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+  $('dlgDetails').classList.toggle('hidden', !rows.length);
+  $('dlgOk').textContent = o.okText; $('dlgCancel').textContent = o.cancelText;
+  const before = document.activeElement;
+  back.classList.remove('hidden');
+  $('dlgOk').focus();
+  return new Promise((resolve) => {
+    const done = (v) => {
+      back.classList.add('hidden');
+      document.removeEventListener('keydown', onKey, true);
+      $('dlgOk').onclick = $('dlgCancel').onclick = back.onclick = null;
+      try { before && before.focus(); } catch (e) {}
+      resolve(v);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); done(false); }
+      else if (e.key === 'Enter' && document.activeElement !== $('dlgCancel')) { e.preventDefault(); done(true); }
+      else if (e.key === 'Tab') {   // keep the focus inside the dialog
+        const f = [$('dlgCancel'), $('dlgOk')]; const i = f.indexOf(document.activeElement);
+        e.preventDefault(); f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    $('dlgOk').onclick = () => done(true);
+    $('dlgCancel').onclick = () => done(false);
+    back.onclick = (e) => { if (e.target === back) done(false); };
+  });
+}
+
 let toastTimer = null;
 function toast(text) {
   const el = $('toast'); el.textContent = text; el.classList.remove('hidden');
@@ -524,7 +602,13 @@ $('house').addEventListener('change', () => { uploadedTo = ''; });
 async function uploadPicked() {
   const house = $('house').value, prefix = $('prefix').value.trim();
   const stat = await api('/web/folder-stat', { house, source_prefix: prefix });
-  if (stat.files > 0 && !confirm(`Thư mục "${prefix}" trên bucket nhà ${house} đã có ${stat.files} file.\nVẫn tải thêm vào?`)) {
+  if (stat.files > 0 && !(await ask({
+    tone: 'warn', title: 'Thư mục trên R2 đã có file',
+    message: 'Tải thêm sẽ để chung với các file đang có. Nếu là hồ sơ khác, hãy đổi tên thư mục.',
+    details: [['Nhà', house], ['Thư mục', prefix], ['Đang có', `${stat.files} file`],
+              ['Sẽ tải thêm', `${picked.length} file, ${mb(picked.reduce((a, x) => a + x.file.size, 0))}`]],
+    okText: 'Vẫn tải thêm', cancelText: 'Huỷ',
+  }))) {
     throw new Error('Đã huỷ tải lên');
   }
   $('upBox').classList.remove('hidden');
@@ -1047,7 +1131,13 @@ $('runBtn').onclick = async () => {
   let body;
   try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
   if (!curlPort) { show($('curlMsg'), 'Bấm "Đọc curl" trước', false); return; }
-  if (!confirm(`Chạy /run trên nhà ${PORT_HOUSE[curlPort]}${body.passportNumber ? ' cho hộ chiếu ' + body.passportNumber : ''}?`)) return;
+  const runOk = await ask({
+    icon: '▶', title: 'Chạy /run?', message: 'Hồ sơ sẽ được tạo / cập nhật trên trang visa. Mất khoảng 1–2 phút.',
+    details: [['Nhà', `${PORT_HOUSE[curlPort]} (cổng ${curlPort})`], ['Hộ chiếu', body.passportNumber], ['Loại visa', body.visa_type],
+              ['first_applyid', body.first_applyid ? body.first_applyid : 'trống — tạo hồ sơ mới']],
+    okText: 'Chạy', cancelText: 'Huỷ',
+  });
+  if (!runOk) return;
   b.disabled = true;
   const t0 = Date.now();
   const tick = setInterval(() => { b.textContent = `Đang chạy… ${mmss((Date.now() - t0) / 1000)}`; }, 500);
