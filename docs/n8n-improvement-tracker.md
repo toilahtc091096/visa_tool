@@ -119,9 +119,9 @@ Mọi đợt đều chạy lại đúng bộ này để so sánh được với 
 
 | Mã    | Đặc điểm cần có                                           | Bucket          | Thư mục R2 (source_prefix)         | Trạng thái            |
 | ----- | --------------------------------------------------------- | --------------- | ---------------------------------- | --------------------- |
-| TC-01 | Hồ sơ L15 thường: hộ chiếu, chân dung, cư trú             | `visa-data`     | `L15 - NGUYEN THI HIEN`            | Dùng                  |
-| TC-02 | Hồ sơ S2                                                  | `visa-data-tai` | `Be giau-Le Thanh Hien. S2 . Khan` | Dùng                  |
-| TC-03 | Hồ sơ Q2 180 ngày                                         | `visa-data-tai` | `Be giau- Lam thi cuc-Q2-180N- th` | Dùng                  |
+| TC-01 | Hồ sơ L15 thường: hộ chiếu, chân dung, cư trú             | `visa-data`     | `XXX`            | Dùng                  |
+| TC-02 | Hồ sơ S2                                                  | `visa-data-tai` | `XXX` | Dùng                  |
+| TC-03 | Hồ sơ Q2 180 ngày                                         | `visa-data-tai` | `XXX` | Dùng                  |
 | TC-04 | Gia đình nhiều thành viên, có con (payload dài)           | —               | —                                  | Bỏ qua, chưa có hồ sơ |
 | TC-05 | Thăm thân: con rể, mời mẹ (WF-04I)                        | `visa-data-tai` | `con-re-moi-me`                    | Dùng                  |
 | TC-06 | Dưới 18 tuổi, hoặc có trang hộ chiếu trắng (WF-04E/WF-11) | —               | —                                  | Bỏ qua, chưa có hồ sơ |
@@ -282,7 +282,7 @@ Cả 3 khác biệt đều là trường do AI đọc: WF-09 `Extract Old China 
 - [ ] Execution của WF01-GENERAL kết thúc ở `Mark Execution Failed1` với cùng nội dung lỗi.
 
 **Hiện tại (2026-11-20):** Đạt.
-- Đã sửa trực tiếp trên n8n, chạy TC-01 với credential sai. Telegram nhận được: `❌ LỖI XỬ LÝ HỒ SƠ | Job: job-hxxzb1h2 | Folder: L15 - NGUYEN THI HIEN/ | Visa: L15 | Bước: Call PDF & Image Preprocessing'1 | Lỗi: Authorization failed - please check your credentials`.
+- Đã sửa trực tiếp trên n8n, chạy TC-01 với credential sai. Telegram nhận được: `❌ LỖI XỬ LÝ HỒ SƠ | Job: job-hxxzb1h2 | Folder: XXX/ | Visa: L15 | Bước: Call PDF & Image Preprocessing'1 | Lỗi: Authorization failed - please check your credentials`.
 - Hạn chế còn lại: "Bước" chỉ cho biết node của WF01-GENERAL, không cho biết lỗi xảy ra ở workflow con và node nào (lần này là WF-06 `Build Passport Curl`). Ghi thành E5.
 - Đã export lại WF01-GENERAL lúc 11:27. So với bản sao lưu: chỉ khác đúng dòng 3 của `Build Error Notification1`, các node và connections khác giữ nguyên.
 
@@ -577,8 +577,8 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 
 **Các bước triển khai** (làm theo thứ tự)
 1. `git pull` code mới, khởi động lại cả 3 instance. Thêm `HOUSE=HAI`, `HOUSE=PHONG`, `HOUSE=TAI` vào 3 file `.env` (không thêm thì lấy theo `PORT`). Lúc này mỗi nhà vẫn dùng DB riêng, các dòng cũ được gán nhà.
-2. Tạo DB đích trống: `CREATE DATABASE visa_main;` (cùng user Postgres).
-3. Chạy thử: `$env:ENV_FILE = ".env"; python scripts\merge_databases.py --target visa_main`. Mọi dòng `[check]` phải `OK`.
+2. Tạo DB đích trống: dùng `--create` ở bước 3 (script tự tạo `visa_main` nếu chưa có).
+3. Chạy thử: `$env:ENV_FILE = ".env"; python scripts\merge_databases.py --target visa_main --create`. Mọi dòng `[check]` phải `OK`.
 4. **Dừng cả 3 instance** (để không có hồ sơ mới ghi vào DB cũ trong lúc gộp), rồi chạy lại lệnh ở bước 3 kèm `--apply`.
 5. Đổi `POSTGRES_DB=visa_main` trong cả 3 file `.env`, khởi động lại.
 6. Giữ 3 DB cũ ít nhất 2 tuần để quay lại nếu cần: chỉ cần đổi `POSTGRES_DB` về DB cũ, nhưng hồ sơ phát sinh sau bước 5 sẽ chỉ có trong `visa_main`.
@@ -637,7 +637,7 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 ### G2 — Giấy 停留 bị nhận là visa cũ (phát hiện khi test G1, 2026-11-20)
 
 **Ban đầu**
-- Hồ sơ có 2 tem: một visa L thật (MRZ `VLCHN…`, cấp tại 胡志明市 năm 2025) và một giấy **停留** (gia hạn lưu trú, cấp tại 福建 ngày 2026-08-11, số đỏ 101816009, MRZ `VTCHN…`).
+- Hồ sơ có 2 tem: một visa L thật (MRZ `VLCHN…`, cấp tại 胡志明市 năm 2025) và một giấy **停留** (gia hạn lưu trú, cấp tại 福建 ngày 2026-08-11, số đỏ XXX, MRZ `VTCHN…`).
 - Giấy 停留 có tiêu đề "中华人民共和国签证 / VISA", nên AI xếp vào `china_visa`. `Validate Classification` của WF-04 chỉ nhận `R<CHN` là giấy cư trú, còn mọi MRZ bắt đầu bằng `V` có `CHN` thì ép thành visa.
 - Hệ quả: giấy 停留 thành "visa cũ" và được chọn vì có ngày cấp mới nhất. Telegram báo "ẢNH HỘ CHIẾU TRUNG QUỐC CŨ", nơi cấp ra `FUJIAN`. Theo quy ước, giấy này là giấy cư trú, chỉ dùng khi không có visa cũ.
 - Logic giấy cư trú vẫn còn đầy đủ: WF-04 phân loại, WF-05 chuyển sang WF-09, WF-09 tách prompt và parse, `Pick Latest China Visa` ưu tiên visa và chỉ gắn thêm cờ giấy cư trú, WF-12 và Python xử lý tiếp. Chỉ có bước nhận diện giấy 停留 bị thiếu.
@@ -649,7 +649,7 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 
 **Kỳ vọng**
 - [x] Chạy thử bằng Node: `VTCHN…` (AI nói visa hoặc unknown) → `china_residence_permit`; `VLCHN…`, `V<CHN` → `china_visa` như cũ; `R<CHN` → giấy cư trú; `P<VNM` → hộ chiếu; `VTKOR` không bị đổi.
-- [ ] Chạy lại hồ sơ này: Telegram báo "ẢNH GIẤY CƯ TRÚ TRUNG QUỐC" cho giấy 停留, số 101816009. Visa cũ là L, số M7355333, nơi cấp `TP HO CHI MINH`, ngày cấp 2025-01-15.
+- [ ] Chạy lại hồ sơ này: Telegram báo "ẢNH GIẤY CƯ TRÚ TRUNG QUỐC" cho giấy 停留, số XXX. Visa cũ là L, số XXX, nơi cấp `TP HO CHI MINH`, ngày cấp 2025-01-15.
 
 **Hiện tại:** —
 
@@ -694,3 +694,6 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 | 2026-11-20 | W2, W3 | Bạn yêu cầu: admin xem số bộ theo người và ngày; gộp DB về 1, có mã nhà. Bỏ qua F1. Env thật: HAI `visa_db`, PHONG `visa_db_phong`, TAI `visa_db_tai` (cùng Postgres). Bạn chốt: tính cho người chạy đầu; quản lý hồ sơ tạm chỉ xem, lọc; `agencies` tách theo nhà | — | — | |
 | 2026-11-20 | W2, W3 | Code: cột `house`, `staff_code`, `job_id`; CRUD tự lọc theo nhà (`database/house.py`); `/run` lưu người làm; endpoint `/web/admin/*` và tab Quản trị; `scripts/merge_databases.py` | — | Chờ triển khai | |
 | 2026-11-20 | W2 | Duyệt lại trên export 19:24 (bạn báo bản cũ). `staff` chỉ có ở WF01-GENERAL nên nối qua `job_id`: WF01-GENERAL `Progress: files` gửi `staff`, `house`; WF-13 thêm `job_id` vào curl; `/run` tra người làm theo `job_id`. Kết quả `patched-W2/`, bản gốc `backup-2026-11-20-before-W2/`. 68/68 test đạt | Node: body có `job_id`, progress có `staff` | Chờ triển khai | |
+| 2026-11-20 | W3 | Chạy thử gộp: user Postgres không có quyền tạo DB (tạo `visa_main` bằng tài khoản `postgres`). 5 `han_code` có ở cả HAI và PHONG; bạn chọn giữ bản của HAI → thêm `--han-keep HAI` (chỉ bỏ bản PHONG trong DB đích, DB nguồn không đổi). Commit `b139261` | — | Chờ chạy thử lại | Mail duyệt HAN hiện chỉ PHONG cấu hình; HAI có các mã này nhiều khả năng do từng chạy với env của PHONG |
+| 2026-11-20 | W2 | Bạn yêu cầu: curl luôn có `first_applyid` = `""`. WF-13 `Build API Request Body1` thêm `first_applyid: ""` ngay sau `authorization`, và đưa vào danh sách field lõi để `custom_curl_fields` không ghi đè. Sửa thẳng trên `patched-W2/` (chưa import) | Node: body có `first_applyid: ""`, `job_id` vẫn còn | Chờ import | Muốn cập nhật hồ sơ đã có thì điền tay trong curl |
+| 2026-11-20 | W2 | Bạn yêu cầu: SĐT và email của người khai trong file INFO vào curl. WF-_Extracted_INFO: AI trích thêm `applicant.phone`, `applicant.email` (prompt cấm lấy SĐT/email của người thân, nơi làm việc, người mời…); `Build INFO Output` chỉ giữ số cho phone, email chữ thường, sai dạng thì để trống. WF-13: body luôn có `email: ""`; `Override Visa Type1` điền `phone`, `email` khi đọc được. Server: `/run` nhận `email`, đưa vào email của người khai ở SaveFamilyInfo (thay email tự sinh); không có hoặc sai dạng thì tự sinh như cũ. Tất cả ở `patched-W2/` (thêm file WF-_Extracted_INFO) | Node: 3 node chạy đúng; 19 ca `/run` không có email cho kết quả y hệt trước | Chờ triển khai | |
