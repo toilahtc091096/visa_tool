@@ -108,6 +108,8 @@
   .st.rejected, .st.cancelled { background: var(--err-bg); color: var(--err); }
   .pager { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--muted); }
   .pager button { margin: 0; padding: 7px 14px; }
+  .bar-actions { display: flex; gap: 8px; }
+  #tokenInstall a { color: inherit; font-weight: 700; }
   .card-head { display: flex; justify-content: flex-end; margin: -8px 0 4px; }
   .card-head button { margin: 0; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
   .spin-icon { display: inline-block; font-size: 20px; line-height: 1; transition: transform .4s; }
@@ -133,7 +135,36 @@
   </section>
 
   <section id="app" class="hidden">
-    <div class="bar"><span id="who"></span><button class="secondary" id="logout">Đăng xuất</button></div>
+    <div class="bar"><span id="who"></span>
+      <span class="bar-actions">
+        <button class="secondary" id="tokenBtn" type="button" title="Đăng nhập trang bio của nhà để lấy token mới">🔑 Lấy token</button>
+        <button class="secondary" id="logout">Đăng xuất</button>
+      </span>
+    </div>
+
+    <div id="tokenCard" class="card hidden">
+      <div class="job-head">
+        <b>Lấy token trang bio</b>
+        <button class="x" id="tokenClose" type="button" title="Đóng">×</button>
+      </div>
+      <div class="hint">Dùng khi /run báo lỗi token. Bấm mở trang đăng nhập: tab mới tự điền tài khoản của nhà, bạn làm bước xác minh rồi đăng nhập, token tự gửi về và tab tự đóng. Mọi curl sau đó của nhà này dùng token mới.</div>
+      <div id="tokenInstall" class="msg err hidden">Máy này chưa cài script lấy token (làm 1 lần):
+1. Cài tiện ích Tampermonkey: <a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" rel="noopener">Chrome Web Store</a> (Edge: tìm "Tampermonkey" trong cửa hàng tiện ích của Edge).
+2. Chrome/Edge mới: vào trang quản lý tiện ích → Tampermonkey → Chi tiết → bật "Cho phép tập lệnh của người dùng" (Allow User Scripts).
+3. Bấm <a href="/web/visa-token.user.js" target="_blank">Cài script</a> → trong Tampermonkey bấm "Cài đặt".
+4. Tải lại trang này (F5).</div>
+      <div class="row">
+        <div>
+          <label for="tHouse">Nhà</label>
+          <select id="tHouse"></select>
+        </div>
+        <div style="display:flex; gap:8px; align-items:flex-end">
+          <button id="tOpen" type="button">Mở trang đăng nhập</button>
+          <button id="tCheck" class="secondary" type="button">Kiểm tra token</button>
+        </div>
+      </div>
+      <div id="tokenMsg"></div>
+    </div>
     <div class="tabs">
       <button id="tabStart" class="on">Khởi chạy hồ sơ</button>
       <button id="tabRerun">Chạy lại hồ sơ</button>
@@ -320,6 +351,7 @@ function render(info) {
   $('app').classList.remove('hidden');
   $('who').textContent = `${info.username} (${info.staff})`;
   fill($('house'), info.houses); fill($('rHouse'), [{ value: '', label: 'Tự tìm' }, ...info.houses]);
+  fill($('tHouse'), info.houses);
   fill($('visa'), info.visa_codes);
   RELATIONS = info.relations || [];
   relationRequired = info.relation_required || [];
@@ -333,6 +365,7 @@ function render(info) {
 }
 
 function logout() {
+  stopTokenPoll(); $('tokenCard').classList.add('hidden');
   key = ''; ls.set('visa_web_key', ''); stopWatch();
   $('app').classList.add('hidden'); $('login').classList.remove('hidden');
 }
@@ -525,6 +558,59 @@ $('startBtn').onclick = async () => {
   } catch (e) { show($('startMsg'), e.message, false); }
   b.disabled = false; b.textContent = 'Gửi';
 };
+
+// ---------- bio token (with the Tampermonkey script services/bio_token.py serves) ----------
+let tokenPoll = null;
+const scriptInstalled = () => !!document.documentElement.getAttribute('data-visa-token-script');
+function openTokenCard(house) {
+  if (house) $('tHouse').value = house;
+  $('tokenInstall').classList.toggle('hidden', scriptInstalled());
+  $('tokenCard').classList.remove('hidden');
+  $('tokenCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function stopTokenPoll() { clearInterval(tokenPoll); tokenPoll = null; }
+$('tokenBtn').onclick = () => ($('tokenCard').classList.contains('hidden') ? openTokenCard() : $('tokenCard').classList.add('hidden'));
+$('tokenClose').onclick = () => { stopTokenPoll(); $('tokenCard').classList.add('hidden'); };
+$('tOpen').onclick = async () => {
+  if (!scriptInstalled()) { $('tokenInstall').classList.remove('hidden'); show($('tokenMsg'), 'Chưa cài script trên máy này — làm theo hướng dẫn ở trên rồi tải lại trang', false); return; }
+  stopTokenPoll();
+  const house = $('tHouse').value;
+  const tab = window.open('about:blank', '_blank');   // open now (in the click) so the browser does not block it
+  show($('tokenMsg'), `Đang mở trang đăng nhập cho nhà ${house}…`, true);
+  try {
+    const r = await api('/web/bio/start', { house });
+    if (tab) tab.location.href = r.open_url; else window.open(r.open_url, '_blank');
+    show($('tokenMsg'), `Nhà ${house}: tab đăng nhập đã mở. Làm bước xác minh rồi đăng nhập trên tab đó…`, true);
+    const t0 = Date.now();
+    tokenPoll = setInterval(async () => {
+      try {
+        const st = await api(`/web/bio/ticket/${r.ticket}/status`);
+        const wait = mmss((Date.now() - t0) / 1000);
+        if (st.state === 'done') {
+          stopTokenPoll(); show($('tokenMsg'), `✓ ${st.message}. Các curl của nhà ${house} dùng token mới.`, true); toast(`Đã cập nhật token nhà ${house}`);
+        } else if (st.state === 'expired') {
+          stopTokenPoll(); show($('tokenMsg'), st.message, false);
+        } else {
+          show($('tokenMsg'), `Nhà ${house} · ${wait} · ${st.message}`, true);
+        }
+      } catch (e) { stopTokenPoll(); show($('tokenMsg'), e.message, false); }
+    }, 2000);
+  } catch (e) {
+    try { if (tab) tab.close(); } catch (_) {}
+    show($('tokenMsg'), e.message, false);
+  }
+};
+$('tCheck').onclick = async () => {
+  const b = $('tCheck'); b.disabled = true;
+  show($('tokenMsg'), `Đang kiểm tra token nhà ${$('tHouse').value}…`, true);
+  try {
+    const r = await api('/web/bio/check?house=' + encodeURIComponent($('tHouse').value));
+    show($('tokenMsg'), `Nhà ${$('tHouse').value}: ${r.valid ? '✓ token đang dùng được' : '✗ ' + r.message + ' — bấm "Mở trang đăng nhập"'}`, !!r.valid);
+  } catch (e) { show($('tokenMsg'), e.message, false); }
+  b.disabled = false;
+};
+// /run error that looks like an expired / missing token
+const TOKEN_ERR = /token|authori[sz]|unauthori|401|login|đăng nhập|登录|过期|认证|令牌/i;
 
 // "Làm mới": the start form back to how it is when the page opens.
 function resetStartForm() {
@@ -900,7 +986,10 @@ $('runBtn').onclick = async () => {
       if (res.step) lines.push(`Bước: ${res.step}`);
       if (res.error || res.message) lines.push(`Lỗi: ${res.error || res.message}${res.status_code ? ` (mã ${res.status_code})` : ''}`);
     }
+    const tokenIssue = !r.ok && TOKEN_ERR.test(JSON.stringify(res).slice(0, 4000));
+    if (tokenIssue) lines.push(`Có thể token nhà ${r.house} đã hết hạn → bấm "🔑 Lấy token" (đã mở sẵn ở trên), lấy xong bấm Chạy lại.`);
     show($('curlMsg'), lines.join('\n'), r.ok);
+    if (tokenIssue) openTokenCard(r.house);
     renderTimings(res.timings, r.ok);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');

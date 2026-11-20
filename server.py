@@ -52,11 +52,13 @@ from services.web_portal import step_status as web_step_status
 from services.web_portal import upload_file as web_upload_file
 from services.web_portal import house_by_port as web_house_by_port
 from services.web_portal import run_case as web_run_case
+from services import web_portal
+from services import bio_token
 from database.crud.web_job import add_web_job_step, create_web_job, get_job_staff, get_web_job
 from database.crud.web_job import now_iso as web_now_iso
 from database.crud import admin_report
 from database.house import HOUSES as HOUSE_NAMES
-from utils.token_store import append_authorization
+from utils.token_store import append_authorization, load_authorization
 
 print("START", flush=True)
 
@@ -348,6 +350,125 @@ def web_admin_stats(request: Request):
 def web_admin_records(request: Request, limit: int = Query(50), offset: int = Query(0)):
     _web_admin(request)
     return {"ok": True, **admin_report.list_records(_admin_filters(request), limit=limit, offset=offset)}
+
+
+# ---------- bio token (Tampermonkey script fills the house account, sends the token back) ----------
+def _is_local_request(request: Request) -> bool:
+    return (request.client.host if request.client else "") in ("127.0.0.1", "::1")
+
+
+@app.get("/bio/credentials")
+def bio_credentials(request: Request):
+    # The house account (this instance's .env). Only from the VPS itself (the 10000 instance).
+    if not _is_local_request(request):
+        raise HTTPException(status_code=403, detail={"ok": False, "error": "local only"})
+    cfg = bio_token.login_config()
+    missing = [k for k, env in (("login_url", "BIO_LOGIN_URL"), ("username", "BIO_USERNAME"),
+                                ("password", "BIO_PASSWORD")) if not cfg[k]]
+    if missing:
+        names = {"login_url": "BIO_LOGIN_URL", "username": "BIO_USERNAME", "password": "BIO_PASSWORD"}
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Thiếu biến trong .env của nhà: "
+                                                     + ", ".join(names[k] for k in missing)})
+    return {"ok": True, **cfg}
+
+
+@app.post("/bio/authorization")
+def bio_save_authorization(payload: dict[str, Any] = Body(...)):
+    # Check a bio token and keep it for this house: /run uses it when the curl has none.
+    token = bio_token.normalize_authorization(payload.get("authorization"))
+    valid, message = bio_token.check_authorization(token)
+    if not valid:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": message})
+    append_authorization(token)
+    log_event({"event": "bio_token_saved", "token_tail": token[-8:]})
+    return {"ok": True, "message": message}
+
+
+@app.get("/bio/authorization/check")
+def bio_check_saved_authorization():
+    token = load_authorization()
+    if not token:
+        return {"ok": True, "valid": False, "message": "Chưa có token"}
+    valid, message = bio_token.check_authorization(token)
+    return {"ok": True, "valid": valid, "message": message}
+
+
+@app.post("/web/bio/start")
+def web_bio_start(request: Request, payload: dict[str, Any] = Body(...)):
+    user = _web_user(request)
+    try:
+        house = web_portal.house_config(payload.get("house"))["house"]
+        cred = web_portal.bio_credentials(house)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không hỏi được instance nhà: {exc}"})
+    if not cred.get("ok"):
+        raise HTTPException(status_code=400, detail={"ok": False, "error": cred.get("error") or "Thiếu tài khoản bio"})
+    ticket = bio_token.new_ticket(user["username"], house, cred["login_url"])
+    sep = "&" if "#" in cred["login_url"] else "#"
+    log_event({"event": "bio_token_start", "user": user["username"], "house": house})
+    return {"ok": True, "ticket": ticket, "house": house, "open_url": f"{cred['login_url']}{sep}visa_tool={ticket}"}
+
+
+@app.get("/web/bio/ticket/{ticket}")
+def web_bio_ticket(ticket: str):
+    # Called by the userscript on the bio tab: the ticket (random, 15 min, one run) is the key.
+    t = bio_token.get_ticket(ticket)
+    if not t:
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Phiên lấy token đã hết hạn hoặc không tồn tại"})
+    try:
+        cred = web_portal.bio_credentials(t["house"])
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không hỏi được instance nhà: {exc}"})
+    if not cred.get("ok"):
+        raise HTTPException(status_code=400, detail={"ok": False, "error": cred.get("error") or "Thiếu tài khoản bio"})
+    bio_token.set_ticket_state(ticket, "waiting", "Tab bio đã mở, đã điền tài khoản; chờ xác minh và đăng nhập")
+    return {"ok": True, "house": t["house"], "username": cred["username"], "password": cred["password"]}
+
+
+@app.post("/web/bio/ticket/{ticket}/token")
+def web_bio_ticket_token(ticket: str, payload: dict[str, Any] = Body(...)):
+    t = bio_token.get_ticket(ticket)
+    if not t:
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Phiên lấy token đã hết hạn hoặc không tồn tại"})
+    try:
+        result = web_portal.bio_save_authorization(t["house"], str(payload.get("authorization", "") or ""))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không lưu được token: {exc}"})
+    if not result.get("ok"):
+        bio_token.set_ticket_state(ticket, "waiting", result.get("error") or "Token chưa dùng được")
+        raise HTTPException(status_code=400, detail={"ok": False, "error": result.get("error") or "Token chưa dùng được"})
+    bio_token.set_ticket_state(ticket, "done", f"Đã cập nhật token nhà {t['house']}")
+    log_event({"event": "bio_token_done", "user": t["username"], "house": t["house"]})
+    return {"ok": True, "house": t["house"]}
+
+
+@app.get("/web/bio/ticket/{ticket}/status")
+def web_bio_ticket_status(request: Request, ticket: str):
+    user = _web_user(request)
+    status = bio_token.ticket_status(ticket)
+    if not status or (status["username"] != user["username"] and user["staff_code"] != "ADMIN"):
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không tìm thấy phiên lấy token"})
+    return {"ok": True, **{k: status[k] for k in ("house", "state", "message")}}
+
+
+@app.get("/web/bio/check")
+def web_bio_check(request: Request, house: str = Query("")):
+    _web_user(request)
+    try:
+        return web_portal.bio_check_authorization(house)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không hỏi được instance nhà: {exc}"})
+
+
+@app.get("/web/visa-token.user.js")
+def web_userscript(request: Request):
+    base = str(request.base_url).rstrip("/")
+    return Response(bio_token.userscript(base), media_type="text/javascript; charset=utf-8",
+                    headers={"Cache-Control": "no-cache"})
 
 
 @app.post("/web/folder-stat")

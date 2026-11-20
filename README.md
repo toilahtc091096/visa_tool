@@ -45,6 +45,20 @@ Chọn thư mục trên máy để tải thẳng lên bucket của nhà; trang h
   `disable <tên>` để khoá. Mã nhân viên khớp biến Telegram trên Railway (`TELE_<MÃ>_<NHÀ>_*`).
 - Mỗi người có `api_key` riêng (bảng `web_users`), trang tự gửi kèm sau khi đăng nhập.
 
+### Lấy token trang bio (nút "🔑 Lấy token")
+
+Khi `/run` báo lỗi token: bấm "🔑 Lấy token", chọn nhà, "Mở trang đăng nhập". Tab mới tự
+điền tài khoản của nhà; người dùng làm bước xác minh rồi đăng nhập; token tự gửi về server,
+được kiểm tra rồi lưu vào file token của nhà (`TOKEN_FILE_NAME`), tab tự đóng. Curl nào có
+`authorization` rỗng (curl do n8n tạo) đều dùng token đã lưu này.
+
+- Mỗi file env của nhà thêm: `BIO_LOGIN_URL` (trang đăng nhập bio), `BIO_USERNAME`, `BIO_PASSWORD`.
+  Instance 10000 hỏi instance của nhà qua `127.0.0.1` (`/bio/credentials` chỉ mở cho máy VPS).
+- Mỗi máy dùng trang cần cài 1 lần: tiện ích **Tampermonkey**, bật "Allow User Scripts"
+  (Chrome/Edge mới), rồi mở `http://<VPS>:10000/web/visa-token.user.js` và bấm Cài đặt.
+  Script chỉ chạy khi tab được mở từ nút trên `/web` (có mã phiên 15 phút), ngoài ra không làm gì.
+- Code: `services/bio_token.py` (kiểm tra token, phiên, nội dung script), endpoint `/bio/*`, `/web/bio/*`.
+
 ## Chạy
 
 **Trên máy dev:**

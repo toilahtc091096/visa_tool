@@ -231,6 +231,25 @@ def upload_file(house_name: str, source_prefix: str, relative_path: str, content
     return _json_or_error(resp)
 
 
+def bio_credentials(house_name: str) -> dict[str, Any]:
+    """Bio login URL + account of the house (from the house instance's own .env)."""
+    house = house_config(house_name)
+    return _json_or_error(requests.get(_local(house, "/bio/credentials"), timeout=15))
+
+
+def bio_save_authorization(house_name: str, authorization: str) -> dict[str, Any]:
+    """Check the token and store it in the house's token file (used by /run)."""
+    house = house_config(house_name)
+    return _json_or_error(requests.post(_local(house, "/bio/authorization"),
+                                        json={"authorization": authorization}, timeout=60))
+
+
+def bio_check_authorization(house_name: str) -> dict[str, Any]:
+    """Is the token the house has now still accepted?"""
+    house = house_config(house_name)
+    return _json_or_error(requests.get(_local(house, "/bio/authorization/check"), timeout=60))
+
+
 def house_by_port(port: Any) -> str:
     for name, cfg in HOUSES.items():
         if str(port).strip() == cfg["api_port"]:
