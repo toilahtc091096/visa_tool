@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Khai hồ sơ visa</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #667085; --line: #d9dde5;
+    --accent: #1f6feb; --accent-text: #fff; --ok-bg: #e8f6ee; --ok: #116b3a; --err-bg: #fdecec; --err: #a4161a;
+    --track: #e6e9ef;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171c; --card: #1d2129; --text: #e6e8ec; --muted: #9aa3b2; --line: #333a46;
+            --accent: #4c8dff; --ok-bg: #12301f; --ok: #7fd6a2; --err-bg: #3a1618; --err: #ff9a9a; --track: #2a303b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 16px 56px; }
+  h1 { font-size: 26px; margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  label { display: block; font-weight: 600; margin: 18px 0 6px; }
+  .hint { color: var(--muted); font-size: 14px; font-weight: 400; }
+  input, select { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); font: inherit; }
+  input[type=file] { padding: 7px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 560px) { .row { grid-template-columns: 1fr; gap: 0; } .card { padding: 18px; } }
+  button { margin-top: 22px; padding: 14px 26px; border: 0; border-radius: 7px; background: var(--accent); color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  button:disabled { opacity: .55; cursor: wait; }
+  .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--muted); }
+  .bar button { margin: 0; padding: 6px 12px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tabs button { margin: 0; padding: 12px 20px; background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .tabs button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .msg { margin-top: 14px; padding: 10px 12px; border-radius: 7px; white-space: pre-wrap; }
+  .msg.ok { background: var(--ok-bg); color: var(--ok); }
+  .msg.err { background: var(--err-bg); color: var(--err); }
+  .hidden { display: none; }
+  .progress { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .timer { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .job-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .job-title { color: var(--muted); font-size: 13px; word-break: break-word; }
+  .x { margin: 0; padding: 0 4px; background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1; }
+  .job-status { display: flex; align-items: baseline; gap: 10px; margin-top: 2px; }
+  .badge { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--track); color: var(--muted); }
+  .badge.done { background: var(--ok-bg); color: var(--ok); }
+  .badge.error { background: var(--err-bg); color: var(--err); }
+  .steps { list-style: none; padding: 0; margin: 10px 0 0; }
+  .steps li { display: grid; grid-template-columns: 20px 1fr auto; gap: 6px; padding: 4px 0; }
+  .steps .t { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .steps .msg-inline { color: var(--muted); font-size: 13px; }
+  .steps .next { color: var(--muted); }
+  .errbox { margin-top: 10px; padding: 10px 12px; border-radius: 7px; background: var(--err-bg); color: var(--err); font-size: 14px; }
+  .errbox b { font-weight: 600; }
+  .errbox a { color: inherit; }
+  .errbox div + div { margin-top: 4px; }
+  textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); font: inherit; resize: vertical; }
+  .mono, pre.result { font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
+  pre.result { margin: 14px 0 0; padding: 10px; border: 1px solid var(--line); border-radius: 7px; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  textarea.bad { border-color: var(--err); }
+  details summary { cursor: pointer; margin-top: 14px; }
+  .combo { position: relative; }
+  .combo-list { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none;
+                max-height: 340px; overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 7px;
+                box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .combo-list li { padding: 10px 14px; cursor: pointer; }
+  .combo-list li .ex { color: var(--muted); font-size: 13px; }
+  .combo-list li.active, .combo-list li:hover { background: var(--track); }
+  .combo-list li.empty { color: var(--muted); cursor: default; }
+  .drop { margin-top: 4px; padding: 40px 20px; min-height: 210px; border: 2px dashed var(--line); border-radius: 10px;
+          text-align: center; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+  .drop:hover, .drop:focus { border-color: var(--accent); outline: none; }
+  .drop.over { border-color: var(--accent); border-style: solid; background: var(--ok-bg); transform: scale(1.01); }
+  .drop.has { border-style: solid; border-color: var(--ok); }
+  .drop-icon { font-size: 46px; line-height: 1; }
+  .drop-title { font-weight: 600; font-size: 19px; margin: 8px 0 2px; }
+  .drop.over .drop-title::after { content: " — thả ra để chọn"; color: var(--accent); }
+  .drop-info { margin-top: 10px; font-weight: 600; color: var(--ok); }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 32px);
+           padding: 12px 18px; border-radius: 8px; background: var(--text); color: var(--bg); font-weight: 600;
+           box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 20; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Khai hồ sơ visa</h1>
+
+  <section id="login" class="card hidden">
+    <label for="u">Tên đăng nhập</label>
+    <input id="u" autocomplete="username">
+    <label for="p">Mật khẩu</label>
+    <input id="p" type="password" autocomplete="current-password">
+    <button id="loginBtn">Đăng nhập</button>
+    <div id="loginMsg"></div>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="bar"><span id="who"></span><button class="secondary" id="logout">Đăng xuất</button></div>
+    <div class="tabs">
+      <button id="tabStart" class="on">Khởi chạy hồ sơ</button>
+      <button id="tabRerun">Chạy lại hồ sơ</button>
+      <button id="tabCurl">Chạy curl</button>
+    </div>
+
+    <div id="startCard" class="card">
+      <label for="house">Nhà</label>
+      <select id="house"></select>
+
+      <label>Thư mục hồ sơ trên máy <span class="hint">tuỳ chọn: tải lên bucket của nhà đã chọn</span></label>
+      <div id="drop" class="drop" tabindex="0" role="button" aria-label="Kéo thả thư mục hồ sơ vào đây hoặc bấm để chọn">
+        <div class="drop-icon" aria-hidden="true">📁</div>
+        <div class="drop-title">Kéo thả thư mục hồ sơ vào đây</div>
+        <div class="hint">hoặc bấm để chọn thư mục</div>
+        <div id="dirInfo" class="drop-info"></div>
+      </div>
+      <input id="dir" type="file" webkitdirectory directory multiple class="hidden">
+      <div id="upBox" class="hidden"><div class="progress"><div id="upBar"></div></div><div id="upText" class="hint"></div></div>
+
+      <div class="row">
+        <div>
+          <label for="visa">Loại visa</label>
+          <select id="visa"></select>
+        </div>
+        <div>
+          <label for="days">Số ngày <span class="hint" id="daysHint"></span></label>
+          <input id="days" inputmode="numeric">
+        </div>
+      </div>
+      <div id="relationBox">
+        <label for="relation">Quan hệ <span class="hint">người mời là gì của người xin visa — gõ để tìm, vd "chong"</span></label>
+        <div class="combo">
+          <input id="relation" autocomplete="off" placeholder="Gõ: chồng, vợ, con trai, sắp cưới…">
+          <ul id="relationList" class="combo-list hidden"></ul>
+        </div>
+        <div id="relationPicked" class="hint"></div>
+      </div>
+      <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">tự điền khi chọn thư mục; hoặc gõ tên thư mục đã có</span></label>
+      <input id="prefix" placeholder="vd: L30 - NGUYEN VAN A">
+      <button id="startBtn">Gửi</button>
+      <div id="startMsg"></div>
+    </div>
+
+    <div id="jobCard" class="card hidden">
+      <div class="job-head"><span id="jobTitle" class="job-title"></span><button class="x" id="jobClose" title="Đóng" aria-label="Đóng">×</button></div>
+      <div class="job-status"><span class="timer" id="timer">00:00</span><span id="jobState" class="badge"></span></div>
+      <div id="jobIdle" class="hint"></div>
+      <ul class="steps" id="steps"></ul>
+      <div id="jobError"></div>
+    </div>
+
+    <div id="curlCard" class="card hidden">
+      <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Nhà lấy theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI). Hồ sơ khởi chạy từ trang này sẽ tự điền curl vào đây khi chạy xong.</p>
+      <label for="curlText">Lệnh curl</label>
+      <textarea id="curlText" rows="4" placeholder="curl -X POST &quot;http://160.250.5.191:10000/run&quot; -H ... -d '{...}'"></textarea>
+      <button id="parseBtn" class="secondary">Đọc curl</button>
+      <div id="curlEdit" class="hidden">
+        <div id="curlHouseInfo" class="hint" style="margin-top:12px"></div>
+        <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
+        <textarea id="curlBody" rows="16" spellcheck="false" class="mono"></textarea>
+        <div style="display:flex; gap:8px">
+          <button id="fmtBtn" class="secondary">Định dạng lại</button>
+          <button id="runBtn">Chạy</button>
+        </div>
+      </div>
+      <div id="curlMsg"></div>
+      <pre id="curlResult" class="result hidden"></pre>
+    </div>
+
+    <div id="rerunCard" class="card hidden">
+      <p class="hint">Đưa hồ sơ về trạng thái chưa chạy để chạy lại. Chỉ cần số hộ chiếu: thư mục gốc và nhà được tìm tự động. <b>Kiểm tra</b> trước, đúng rồi mới <b>Thực hiện</b>.</p>
+      <label for="rPassport">Số hộ chiếu</label>
+      <input id="rPassport" autocapitalize="characters" placeholder="vd: E02563363">
+      <details id="rMore">
+        <summary class="hint">Không tìm thấy? Chọn nhà / nhập tên thư mục</summary>
+        <div class="row">
+          <div>
+            <label for="rHouse">Nhà</label>
+            <select id="rHouse"></select>
+          </div>
+          <div>
+            <label for="rPrefix">Thư mục hồ sơ <span class="hint">hồ sơ chưa chạy xong hoặc chạy trước 20/11</span></label>
+            <input id="rPrefix">
+          </div>
+        </div>
+      </details>
+      <div style="display:flex; gap:8px">
+        <button id="checkBtn" class="secondary">Kiểm tra</button>
+        <button id="doBtn" disabled>Thực hiện</button>
+      </div>
+      <div id="rerunMsg"></div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const ls = {
+  get: (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+  set: (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} },
+};
+let key = ls.get('visa_web_key');
+let relationRequired = [];
+let STEPS = [];
+
+async function api(path, body, isForm) {
+  const opt = { method: body === undefined ? 'GET' : 'POST', headers: { 'X-Api-Key': key } };
+  if (body !== undefined) {
+    if (isForm) opt.body = body;
+    else { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  }
+  const res = await fetch(path, opt);
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  const d = data.detail || data;
+  if (res.status === 401 && path !== '/web/login') logout();
+  if (!res.ok || d.ok === false) throw new Error(d.error || d.message || `Lỗi ${res.status}`);
+  return d;
+}
+
+function show(el, text, ok) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.textContent = text; }
+function clear(el) { el.className = ''; el.textContent = ''; }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function fill(sel, items) { sel.innerHTML = items.map((x) => `<option value="${esc(x.value ?? x)}">${esc(x.label ?? x)}</option>`).join(''); }
+const mmss = (s) => { s = Math.max(0, s || 0); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };
+const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+let toastTimer = null;
+function toast(text) {
+  const el = $('toast'); el.textContent = text; el.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.add('hidden'), 5000);
+}
+
+function render(info) {
+  $('login').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('who').textContent = `${info.username} (${info.staff})`;
+  fill($('house'), info.houses); fill($('rHouse'), [{ value: '', label: 'Tự tìm' }, ...info.houses]);
+  fill($('visa'), info.visa_codes);
+  RELATIONS = info.relations || [];
+  relationRequired = info.relation_required || [];
+  STEPS = info.steps || [];
+  onVisa();
+  const last = ls.get('visa_web_job');
+  if (last) watchJob(last);
+}
+
+function logout() {
+  key = ''; ls.set('visa_web_key', ''); stopWatch();
+  $('app').classList.add('hidden'); $('login').classList.remove('hidden');
+}
+
+// ---------- form ----------
+const DAYS_HINT = { L: '15 hoặc 30', M: '15/30/90, trống = 90', F: '15/30/90, trống = 15', X1: '> 180', X2: '1–180', Q1: 'tuỳ chọn', Q2: 'tuỳ chọn', S2: 'tuỳ chọn' };
+function onVisa() {
+  const v = $('visa').value;
+  const needRel = relationRequired.includes(v) || v === 'S2';
+  $('daysHint').textContent = DAYS_HINT[v] || '';
+  $('relationBox').style.display = needRel ? '' : 'none';
+  if (!needRel) pickRelation(null);
+}
+$('visa').addEventListener('change', onVisa);
+
+// ---------- relation combobox: type to filter ("chong" -> "Chồng — chồng mời vợ") ----------
+let RELATIONS = [];
+let relationValue = '';
+let comboItems = [], comboActive = 0;
+const plain = (s) => String(s || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+const relText = (r) => `${r.label} — ${r.example}`;
+
+function pickRelation(r) {
+  relationValue = r ? r.value : '';
+  $('relation').value = r ? relText(r) : '';
+  $('relationPicked').textContent = r ? `Gửi trong curl: ${r.value}` : '';
+  $('relationList').classList.add('hidden');
+}
+
+function openCombo() {
+  const visa = $('visa').value;
+  const q = plain($('relation').value);
+  const scored = RELATIONS
+    .map((r, i) => {
+      // Chỉ so với tên quan hệ chính (Vợ, Bố vợ…), không so với câu ví dụ: gõ "vo" không ra "Chồng — chồng mời vợ".
+      // Mỗi từ gõ phải là đầu của một từ trong tên: "vo" khớp "Vợ", "Bố vợ"; "cuoi" khớp "Vợ sắp cưới".
+      const lab = plain(r.label);
+      const words = lab.split(' ');
+      if (q && !q.split(' ').every((w) => words.some((x) => x.startsWith(w)))) return null;
+      const top = (r.first_for || []).includes(visa) ? 0 : 1;          // S2: "sắp cưới" lên đầu
+      const starts = !q || lab.startsWith(q) || plain(r.value).startsWith(q) ? 0 : 1;
+      return { r, key: [top, starts, i] };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2]);
+  comboItems = scored.map((x) => x.r);
+  comboActive = 0;
+  $('relationList').innerHTML = comboItems.length
+    ? comboItems.map((r, i) => `<li data-i="${i}" class="${i === 0 ? 'active' : ''}">${esc(r.label)} <span class="ex">— ${esc(r.example)}</span></li>`).join('')
+    : '<li class="empty">Không có quan hệ phù hợp</li>';
+  $('relationList').classList.remove('hidden');
+}
+
+$('relation').addEventListener('focus', () => { $('relation').select(); openCombo(); });
+$('relation').addEventListener('input', () => { relationValue = ''; $('relationPicked').textContent = ''; openCombo(); });
+$('relation').addEventListener('keydown', (e) => {
+  const list = $('relationList');
+  if (list.classList.contains('hidden') && ['ArrowDown', 'ArrowUp'].includes(e.key)) openCombo();
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!comboItems.length) return;
+    comboActive = (comboActive + (e.key === 'ArrowDown' ? 1 : -1) + comboItems.length) % comboItems.length;
+    [...list.children].forEach((li, i) => li.classList.toggle('active', i === comboActive));
+    list.children[comboActive]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (comboItems[comboActive]) pickRelation(comboItems[comboActive]);
+  } else if (e.key === 'Escape') {
+    list.classList.add('hidden');
+  }
+});
+$('relationList').addEventListener('mousedown', (e) => {
+  const li = e.target.closest('li[data-i]');
+  if (li) { e.preventDefault(); pickRelation(comboItems[Number(li.dataset.i)]); }
+});
+$('relation').addEventListener('blur', () => {
+  setTimeout(() => {
+    $('relationList').classList.add('hidden');
+    if (!relationValue && $('relation').value.trim() && comboItems.length === 1) pickRelation(comboItems[0]);
+  }, 120);
+});
+
+// ---------- folder upload ----------
+const SKIP = /(^|\/)(\.|desktop\.ini$|thumbs\.db$)/i;
+let picked = [];       // [{file, rel}]
+let uploadedTo = '';   // "<house>|<prefix>" already uploaded
+// list = [{file, top, rel}]: top = tên thư mục (điền vào ô R2), rel = đường dẫn bên trong thư mục
+function setPicked(list) {
+  picked = list.filter((x) => !SKIP.test(x.rel) && x.file.size > 0);
+  uploadedTo = '';
+  $('drop').classList.toggle('has', picked.length > 0);
+  if (!picked.length) { $('dirInfo').textContent = 'Thư mục trống hoặc không có file hợp lệ'; return; }
+  if (picked[0].top) $('prefix').value = picked[0].top;
+  $('dirInfo').textContent = `${picked[0].top ? '📂 ' + picked[0].top + ' · ' : ''}${picked.length} file, ${mb(picked.reduce((s, x) => s + x.file.size, 0))} — sẽ tải lên khi bấm Gửi`;
+}
+
+$('dir').addEventListener('change', () => {
+  setPicked([...$('dir').files].map((f) => {
+    const parts = (f.webkitRelativePath || f.name).split('/');
+    return { file: f, top: parts.length > 1 ? parts[0] : '', rel: parts.slice(1).join('/') || f.name };
+  }));
+});
+
+// Đọc cả cây thư mục khi kéo thả (Chrome/Edge/Firefox: webkitGetAsEntry)
+function readAllEntries(dirEntry) {
+  const reader = dirEntry.createReader();
+  return new Promise((resolve, reject) => {
+    const all = [];
+    const next = () => reader.readEntries((batch) => { if (!batch.length) resolve(all); else { all.push(...batch); next(); } }, reject);
+    next();
+  });
+}
+async function walk(entry, path, top, out) {
+  if (entry.isFile) {
+    const file = await new Promise((res, rej) => entry.file(res, rej));
+    out.push({ file, top, rel: path + file.name });
+  } else if (entry.isDirectory) {
+    for (const child of await readAllEntries(entry)) await walk(child, path + entry.name + '/', top, out);
+  }
+}
+const drop = $('drop');
+drop.addEventListener('click', () => $('dir').click());
+drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('dir').click(); } });
+['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'dragend'].forEach((ev) => drop.addEventListener(ev, (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('over'); }));
+drop.addEventListener('drop', async (e) => {
+  e.preventDefault(); drop.classList.remove('over');
+  const entries = [...(e.dataTransfer.items || [])].map((it) => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+  const out = [];
+  try {
+    $('dirInfo').textContent = 'Đang đọc thư mục…';
+    if (entries.length === 1 && entries[0].isDirectory) {
+      // Thả 1 thư mục: tên thư mục = thư mục trên R2, file giữ đường dẫn bên trong
+      for (const child of await readAllEntries(entries[0])) await walk(child, '', entries[0].name, out);
+    } else if (entries.length) {
+      for (const en of entries) await walk(en, '', '', out);
+    } else {
+      [...e.dataTransfer.files].forEach((f) => out.push({ file: f, top: '', rel: f.name }));
+    }
+    setPicked(out);
+    if (out.length && !out[0].top) toast('Đã nhận file lẻ — nhớ gõ tên thư mục trên R2');
+  } catch (err) { $('dirInfo').textContent = 'Không đọc được thư mục: ' + err.message; }
+});
+// Thả nhầm ra ngoài vùng thì trình duyệt không mở file
+['dragover', 'drop'].forEach((ev) => window.addEventListener(ev, (e) => { if (!drop.contains(e.target)) e.preventDefault(); }));
+['house', 'prefix'].forEach((id) => $(id).addEventListener('input', () => { uploadedTo = ''; }));
+$('house').addEventListener('change', () => { uploadedTo = ''; });
+
+async function uploadPicked() {
+  const house = $('house').value, prefix = $('prefix').value.trim();
+  const stat = await api('/web/folder-stat', { house, source_prefix: prefix });
+  if (stat.files > 0 && !confirm(`Thư mục "${prefix}" trên bucket nhà ${house} đã có ${stat.files} file.\nVẫn tải thêm vào?`)) {
+    throw new Error('Đã huỷ tải lên');
+  }
+  $('upBox').classList.remove('hidden');
+  let done = 0;
+  const total = picked.length;
+  const tick = () => { $('upBar').style.width = `${(100 * done / total).toFixed(0)}%`; $('upText').textContent = `Đã tải ${done}/${total} file`; };
+  tick();
+  const queue = [...picked];
+  const worker = async () => {
+    while (queue.length) {
+      const x = queue.shift();
+      const fd = new FormData();
+      fd.append('house', house); fd.append('source_prefix', prefix); fd.append('relative_path', x.rel); fd.append('file', x.file);
+      try { await api('/web/upload', fd, true); } catch (e) { throw new Error(`Lỗi tải "${x.rel}": ${e.message}`); }
+      done++; tick();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  uploadedTo = `${house}|${prefix}`;
+}
+
+$('startBtn').onclick = async () => {
+  const b = $('startBtn'); b.disabled = true; clear($('startMsg'));
+  try {
+    if ($('relation').value.trim() && !relationValue) throw new Error('Chọn quan hệ trong danh sách gợi ý (gõ rồi bấm vào một dòng)');
+    if (picked.length && uploadedTo !== `${$('house').value}|${$('prefix').value.trim()}`) {
+      b.textContent = 'Đang tải lên…';
+      await uploadPicked();
+    }
+    b.textContent = 'Đang gửi…';
+    const r = await api('/web/start', {
+      house: $('house').value, visa_code: $('visa').value, days: $('days').value.trim(),
+      relation: relationValue, source_prefix: $('prefix').value,
+    });
+    picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden'); $('drop').classList.remove('has');
+    $('prefix').value = ''; pickRelation(null);
+    watchJob(r.job_id);
+  } catch (e) { show($('startMsg'), e.message, false); }
+  b.disabled = false; b.textContent = 'Gửi';
+};
+
+// ---------- progress ----------
+let pollTimer = null, clockTimer = null, skew = 0, curJob = null;
+function stopWatch() { clearInterval(pollTimer); clearInterval(clockTimer); pollTimer = clockTimer = null; }
+// Mốc "Đã nhận" được ghi giờ trước khi DB đặt started_at vài ms -> không để ra số âm
+function secs(iso) { return Math.max(0, (Date.parse(iso) - Date.parse(curJob.started_at)) / 1000); }
+
+// Chỉ giữ dòng cần đọc trong tin lỗi Telegram: Bước, Lỗi, link Xem chi tiết (Job/Folder/Visa/Thời gian đã có ở tiêu đề)
+function errorBox(text) {
+  const lines = String(text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const get = (k) => (lines.find((l) => l.startsWith(k)) || '').slice(k.length).trim();
+  const step = get('Bước:'), err = get('Lỗi:'), link = get('Xem chi tiết:');
+  if (!step && !err && !link) return `<div class="errbox">${esc(text)}</div>`;
+  return '<div class="errbox">' +
+    (err ? `<div><b>Lỗi:</b> ${esc(err)}</div>` : '') +
+    (step ? `<div><b>Bước:</b> ${esc(step)}</div>` : '') +
+    (/^https?:\/\//.test(link) ? `<div><a href="${esc(link)}" target="_blank" rel="noopener">Xem chi tiết trong n8n ↗</a></div>` : '') +
+    '</div>';
+}
+
+function drawJob() {
+  const j = curJob;
+  $('jobTitle').textContent = `${j.job_id} · ${j.house} · ${j.visa_type} · ${j.source_prefix}`;
+  const reached = {};
+  (j.steps || []).forEach((s) => { reached[s.step] = s; });
+  const running = j.status === 'running';
+  const order = STEPS.map((s) => s.step);
+  const lastIdx = Math.max(-1, ...Object.keys(reached).map((k) => order.indexOf(k)));
+  let html = '';
+  STEPS.forEach((s, i) => {
+    const r = reached[s.step];
+    if (r) {
+      const current = running && i === lastIdx && s.step !== 'done';
+      // "Đã tải file" + "Đã tải 10 file" -> một dòng: dùng message nếu nó đã đủ nghĩa
+      const text = r.message && plain(r.message).startsWith(plain(s.label).split(' ').slice(0, 2).join(' '))
+        ? esc(r.message)
+        : esc(s.label) + (r.message ? ` <span class="msg-inline">· ${esc(r.message)}</span>` : '');
+      html += `<li><span>${current ? '▶' : '✔'}</span><span>${text}</span><span class="t">${s.step === 'received' ? '' : mmss(secs(r.at))}</span></li>`;
+    } else if (running && i === lastIdx + 1) {
+      html += `<li class="next"><span>·</span><span>${esc(s.label)}</span><span class="t"></span></li>`;   // chỉ hiện bước kế tiếp
+    }
+  });
+  $('steps').innerHTML = html;
+  $('jobError').innerHTML = reached.error ? errorBox(reached.error.message) : '';
+  const badge = $('jobState');
+  badge.textContent = j.status === 'done' ? 'Hoàn tất' : j.status === 'error' ? 'Lỗi' : 'Đang chạy';
+  badge.className = 'badge ' + (j.status === 'running' ? '' : j.status);
+  let idle = '';
+  if (running) {
+    // Lâu không có mốc mới: có thể n8n đã dừng mà không báo về được
+    const last = (j.steps || []).slice(-1)[0];
+    const idleMin = last ? (Date.now() + skew - Date.parse(last.at)) / 60000 : 0;
+    if (idleMin >= 15) idle = `${Math.floor(idleMin)} phút chưa có cập nhật — xem Telegram hoặc n8n`;
+  }
+  $('jobIdle').textContent = idle;
+}
+
+function tickClock() {
+  if (!curJob) return;
+  const end = curJob.finished_at ? Date.parse(curJob.finished_at) : Date.now() + skew;
+  $('timer').textContent = mmss(Math.max(0, (end - Date.parse(curJob.started_at)) / 1000));
+}
+
+async function poll(jobId) {
+  try {
+    const r = await api(`/web/job/${encodeURIComponent(jobId)}`);
+    skew = Date.parse(r.now) - Date.now();
+    curJob = r.job; drawJob(); tickClock();
+    if (curJob.status !== 'running') {
+      stopWatch(); tickClock();
+      if (curJob.status === 'done' && curJob.curl && ls.get('visa_web_curl_loaded') !== curJob.job_id) {
+        ls.set('visa_web_curl_loaded', curJob.job_id);
+        loadCurl(curJob.curl, `Hồ sơ ${curJob.job_id} chạy xong — đã chuyển sang tab "Chạy curl" và điền sẵn curl`);
+      }
+    }
+  } catch (e) { stopWatch(); $('jobState').textContent = e.message; }
+}
+
+function watchJob(jobId) {
+  stopWatch(); ls.set('visa_web_job', jobId);
+  $('jobCard').classList.remove('hidden');
+  $('timer').textContent = '00:00'; $('steps').innerHTML = ''; $('jobState').textContent = 'Đang tải…';
+  poll(jobId);
+  pollTimer = setInterval(() => poll(jobId), 3000);
+  clockTimer = setInterval(tickClock, 1000);
+}
+$('jobClose').onclick = () => { stopWatch(); ls.set('visa_web_job', ''); $('jobCard').classList.add('hidden'); };
+
+// ---------- login / tabs ----------
+$('loginBtn').onclick = async () => {
+  const b = $('loginBtn'); b.disabled = true;
+  try {
+    const info = await api('/web/login', { username: $('u').value, password: $('p').value });
+    key = info.api_key; ls.set('visa_web_key', key); $('p').value = ''; clear($('loginMsg'));
+    render(info);
+  } catch (e) { show($('loginMsg'), e.message, false); }
+  b.disabled = false;
+};
+$('p').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
+$('logout').onclick = logout;
+const TABS = { tabStart: 'startCard', tabRerun: 'rerunCard', tabCurl: 'curlCard' };
+Object.keys(TABS).forEach((tab) => {
+  $(tab).onclick = () => {
+    Object.entries(TABS).forEach(([t, card]) => {
+      $(t).classList.toggle('on', t === tab);
+      $(card).classList.toggle('hidden', t !== tab);
+    });
+    $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
+  };
+});
+
+// ---------- paste a curl, edit the JSON, run it (Postman-like) ----------
+const PORT_HOUSE = { '10000': 'HAI', '20000': 'PHONG', '30000': 'TAI' };
+
+// Shell-like split: handles '...' (with ''' inside), "..." with \-escapes, and line continuations.
+function shellWords(s) {
+  s = s.replace(/\\\r?\n/g, ' ');
+  const out = []; let cur = null, i = 0;
+  const push = () => { if (cur !== null) out.push(cur); cur = null; };
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { push(); i++; continue; }
+    cur = cur ?? '';
+    if (c === "'") {
+      const j = s.indexOf("'", i + 1);
+      if (j < 0) throw new Error("Thiếu dấu ' đóng");
+      cur += s.slice(i + 1, j); i = j + 1;
+    } else if (c === '"') {
+      i++;
+      while (i < s.length && s[i] !== '"') {
+        if (s[i] === '\\' && i + 1 < s.length) { cur += s[i + 1]; i += 2; } else cur += s[i++];
+      }
+      if (s[i] !== '"') throw new Error('Thiếu dấu " đóng');
+      i++;
+    } else if (c === '\\' && i + 1 < s.length) { cur += s[i + 1]; i += 2; }
+    else { cur += c; i++; }
+  }
+  push();
+  return out;
+}
+
+function parseCurl(text) {
+  const w = shellWords(text.trim());
+  if (!w.length || w[0] !== 'curl') throw new Error('Không phải lệnh curl');
+  let url = '', data = null;
+  for (let i = 1; i < w.length; i++) {
+    const a = w[i];
+    if (['-d', '--data', '--data-raw', '--data-binary'].includes(a)) data = w[++i];
+    else if (['-H', '--header', '-X', '--request', '-m', '--max-time'].includes(a)) i++;
+    else if (/^https?:\/\//.test(a)) url = a;
+  }
+  if (!url) throw new Error('Không thấy địa chỉ http trong curl');
+  if (data == null) throw new Error("Không thấy phần -d '{...}' trong curl");
+  const port = (url.match(/^https?:\/\/[^/:]+:(\d+)/) || [])[1] || '';
+  if (!/\/run(\?|$)/.test(url)) throw new Error('Curl không gọi /run');
+  let body;
+  try { body = JSON.parse(data); } catch (e) { throw new Error('JSON trong curl bị lỗi: ' + e.message); }
+  return { port, body };
+}
+
+let curlPort = '';
+function loadCurl(text, message) {
+  $('curlText').value = text;
+  $('tabCurl').click();
+  $('parseBtn').click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(message);
+}
+$('curlText').addEventListener('input', () => { $('curlEdit').classList.add('hidden'); curlPort = ''; });
+
+$('parseBtn').onclick = () => {
+  clear($('curlMsg')); $('curlResult').classList.add('hidden');
+  try {
+    const { port, body } = parseCurl($('curlText').value);
+    const house = PORT_HOUSE[port];
+    if (!house) throw new Error(`Cổng ${port || '(không có)'} không thuộc nhà nào`);
+    curlPort = port;
+    $('curlHouseInfo').textContent = `Nhà ${house} (cổng ${port})`;
+    $('curlBody').value = JSON.stringify(body, null, 2);
+    $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
+    $('curlBody').classList.remove('bad');
+    $('curlEdit').classList.remove('hidden');
+  } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); }
+};
+
+function readBody() {
+  try { const b = JSON.parse($('curlBody').value); $('curlBody').classList.remove('bad'); return b; }
+  catch (e) { $('curlBody').classList.add('bad'); throw new Error('JSON đang sửa bị lỗi: ' + e.message); }
+}
+$('curlBody').addEventListener('input', () => { try { readBody(); } catch (e) {} });
+$('fmtBtn').onclick = () => { try { $('curlBody').value = JSON.stringify(readBody(), null, 2); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
+
+$('runBtn').onclick = async () => {
+  const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden');
+  let body;
+  try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
+  if (!curlPort) { show($('curlMsg'), 'Bấm "Đọc curl" trước', false); return; }
+  if (!confirm(`Chạy /run trên nhà ${PORT_HOUSE[curlPort]}${body.passportNumber ? ' cho hộ chiếu ' + body.passportNumber : ''}?`)) return;
+  b.disabled = true;
+  const t0 = Date.now();
+  const tick = setInterval(() => { b.textContent = `Đang chạy… ${mmss((Date.now() - t0) / 1000)}`; }, 500);
+  try {
+    const r = await api('/web/run', { port: curlPort, body });
+    show($('curlMsg'), `${r.ok ? 'Xong' : 'Lỗi'} (HTTP ${r.status_code}) sau ${mmss((Date.now() - t0) / 1000)}`, r.ok);
+    $('curlResult').textContent = JSON.stringify(r.response, null, 2);
+    $('curlResult').classList.remove('hidden');
+  } catch (e) { show($('curlMsg'), e.message, false); }
+  clearInterval(tick); b.disabled = false; b.textContent = 'Chạy';
+};
+
+// ---------- rerun ----------
+let rerunFound = null;   // {house, prefix} from the last successful Kiểm tra
+async function rerun(confirmIt) {
+  const body = confirmIt && rerunFound
+    ? { house: rerunFound.house, source_prefix: rerunFound.prefix, passport_number: $('rPassport').value, confirm: true }
+    : { house: $('rHouse').value, source_prefix: $('rPrefix').value, passport_number: $('rPassport').value, confirm: confirmIt };
+  const btn = confirmIt ? $('doBtn') : $('checkBtn'); btn.disabled = true;
+  const fmt = (s) => (s ? `${s.files} file, ${mb(s.bytes)}` : 'không có');
+  try {
+    const r = await api('/web/rerun', body);
+    rerunFound = confirmIt ? null : { house: r.house, prefix: r.prefix };
+    show($('rerunMsg'), (confirmIt ? 'ĐÃ THỰC HIỆN. Giờ có thể khởi chạy lại hồ sơ.\n' : 'Kiểm tra (chưa thay đổi gì):\n') +
+      `Nhà: ${r.house} · Thư mục: ${r.prefix}\n` +
+      `Khôi phục từ: ${r.archive || '(thư mục gốc vẫn còn)'} → ${fmt(r.restore)}\n` +
+      `Xoá kết quả lần trước: ${r.delete_output?.prefix} → ${fmt(r.delete_output)}`, true);
+    $('doBtn').disabled = confirmIt;
+    if (confirmIt) { $('prefix').value = r.prefix.replace(/\/$/, ''); $('house').value = r.house; }
+  } catch (e) { show($('rerunMsg'), e.message, false); $('doBtn').disabled = true; }
+  if (!confirmIt) btn.disabled = false;
+}
+$('checkBtn').onclick = () => rerun(false);
+$('doBtn').onclick = () => rerun(true);
+['rHouse', 'rPrefix', 'rPassport'].forEach((id) => $(id).addEventListener('input', () => { $('doBtn').disabled = true; rerunFound = null; }));
+$('rHouse').addEventListener('change', () => { $('doBtn').disabled = true; rerunFound = null; });
+$('rPassport').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('checkBtn').click(); });
+
+(async () => {
+  if (!key) { logout(); return; }
+  try { render(await api('/web/me')); } catch (e) { logout(); }
+})();
+</script>
+</body>
+</html>

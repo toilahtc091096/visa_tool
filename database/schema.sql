@@ -97,3 +97,38 @@ END $$;
 -- VIP registration (is_vip = 1 in the /run curl, from source_prefix "... - vip").
 ALTER TABLE visa_registrations
     ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Web input form (/web): one account per person (staff code BAO, HANG, LONG, ADMIN).
+-- password_hash = "pbkdf2_sha256$<iterations>$<salt hex>$<hash hex>"; api_key is the
+-- person's own key, returned at login and sent back as X-Api-Key by the page.
+CREATE TABLE IF NOT EXISTS web_users (
+    id BIGSERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    staff_code TEXT NOT NULL,
+    api_key TEXT NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Runs started from /web, with the progress steps n8n reports back (POST /web/progress).
+-- steps = [{"step": "files_loaded", "label": "...", "message": "...", "at": "<iso>"}, ...]
+CREATE TABLE IF NOT EXISTS web_jobs (
+    job_id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    staff_code TEXT NOT NULL,
+    house TEXT NOT NULL,
+    visa_type TEXT NOT NULL,
+    source_prefix TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running',
+    steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+    message TEXT NOT NULL DEFAULT '',
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_web_jobs_username_started ON web_jobs (username, started_at DESC);
+
+-- The curl WF-13 built (sent by n8n with the "done" step); the page loads it into the curl tab.
+ALTER TABLE web_jobs ADD COLUMN IF NOT EXISTS curl TEXT NOT NULL DEFAULT '';

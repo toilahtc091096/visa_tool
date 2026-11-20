@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pathlib import Path
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,6 +18,7 @@ from api.convert_input_pdfs import api_cleanup_pdf_page_images, render_pdf_pages
 from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
+from api import api_archive_r2_folder, api_restore_r2_folder, api_stat_r2_folder
 from api import api_sign_and_push_image_to_r2
 from constants import REGION, REGION_SOUTH
 from database.connection import init_database
@@ -37,6 +39,20 @@ from services.agency_sheets import (
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
+from utils.access_guard import GuardConfig, decide
+from database.crud.web_user import authenticate_web_user, get_web_user_by_api_key
+from services.web_portal import FormError as WebFormError
+from services.web_portal import build_start_payload, start_case
+from services.web_portal import form_options as web_form_options
+from services.web_portal import rerun_prepare as web_rerun_prepare
+from services.web_portal import folder_stat as web_folder_stat_call
+from services.web_portal import make_step as web_make_step
+from services.web_portal import step_status as web_step_status
+from services.web_portal import upload_file as web_upload_file
+from services.web_portal import house_by_port as web_house_by_port
+from services.web_portal import run_case as web_run_case
+from database.crud.web_job import add_web_job_step, create_web_job, get_web_job
+from database.crud.web_job import now_iso as web_now_iso
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -137,9 +153,181 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+@app.middleware("http")
+async def access_guard(request: Request, call_next):
+    # See utils/access_guard.py. ACCESS_GUARD=off (default) | log | enforce.
+    cfg = GuardConfig.from_env()
+    if cfg.mode != "off":
+        client_ip = request.client.host if request.client else ""
+        decision = decide(cfg, request.url.path, client_ip, request.headers.get("x-api-key", ""))
+        if not decision.allowed:
+            log_event({
+                "event": "access_guard",
+                "mode": cfg.mode,
+                "blocked": cfg.mode == "enforce",
+                "reason": decision.reason,
+                "path": request.url.path,
+                "client": client_ip,
+            })
+            if cfg.mode == "enforce":
+                return JSONResponse({"ok": False, "error": decision.reason}, status_code=decision.status)
+    return await call_next(request)
+
+
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+# ---------- /web: input form replacing WF-01 node 2 (open in the access guard; own key check) ----------
+_WEB_PAGE = Path(__file__).resolve().parent / "web" / "index.html"
+_login_failures: dict[str, list[float]] = {}
+
+
+def _web_user(request: Request) -> dict[str, Any]:
+    user = get_web_user_by_api_key(request.headers.get("x-api-key", ""))
+    if not user:
+        raise HTTPException(status_code=401, detail={"ok": False, "error": "Phiên đăng nhập không hợp lệ, hãy đăng nhập lại"})
+    return user
+
+
+@app.get("/web")
+def web_page():
+    return HTMLResponse(_WEB_PAGE.read_text(encoding="utf-8"))
+
+
+@app.post("/web/login")
+def web_login(request: Request, payload: dict[str, Any] = Body(...)):
+    ip = request.client.host if request.client else ""
+    now = time.time()
+    recent = [t for t in _login_failures.get(ip, []) if now - t < 600]
+    if len(recent) >= 5:
+        raise HTTPException(status_code=429, detail={"ok": False, "error": "Sai quá 5 lần, thử lại sau 10 phút"})
+    user = authenticate_web_user(str(payload.get("username", "")), str(payload.get("password", "")))
+    if not user:
+        _login_failures[ip] = recent + [now]
+        raise HTTPException(status_code=401, detail={"ok": False, "error": "Sai tên đăng nhập hoặc mật khẩu"})
+    _login_failures.pop(ip, None)
+    return {"ok": True, "username": user["username"], "staff": user["staff_code"], "api_key": user["api_key"], **web_form_options()}
+
+
+@app.get("/web/me")
+def web_me(request: Request):
+    user = _web_user(request)
+    return {"ok": True, "username": user["username"], "staff": user["staff_code"], **web_form_options()}
+
+
+@app.post("/web/start")
+def web_start(request: Request, payload: dict[str, Any] = Body(...)):
+    user = _web_user(request)
+    try:
+        case = build_start_payload(user["staff_code"], payload)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    create_web_job(case, user["username"], web_make_step("received", "", web_now_iso()))
+    try:
+        result = start_case(case)
+    except Exception as exc:
+        log_exception(exc, {"event": "web_start_failed", "user": user["username"]})
+        add_web_job_step(case["job_id"], web_make_step("error", f"Không gọi được n8n: {exc}", web_now_iso()), "error")
+        raise HTTPException(status_code=502, detail={"ok": False, "error": str(exc)})
+    log_event({"event": "web_start", "user": user["username"], "job_id": case["job_id"], "house": case["house"],
+               "visa_type": case["visa_type"], "source_prefix": case["source_prefix"]})
+    return {**result, "house": case["house"], "visa_type": case["visa_type"], "source_prefix": case["source_prefix"]}
+
+
+@app.post("/web/rerun")
+def web_rerun(request: Request, payload: dict[str, Any] = Body(...)):
+    user = _web_user(request)
+    try:
+        result = web_rerun_prepare(payload)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    log_event({"event": "web_rerun", "user": user["username"], "confirm": bool(payload.get("confirm")),
+               "house": payload.get("house"), "prefix": payload.get("source_prefix"), "ok": result.get("ok")})
+    return result
+
+
+@app.post("/web/run")
+def web_run(request: Request, payload: dict[str, Any] = Body(...)):
+    # Paste a curl from Telegram on the page, edit the JSON, run it (Postman-like).
+    user = _web_user(request)
+    try:
+        house = payload.get("house") or web_house_by_port(payload.get("port"))
+        started = time.time()
+        result = web_run_case(house, payload.get("body"))
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        log_exception(exc, {"event": "web_run_failed", "user": user["username"]})
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không gọi được /run: {exc}"})
+    body = payload.get("body") or {}
+    log_event({"event": "web_run", "user": user["username"], "house": result["house"], "status": result["status_code"],
+               "passport": body.get("passportNumber", ""), "seconds": round(time.time() - started, 1)})
+    return result
+
+
+@app.post("/web/progress")
+def web_progress(request: Request, payload: dict[str, Any] = Body(...)):
+    # Called by n8n at each milestone, with the shared VISA_API_KEY (not a user key).
+    expected = os.getenv("VISA_API_KEY", "").strip()
+    if not expected or request.headers.get("x-api-key", "") != expected:
+        raise HTTPException(status_code=401, detail={"ok": False, "error": "bad key"})
+    job_id = str(payload.get("job_id", "") or "").strip()
+    try:
+        step = web_make_step(str(payload.get("step", "")), str(payload.get("message", "") or ""), web_now_iso())
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    curl = str(payload.get("curl", "") or "")[:300_000]  # WF-13 sends the curl with the "done" step
+    known = bool(job_id) and add_web_job_step(job_id, step, web_step_status(step["step"]), curl)
+    return {"ok": True, "tracked": known}  # False = run not started from /web (or already finished)
+
+
+@app.get("/web/job/{job_id}")
+def web_job(request: Request, job_id: str):
+    user = _web_user(request)
+    job = get_web_job(job_id)
+    if not job or (job["username"] != user["username"] and user["staff_code"] != "ADMIN"):
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không tìm thấy lần chạy này"})
+    return {"ok": True, "job": job, "now": web_now_iso()}
+
+
+@app.post("/web/folder-stat")
+def web_folder_stat(request: Request, payload: dict[str, Any] = Body(...)):
+    _web_user(request)
+    try:
+        return web_folder_stat_call(payload.get("house"), payload.get("source_prefix"))
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+
+
+@app.post("/web/upload")
+async def web_upload(
+    request: Request,
+    house: str = Form(""),
+    source_prefix: str = Form(""),
+    relative_path: str = Form(""),
+    file: UploadFile = File(...),
+):
+    _web_user(request)
+    content = await file.read()
+    try:
+        result = await asyncio.to_thread(
+            web_upload_file, house, source_prefix, relative_path, content, file.content_type or ""
+        )
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    if not result.get("ok"):
+        raise HTTPException(status_code=502, detail=result)
+    return {"ok": True, "key": result.get("key"), "size": result.get("size")}
+
+
+@app.post("/r2/folders/stat")
+def r2_folders_stat(payload: dict[str, Any] = Body(...)):
+    result = api_stat_r2_folder(str(payload.get("prefix", "") or ""))
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
 
 
 @app.post("/run")
@@ -653,6 +841,29 @@ def r2_images_delete(payload: dict[str, Any] = Body(...)):
         "key": key,
         "prefix": prefix,
     }
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@app.post("/r2/folders/archive")
+def r2_folders_archive(payload: dict[str, Any] = Body(...)):
+    # WF14: move the input folder to _archive/<stamp>__<PASSPORT>/ (lifecycle deletes it after 7 days).
+    prefix = str(payload.get("prefix", "") or "").strip()
+    result = api_archive_r2_folder(prefix, str(payload.get("passport_number", "") or ""))
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@app.post("/r2/folders/restore")
+def r2_folders_restore(payload: dict[str, Any] = Body(...)):
+    # WF-15: clear <passport>/ output and move the latest archive back. confirm=false = dry run.
+    result = api_restore_r2_folder(
+        str(payload.get("prefix", "") or ""),
+        str(payload.get("passport_number", "") or ""),
+        confirm=str(payload.get("confirm", "")).strip().lower() in ("true", "1", "yes"),
+    )
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result)
     return result

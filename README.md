@@ -31,6 +31,20 @@ biến `ENV_FILE` (mặc định `.env`). Các biến chính: `PORT`, `R2_*`,
 Cài thư viện: `python -m pip install -r requirements.txt`
 (sinh PDF cần Microsoft Word trên Windows).
 
+## Trang nhập liệu `/web`
+
+Thay cho việc sửa node 2 của WF-01: nhân viên đăng nhập `http://<VPS>:10000/web`,
+chọn nhà, loại visa, số ngày, quan hệ (visa Q), gõ thư mục R2 rồi Gửi. Server gọi
+webhook của n8n workflow **WF-00 Web Start**, workflow này gọi WF01-GENERAL như WF-01.
+Tab "Chạy lại hồ sơ" thay WF-15 (xoá thư mục số hộ chiếu, khôi phục thư mục gốc từ `_archive/`).
+Tab "Chạy curl": dán curl từ Telegram, sửa JSON, chạy `/run` trên đúng nhà (theo cổng).
+Chọn thư mục trên máy để tải thẳng lên bucket của nhà; trang hiện tiến độ n8n và đồng hồ.
+
+- Biến `.env` (instance 10000): `N8N_START_WEBHOOK_URL=https://<n8n>/webhook/visa-start`, `VISA_API_KEY`.
+- Tài khoản: `python scripts\web_user.py add <tên> <MÃ_NHÂN_VIÊN>` (hỏi mật khẩu),
+  `disable <tên>` để khoá. Mã nhân viên khớp biến Telegram trên Railway (`TELE_<MÃ>_<NHÀ>_*`).
+- Mỗi người có `api_key` riêng (bảng `web_users`), trang tự gửi kèm sau khi đăng nhập.
+
 ## Chạy
 
 **Trên máy dev:**
