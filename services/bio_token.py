@@ -18,6 +18,7 @@ The account (BIO_LOGIN_URL, BIO_USERNAME, BIO_PASSWORD) is in each house's own
 from __future__ import annotations
 
 import os
+import re
 import secrets
 import threading
 import time
@@ -28,7 +29,7 @@ import requests
 from constants import CHECK_OLD_LIST_BASE_URL
 
 TICKET_TTL = 15 * 60  # seconds a ticket (open login tab) stays usable
-SCRIPT_VERSION = "1.1"
+SCRIPT_VERSION = "1.2"
 
 
 # ---------- house side (each instance, its own .env) ----------
@@ -45,6 +46,18 @@ def normalize_authorization(value: Any) -> str:
     if text.lower().startswith("bearer "):
         text = text[7:].strip()
     return text
+
+
+def extract_token(value: Any) -> str:
+    """Token from what a person pastes: the page address (token=...), a curl
+    (Authorization header or Admin-Token cookie) or the token itself."""
+    text = str(value or "").strip()
+    for pattern in (r"[?&#]token=([A-Za-z0-9._\-]+)", r"Authorization:\s*(?:Bearer\s+)?([A-Za-z0-9._\-]+)",
+                    r"Admin-Token=([A-Za-z0-9._\-]+)", r"(eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)"):
+        m = re.search(pattern, text, re.I)
+        if m:
+            return m.group(1)
+    return ""
 
 
 def check_authorization(authorization: str, timeout: float = 20) -> tuple[bool, str]:
@@ -137,7 +150,7 @@ _USERSCRIPT = r"""// ==UserScript==
 // @namespace    visa-tool
 // @version      __VERSION__
 // @description  Tự điền tài khoản của nhà và gửi token bio.visaforchina.cn về trang /web
-// @match        https://bio.visaforchina.cn/*
+// @match        https://*.visaforchina.cn/*
 // @match        __ORIGIN_NOPORT__/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
@@ -157,14 +170,24 @@ _USERSCRIPT = r"""// ==UserScript==
   const VERSION = '__VERSION__';
   const TTL = 15 * 60 * 1000;
 
-  // On the /web page: only tell it the script is installed.
+  // On the /web page: tell it the script is installed, and take the ticket of
+  // "Mở trang đăng nhập" (data-visa-tool-ticket) into the script's own storage,
+  // shared with the bio tab (the bio site may drop the #visa_tool= of the link).
   if (location.href.startsWith(BASE + '/web')) {
-    document.documentElement.setAttribute('data-visa-token-script', VERSION);
+    const root = document.documentElement;
+    root.setAttribute('data-visa-token-script', VERSION);
+    setInterval(() => {
+      const t = root.getAttribute('data-visa-tool-ticket');
+      if (t && root.getAttribute('data-visa-tool-ticket-ack') !== t) {
+        GM_setValue('visa_tool_ticket', { ticket: t, at: Date.now() });
+        root.setAttribute('data-visa-tool-ticket-ack', t);
+      }
+    }, 200);
     return;
   }
 
-  // ---- bio.visaforchina.cn (only there: the VPS host is matched on every port) ----
-  if (location.hostname !== 'bio.visaforchina.cn') return;
+  // ---- *.visaforchina.cn only (the VPS host is matched on every port) ----
+  if (!/(^|\.)visaforchina\.cn$/.test(location.hostname)) return;
   const m = location.hash.match(/visa_tool=([A-Za-z0-9_-]+)/);
   if (m) GM_setValue('visa_tool_ticket', { ticket: m[1], at: Date.now() });
   const saved = GM_getValue('visa_tool_ticket', null);
@@ -272,6 +295,7 @@ _USERSCRIPT = r"""// ==UserScript==
 
   async function start() {
     let acc = null;
+    say('đang lấy tài khoản của nhà từ server…');
     try {
       const r = await call('GET', '/web/bio/ticket/' + ticket);
       if (r.status !== 200 || !r.data.ok) {

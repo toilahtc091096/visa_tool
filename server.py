@@ -453,6 +453,26 @@ def web_bio_ticket_status(request: Request, ticket: str):
     return {"ok": True, **{k: status[k] for k in ("house", "state", "message")}}
 
 
+@app.post("/web/bio/manual")
+def web_bio_manual(request: Request, payload: dict[str, Any] = Body(...)):
+    # Fallback: the person pastes the page address / curl / token after logging in.
+    user = _web_user(request)
+    token = bio_token.extract_token(payload.get("value"))
+    if not token:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Không tìm thấy token trong nội dung đã dán"})
+    try:
+        house = web_portal.house_config(payload.get("house"))["house"]
+        result = web_portal.bio_save_authorization(house, token)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không lưu được token: {exc}"})
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail={"ok": False, "error": result.get("error") or "Token không dùng được"})
+    log_event({"event": "bio_token_manual", "user": user["username"], "house": house})
+    return {"ok": True, "house": house}
+
+
 @app.get("/web/bio/check")
 def web_bio_check(request: Request, house: str = Query("")):
     _web_user(request)

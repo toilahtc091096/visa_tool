@@ -164,6 +164,12 @@
         </div>
       </div>
       <div id="tokenMsg"></div>
+      <details id="tokenManual">
+        <summary>Cách thủ công (khi tab bio không tự gửi token)</summary>
+        <div class="hint">Đăng nhập trang bio xong, chép <b>địa chỉ trang</b> (có <code>token=…</code>), hoặc chính token, hoặc một curl có dòng <code>Authorization</code>, dán vào đây rồi bấm Lưu. Server kiểm tra token trước khi lưu.</div>
+        <textarea id="tManual" rows="3" class="mono" placeholder="https://bio.visaforchina.cn/...&token=eyJ...   hoặc   eyJ..."></textarea>
+        <button id="tManualSave" type="button">Lưu token cho nhà đã chọn</button>
+      </details>
     </div>
     <div class="tabs">
       <button id="tabStart" class="on">Khởi chạy hồ sơ</button>
@@ -581,6 +587,10 @@ $('tOpen').onclick = async () => {
   show($('tokenMsg'), `Đang mở trang đăng nhập cho nhà ${house}…`, true);
   try {
     const r = await api('/web/bio/start', { house });
+    // hand the ticket to the script (its storage is shared with the bio tab), then open
+    const root = document.documentElement;
+    root.setAttribute('data-visa-tool-ticket', r.ticket);
+    for (let i = 0; i < 15 && root.getAttribute('data-visa-tool-ticket-ack') !== r.ticket; i++) await new Promise((ok) => setTimeout(ok, 200));
     if (tab) tab.location.href = r.open_url; else window.open(r.open_url, '_blank');
     show($('tokenMsg'), `Nhà ${house}: tab đăng nhập đã mở. Làm bước xác minh rồi đăng nhập trên tab đó…\n`
       + 'Tab bio phải hiện dòng xanh "Visa tool: …" ở đầu trang; không thấy thì script chưa chạy (xem Tampermonkey → Dashboard).', true);
@@ -593,6 +603,15 @@ $('tOpen').onclick = async () => {
           stopTokenPoll(); show($('tokenMsg'), `✓ ${st.message}. Các curl của nhà ${house} dùng token mới.`, true); toast(`Đã cập nhật token nhà ${house}`);
         } else if (st.state === 'expired') {
           stopTokenPoll(); show($('tokenMsg'), st.message, false);
+        } else if (st.message.startsWith('Đang chờ đăng nhập') && Date.now() - t0 > 15000) {
+          // the bio tab never asked for the account: the script did not run there
+          show($('tokenMsg'), [
+            `Nhà ${house} · ${wait} · Tab bio chưa báo về server.`,
+            '• Tab bio có dòng xanh "Visa tool: …" ở đầu trang không? Không có: script chưa chạy trên trang bio '
+              + '(Tampermonkey → Dashboard: script phải bật, bản mới nhất; bấm biểu tượng Tampermonkey trên tab bio xem script có được liệt kê).',
+            '• Có dòng đỏ: chụp gửi lại.',
+            '• Cần ngay: đăng nhập xong dùng "Cách thủ công" bên dưới.',
+          ].join('\n'), false);
         } else {
           show($('tokenMsg'), `Nhà ${house} · ${wait} · ${st.message}`, true);
         }
@@ -609,6 +628,16 @@ $('tCheck').onclick = async () => {
   try {
     const r = await api('/web/bio/check?house=' + encodeURIComponent($('tHouse').value));
     show($('tokenMsg'), `Nhà ${$('tHouse').value}: ${r.valid ? '✓ token đang dùng được' : '✗ ' + r.message + ' — bấm "Mở trang đăng nhập"'}`, !!r.valid);
+  } catch (e) { show($('tokenMsg'), e.message, false); }
+  b.disabled = false;
+};
+$('tManualSave').onclick = async () => {
+  const b = $('tManualSave'); b.disabled = true;
+  show($('tokenMsg'), `Đang kiểm tra và lưu token nhà ${$('tHouse').value}…`, true);
+  try {
+    const r = await api('/web/bio/manual', { house: $('tHouse').value, value: $('tManual').value });
+    show($('tokenMsg'), `✓ Đã cập nhật token nhà ${r.house}. Các curl của nhà này dùng token mới.`, true);
+    $('tManual').value = ''; toast(`Đã cập nhật token nhà ${r.house}`);
   } catch (e) { show($('tokenMsg'), e.message, false); }
   b.disabled = false;
 };

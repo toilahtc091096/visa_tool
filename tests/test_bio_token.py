@@ -48,7 +48,12 @@ class TicketTest(unittest.TestCase):
 
     def test_userscript(self):
         js = bio_token.userscript("http://160.250.5.191:10000/")
-        self.assertIn("// @match        https://bio.visaforchina.cn/*", js)
+        self.assertIn("// @match        https://*.visaforchina.cn/*", js)
+        self.assertIn("// @match        http://160.250.5.191/*", js)  # no port: not matched by every version
+        for value, token in [("https://bio.visaforchina.cn/x?site=HAN4_VI&token=eyJa.b.c&username=a", "eyJa.b.c"),
+                             ("curl -H 'Authorization: eyJa.b.c' -H 'X: y'", "eyJa.b.c"), (" eyJa.b.c ", "eyJa.b.c"),
+                             ("xin chao", "")]:
+            self.assertEqual(bio_token.extract_token(value), token, value)
         self.assertIn("// @connect      160.250.5.191", js)
         self.assertIn("const BASE = 'http://160.250.5.191:10000';", js)
         self.assertNotIn("__", js.replace("__proto__", ""))
@@ -124,6 +129,16 @@ class BioEndpointTest(unittest.TestCase):
             r = self.client.post("/bio/authorization", json={"authorization": "eyJold"}, headers={"X-Api-Key": "shared"})
         self.assertEqual(r.status_code, 400)
         app_.assert_not_called()  # a bad token never replaces the stored one
+
+    def test_manual_paste(self):
+        url = "https://bio.visaforchina.cn/onlineWeb/x?site=HAN4_VI&token=eyJa.b.c&username=a"
+        self.assertEqual(self.client.post("/web/bio/manual", json={"house": "TAI", "value": url}).status_code, 401)
+        with mock.patch.object(self.server.web_portal, "bio_save_authorization", return_value={"ok": True}) as save:
+            r = self.client.post("/web/bio/manual", json={"house": "tai", "value": url}, headers={"X-Api-Key": "bao-key"})
+        self.assertEqual(r.json(), {"ok": True, "house": "TAI"})
+        self.assertEqual(save.call_args.args, ("TAI", "eyJa.b.c"))
+        r = self.client.post("/web/bio/manual", json={"house": "TAI", "value": "abc"}, headers={"X-Api-Key": "bao-key"})
+        self.assertEqual(r.status_code, 400)
 
     def test_userscript_served(self):
         r = self.client.get("/web/visa-token.user.js")
