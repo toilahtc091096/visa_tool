@@ -104,6 +104,21 @@ def find_duplicates(data: dict[str, dict[str, list[dict[str, Any]]]]) -> list[st
     return problems
 
 
+def drop_duplicate_han_jobs(data: dict[str, dict[str, list[dict[str, Any]]]], keep: str) -> list[tuple[str, str]]:
+    """han_approval_jobs rows of other houses whose han_code the `keep` house also has: removed
+    from `data` (not from the source databases). Returns (house, han_code) of the dropped rows."""
+    kept = {str(r.get("han_code") or "").strip() for r in data.get(keep, {}).get("han_approval_jobs", [])}
+    dropped = []
+    for house, tables in data.items():
+        if house == keep:
+            continue
+        rows = tables.get("han_approval_jobs", [])
+        tables["han_approval_jobs"] = [r for r in rows if str(r.get("han_code") or "").strip() not in kept]
+        dropped += [(house, str(r.get("han_code")).strip()) for r in rows
+                    if str(r.get("han_code") or "").strip() in kept]
+    return dropped
+
+
 def wrong_house_rows(house: str, tables: dict[str, list[dict[str, Any]]]) -> list[str]:
     problems = []
     for table in (*HOUSE_TABLES, "agencies"):
@@ -158,7 +173,12 @@ def main() -> int:
     parser.add_argument("--create", action="store_true", help="create the target database if it does not exist")
     parser.add_argument("--source", action="append", help="HOUSE=DBNAME (default: HAI=visa_db, PHONG=visa_db_phong, TAI=visa_db_tai)")
     parser.add_argument("--apply", action="store_true", help="commit (default: dry run, rolled back)")
+    parser.add_argument("--han-keep", metavar="HOUSE",
+                        help="han_code found in several houses: keep this house's row, drop the others")
     args = parser.parse_args()
+    han_keep = (args.han_keep or "").strip().upper()
+    if han_keep and han_keep not in HOUSES:
+        raise SystemExit(f"--han-keep must be one of {HOUSES}")
 
     base = DatabaseConfig.from_env()
     sources = parse_sources(args.source)
@@ -181,6 +201,10 @@ def main() -> int:
                 print(f"[read] {house:5} {db:15} {table:20} {len(rows):6} rows" + ("" if cols else "  (no table)"))
         finally:
             conn.close()
+
+    if han_keep:
+        for house, code in drop_duplicate_han_jobs(data, han_keep):
+            print(f"[han-keep] bỏ han_code {code} của {house}, giữ bản của {han_keep}")
 
     problems = find_duplicates(data)
     for house, tables in data.items():

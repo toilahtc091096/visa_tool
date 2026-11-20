@@ -222,6 +222,17 @@ class MergeScriptTest(unittest.TestCase):
         self.assertEqual(len(problems), 1)
         self.assertIn("first_applyid", problems[0])
 
+    def test_han_keep_drops_other_house_copies(self):
+        data = {
+            "HAI": {"han_approval_jobs": [{"han_code": "HAN1"}, {"han_code": "HAN2"}]},
+            "PHONG": {"han_approval_jobs": [{"han_code": "HAN1"}, {"han_code": "HAN3"}]},
+            "TAI": {"han_approval_jobs": []},
+        }
+        self.assertEqual(self.m.drop_duplicate_han_jobs(data, "HAI"), [("PHONG", "HAN1")])
+        self.assertEqual(data["PHONG"]["han_approval_jobs"], [{"han_code": "HAN3"}])
+        self.assertEqual(len(data["HAI"]["han_approval_jobs"]), 2)
+        self.assertEqual(self.m.find_duplicates(data), [])
+
     def test_rows_tagged_with_other_house(self):
         tables = {"visa_registrations": [{"id": 1, "house": "PHONG"}, {"id": 2, "house": ""}, {"id": 3, "house": "HAI"}]}
         self.assertEqual(len(self.m.wrong_house_rows("HAI", tables)), 1)
