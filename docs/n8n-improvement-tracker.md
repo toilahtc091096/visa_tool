@@ -97,9 +97,9 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | A2  | A   | Retry cho các node AI, Vision, upload R2, tạo PDF                                     | n8n (16 workflow)      | Đạt        | 2026-11-20 |
 | A3  | A   | Retry và chạy tiếp khi lỗi cho `Send Curl1`, `Send Error1`                            | n8n WF-20              | Đạt        | 2026-11-20 |
 | A4  | A   | Sửa node báo lỗi `Build Error Notification1` (gọi sai tên node, nên không có tin báo lỗi nào tới Telegram) | n8n WF01-GENERAL | Đạt | 2026-11-20 |
-| B1  | B   | WF14 chuyển thư mục gốc vào `_archive/` thay vì xoá, Cloudflare tự xoá sau 7 ngày     | n8n WF14 + Python + R2 | Chờ triển khai |           |
-| B2  | B   | Quy trình chạy lại hồ sơ và workflow hỗ trợ WF-15                                     | n8n + Python           | Chờ triển khai |           |
-| C1  | C   | Server: `/r2/*` và các endpoint nội bộ chỉ nhận lời gọi từ chính VPS; `/run` cần khoá | Python + n8n           | Chưa làm   |           |
+| B1  | B   | WF14 chuyển thư mục gốc vào `_archive/` thay vì xoá, Cloudflare tự xoá sau 7 ngày     | n8n WF14 + Python + R2 | Đạt | 2026-11-20 |
+| B2  | B   | Quy trình chạy lại hồ sơ và workflow hỗ trợ WF-15                                     | n8n + Python           | Đạt | 2026-11-20 |
+| C1  | C   | Server: mọi lời gọi từ ngoài VPS (n8n trên Railway, curl của nhân viên) phải có khoá `X-Api-Key` | Python + n8n           | Chờ triển khai |  |
 | C2  | C   | Token Telegram chuyển sang credential hoặc biến môi trường                            | n8n                    | Chưa làm   |           |
 | C3  | C   | Tắt truy cập công khai r2.dev, bỏ `r2_public_url` khỏi trường bắt buộc                | R2 + n8n               | Chưa làm   |           |
 | D1  | D   | WF-01 nhập liệu bằng Form Trigger, gộp 3 bản thành 1                                  | n8n                    | Chưa làm   |           |
@@ -109,8 +109,8 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | E4  | E   | Tên file upload cố định cho 4 node rồi bật retry                                      | n8n WF-07B, 10, 11     | Chưa làm   |           |
 | E5  | E   | Tin báo lỗi ghi rõ workflow con và node gây lỗi (hiện chỉ ghi `Call PDF & Image Preprocessing'1`) | n8n WF01-GENERAL       | Chưa làm   |           |
 | F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Chưa làm   |           |
-| G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Chờ test |  |
-
+| G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
+| G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
 ---
 
 ## 5. Chi tiết từng hạng mục
@@ -291,22 +291,39 @@ Tiêu chí:
 
 **Ban đầu**
 
-- `server.py:737-739`: chạy trên `0.0.0.0`, không có xác thực. Ai trên internet cũng gọi được `/run`, `/r2/images/get`, `/r2/folders/download` (tải zip hộ chiếu), `/r2/images/delete`, `/agency/reassign`…
-- n8n chạy cùng VPS (cài trực tiếp) và đang gọi server qua IP công khai `160.250.5.191`.
-- Nhân viên chạy curl `/run` từ máy của họ, IP thay đổi.
+- `server.py` chạy trên `0.0.0.0`, không có xác thực. Ai trên internet cũng gọi được `/run`, `/r2/images/get`, `/r2/folders/download` (tải zip hộ chiếu), `/r2/images/delete`, `/agency/reassign`…
+- **n8n chạy trên Railway** (xác nhận 2026-11-20), server chạy trên VPS `160.250.5.191`. n8n gọi server qua internet, IP của Railway thay đổi.
+- Nhân viên chạy curl `/run` từ máy của họ, IP cũng thay đổi.
+- Vì vậy không chặn theo IP được. Bản thiết kế đầu (`patched-C`, đổi sang `127.0.0.1`) đã bỏ, chưa từng được import.
+
+**Thiết kế:** mọi lời gọi từ ngoài VPS phải kèm header `X-Api-Key`. n8n và curl của nhân viên dùng chung một khoá, lưu ở biến `VISA_API_KEY` trên Railway và trong `.env` của server. Gọi từ chính VPS (`127.0.0.1`, ví dụ script đồng bộ trạng thái) không cần khoá. `/health` mở cho tất cả.
 
 **Kỳ vọng**
 
-- [ ] n8n gọi server qua `127.0.0.1` thay vì IP công khai. Địa chỉ đặt ở một chỗ duy nhất (biến môi trường), không viết cứng trong từng node nữa.
-- [ ] Server: mọi endpoint trừ `/health` và `/run` chỉ nhận lời gọi từ `127.0.0.1`.
-- [ ] `/run` gọi từ ngoài phải kèm header khoá bí mật. Khoá đặt trong `.env` của mỗi instance. Curl gửi qua Telegram có sẵn header này.
-- [ ] Từ máy ngoài: `/r2/folders/download` và `/r2/images/delete` trả 403; `/run` không có khoá trả 401; curl lấy từ Telegram chạy bình thường.
-- [ ] 6 hồ sơ của mục 2 chạy bình thường.
+- [ ] Railway có biến `VISA_API_KEY`. `.env` của cả 3 instance có `VISA_API_KEY` cùng giá trị và `ACCESS_GUARD=log`.
+- [ ] Import `patched-C2`. Chạy TC-01: hồ sơ chạy bình thường, curl trên Telegram có `-H "X-Api-Key: …"`, Postman import và gửi được.
+- [ ] Chạy chế độ `log` 1–2 ngày. Log server không còn dòng `access_guard` từ n8n. Các dòng còn lại là lời gọi từ nơi khác; xem xét từng cái, cái nào hợp lệ (ví dụ link duyệt email `/han-approval/*`) thì thêm vào `ACCESS_PUBLIC_PATHS`.
+- [ ] Bật `ACCESS_GUARD=enforce`. Từ máy ngoài, không có khoá: `/r2/folders/download` và `/r2/images/delete` trả 401. Có khoá: chạy bình thường. 4 hồ sơ của mục 2 chạy bình thường.
 
-**Hiện tại:** —
+**Hiện tại (2026-11-20):** đã viết code, chờ triển khai.
+- Python: `utils/access_guard.py` cùng middleware trong `server.py`. Cấu hình bằng biến môi trường:
+  - `ACCESS_GUARD` = `off` (mặc định) / `log` / `enforce`
+  - `VISA_API_KEY`
+  - `ACCESS_PUBLIC_PATHS` (mặc định `/health`)
+  - `ACCESS_KEY_PATHS` (mặc định `/`, tức mọi đường dẫn)
+  - `ACCESS_LOCAL_IPS` (mặc định `127.0.0.1,::1`)
+- `tests/test_access_guard.py`: 12 test. Cùng test lưu trữ là 19/19 đạt.
+- n8n: `n8n-flow/patched-C2/`, 16 workflow, 23 node; bản gốc ở `backup-2026-11-20-before-C/`.
+  - 20 node HTTP gọi server được thêm header `X-Api-Key = {{ $env.VISA_API_KEY }}`. IP giữ nguyên.
+  - WF-03 `Match Files To Items1` (tải file bằng code) gửi kèm cùng header.
+  - WF-13 `Override Visa Type1` và WF-20 `format curl1` thêm `-H "X-Api-Key: …"` vào curl.
+  - Đã chạy thử bằng Node.
 
-**Rủi ro:** quên đổi một node n8n sang `127.0.0.1` thì node đó bị chặn. Trước khi bật chặn, chạy ở chế độ chỉ ghi log khoảng 1 ngày để tìm hết các lời gọi từ ngoài. Áp dụng cả 2 miền.
-**Rollback:** tắt bằng một biến trong `.env`.
+**Rủi ro**
+- Nếu có workflow n8n khác (không nằm trong bản export) cũng gọi server, khi bật `enforce` nó sẽ bị chặn. Chế độ `log` dùng để tìm ra các workflow này trước.
+- Khoá nằm trong tin curl Telegram, nên ai đọc được nhóm chat là có khoá. Chấp nhận được, vì nhóm chat vốn đã có toàn bộ dữ liệu hồ sơ.
+
+**Rollback:** đặt `ACCESS_GUARD=off` rồi khởi động lại server. Các node n8n gửi thêm header cũng không ảnh hưởng gì khi tắt.
 
 ---
 
@@ -401,6 +418,27 @@ Tiêu chí:
 
 ---
 
+### G2 — Giấy 停留 bị nhận là visa cũ (phát hiện khi test G1, 2026-11-20)
+
+**Ban đầu**
+- Hồ sơ có 2 tem: một visa L thật (MRZ `VLCHN…`, cấp tại 胡志明市 năm 2025) và một giấy **停留** (gia hạn lưu trú, cấp tại 福建 ngày 2026-08-11, số đỏ 101816009, MRZ `VTCHN…`).
+- Giấy 停留 có tiêu đề "中华人民共和国签证 / VISA", nên AI xếp vào `china_visa`. `Validate Classification` của WF-04 chỉ nhận `R<CHN` là giấy cư trú, còn mọi MRZ bắt đầu bằng `V` có `CHN` thì ép thành visa.
+- Hệ quả: giấy 停留 thành "visa cũ" và được chọn vì có ngày cấp mới nhất. Telegram báo "ẢNH HỘ CHIẾU TRUNG QUỐC CŨ", nơi cấp ra `FUJIAN`. Theo quy ước, giấy này là giấy cư trú, chỉ dùng khi không có visa cũ.
+- Logic giấy cư trú vẫn còn đầy đủ: WF-04 phân loại, WF-05 chuyển sang WF-09, WF-09 tách prompt và parse, `Pick Latest China Visa` ưu tiên visa và chỉ gắn thêm cờ giấy cư trú, WF-12 và Python xử lý tiếp. Chỉ có bước nhận diện giấy 停留 bị thiếu.
+
+**Cách sửa** (`n8n-flow/patched-G2/`)
+- WF-04 `Validate Classification`: MRZ bắt đầu bằng `VT` và có `CHN` thì luôn là `china_residence_permit`. Kiểm tra này chạy trước nhánh `V` → visa.
+- WF-04 `Build Classification Prompt`: STEP 0 thêm mô tả giấy 停留 (MRZ `VT…`, dải loại ghi 停留, các ô Entries/Valid for Entry/Duration là N/A, ghi chú "Permitted to stay until").
+- WF-09 `Extract Old China Visa1`: prompt giấy cư trú nói rõ có cả giấy 停留; `validUntil` lấy từ ghi chú "本次允许停留至…". File WF-09 này đã gồm cả phần sửa của G1.
+
+**Kỳ vọng**
+- [x] Chạy thử bằng Node: `VTCHN…` (AI nói visa hoặc unknown) → `china_residence_permit`; `VLCHN…`, `V<CHN` → `china_visa` như cũ; `R<CHN` → giấy cư trú; `P<VNM` → hộ chiếu; `VTKOR` không bị đổi.
+- [ ] Chạy lại hồ sơ này: Telegram báo "ẢNH GIẤY CƯ TRÚ TRUNG QUỐC" cho giấy 停留, số 101816009. Visa cũ là L, số M7355333, nơi cấp `TP HO CHI MINH`, ngày cấp 2025-01-15.
+
+**Hiện tại:** —
+
+---
+
 ## 6. Nhật ký
 
 | Ngày       | ID    | Việc                                                                                                                                                                                                                                                                                                             | Hồ sơ test | Kết quả            | Ghi chú                                            |
@@ -415,3 +453,9 @@ Tiêu chí:
 | 2026-11-20 | G1 | Bạn quyết định: `old_issuePlace` dùng dạng `FUJIAN`; ngày sinh chỉ có năm điền `yyyy-01-01`; thiếu `old_visaType` thì người duyệt tự điền | — | — | Chưa sửa |
 | 2026-11-20 | B1, B2 | Viết `api/r2_archive.py`, 2 endpoint, `tests/test_r2_archive.py` (7/7 đạt), `patched-B/` (WF14 sửa, WF-15 mới) | — | Chờ triển khai | Thứ tự triển khai: Python → quy tắc Lifecycle → import n8n |
 | 2026-11-20 | G1 | Sửa WF-09 (prompt và bảng đổi tên nơi cấp) và WF-04C (ngày `00`) trên bản `patched-A`. Kết quả ở `patched-G1/` | — | Đã chạy thử bằng Node, chờ hồ sơ thật | Bạn quyết định áp dụng cả 2 miền |
+| 2026-11-20 | G1, G2 | Bạn chạy G1: nơi cấp ra `FUJIAN`, đúng định dạng. Phát hiện G2: giấy 停留 bị nhận là visa cũ. Sửa WF-04 và WF-09, kết quả ở `patched-G2/` | hồ sơ có giấy 停留 | G1 đúng định dạng; G2 chờ test | WF-09 dùng bản trong `patched-G2/`, không dùng `patched-G1/` |
+| 2026-11-20 | A, B, G1, G2 | Kiểm tra bản export 12:39: đủ các bản sửa A, B (gồm WF-15 mới), G1, G2 | — | Đã import | Bản export không có WF-01 phong và tai |
+| 2026-11-20 | C1 | Viết `utils/access_guard.py` cùng middleware (10 test), `patched-C/` (23 node) | — | Chờ triển khai | Triển khai theo thứ tự: Python (mặc định off) → biến môi trường n8n và import → `log` → đọc log → `enforce` |
+| 2026-11-20 | B1, B2, G1, G2 | Bạn triển khai và test | TC-03, hồ sơ có giấy 停留 | **Đạt** | Bạn báo "kết quả ok hết" |
+| 2026-11-20 | C1 | Phát hiện n8n chạy trên Railway, không cùng VPS với server, nên cách chặn theo `127.0.0.1` không dùng được | — | **Không import `patched-C/`** | Thiết kế lại: n8n gửi `X-Api-Key` cho mọi lời gọi server |
+| 2026-11-20 | C1 | Thiết kế lại cho Railway: dùng khoá `VISA_API_KEY` cho mọi lời gọi từ ngoài. Python 12 test; `patched-C2/` (23 node). Đã xoá `patched-C` | — | Chờ triển khai | Railway đã có `N8N_ENCRYPTION_KEY` và cho phép đọc biến môi trường, bạn đã restart thử thành công |

@@ -38,6 +38,7 @@ from services.agency_sheets import (
 from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
+from utils.access_guard import GuardConfig, decide
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -136,6 +137,27 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.middleware("http")
+async def access_guard(request: Request, call_next):
+    # See utils/access_guard.py. ACCESS_GUARD=off (default) | log | enforce.
+    cfg = GuardConfig.from_env()
+    if cfg.mode != "off":
+        client_ip = request.client.host if request.client else ""
+        decision = decide(cfg, request.url.path, client_ip, request.headers.get("x-api-key", ""))
+        if not decision.allowed:
+            log_event({
+                "event": "access_guard",
+                "mode": cfg.mode,
+                "blocked": cfg.mode == "enforce",
+                "reason": decision.reason,
+                "path": request.url.path,
+                "client": client_ip,
+            })
+            if cfg.mode == "enforce":
+                return JSONResponse({"ok": False, "error": decision.reason}, status_code=decision.status)
+    return await call_next(request)
 
 
 @app.get("/health")
