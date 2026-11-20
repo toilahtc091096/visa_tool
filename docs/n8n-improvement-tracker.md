@@ -167,8 +167,8 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | E4  | E   | Tên file upload cố định cho 4 node rồi bật retry                                      | n8n WF-07B, 10, 11     | Đạt | 2026-11-20 |
 | E5  | E   | Tin báo lỗi ghi rõ workflow con và node gây lỗi (hiện chỉ ghi `Call PDF & Image Preprocessing'1`) | n8n WF01-GENERAL       | Đạt | 2026-11-20 |
 | W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Chờ triển khai |  |
-| W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Chờ triển khai |  |
-| W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Chờ triển khai |  |
+| W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Chờ test |  |
+| W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Chờ test |  |
 | F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Bỏ qua (bạn chọn, 2026-11-20) |           |
 | G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
 | G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
@@ -545,7 +545,7 @@ Tiêu chí:
 
 **Triển khai:** Python (cùng bước 1 của W3) trước, rồi import 2 file trong `n8n-flow/patched-W2/`. Nếu import n8n trước, server cũ bỏ qua các trường mới, không lỗi.
 
-**Hiện tại (2026-11-20):** đã code, chờ triển khai.
+**Hiện tại (2026-11-20):** đã triển khai (server, `patched-W2` gồm WF01-GENERAL, WF-13, WF-_Extracted_INFO). Chờ chạy các bài test ở trên.
 
 ---
 
@@ -585,12 +585,12 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 
 **Kỳ vọng**
 - [x] Unit test: mọi hàm CRUD đều lọc theo nhà; khởi động không gán nhầm dòng của nhà khác; script phát hiện mã trùng giữa các nhà. 66/66 đạt. SQL đã chạy qua bộ parser của Postgres (`pglast`). Chưa chạy trên Postgres thật vì máy này không có.
-- [ ] Bước 3 trên VPS: mọi dòng `[check]` OK.
+- [x] Bước 3 trên VPS: mọi dòng `[check]` OK (gộp với `--han-keep HAI`, bạn báo 2026-11-20).
 - [ ] Sau bước 5: sync trạng thái của mỗi nhà chỉ chạy hồ sơ của nhà đó (log `[sync_draft] loaded status=draft count=...` bằng số trước khi gộp).
 - [ ] PHONG duyệt HAN, TAI ghi sheet đại lý vẫn chạy như cũ.
 - [ ] Tab Quản trị thấy hồ sơ của cả 3 nhà.
 
-**Hiện tại (2026-11-20):** đã code, chờ triển khai.
+**Hiện tại (2026-11-20):** đã gộp vào `visa_main` (bạn báo OK). Chờ kiểm tra sync, HAN, sheet đại lý và tab Quản trị sau khi gộp.
 
 ---
 
@@ -697,3 +697,4 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 | 2026-11-20 | W3 | Chạy thử gộp: user Postgres không có quyền tạo DB (tạo `visa_main` bằng tài khoản `postgres`). 5 `han_code` có ở cả HAI và PHONG; bạn chọn giữ bản của HAI → thêm `--han-keep HAI` (chỉ bỏ bản PHONG trong DB đích, DB nguồn không đổi). Commit `b139261` | — | Chờ chạy thử lại | Mail duyệt HAN hiện chỉ PHONG cấu hình; HAI có các mã này nhiều khả năng do từng chạy với env của PHONG |
 | 2026-11-20 | W2 | Bạn yêu cầu: curl luôn có `first_applyid` = `""`. WF-13 `Build API Request Body1` thêm `first_applyid: ""` ngay sau `authorization`, và đưa vào danh sách field lõi để `custom_curl_fields` không ghi đè. Sửa thẳng trên `patched-W2/` (chưa import) | Node: body có `first_applyid: ""`, `job_id` vẫn còn | Chờ import | Muốn cập nhật hồ sơ đã có thì điền tay trong curl |
 | 2026-11-20 | W2 | Bạn yêu cầu: SĐT và email của người khai trong file INFO vào curl. WF-_Extracted_INFO: AI trích thêm `applicant.phone`, `applicant.email` (prompt cấm lấy SĐT/email của người thân, nơi làm việc, người mời…); `Build INFO Output` chỉ giữ số cho phone, email chữ thường, sai dạng thì để trống. WF-13: body luôn có `email: ""`; `Override Visa Type1` điền `phone`, `email` khi đọc được. Server: `/run` nhận `email`, đưa vào email của người khai ở SaveFamilyInfo (thay email tự sinh); không có hoặc sai dạng thì tự sinh như cũ. Tất cả ở `patched-W2/` (thêm file WF-_Extracted_INFO) | Node: 3 node chạy đúng; 19 ca `/run` không có email cho kết quả y hệt trước | Chờ triển khai | |
+| 2026-11-20 | W2, W3 | Bạn báo: đã gộp DB (OK), đã cập nhật n8n (`patched-W2`) | — | Chờ test | Còn các bài test sau triển khai của W2 và W3 |
