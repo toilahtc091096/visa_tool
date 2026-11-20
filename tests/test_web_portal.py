@@ -61,6 +61,26 @@ class FormTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 wp.start_case({"job_id": "job-1"})
 
+    def test_rerun_by_passport_searches_all_houses(self):
+        def fake(url, json, timeout):
+            port = url.split(":")[2].split("/")[0]
+            if port == "20000":
+                return mock.Mock(status_code=200, json=lambda: {"ok": True, "mode": "dry_run", "prefix": "X2 - A/", "archive": "_archive/s__E1/X2 - A/"})
+            return mock.Mock(status_code=400, json=lambda: {"detail": {"ok": False, "error": "archive_not_found_for_passport"}})
+        with mock.patch.object(wp.requests, "post", side_effect=fake) as post:
+            r = wp.rerun_prepare({"passport_number": "e02563363"})
+        self.assertEqual((r["ok"], r["house"], r["prefix"]), (True, "PHONG", "X2 - A/"))
+        self.assertEqual(post.call_count, 3)
+        self.assertTrue(all(c.kwargs["json"]["confirm"] is False and c.kwargs["json"]["prefix"] == "" for c in post.call_args_list))
+        with mock.patch.object(wp.requests, "post", side_effect=fake):
+            with self.assertRaises(wp.FormError):  # confirm needs the house found by Kiểm tra
+                wp.rerun_prepare({"passport_number": "E02563363", "confirm": True})
+        none = mock.Mock(status_code=400, json=lambda: {"detail": {"ok": False, "error": "archive_not_found_for_passport"}})
+        with mock.patch.object(wp.requests, "post", return_value=none):
+            r = wp.rerun_prepare({"passport_number": "E02563363"})
+        self.assertFalse(r["ok"])
+        self.assertIn("Không tìm thấy", r["error"])
+
     def test_rerun_calls_instance_of_house(self):
         resp = mock.Mock(status_code=200, json=lambda: {"ok": True, "mode": "dry_run"})
         with mock.patch.object(wp.requests, "post", return_value=resp) as post:

@@ -113,6 +113,34 @@ class R2ArchiveTest(unittest.TestCase):
         self.assertEqual(res["error"], "source_and_archive_both_exist")
         self.assertIn("C1234567/chung/passport.png", self.r2.objects)
 
+    def test_archive_with_passport_and_restore_by_passport_only(self):
+        res = r2_archive.api_archive_r2_folder("L15 - A/", "c1234567", now=datetime(2026, 11, 20, 17, 2, 34))
+        self.assertEqual(res["destination"], "_archive/2026-11-20_170234__C1234567/L15 - A/")
+        dry = r2_archive.api_restore_r2_folder("", "C1234567")
+        self.assertTrue(dry["ok"], dry)
+        self.assertEqual((dry["prefix"], dry["archive"]), ("L15 - A/", "_archive/2026-11-20_170234__C1234567/L15 - A/"))
+        done = r2_archive.api_restore_r2_folder("", "C1234567", confirm=True)
+        self.assertTrue(done["ok"], done)
+        self.assertIn("L15 - A/1.jpg", self.r2.objects)
+        self.assertNotIn("C1234567/chung/passport.png", self.r2.objects)
+
+    def test_restore_by_passport_picks_newest_and_ignores_other_passports(self):
+        self.r2.objects["_archive/2026-11-19_090000__C1234567/OLD - X/a.jpg"] = 1
+        self.r2.objects["_archive/2026-11-21_090000__C12345678/OTHER/b.jpg"] = 1
+        r2_archive.api_archive_r2_folder("L15 - A/", "C1234567", now=datetime(2026, 11, 20, 10, 0, 0))
+        dry = r2_archive.api_restore_r2_folder("", "C1234567")
+        self.assertEqual(dry["prefix"], "L15 - A/")
+
+    def test_restore_by_passport_without_archive(self):
+        self.archive()  # old style archive, no passport in the name
+        res = r2_archive.api_restore_r2_folder("", "C1234567")
+        self.assertEqual(res["error"], "archive_not_found_for_passport")
+        self.assertTrue(r2_archive.api_restore_r2_folder("L15 - A/", "C1234567")["ok"])  # still works with the folder name
+
+    def test_bad_passport_not_put_in_archive_name(self):
+        res = r2_archive.api_archive_r2_folder("L15 - A/", "../x", now=datetime(2026, 11, 20, 10, 0, 0))
+        self.assertEqual(res["destination"], "_archive/2026-11-20_100000/L15 - A/")
+
 
 if __name__ == "__main__":
     unittest.main()

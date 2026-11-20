@@ -60,6 +60,7 @@
   .mono, pre.result { font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
   pre.result { margin: 14px 0 0; padding: 10px; border: 1px solid var(--line); border-radius: 7px; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
   textarea.bad { border-color: var(--err); }
+  details summary { cursor: pointer; margin-top: 14px; }
   .combo { position: relative; }
   .combo-list { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none;
                 max-height: 340px; overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 7px;
@@ -168,13 +169,22 @@
     </div>
 
     <div id="rerunCard" class="card hidden">
-      <p class="hint">Đưa hồ sơ về trạng thái chưa chạy để chạy lại. <b>Kiểm tra</b> trước, đúng rồi mới <b>Thực hiện</b>.</p>
-      <label for="rHouse">Nhà</label>
-      <select id="rHouse"></select>
-      <label for="rPrefix">Thư mục hồ sơ</label>
-      <input id="rPrefix">
+      <p class="hint">Đưa hồ sơ về trạng thái chưa chạy để chạy lại. Chỉ cần số hộ chiếu: thư mục gốc và nhà được tìm tự động. <b>Kiểm tra</b> trước, đúng rồi mới <b>Thực hiện</b>.</p>
       <label for="rPassport">Số hộ chiếu</label>
-      <input id="rPassport" autocapitalize="characters">
+      <input id="rPassport" autocapitalize="characters" placeholder="vd: E02563363">
+      <details id="rMore">
+        <summary class="hint">Không tìm thấy? Chọn nhà / nhập tên thư mục</summary>
+        <div class="row">
+          <div>
+            <label for="rHouse">Nhà</label>
+            <select id="rHouse"></select>
+          </div>
+          <div>
+            <label for="rPrefix">Thư mục hồ sơ <span class="hint">hồ sơ chưa chạy xong hoặc chạy trước 20/11</span></label>
+            <input id="rPrefix">
+          </div>
+        </div>
+      </details>
       <div style="display:flex; gap:8px">
         <button id="checkBtn" class="secondary">Kiểm tra</button>
         <button id="doBtn" disabled>Thực hiện</button>
@@ -226,7 +236,7 @@ function render(info) {
   $('login').classList.add('hidden');
   $('app').classList.remove('hidden');
   $('who').textContent = `${info.username} (${info.staff})`;
-  fill($('house'), info.houses); fill($('rHouse'), info.houses);
+  fill($('house'), info.houses); fill($('rHouse'), [{ value: '', label: 'Tự tìm' }, ...info.houses]);
   fill($('visa'), info.visa_codes);
   RELATIONS = info.relations || [];
   relationRequired = info.relation_required || [];
@@ -640,22 +650,30 @@ $('runBtn').onclick = async () => {
 };
 
 // ---------- rerun ----------
+let rerunFound = null;   // {house, prefix} from the last successful Kiểm tra
 async function rerun(confirmIt) {
-  const body = { house: $('rHouse').value, source_prefix: $('rPrefix').value, passport_number: $('rPassport').value, confirm: confirmIt };
+  const body = confirmIt && rerunFound
+    ? { house: rerunFound.house, source_prefix: rerunFound.prefix, passport_number: $('rPassport').value, confirm: true }
+    : { house: $('rHouse').value, source_prefix: $('rPrefix').value, passport_number: $('rPassport').value, confirm: confirmIt };
   const btn = confirmIt ? $('doBtn') : $('checkBtn'); btn.disabled = true;
   const fmt = (s) => (s ? `${s.files} file, ${mb(s.bytes)}` : 'không có');
   try {
     const r = await api('/web/rerun', body);
-    show($('rerunMsg'), (confirmIt ? 'ĐÃ THỰC HIỆN.\n' : 'Kiểm tra (chưa thay đổi gì):\n') +
-      `Khôi phục: ${r.archive || '(thư mục gốc vẫn còn)'} → ${fmt(r.restore)}\n` +
-      `Xoá thư mục đầu ra: ${r.delete_output?.prefix} → ${fmt(r.delete_output)}`, true);
+    rerunFound = confirmIt ? null : { house: r.house, prefix: r.prefix };
+    show($('rerunMsg'), (confirmIt ? 'ĐÃ THỰC HIỆN. Giờ có thể khởi chạy lại hồ sơ.\n' : 'Kiểm tra (chưa thay đổi gì):\n') +
+      `Nhà: ${r.house} · Thư mục: ${r.prefix}\n` +
+      `Khôi phục từ: ${r.archive || '(thư mục gốc vẫn còn)'} → ${fmt(r.restore)}\n` +
+      `Xoá kết quả lần trước: ${r.delete_output?.prefix} → ${fmt(r.delete_output)}`, true);
     $('doBtn').disabled = confirmIt;
+    if (confirmIt) { $('prefix').value = r.prefix.replace(/\/$/, ''); $('house').value = r.house; }
   } catch (e) { show($('rerunMsg'), e.message, false); $('doBtn').disabled = true; }
   if (!confirmIt) btn.disabled = false;
 }
 $('checkBtn').onclick = () => rerun(false);
 $('doBtn').onclick = () => rerun(true);
-['rHouse', 'rPrefix', 'rPassport'].forEach((id) => $(id).addEventListener('input', () => { $('doBtn').disabled = true; }));
+['rHouse', 'rPrefix', 'rPassport'].forEach((id) => $(id).addEventListener('input', () => { $('doBtn').disabled = true; rerunFound = null; }));
+$('rHouse').addEventListener('change', () => { $('doBtn').disabled = true; rerunFound = null; });
+$('rPassport').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('checkBtn').click(); });
 
 (async () => {
   if (!key) { logout(); return; }

@@ -139,26 +139,55 @@ def start_case(payload: dict[str, str]) -> dict[str, Any]:
     return {"ok": True, "job_id": payload["job_id"]}
 
 
+_RESTORE_ERRORS = {
+    "archive_not_found_for_passport": "Nhà {house}: không có bản lưu trữ của hộ chiếu {passport}. "
+                                      "Nếu hồ sơ chưa chạy xong hoặc chạy trước 20/11/2026, nhập thêm tên thư mục.",
+    "nothing_to_restore": "Nhà {house}: không có thư mục gốc lẫn bản lưu trữ của thư mục này.",
+    "source_and_archive_both_exist": "Nhà {house}: thư mục gốc vẫn còn và cũng có bản lưu trữ — kiểm tra trên R2 trước.",
+    "invalid_passport_number": "Số hộ chiếu không hợp lệ.",
+    "invalid_prefix": "Tên thư mục không hợp lệ.",
+}
+
+
 def rerun_prepare(form: dict[str, Any]) -> dict[str, Any]:
-    """Call /r2/folders/restore on the instance of the chosen house (local call, no key needed)."""
-    house = house_config(form.get("house"))
+    """Call /r2/folders/restore on the instance of the house (local call, no key needed).
+    Only the passport number is required: the folder comes from the archive name
+    (`_archive/<stamp>__<PASSPORT>/`). Without a house, every house is searched (dry run)."""
     passport = str(form.get("passport_number") or "").strip().upper()
     if not re.fullmatch(r"[A-Z0-9]{6,12}", passport):
         raise FormError("Số hộ chiếu không hợp lệ (6–12 chữ hoa và số)")
-    body = {
-        "prefix": normalize_source_prefix(form.get("source_prefix")),
-        "passport_number": passport,
-        "confirm": bool(form.get("confirm")),
-    }
-    resp = requests.post(f"http://127.0.0.1:{house['api_port']}/r2/folders/restore", json=body, timeout=120)
-    try:
-        data = resp.json()
-    except ValueError:
-        data = {"ok": False, "error": resp.text[:300]}
-    if resp.status_code >= 400:
-        detail = data.get("detail", data) if isinstance(data, dict) else data
-        return {"ok": False, **(detail if isinstance(detail, dict) else {"error": str(detail)})}
-    return data
+    raw_prefix = str(form.get("source_prefix") or "").strip()
+    prefix = normalize_source_prefix(raw_prefix) if raw_prefix.strip("/ ") else ""
+    confirm = bool(form.get("confirm"))
+
+    def ask(house: dict[str, str], do_it: bool) -> dict[str, Any]:
+        body = {"prefix": prefix, "passport_number": passport, "confirm": do_it}
+        resp = requests.post(_local(house, "/r2/folders/restore"), json=body, timeout=120)
+        r = {**_json_or_error(resp), "house": house["house"]}
+        if not r.get("ok") and r.get("error") in _RESTORE_ERRORS:
+            r["error"] = _RESTORE_ERRORS[r["error"]].format(house=house["house"], passport=passport)
+        return r
+
+    if str(form.get("house") or "").strip():
+        return ask(house_config(form.get("house")), confirm)
+
+    if confirm:
+        raise FormError("Bấm Kiểm tra trước để tìm ra nhà của hồ sơ")
+    found = []
+    for name in HOUSES:
+        try:
+            r = ask(house_config(name), False)
+        except requests.RequestException:
+            continue
+        if r.get("ok"):
+            found.append(r)
+    if not found:
+        return {"ok": False, "error": f"Không tìm thấy bản lưu trữ của hộ chiếu {passport} ở nhà nào. "
+                                      "Hồ sơ chạy trước 20/11/2026 hoặc chưa chạy xong: nhập thêm tên thư mục và chọn nhà."}
+    if len(found) > 1:
+        return {"ok": False, "error": "Hộ chiếu có bản lưu trữ ở nhiều nhà: "
+                                      f"{', '.join(r['house'] for r in found)}. Chọn nhà rồi Kiểm tra lại."}
+    return found[0]
 
 
 def _local(house: dict[str, str], path: str) -> str:

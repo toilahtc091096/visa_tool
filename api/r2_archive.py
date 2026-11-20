@@ -94,7 +94,29 @@ def _latest_archive(client, bucket: str, folder: str) -> str:
     return ""
 
 
-def api_archive_r2_folder(prefix: str, *, now: datetime | None = None) -> dict[str, Any]:
+PASSPORT_SEP = "__"  # _archive/<YYYY-MM-DD_HHMMSS>__<PASSPORT>/<folder>/
+
+
+def _archives_of_passport(client, bucket: str, passport: str) -> list[str]:
+    """`_archive/<stamp>__<PASSPORT>/` entries of this passport, newest first."""
+    suffix = f"{PASSPORT_SEP}{passport}/"
+    paginator = client.get_paginator("list_objects_v2")
+    stamps: list[str] = []
+    for page in paginator.paginate(Bucket=bucket, Prefix=ARCHIVE_ROOT, Delimiter="/"):
+        stamps.extend(p["Prefix"] for p in page.get("CommonPrefixes", []) if p["Prefix"].endswith(suffix))
+    return sorted(stamps, reverse=True)
+
+
+def _folder_inside(client, bucket: str, stamp: str) -> str:
+    """The single source folder under an archive stamp ('' if none)."""
+    paginator = client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket, Prefix=stamp, Delimiter="/"):
+        for p in page.get("CommonPrefixes", []):
+            return p["Prefix"][len(stamp):]
+    return ""
+
+
+def api_archive_r2_folder(prefix: str, passport_number: str = "", *, now: datetime | None = None) -> dict[str, Any]:
     missing = _missing_r2_env_vars()
     if missing:
         return {"ok": False, "error": "missing_r2_env_vars", "missing": missing}
@@ -105,6 +127,10 @@ def api_archive_r2_folder(prefix: str, *, now: datetime | None = None) -> dict[s
         return {"ok": False, "error": "already_archived", "prefix": folder}
 
     stamp = (now or datetime.now(_VN_TZ)).strftime("%Y-%m-%d_%H%M%S")
+    passport = str(passport_number or "").strip().upper()
+    if _PASSPORT_RE.fullmatch(passport):
+        # Re-run then only needs the passport number to find the source folder again.
+        stamp += PASSPORT_SEP + passport
     try:
         client, config = _build_r2_client()
         result = _move(client, config.bucket_name, folder, f"{ARCHIVE_ROOT}{stamp}/{folder}")
@@ -135,24 +161,35 @@ def api_restore_r2_folder(
     *,
     confirm: bool = False,
 ) -> dict[str, Any]:
-    """Re-run preparation. confirm=False only reports what would happen."""
+    """Re-run preparation. confirm=False only reports what would happen.
+    prefix may be empty: the folder is then found from the newest archive of this passport
+    (`_archive/<stamp>__<PASSPORT>/<folder>/`, written by WF14 since 2026-11-20)."""
     missing = _missing_r2_env_vars()
     if missing:
         return {"ok": False, "error": "missing_r2_env_vars", "missing": missing}
-    folder = _folder(prefix)
-    if not folder or folder.startswith(ARCHIVE_ROOT):
-        return {"ok": False, "error": "invalid_prefix", "prefix": folder}
     passport = str(passport_number or "").strip().upper()
     if not _PASSPORT_RE.fullmatch(passport):
         # Guards the delete below: a wrong value must never widen it.
         return {"ok": False, "error": "invalid_passport_number", "passport_number": passport}
+    folder = _folder(prefix)
+    if folder.startswith(ARCHIVE_ROOT):
+        return {"ok": False, "error": "invalid_prefix", "prefix": folder}
     output = f"{passport}/"
 
     try:
         client, config = _build_r2_client()
         bucket = config.bucket_name
+        archive = ""
+        if not folder:
+            for stamp in _archives_of_passport(client, bucket, passport):
+                inside = _folder_inside(client, bucket, stamp)
+                if inside:
+                    folder, archive = inside, stamp + inside
+                    break
+            if not folder:
+                return {"ok": False, "error": "archive_not_found_for_passport", "passport_number": passport, "bucket": bucket}
         source_now = _list(client, bucket, folder)
-        archive = _latest_archive(client, bucket, folder)
+        archive = archive or _latest_archive(client, bucket, folder)
         output_objects = _list(client, bucket, output)
 
         if source_now and archive:

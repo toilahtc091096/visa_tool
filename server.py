@@ -848,9 +848,9 @@ def r2_images_delete(payload: dict[str, Any] = Body(...)):
 
 @app.post("/r2/folders/archive")
 def r2_folders_archive(payload: dict[str, Any] = Body(...)):
-    # WF14: move the input folder to _archive/<stamp>/ (lifecycle deletes it after 7 days).
+    # WF14: move the input folder to _archive/<stamp>__<PASSPORT>/ (lifecycle deletes it after 7 days).
     prefix = str(payload.get("prefix", "") or "").strip()
-    result = api_archive_r2_folder(prefix)
+    result = api_archive_r2_folder(prefix, str(payload.get("passport_number", "") or ""))
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result)
     return result
