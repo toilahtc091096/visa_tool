@@ -97,3 +97,17 @@ END $$;
 -- VIP registration (is_vip = 1 in the /run curl, from source_prefix "... - vip").
 ALTER TABLE visa_registrations
     ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Web input form (/web): one account per person (staff code BAO, HANG, LONG, ADMIN).
+-- password_hash = "pbkdf2_sha256$<iterations>$<salt hex>$<hash hex>"; api_key is the
+-- person's own key, returned at login and sent back as X-Api-Key by the page.
+CREATE TABLE IF NOT EXISTS web_users (
+    id BIGSERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    staff_code TEXT NOT NULL,
+    api_key TEXT NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

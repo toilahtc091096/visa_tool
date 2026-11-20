@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pathlib import Path
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
@@ -39,6 +40,11 @@ from services.google_sheets import debug_google_sheet_access
 from utils import convert_html_to_pdf, log_exception, upload_pdf_to_r2
 from utils.app_logging import log_event
 from utils.access_guard import GuardConfig, decide
+from database.crud.web_user import authenticate_web_user, get_web_user_by_api_key
+from services.web_portal import FormError as WebFormError
+from services.web_portal import build_start_payload, start_case
+from services.web_portal import form_options as web_form_options
+from services.web_portal import rerun_prepare as web_rerun_prepare
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -163,6 +169,72 @@ async def access_guard(request: Request, call_next):
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+# ---------- /web: input form replacing WF-01 node 2 (open in the access guard; own key check) ----------
+_WEB_PAGE = Path(__file__).resolve().parent / "web" / "index.html"
+_login_failures: dict[str, list[float]] = {}
+
+
+def _web_user(request: Request) -> dict[str, Any]:
+    user = get_web_user_by_api_key(request.headers.get("x-api-key", ""))
+    if not user:
+        raise HTTPException(status_code=401, detail={"ok": False, "error": "Phiên đăng nhập không hợp lệ, hãy đăng nhập lại"})
+    return user
+
+
+@app.get("/web")
+def web_page():
+    return HTMLResponse(_WEB_PAGE.read_text(encoding="utf-8"))
+
+
+@app.post("/web/login")
+def web_login(request: Request, payload: dict[str, Any] = Body(...)):
+    ip = request.client.host if request.client else ""
+    now = time.time()
+    recent = [t for t in _login_failures.get(ip, []) if now - t < 600]
+    if len(recent) >= 5:
+        raise HTTPException(status_code=429, detail={"ok": False, "error": "Sai quá 5 lần, thử lại sau 10 phút"})
+    user = authenticate_web_user(str(payload.get("username", "")), str(payload.get("password", "")))
+    if not user:
+        _login_failures[ip] = recent + [now]
+        raise HTTPException(status_code=401, detail={"ok": False, "error": "Sai tên đăng nhập hoặc mật khẩu"})
+    _login_failures.pop(ip, None)
+    return {"ok": True, "username": user["username"], "staff": user["staff_code"], "api_key": user["api_key"], **web_form_options()}
+
+
+@app.get("/web/me")
+def web_me(request: Request):
+    user = _web_user(request)
+    return {"ok": True, "username": user["username"], "staff": user["staff_code"], **web_form_options()}
+
+
+@app.post("/web/start")
+def web_start(request: Request, payload: dict[str, Any] = Body(...)):
+    user = _web_user(request)
+    try:
+        case = build_start_payload(user["staff_code"], payload)
+        result = start_case(case)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        log_exception(exc, {"event": "web_start_failed", "user": user["username"]})
+        raise HTTPException(status_code=502, detail={"ok": False, "error": str(exc)})
+    log_event({"event": "web_start", "user": user["username"], "job_id": case["job_id"], "house": case["house"],
+               "visa_type": case["visa_type"], "source_prefix": case["source_prefix"]})
+    return {**result, "house": case["house"], "visa_type": case["visa_type"], "source_prefix": case["source_prefix"]}
+
+
+@app.post("/web/rerun")
+def web_rerun(request: Request, payload: dict[str, Any] = Body(...)):
+    user = _web_user(request)
+    try:
+        result = web_rerun_prepare(payload)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    log_event({"event": "web_rerun", "user": user["username"], "confirm": bool(payload.get("confirm")),
+               "house": payload.get("house"), "prefix": payload.get("source_prefix"), "ok": result.get("ok")})
+    return result
 
 
 @app.post("/run")

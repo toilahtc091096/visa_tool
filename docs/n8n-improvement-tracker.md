@@ -99,15 +99,16 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | A4  | A   | Sửa node báo lỗi `Build Error Notification1` (gọi sai tên node, nên không có tin báo lỗi nào tới Telegram) | n8n WF01-GENERAL | Đạt | 2026-11-20 |
 | B1  | B   | WF14 chuyển thư mục gốc vào `_archive/` thay vì xoá, Cloudflare tự xoá sau 7 ngày     | n8n WF14 + Python + R2 | Đạt | 2026-11-20 |
 | B2  | B   | Quy trình chạy lại hồ sơ và workflow hỗ trợ WF-15                                     | n8n + Python           | Đạt | 2026-11-20 |
-| C1  | C   | Server: mọi lời gọi từ ngoài VPS (n8n trên Railway, curl của nhân viên) phải có khoá `X-Api-Key` | Python + n8n           | Chờ triển khai |  |
-| C2  | C   | Token Telegram chuyển sang credential hoặc biến môi trường                            | n8n                    | Chờ triển khai |  |
-| C3  | C   | Tắt truy cập công khai r2.dev, bỏ `r2_public_url` khỏi trường bắt buộc                | R2 + n8n               | Chờ triển khai |  |
+| C1  | C   | Server: mọi lời gọi từ ngoài VPS (n8n trên Railway, curl của nhân viên) phải có khoá `X-Api-Key` | Python + n8n           | Đạt | 2026-11-20 |
+| C2  | C   | Token Telegram chuyển sang credential hoặc biến môi trường                            | n8n                    | Đạt | 2026-11-20 |
+| C3  | C   | Tắt truy cập công khai r2.dev, bỏ `r2_public_url` khỏi trường bắt buộc                | R2 + n8n               | Đạt | 2026-11-20 |
 | D1  | D   | WF-01 nhập liệu bằng Form Trigger, gộp 3 bản thành 1                                  | n8n                    | Bỏ (thay bằng trang web nhập liệu, làm sau cùng) |  |
-| E1  | E   | Get Folder Name kiểm tra `ready` trước khi đổi `folder_name`                          | n8n                    | Chưa làm   |           |
-| E2  | E   | WF-11 gắn cờ khi upload lỗi                                                           | n8n                    | Chưa làm   |           |
-| E3  | E   | Gom code lặp (`Apply Folder Context`, hàm tìm api_port, 3 nhánh School)               | n8n                    | Chưa làm   |           |
-| E4  | E   | Tên file upload cố định cho 4 node rồi bật retry                                      | n8n WF-07B, 10, 11     | Chưa làm   |           |
-| E5  | E   | Tin báo lỗi ghi rõ workflow con và node gây lỗi (hiện chỉ ghi `Call PDF & Image Preprocessing'1`) | n8n WF01-GENERAL       | Chưa làm   |           |
+| E1  | E   | Get Folder Name kiểm tra `ready` trước khi đổi `folder_name`                          | n8n                    | Đạt | 2026-11-20 |
+| E2  | E   | WF-11 gắn cờ khi upload lỗi                                                           | n8n                    | Đạt | 2026-11-20 |
+| E3  | E   | Gom code lặp (`Apply Folder Context`, hàm tìm api_port, 3 nhánh School)               | n8n                    | Bỏ | 2026-11-20 |
+| E4  | E   | Tên file upload cố định cho 4 node rồi bật retry                                      | n8n WF-07B, 10, 11     | Đạt | 2026-11-20 |
+| E5  | E   | Tin báo lỗi ghi rõ workflow con và node gây lỗi (hiện chỉ ghi `Call PDF & Image Preprocessing'1`) | n8n WF01-GENERAL       | Đạt | 2026-11-20 |
+| W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Chờ triển khai |  |
 | F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Chưa làm   |           |
 | G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
 | G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
@@ -396,6 +397,41 @@ Tiêu chí:
 | E4  | 4 node upload đặt tên file bằng `Math.random()` (07B `Upload Cu Tru`, 10 `Upload Forgein Visa1`, 11 `Upload Blank`, `Upload Blank3`), nên chưa bật retry được (xem A2)             | Tên file cố định theo thứ tự trang hoặc tên file gốc; sau đó bật retry 3 lần        | —        |
 | E3  | `Apply Folder Context` lặp khoảng 9 lần; hàm tìm api_port có ở WF-13, WF-20 và WF14; WF-04D School có 3 nhánh y hệt nhau                                                           | Gom về chỗ dùng chung; `request_body` của 6 hồ sơ không đổi                         | —        |
 
+### W1 — Trang web nhập liệu `/web` (thay node 2 của WF-01 và WF-15)
+
+**Ban đầu:** mỗi hồ sơ, nhân viên sửa code node 2 trong WF-01 của mình (9 bản: người × nhà) rồi chạy tay. Muốn chạy lại thì sửa WF-15 bằng tay.
+
+**Bạn chốt (2026-11-20)**
+- Trang chạy trong server Python ở instance 10000.
+- Mỗi người 1 tài khoản, chọn nhà trong form.
+- Thư mục R2 gõ tay.
+- Gửi xong chỉ báo "đã gửi", kết quả xem qua Telegram.
+- Có tab chạy lại hồ sơ.
+- Loại visa gồm `L, M, Q1, Q2, F, X1, X2, S2` và một ô số ngày.
+- Tạm dùng HTTP trong nội bộ.
+
+**Cách làm**
+- DB: bảng `web_users` (mật khẩu băm pbkdf2, `api_key` riêng). Script `scripts/web_user.py` để thêm, khoá, mở tài khoản.
+- `services/web_portal.py`:
+  - Kiểm tra form: L bắt buộc 15 hoặc 30; X1 lớn hơn 180; X2 từ 1 đến 180; M và F chỉ nhận 15, 30 hoặc 90; Q1 và Q2 bắt buộc chọn quan hệ.
+  - Ghép `visa_type` = mã loại + số ngày (`L30`, `Q2180`).
+  - Dựng payload giống node 2 của WF-01, trong đó `staff` lấy từ tài khoản, không lấy từ trình duyệt.
+  - Gọi webhook n8n kèm `VISA_API_KEY`.
+  - Chạy lại: gọi `/r2/folders/restore` của instance ứng với nhà, qua `127.0.0.1`.
+- `server.py`: `GET /web`, `POST /web/login` (khoá 10 phút sau 5 lần sai), `GET /web/me`, `POST /web/start`, `POST /web/rerun`. Lớp chặn truy cập mở `/web`; các thao tác tự kiểm tra khoá riêng của người dùng.
+- `web/index.html`: một trang, không thư viện ngoài, dùng được trên điện thoại.
+- n8n: workflow mới `WF-00 Web Start` (Webhook `POST /webhook/visa-start` → kiểm tra `X-Api-Key` → trả `{ok, job_id}` → gọi WF01-GENERAL), file ở `n8n-flow/patched-web/`.
+
+**Kỳ vọng**
+- [x] Unit test: 14 test cho form, payload, mật khẩu và endpoint. Cùng các test cũ là 34/34 đạt. Mã JavaScript của trang và của WF-00 đã chạy thử.
+- [ ] Mỗi nhân viên đăng nhập, gửi 1 hồ sơ. Telegram nhận đúng như khi chạy bằng WF-01.
+- [ ] Tab chạy lại: Kiểm tra rồi Thực hiện với một hồ sơ đã chạy xong.
+- [ ] Sai mật khẩu 5 lần thì bị khoá 10 phút. Gọi `/web/start` mà không có khoá thì trả 401.
+
+**Hiện tại (2026-11-20):** đã code, chờ triển khai.
+
+---
+
 ### F1 — Dựng VPS mới
 
 **Ban đầu:** n8n cài trực tiếp trên VPS. Server Python cài bằng `scripts/install_tasks.ps1`. Chưa có tài liệu đầy đủ để dựng VPS mới: cài n8n, Redis, Postgres, import workflow, credential, biến môi trường, Word.
@@ -479,3 +515,10 @@ Tiêu chí:
 | 2026-11-20 | C1 | Thiết kế lại cho Railway: dùng khoá `VISA_API_KEY` cho mọi lời gọi từ ngoài. Python 12 test; `patched-C2/` (23 node). Đã xoá `patched-C` | — | Chờ triển khai | Railway đã có `N8N_ENCRYPTION_KEY` và cho phép đọc biến môi trường, bạn đã restart thử thành công |
 | 2026-11-20 | C2, C3 | Token Telegram chuyển ra biến Railway; mỗi tin gửi cả nhóm nhân viên và nhóm nhà của chủ; bỏ bắt buộc `r2_public_url`. Kết quả `patched-C2C3/` (dựng trên `patched-C2`) | — | Chờ triển khai | D1 bỏ, vì sẽ làm trang web nhập liệu sau cùng |
 | 2026-11-20 | C2 | Làm lại theo mô hình mỗi người 1 bot và 1 nhóm cho mỗi nhà (HAI 10000, PHONG 20000, TAI 30000); bản sao cho chủ gửi bằng bot của chủ cho nhà đó | — | Chờ triển khai | Thay bản `patched-C2C3` trước, bản đó dựng theo kiểu bot theo nhà |
+| 2026-11-20 | C2 | Đổi 10 bản WF-01 (BAO, HANG, LONG mỗi người 3 nhà, chưa có BAO-TAI; ADMIN nhà PHONG và TAI) sang `staff` và `house`; dò người và nhà theo bot trước, theo chat sau (chat của mỗi người giống nhau ở cả 3 nhà). Kết quả `patched-WF01/` (12 file), bản gốc ở `backup-2026-11-20-before-WF01/` | — | Chờ import | Danh sách biến điền sẵn ở `n8n-flow/railway-tele-vars.txt` (có token, xoá sau khi dán) |
+| 2026-11-20 | C1, C2, C3 | Bạn đã import, bật `ACCESS_GUARD=enforce`, tắt r2.dev, kiểm tra Telegram | — | **Đạt. Đóng đợt C** | |
+| 2026-11-20 | E1, E2, E4, E5 | Sửa trên export 15:31. Kết quả `patched-E/` (5 workflow, 6 node), bản gốc ở `backup-2026-11-20-before-E/`. **E5:** tin lỗi có link tới execution (biến `N8N_EDITOR_BASE_URL` hoặc `WEBHOOK_URL`, không có thì ghi Execution ID). **E1:** Get Folder Name dừng và báo rõ khi chưa có thư mục hộ chiếu, thay vì upload sai chỗ. **E4:** tên file cố định theo `document_id` (hoặc job và vị trí item) cho 4 node upload, rồi bật retry 3 lần. **E2:** WF-11 bỏ chế độ chạy tiếp khi lỗi, upload lỗi sau 3 lần thử thì dừng và báo lỗi | — | Chờ test | Đã chạy thử bằng Node: tên file giữ nguyên khi retry, link execution đúng, E1 báo lỗi khi thiếu Redis |
+| 2026-11-20 | C2 (sửa lỗi) | Bạn báo: nhóm admin không nhận được curl (ảnh thì có). Nguyên nhân: WF-20 `format curl1` chỉ xử lý `$input.first()` và trả về 1 item, nên bản cho admin từ `Route To Groups` bị bỏ. Sửa thành xử lý mọi item. Kết quả `patched-curl-fix/` | Node: 2 item vào, ra 2 tin curl | Chờ import | Các node khác của WF-20 giữ nguyên |
+| 2026-11-20 | E1, E2, E4, E5 | Bạn đã import `patched-E` và `patched-curl-fix`, test xong | — | **Đạt. Đóng đợt E** | |
+| 2026-11-20 | E3 | Bỏ. Cụm `Has Folder Context?` + `Apply Folder Context` (7 chỗ trong WF-04E, WF-04I, WF-COMMON Merge) là tối ưu có chủ ý (PERF-D): WF-04 đọc Redis một lần rồi gắn sẵn `folder_ctx`, nên không phải gọi `Get Folder Name` kèm ảnh. Gom về một workflow con sẽ làm mất tối ưu này. Các chỗ lặp còn lại (XNH/XJW, `getText`, `safeParse`…) lợi ích nhỏ, n8n không cho dùng chung code | — | Bỏ | Không đề xuất lại |
+| 2026-11-20 | W1 | Code trang `/web`: bảng `web_users`, `services/web_portal.py`, 5 endpoint, `web/index.html`, `scripts/web_user.py`, WF-00 Web Start (`n8n-flow/patched-web/`). 34/34 test đạt | — | Chờ triển khai | F1 để sau cùng |

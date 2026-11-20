@@ -47,7 +47,7 @@ class DecideTest(unittest.TestCase):
     def test_from_env(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             cfg = GuardConfig.from_env()
-        self.assertEqual((cfg.mode, cfg.key_paths, cfg.public_paths), ("off", ("/",), ("/health",)))
+        self.assertEqual((cfg.mode, cfg.key_paths, cfg.public_paths), ("off", ("/",), ("/health", "/web")))
         env = {"ACCESS_GUARD": "ENFORCE", "VISA_API_KEY": "k", "ACCESS_PUBLIC_PATHS": "/health,/han-approval"}
         with mock.patch.dict(os.environ, env, clear=True):
             cfg = GuardConfig.from_env()

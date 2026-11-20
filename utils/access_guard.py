@@ -10,7 +10,7 @@ ACCESS_GUARD (env):
   log      - allow everything, but log requests that would be blocked
   enforce  - block them (401 missing/bad key, 403 path not open from outside)
 VISA_API_KEY         - the shared key (n8n Railway variable of the same name)
-ACCESS_PUBLIC_PATHS  - comma list open to anyone without key (default "/health")
+ACCESS_PUBLIC_PATHS  - comma list open to anyone without key (default "/health,/web"; /web checks its own per-user key)
 ACCESS_KEY_PATHS     - comma list open from outside with the key (default "/" = every path)
 ACCESS_LOCAL_IPS     - comma list treated as local (default "127.0.0.1,::1")
 """
@@ -47,7 +47,7 @@ class GuardConfig:
         mode = os.getenv("ACCESS_GUARD", "off").strip().lower()
         return cls(
             mode=mode if mode in MODES else "off",
-            public_paths=_csv("ACCESS_PUBLIC_PATHS", "/health"),
+            public_paths=_csv("ACCESS_PUBLIC_PATHS", "/health,/web"),
             key_paths=_csv("ACCESS_KEY_PATHS", "/"),
             local_ips=_csv("ACCESS_LOCAL_IPS", "127.0.0.1,::1"),
             api_key=os.getenv("VISA_API_KEY", "").strip(),
