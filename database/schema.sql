@@ -129,3 +129,6 @@ CREATE TABLE IF NOT EXISTS web_jobs (
     finished_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_web_jobs_username_started ON web_jobs (username, started_at DESC);
+
+-- The curl WF-13 built (sent by n8n with the "done" step); the page loads it into the curl tab.
+ALTER TABLE web_jobs ADD COLUMN IF NOT EXISTS curl TEXT NOT NULL DEFAULT '';

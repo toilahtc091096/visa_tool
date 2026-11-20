@@ -186,12 +186,14 @@ class EndpointTest(unittest.TestCase):
     def test_other_paths_still_need_shared_key(self):
         self.assertEqual(self.client.post("/r2/images/delete", json={}, headers={"X-Api-Key": "user-key"}).status_code, 401)
 
-    def _add_step(self, job_id, step, status):
+    def _add_step(self, job_id, step, status, curl=""):
         job = self.jobs.get(job_id)
         if not job or job["status"] != "running":
             return False
         job["steps"].append(step)
         job["status"] = status
+        if curl:
+            job["curl"] = curl
         return True
 
     def test_start_records_job_and_progress_flow(self):
@@ -203,7 +205,8 @@ class EndpointTest(unittest.TestCase):
         self.assertEqual(self.client.post("/web/progress", json={"job_id": job_id, "step": "classifying"}, headers={"X-Api-Key": "user-key"}).status_code, 401)
         r = self.client.post("/web/progress", json={"job_id": job_id, "step": "classifying", "message": "12 file"}, headers={"X-Api-Key": "shared"})
         self.assertEqual(r.json(), {"ok": True, "tracked": True})
-        self.client.post("/web/progress", json={"job_id": job_id, "step": "done"}, headers={"X-Api-Key": "shared"})
+        self.client.post("/web/progress", json={"job_id": job_id, "step": "done", "curl": "curl -X POST x -d '{}'"}, headers={"X-Api-Key": "shared"})
+        self.assertEqual(self.jobs[job_id]["curl"], "curl -X POST x -d '{}'")
         # closed job does not take more steps; unknown job (started from WF-01) is ignored
         self.assertFalse(self.client.post("/web/progress", json={"job_id": job_id, "step": "error"}, headers={"X-Api-Key": "shared"}).json()["tracked"])
         self.assertFalse(self.client.post("/web/progress", json={"job_id": "job-wf01", "step": "done"}, headers={"X-Api-Key": "shared"}).json()["tracked"])

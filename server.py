@@ -278,7 +278,8 @@ def web_progress(request: Request, payload: dict[str, Any] = Body(...)):
         step = web_make_step(str(payload.get("step", "")), str(payload.get("message", "") or ""), web_now_iso())
     except WebFormError as exc:
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
-    known = bool(job_id) and add_web_job_step(job_id, step, web_step_status(step["step"]))
+    curl = str(payload.get("curl", "") or "")[:300_000]  # WF-13 sends the curl with the "done" step
+    known = bool(job_id) and add_web_job_step(job_id, step, web_step_status(step["step"]), curl)
     return {"ok": True, "tracked": known}  # False = run not started from /web (or already finished)
 
 

@@ -58,6 +58,18 @@
   .combo-list li .ex { color: var(--muted); font-size: 13px; }
   .combo-list li.active, .combo-list li:hover { background: var(--track); }
   .combo-list li.empty { color: var(--muted); cursor: default; }
+  .drop { margin-top: 4px; padding: 28px 16px; min-height: 150px; border: 2px dashed var(--line); border-radius: 10px;
+          text-align: center; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+  .drop:hover, .drop:focus { border-color: var(--accent); outline: none; }
+  .drop.over { border-color: var(--accent); border-style: solid; background: var(--ok-bg); transform: scale(1.01); }
+  .drop.has { border-style: solid; border-color: var(--ok); }
+  .drop-icon { font-size: 34px; line-height: 1; }
+  .drop-title { font-weight: 600; font-size: 16px; margin: 8px 0 2px; }
+  .drop.over .drop-title::after { content: " — thả ra để chọn"; color: var(--accent); }
+  .drop-info { margin-top: 10px; font-weight: 600; color: var(--ok); }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 32px);
+           padding: 12px 18px; border-radius: 8px; background: var(--text); color: var(--bg); font-weight: 600;
+           box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 20; }
 </style>
 </head>
 <body>
@@ -85,9 +97,14 @@
       <label for="house">Nhà</label>
       <select id="house"></select>
 
-      <label for="dir">Thư mục hồ sơ trên máy <span class="hint">tuỳ chọn: chọn để tải lên bucket của nhà</span></label>
-      <input id="dir" type="file" webkitdirectory directory multiple>
-      <div id="dirInfo" class="hint"></div>
+      <label>Thư mục hồ sơ trên máy <span class="hint">tuỳ chọn: tải lên bucket của nhà đã chọn</span></label>
+      <div id="drop" class="drop" tabindex="0" role="button" aria-label="Kéo thả thư mục hồ sơ vào đây hoặc bấm để chọn">
+        <div class="drop-icon" aria-hidden="true">📁</div>
+        <div class="drop-title">Kéo thả thư mục hồ sơ vào đây</div>
+        <div class="hint">hoặc bấm để chọn thư mục</div>
+        <div id="dirInfo" class="drop-info"></div>
+      </div>
+      <input id="dir" type="file" webkitdirectory directory multiple class="hidden">
       <div id="upBox" class="hidden"><div class="progress"><div id="upBar"></div></div><div id="upText" class="hint"></div></div>
 
       <div class="row">
@@ -122,13 +139,12 @@
     </div>
 
     <div id="curlCard" class="card hidden">
-      <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Chạy trên đúng nhà theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI).</p>
+      <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Nhà lấy theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI). Hồ sơ khởi chạy từ trang này sẽ tự điền curl vào đây khi chạy xong.</p>
       <label for="curlText">Lệnh curl</label>
       <textarea id="curlText" rows="4" placeholder="curl -X POST &quot;http://160.250.5.191:10000/run&quot; -H ... -d '{...}'"></textarea>
       <button id="parseBtn" class="secondary">Đọc curl</button>
       <div id="curlEdit" class="hidden">
-        <label for="curlHouse">Nhà</label>
-        <select id="curlHouse"></select>
+        <div id="curlHouseInfo" class="hint" style="margin-top:12px"></div>
         <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
         <textarea id="curlBody" rows="16" spellcheck="false" class="mono"></textarea>
         <div style="display:flex; gap:8px">
@@ -156,6 +172,7 @@
     </div>
   </section>
 </main>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -188,12 +205,17 @@ function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp
 function fill(sel, items) { sel.innerHTML = items.map((x) => `<option value="${esc(x.value ?? x)}">${esc(x.label ?? x)}</option>`).join(''); }
 const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
+let toastTimer = null;
+function toast(text) {
+  const el = $('toast'); el.textContent = text; el.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.add('hidden'), 5000);
+}
 
 function render(info) {
   $('login').classList.add('hidden');
   $('app').classList.remove('hidden');
   $('who').textContent = `${info.username} (${info.staff})`;
-  fill($('house'), info.houses); fill($('rHouse'), info.houses); fill($('curlHouse'), info.houses);
+  fill($('house'), info.houses); fill($('rHouse'), info.houses);
   fill($('visa'), info.visa_codes);
   RELATIONS = info.relations || [];
   relationRequired = info.relation_required || [];
@@ -238,9 +260,11 @@ function openCombo() {
   const q = plain($('relation').value);
   const scored = RELATIONS
     .map((r, i) => {
-      const hay = plain(`${r.label} ${r.example} ${r.value}`);
+      // Chỉ so với tên quan hệ chính (Vợ, Bố vợ…), không so với câu ví dụ: gõ "vo" không ra "Chồng — chồng mời vợ".
+      // Mỗi từ gõ phải là đầu của một từ trong tên: "vo" khớp "Vợ", "Bố vợ"; "cuoi" khớp "Vợ sắp cưới".
       const lab = plain(r.label);
-      if (q && !q.split(' ').every((w) => hay.includes(w))) return null;
+      const words = lab.split(' ');
+      if (q && !q.split(' ').every((w) => words.some((x) => x.startsWith(w)))) return null;
       const top = (r.first_for || []).includes(visa) ? 0 : 1;          // S2: "sắp cưới" lên đầu
       const starts = !q || lab.startsWith(q) || plain(r.value).startsWith(q) ? 0 : 1;
       return { r, key: [top, starts, i] };
@@ -288,16 +312,65 @@ $('relation').addEventListener('blur', () => {
 const SKIP = /(^|\/)(\.|desktop\.ini$|thumbs\.db$)/i;
 let picked = [];       // [{file, rel}]
 let uploadedTo = '';   // "<house>|<prefix>" already uploaded
-$('dir').addEventListener('change', () => {
-  const files = [...$('dir').files];
-  picked = files
-    .map((f) => { const parts = (f.webkitRelativePath || f.name).split('/'); return { file: f, top: parts[0], rel: parts.slice(1).join('/') || f.name }; })
-    .filter((x) => !SKIP.test(x.rel) && x.file.size > 0);
+// list = [{file, top, rel}]: top = tên thư mục (điền vào ô R2), rel = đường dẫn bên trong thư mục
+function setPicked(list) {
+  picked = list.filter((x) => !SKIP.test(x.rel) && x.file.size > 0);
   uploadedTo = '';
-  if (!picked.length) { $('dirInfo').textContent = 'Thư mục trống'; return; }
-  $('prefix').value = picked[0].top;
-  $('dirInfo').textContent = `${picked.length} file, ${mb(picked.reduce((s, x) => s + x.file.size, 0))} — sẽ tải lên khi bấm Gửi`;
+  $('drop').classList.toggle('has', picked.length > 0);
+  if (!picked.length) { $('dirInfo').textContent = 'Thư mục trống hoặc không có file hợp lệ'; return; }
+  if (picked[0].top) $('prefix').value = picked[0].top;
+  $('dirInfo').textContent = `${picked[0].top ? '📂 ' + picked[0].top + ' · ' : ''}${picked.length} file, ${mb(picked.reduce((s, x) => s + x.file.size, 0))} — sẽ tải lên khi bấm Gửi`;
+}
+
+$('dir').addEventListener('change', () => {
+  setPicked([...$('dir').files].map((f) => {
+    const parts = (f.webkitRelativePath || f.name).split('/');
+    return { file: f, top: parts.length > 1 ? parts[0] : '', rel: parts.slice(1).join('/') || f.name };
+  }));
 });
+
+// Đọc cả cây thư mục khi kéo thả (Chrome/Edge/Firefox: webkitGetAsEntry)
+function readAllEntries(dirEntry) {
+  const reader = dirEntry.createReader();
+  return new Promise((resolve, reject) => {
+    const all = [];
+    const next = () => reader.readEntries((batch) => { if (!batch.length) resolve(all); else { all.push(...batch); next(); } }, reject);
+    next();
+  });
+}
+async function walk(entry, path, top, out) {
+  if (entry.isFile) {
+    const file = await new Promise((res, rej) => entry.file(res, rej));
+    out.push({ file, top, rel: path + file.name });
+  } else if (entry.isDirectory) {
+    for (const child of await readAllEntries(entry)) await walk(child, path + entry.name + '/', top, out);
+  }
+}
+const drop = $('drop');
+drop.addEventListener('click', () => $('dir').click());
+drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('dir').click(); } });
+['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'dragend'].forEach((ev) => drop.addEventListener(ev, (e) => { if (!drop.contains(e.relatedTarget)) drop.classList.remove('over'); }));
+drop.addEventListener('drop', async (e) => {
+  e.preventDefault(); drop.classList.remove('over');
+  const entries = [...(e.dataTransfer.items || [])].map((it) => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+  const out = [];
+  try {
+    $('dirInfo').textContent = 'Đang đọc thư mục…';
+    if (entries.length === 1 && entries[0].isDirectory) {
+      // Thả 1 thư mục: tên thư mục = thư mục trên R2, file giữ đường dẫn bên trong
+      for (const child of await readAllEntries(entries[0])) await walk(child, '', entries[0].name, out);
+    } else if (entries.length) {
+      for (const en of entries) await walk(en, '', '', out);
+    } else {
+      [...e.dataTransfer.files].forEach((f) => out.push({ file: f, top: '', rel: f.name }));
+    }
+    setPicked(out);
+    if (out.length && !out[0].top) toast('Đã nhận file lẻ — nhớ gõ tên thư mục trên R2');
+  } catch (err) { $('dirInfo').textContent = 'Không đọc được thư mục: ' + err.message; }
+});
+// Thả nhầm ra ngoài vùng thì trình duyệt không mở file
+['dragover', 'drop'].forEach((ev) => window.addEventListener(ev, (e) => { if (!drop.contains(e.target)) e.preventDefault(); }));
 ['house', 'prefix'].forEach((id) => $(id).addEventListener('input', () => { uploadedTo = ''; }));
 $('house').addEventListener('change', () => { uploadedTo = ''; });
 
@@ -339,7 +412,7 @@ $('startBtn').onclick = async () => {
       house: $('house').value, visa_code: $('visa').value, days: $('days').value.trim(),
       relation: relationValue, source_prefix: $('prefix').value,
     });
-    picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden');
+    picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden'); $('drop').classList.remove('has');
     $('prefix').value = ''; pickRelation(null);
     watchJob(r.job_id);
   } catch (e) { show($('startMsg'), e.message, false); }
@@ -383,7 +456,13 @@ async function poll(jobId) {
     const r = await api(`/web/job/${encodeURIComponent(jobId)}`);
     skew = Date.parse(r.now) - Date.now();
     curJob = r.job; drawJob(); tickClock();
-    if (curJob.status !== 'running') { stopWatch(); tickClock(); }
+    if (curJob.status !== 'running') {
+      stopWatch(); tickClock();
+      if (curJob.status === 'done' && curJob.curl && ls.get('visa_web_curl_loaded') !== curJob.job_id) {
+        ls.set('visa_web_curl_loaded', curJob.job_id);
+        loadCurl(curJob.curl, `Hồ sơ ${curJob.job_id} chạy xong — đã chuyển sang tab "Chạy curl" và điền sẵn curl`);
+      }
+    }
   } catch (e) { stopWatch(); $('jobState').textContent = e.message; }
 }
 
@@ -466,13 +545,24 @@ function parseCurl(text) {
   return { port, body };
 }
 
+let curlPort = '';
+function loadCurl(text, message) {
+  $('curlText').value = text;
+  $('tabCurl').click();
+  $('parseBtn').click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(message);
+}
+$('curlText').addEventListener('input', () => { $('curlEdit').classList.add('hidden'); curlPort = ''; });
+
 $('parseBtn').onclick = () => {
   clear($('curlMsg')); $('curlResult').classList.add('hidden');
   try {
     const { port, body } = parseCurl($('curlText').value);
     const house = PORT_HOUSE[port];
     if (!house) throw new Error(`Cổng ${port || '(không có)'} không thuộc nhà nào`);
-    $('curlHouse').value = house;
+    curlPort = port;
+    $('curlHouseInfo').textContent = `Nhà ${house} (cổng ${port})`;
     $('curlBody').value = JSON.stringify(body, null, 2);
     $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
     $('curlBody').classList.remove('bad');
@@ -491,12 +581,13 @@ $('runBtn').onclick = async () => {
   const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden');
   let body;
   try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
-  if (!confirm(`Chạy /run trên nhà ${$('curlHouse').value}${body.passportNumber ? ' cho hộ chiếu ' + body.passportNumber : ''}?`)) return;
+  if (!curlPort) { show($('curlMsg'), 'Bấm "Đọc curl" trước', false); return; }
+  if (!confirm(`Chạy /run trên nhà ${PORT_HOUSE[curlPort]}${body.passportNumber ? ' cho hộ chiếu ' + body.passportNumber : ''}?`)) return;
   b.disabled = true;
   const t0 = Date.now();
   const tick = setInterval(() => { b.textContent = `Đang chạy… ${mmss((Date.now() - t0) / 1000)}`; }, 500);
   try {
-    const r = await api('/web/run', { house: $('curlHouse').value, body });
+    const r = await api('/web/run', { port: curlPort, body });
     show($('curlMsg'), `${r.ok ? 'Xong' : 'Lỗi'} (HTTP ${r.status_code}) sau ${mmss((Date.now() - t0) / 1000)}`, r.ok);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
