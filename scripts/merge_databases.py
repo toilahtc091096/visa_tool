@@ -14,9 +14,9 @@ back. Add --apply to commit.
 Run on the VPS from the repo folder (credentials come from ENV_FILE, all houses
 use the same Postgres user):
 
-    # 1. stop the 3 instances, then create the empty target database once:
-    #    psql -U <user> -h localhost -c "CREATE DATABASE visa_main"
-    $env:ENV_FILE = ".env"; python scripts\\merge_databases.py --target visa_main
+    # 1. dry run (--create makes the empty target database if missing):
+    $env:ENV_FILE = ".env"; python scripts\\merge_databases.py --target visa_main --create
+    #    stop the 3 instances and their watchdogs, then:
     $env:ENV_FILE = ".env"; python scripts\\merge_databases.py --target visa_main --apply
     # 2. set POSTGRES_DB=visa_main (and HOUSE=...) in the 3 .env files, start the instances.
 
@@ -27,6 +27,7 @@ Sources default to HAI=visa_db, PHONG=visa_db_phong, TAI=visa_db_tai; override w
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -134,9 +135,27 @@ def insert_rows(cursor, table: str, target_cols: list[str], rows: list[dict[str,
     return out
 
 
+def create_database(base: DatabaseConfig, name: str) -> bool:
+    """CREATE DATABASE name (connected through the ENV_FILE database). False if it already exists."""
+    if not re.fullmatch(r"[a-z_][a-z0-9_]*", name):
+        raise SystemExit(f"Tên DB chỉ gồm chữ thường, số, dấu _: {name!r}")
+    conn = get_connection(base)
+    try:
+        conn.autocommit = True
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (name,))
+            if cursor.fetchone():
+                return False
+            cursor.execute(f'CREATE DATABASE "{name}"')
+            return True
+    finally:
+        conn.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Merge the per-house databases into one")
-    parser.add_argument("--target", required=True, help="target database (must exist, empty)")
+    parser.add_argument("--target", required=True, help="target database (empty; see --create)")
+    parser.add_argument("--create", action="store_true", help="create the target database if it does not exist")
     parser.add_argument("--source", action="append", help="HOUSE=DBNAME (default: HAI=visa_db, PHONG=visa_db_phong, TAI=visa_db_tai)")
     parser.add_argument("--apply", action="store_true", help="commit (default: dry run, rolled back)")
     args = parser.parse_args()
@@ -145,6 +164,9 @@ def main() -> int:
     sources = parse_sources(args.source)
     if args.target in sources.values():
         raise SystemExit("Target must be a new database, not one of the sources")
+    if args.create:
+        created = create_database(base, args.target)
+        print(f"[create] {args.target}: {'đã tạo' if created else 'đã có sẵn'}")
 
     # ---- read every source (read only) ----
     data: dict[str, dict[str, list[dict[str, Any]]]] = {}
