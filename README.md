@@ -49,7 +49,7 @@ Chọn thư mục trên máy để tải thẳng lên bucket của nhà; trang h
 
 Khi `/run` báo lỗi token: bấm "🔑 Lấy token", chọn nhà, "Mở trang đăng nhập". Tab mới tự
 điền tài khoản của nhà; người dùng làm bước xác minh rồi đăng nhập; token tự gửi về server,
-được kiểm tra rồi lưu vào file token của nhà (`TOKEN_FILE_NAME`), tab tự đóng. Curl nào có
+được kiểm tra rồi lưu vào file token của nhà (`TOKEN_FILE_NAME`); tab bio vẫn để mở. Curl nào có
 `authorization` rỗng (curl do n8n tạo) đều dùng token đã lưu này.
 
 - Mỗi file env của nhà thêm: `BIO_LOGIN_URL` (trang đăng nhập bio), `BIO_USERNAME`, `BIO_PASSWORD`.

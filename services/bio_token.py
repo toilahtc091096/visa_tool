@@ -29,7 +29,7 @@ import requests
 from constants import CHECK_OLD_LIST_BASE_URL
 
 TICKET_TTL = 15 * 60  # seconds a ticket (open login tab) stays usable
-SCRIPT_VERSION = "1.2"
+SCRIPT_VERSION = "1.3"
 
 
 # ---------- house side (each instance, its own .env) ----------
@@ -157,7 +157,6 @@ _USERSCRIPT = r"""// ==UserScript==
 // @grant        GM_getValue
 // @grant        GM_deleteValue
 // @grant        unsafeWindow
-// @grant        window.close
 // @connect      __HOST__
 // @run-at       document-start
 // @updateURL    __BASE__/web/visa-token.user.js
@@ -284,8 +283,8 @@ _USERSCRIPT = r"""// ==UserScript==
       const r = await call('POST', '/web/bio/ticket/' + ticket + '/token', { authorization: token });
       if (r.status === 200 && r.data.ok) {
         finished = true; GM_deleteValue('visa_tool_ticket');
-        say('Đã cập nhật token nhà ' + (r.data.house || '') + ' ✓ — tab sẽ tự đóng', '#116b3a');
-        setTimeout(() => { try { window.close(); } catch (e) {} }, 2500);
+        say('Đã cập nhật token nhà ' + (r.data.house || '') + ' ✓ — có thể tiếp tục dùng tab này', '#116b3a');
+        setTimeout(() => { if (banner) banner.remove(); banner = null; }, 8000);   // the tab stays open
       } else {
         say((r.data.error || 'Token chưa dùng được') + '\nNếu chưa đăng nhập xong thì cứ tiếp tục đăng nhập.', '#a4161a');
       }
