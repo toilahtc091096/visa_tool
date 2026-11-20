@@ -244,6 +244,12 @@ def bio_save_authorization(house_name: str, authorization: str) -> dict[str, Any
                                         json={"authorization": authorization}, timeout=60))
 
 
+def bio_current_authorization(house_name: str) -> dict[str, Any]:
+    """The token the house uses now (its token file)."""
+    house = house_config(house_name)
+    return _json_or_error(requests.get(_local(house, "/bio/authorization/current"), timeout=15))
+
+
 def bio_check_authorization(house_name: str) -> dict[str, Any]:
     """Is the token the house has now still accepted?"""
     house = house_config(house_name)

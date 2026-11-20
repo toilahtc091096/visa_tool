@@ -130,6 +130,40 @@ class BioEndpointTest(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         app_.assert_not_called()  # a bad token never replaces the stored one
 
+    def test_current_token(self):
+        self.assertEqual(self.client.get("/bio/authorization/current", headers={"X-Api-Key": "shared"}).status_code, 403)
+        self.assertEqual(self.client.get("/web/bio/token?house=HAI").status_code, 401)
+        with mock.patch.object(self.server.web_portal, "bio_current_authorization", return_value={"ok": True, "authorization": "eyJcur"}):
+            r = self.client.get("/web/bio/token?house=hai", headers={"X-Api-Key": "bao-key"})
+        self.assertEqual(r.json(), {"ok": True, "house": "HAI", "authorization": "eyJcur"})
+
+    def test_run_authorization(self):
+        s = self.server
+        with mock.patch.object(s, "load_authorization", return_value="eyJstored"), \
+             mock.patch.object(s, "append_authorization") as save, \
+             mock.patch.object(s.bio_token, "check_authorization", return_value=(False, "expired")) as check:
+            # empty: unchanged (main() loads the stored token)
+            self.assertEqual(s._authorization_for_run({"authorization": ""}), {"authorization": ""})
+            # same as stored: no check
+            self.assertEqual(s._authorization_for_run({"authorization": "eyJstored"})["authorization"], "eyJstored")
+            check.assert_not_called()
+            # an old token in an old curl: refused, the stored one is used and kept
+            self.assertEqual(s._authorization_for_run({"authorization": "eyJold", "x": 1}), {"authorization": "eyJstored", "x": 1})
+            save.assert_not_called()
+        with mock.patch.object(s, "load_authorization", return_value="eyJstored"), \
+             mock.patch.object(s, "append_authorization") as save, \
+             mock.patch.object(s.bio_token, "check_authorization", return_value=(True, "ok")):
+            # a newer valid token pasted in the curl: used and stored
+            self.assertEqual(s._authorization_for_run({"authorization": "Bearer eyJnew"})["authorization"], "eyJnew")
+            save.assert_called_once_with("eyJnew")
+        with mock.patch.object(s, "load_authorization", return_value=""), \
+             mock.patch.object(s, "append_authorization") as save, \
+             mock.patch.object(s.bio_token, "check_authorization") as check:
+            # nothing stored yet: as before, stored without a check
+            s._authorization_for_run({"authorization": "eyJfirst"})
+            save.assert_called_once_with("eyJfirst")
+            check.assert_not_called()
+
     def test_manual_paste(self):
         url = "https://bio.visaforchina.cn/onlineWeb/x?site=HAN4_VI&token=eyJa.b.c&username=a"
         self.assertEqual(self.client.post("/web/bio/manual", json={"house": "TAI", "value": url}).status_code, 401)

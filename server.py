@@ -384,6 +384,14 @@ def bio_save_authorization(payload: dict[str, Any] = Body(...)):
     return {"ok": True, "message": message}
 
 
+@app.get("/bio/authorization/current")
+def bio_current_authorization(request: Request):
+    # The token this house uses now. Only from the VPS itself (the 10000 instance asks).
+    if not _is_local_request(request):
+        raise HTTPException(status_code=403, detail={"ok": False, "error": "local only"})
+    return {"ok": True, "authorization": load_authorization()}
+
+
 @app.get("/bio/authorization/check")
 def bio_check_saved_authorization():
     token = load_authorization()
@@ -473,6 +481,22 @@ def web_bio_manual(request: Request, payload: dict[str, Any] = Body(...)):
     return {"ok": True, "house": house}
 
 
+@app.get("/web/bio/token")
+def web_bio_token(request: Request, house: str = Query("")):
+    # Current token of the house: copy button, and filling "authorization" in the curl tab.
+    _web_user(request)
+    try:
+        result = web_portal.bio_current_authorization(house)
+        name = web_portal.house_config(house)["house"]
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không hỏi được instance nhà: {exc}"})
+    if not result.get("ok"):
+        raise HTTPException(status_code=502, detail={"ok": False, "error": result.get("error") or "Không đọc được token"})
+    return {"ok": True, "house": name, "authorization": result.get("authorization", "")}
+
+
 @app.get("/web/bio/check")
 def web_bio_check(request: Request, house: str = Query("")):
     _web_user(request)
@@ -531,9 +555,7 @@ def r2_folders_stat(payload: dict[str, Any] = Body(...)):
 
 @app.post("/run")
 def run(payload: dict[str, Any] = Body(...)):
-    authorization = str(payload.get("authorization", "") or "").strip()
-    if authorization:
-        append_authorization(authorization)
+    payload = _authorization_for_run(payload)
     case = build_case(payload)
     location_pinyin = _location_pinyin(case)
     result = main(
@@ -665,6 +687,29 @@ def _save_is_vip(record_id: int | None, payload: dict[str, Any]) -> int | None:
         )
         return None
     return int(is_vip)
+
+
+def _authorization_for_run(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Token for this /run. Empty -> the house's stored token (build_case/main load it).
+    Same as stored -> as is. Different: kept and stored only when the bio site
+    accepts it; an old token from an old curl never replaces the stored one.
+    """
+    authorization = bio_token.normalize_authorization(payload.get("authorization"))
+    if not authorization:
+        return payload
+    stored = load_authorization()
+    if authorization == stored:
+        return payload
+    if stored:
+        valid, message = bio_token.check_authorization(authorization)
+        if not valid:
+            log_event({"step": "run_authorization", "used": "stored", "reason": message,
+                       "curl_token_tail": authorization[-8:]})
+            return {**payload, "authorization": stored}
+    append_authorization(authorization)
+    log_event({"step": "run_authorization", "used": "curl", "saved": True, "token_tail": authorization[-8:]})
+    return {**payload, "authorization": authorization}
 
 
 def _save_owner(record_id: int | None, payload: dict[str, Any]) -> None:

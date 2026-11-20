@@ -161,6 +161,7 @@
         <div style="display:flex; gap:8px; align-items:flex-end">
           <button id="tOpen" type="button">Mở trang đăng nhập</button>
           <button id="tCheck" class="secondary" type="button">Kiểm tra token</button>
+          <button id="tCopy" class="secondary" type="button" title="Chép token hiện tại của nhà vào bộ nhớ tạm">📋 Copy token</button>
         </div>
       </div>
       <div id="tokenMsg"></div>
@@ -631,6 +632,29 @@ $('tCheck').onclick = async () => {
   } catch (e) { show($('tokenMsg'), e.message, false); }
   b.disabled = false;
 };
+// Copy: navigator.clipboard needs https; the page is http, so fall back to a hidden textarea.
+function copyText(text) {
+  try { if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text); } catch (e) {}
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+  document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand('copy');
+  ta.remove();
+  return ok ? Promise.resolve() : Promise.reject(new Error('Trình duyệt không cho chép'));
+}
+async function currentToken(house) {
+  return (await api('/web/bio/token?house=' + encodeURIComponent(house))).authorization || '';
+}
+$('tCopy').onclick = async () => {
+  const house = $('tHouse').value;
+  try {
+    const token = await currentToken(house);
+    if (!token) { show($('tokenMsg'), `Nhà ${house} chưa có token — bấm "Mở trang đăng nhập"`, false); return; }
+    await copyText(token);
+    show($('tokenMsg'), `Đã chép token nhà ${house} (…${token.slice(-10)})`, true);
+    toast('Đã chép token');
+  } catch (e) { show($('tokenMsg'), e.message, false); }
+};
 $('tManualSave').onclick = async () => {
   const b = $('tManualSave'); b.disabled = true;
   show($('tokenMsg'), `Đang kiểm tra và lưu token nhà ${$('tHouse').value}…`, true);
@@ -964,8 +988,25 @@ $('parseBtn').onclick = () => {
     $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
     $('curlBody').classList.remove('bad');
     $('curlEdit').classList.remove('hidden');
+    fillAuthorization(house, port);
   } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); }
 };
+
+// Curl from n8n has "authorization": "" (the server uses the house's stored token): show that token in the JSON.
+async function fillAuthorization(house, port) {
+  let body;
+  try { body = JSON.parse($('curlBody').value); } catch (e) { return; }
+  if (String(body.authorization || '').trim()) return;
+  try {
+    const token = await currentToken(house);
+    if (!token || curlPort !== port) return;          // another curl was read meanwhile
+    body = JSON.parse($('curlBody').value);
+    if (String(body.authorization || '').trim()) return; // edited meanwhile
+    body.authorization = token;
+    $('curlBody').value = JSON.stringify(body, null, 2);
+    $('curlBodyInfo').textContent += ` · authorization: token hiện tại của nhà ${house}`;
+  } catch (e) { /* not fatal: the server uses the stored token anyway */ }
+}
 
 function readBody() {
   try { const b = JSON.parse($('curlBody').value); $('curlBody').classList.remove('bad'); return b; }
