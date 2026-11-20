@@ -18,6 +18,60 @@ Trạng thái: `Chưa làm` · `Đang làm` · `Chờ test` · `Đạt` · `Khô
 
 ---
 
+## 0. Bàn giao: đọc mục này trước khi làm tiếp (cập nhật 2026-11-20, cuối ngày)
+
+### Hệ thống đang chạy ra sao
+- **n8n** chạy trên **Railway**: `https://n8n-production-d4d9.up.railway.app` (n8n 2.25.7).
+  - Biến môi trường đặt trong Railway → Variables. Đã có `N8N_ENCRYPTION_KEY` và `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, nên restart không mất credential và node đọc được `$env.X`.
+- **Server Python (FastAPI)** chạy trên **VPS Windows `160.250.5.191`**, 3 instance, mỗi instance là một **nhà** và có bucket R2 riêng:
+  - `HAI`: cổng 10000, bucket `visa-data`
+  - `PHONG`: cổng 20000, bucket `visa-data-phong`
+  - `TAI`: cổng 30000, bucket `visa-data-tai`
+  - Cập nhật code: `git pull`, rồi khởi động lại instance (lệnh có trong README).
+- **Người chạy:** nhân viên `LONG`, `BAO`, `HANG` và chủ `ADMIN`. Mỗi người có **1 bot Telegram và 1 chat cho mỗi nhà**, khai trong biến Railway `TELE_<NGƯỜI>_<NHÀ>_TOKEN` và `_CHAT`, cùng `TELE_PEOPLE`, `TELE_HOUSES`, `TELE_OWNER`, `TELE_FALLBACK_*`. Mọi tin gửi cho nhân viên cũng gửi một bản cho chủ, theo nhà (WF-20 `Route To Groups`).
+- **Bảo vệ server:** `ACCESS_GUARD=enforce`. Mọi lời gọi từ ngoài VPS phải có header `X-Api-Key` = `VISA_API_KEY`; giá trị này giống nhau trên Railway và trong `.env` của cả 3 instance. `/health` mở cho mọi nơi. `/web` cũng mở, nhưng tự kiểm tra khoá riêng của từng người dùng.
+- **Khởi chạy hồ sơ**, có 2 cách:
+  - (cũ) Sửa node 2 của WF-01 theo người và nhà (`BAO-HAI`, `LONG_PHONG`…), rồi chạy tay.
+  - (mới) Trang **`http://160.250.5.191:10000/web`**: đăng nhập → kéo thả thư mục hoặc gõ tên thư mục R2 → chọn loại visa, số ngày, quan hệ → Gửi. Server gọi webhook n8n **WF-00 Web Start**, WF-00 gọi WF01-GENERAL.
+- **Kết quả:** WF-13 dựng lệnh curl `/run` và gửi Telegram. Nhân viên chạy curl bằng Postman, hoặc ở tab **Chạy curl** trên web (chạy xong trang tự điền curl vào tab này). Sau khi gửi curl, WF14 chuyển thư mục gốc vào `_archive/<giờ>__<SỐ HỘ CHIẾU>/<thư mục>/`; quy tắc Lifecycle của R2 tự xoá sau 7 ngày. Chạy lại hồ sơ dùng tab **Chạy lại hồ sơ** trên web: **chỉ cần số hộ chiếu**, server tự dò cả 3 nhà để tìm bản lưu trữ và tên thư mục. Bản lưu trữ cũ (trước bản sửa này, tên không có số hộ chiếu) thì phải chọn nhà và nhập tên thư mục. Cũng có thể dùng WF-15.
+
+### Đã xong và đã kiểm tra trên hệ thống thật
+A1–A4, B1–B2, C1–C3, E1, E2, E4, E5, G1, G2 (chi tiết ở mục 5). D1 và E3 đã bỏ (lý do ở mục 5).
+
+### Đã code, đã push, nhưng có thể chưa triển khai hết: W1 (trang web)
+Code Python: các commit trên `main` từ `838d3c6` đến `63c90cf`. Kiểm tra lại:
+1. VPS đã `git pull` và khởi động lại **cả 3 instance** chưa (tải file lên và `/r2/folders/stat` chạy trên instance của từng nhà). Bảng `web_users` và `web_jobs`, cột `web_jobs.curl` được tạo tự động khi server khởi động.
+2. `.env` của instance 10000 có `N8N_START_WEBHOOK_URL=https://n8n-production-d4d9.up.railway.app/webhook/visa-start` chưa. Nếu `.env` có đặt `ACCESS_PUBLIC_PATHS` thì phải có `/web`.
+3. Đã tạo tài khoản chưa: `python scripts\web_user.py add <tên> <MÃ>`.
+4. Trên n8n đã import **WF14 bản mới** (`n8n-flow/patched-rerun/`, gửi kèm số hộ chiếu khi lưu trữ) chưa. Đã import và **Publish** WF-00 (`n8n-flow/patched-web/`) chưa. Đã import **bản mới nhất** 4 file trong `n8n-flow/patched-progress/` (WF01-GENERAL, WF-04, WF-12, WF-13) chưa. Bản mới nhất là bản đã chuyển các node `Progress:` lên **phía trên** nhánh chính (xem lưu ý về thứ tự nhánh bên dưới), và WF-13 `Progress: done` có gửi kèm curl.
+5. Chạy bảng test 10 dòng của W1 (mục 5, W1), ghi kết quả vào cột "Hiện tại".
+
+### Việc tiếp theo
+- **Đóng W1**, sau khi bạn triển khai và test xong.
+- **F1:** viết tài liệu dựng VPS mới cho server Python, gồm danh sách biến `.env`, danh sách biến Railway và các bước import n8n.
+- Đã biết nhưng **bạn chọn không sửa**: WF-02 báo "PDF conversion returned no pages" với một số PDF tên có chữ Hán. Hiện chỉ cần web báo lỗi và dừng, và việc đó đã làm.
+
+### Cách làm việc với n8n (quy ước của dự án)
+- Trước khi sửa: liệt kê các workflow và node sẽ sửa. Bạn export bản mới nhất vào `n8n-flow/workflows/` (thư mục này bị gitignore; export bằng PowerShell nên có BOM, đọc bằng `utf-8-sig`).
+- Chép thư mục `workflows` sang `n8n-flow/backup-<ngày>-before-<đợt>/`. Script sửa ghi ra `n8n-flow/patched-<đợt>/`, chỉ sửa đúng các node cần sửa. So khác biệt để chắc connections và các node khác không đổi. Chạy thử đoạn code đã sửa bằng Node trước khi đưa bạn import.
+- Nếu hai đợt sửa cùng một workflow, dựng đợt sau **trên file của đợt trước** để import sau không ghi đè mất thay đổi trước.
+- **Thứ tự nhánh trong n8n (executionOrder v1):** khi một output nối ra nhiều node, n8n chạy hết nhánh **nằm trên** rồi mới chạy nhánh dưới. Node phụ (báo tiến độ…) phải đặt **phía trên** nhánh chính. Nếu không, nó chỉ chạy sau cùng, hoặc không bao giờ chạy nếu nhánh chính kết thúc bằng Stop and Error.
+- **Viết script và code có dấu `\`** bằng công cụ ghi file, không dùng heredoc của Bash: heredoc biến `\\` thành `\` và đã từng làm hỏng code.
+- **Push file này** (`docs/n8n-improvement-tracker.md`) bị chặn tự động vì bảng hồ sơ test (mục 2) có tên thư mục khách hàng. Bạn tự push file này. Code thì push bình thường lên `main`.
+
+### File và chỗ quan trọng
+| Việc | Ở đâu |
+|---|---|
+| Lớp chặn truy cập | `utils/access_guard.py` (+ middleware trong `server.py`) |
+| Lưu trữ và khôi phục thư mục R2 | `api/r2_archive.py`; endpoint `/r2/folders/archive`, `/restore`, `/stat` |
+| Trang web | `web/index.html`, `services/web_portal.py`, các endpoint `/web/*` trong `server.py` |
+| DB trang web | `database/schema.sql` (`web_users`, `web_jobs`), `database/crud/web_user.py`, `web_job.py` |
+| Tài khoản web | `scripts/web_user.py` |
+| Danh sách quan hệ (nhãn gửi trong curl) | `services/web_portal.py` `RELATIONS`; WF-12 node 5 nhận nhãn viết hoa và dùng nguyên |
+| Test | `tests/test_access_guard.py`, `test_r2_archive.py`, `test_web_portal.py` (44 test). Chạy: `.venv\Scripts\python.exe -m unittest tests.test_web_portal tests.test_access_guard tests.test_r2_archive` |
+
+---
+
 ## 1. Mốc export dùng làm "Ban đầu"
 
 Nguồn: `n8n-flow/workflows/` export ngày 2026-11-20. Trước khi sửa một workflow, export lại và so `updatedAt` với bảng này. Nếu khác thì workflow đã bị sửa ngoài kế hoạch, phải so khác biệt trước.
@@ -543,3 +597,8 @@ Tiêu chí:
 | 2026-11-20 | W1 | Code trang `/web`: bảng `web_users`, `services/web_portal.py`, 5 endpoint, `web/index.html`, `scripts/web_user.py`, WF-00 Web Start (`n8n-flow/patched-web/`). 34/34 test đạt | — | Chờ triển khai | F1 để sau cùng |
 | 2026-11-20 | W1 | Thêm tải thư mục lên R2 từ trang web, theo dõi tiến độ có đồng hồ (bảng `web_jobs`, 7 node báo tiến độ trong n8n) | — | Chờ triển khai | 41/41 test đạt |
 | 2026-11-20 | W1 | Quan hệ có giới tính và chiều mời (ô gõ để lọc; S2 ưu tiên sắp cưới); WF-12 nhận nhãn từ web; tab "Chạy curl" kiểu Postman | — | Chờ triển khai | 44/44 test đạt |
+| 2026-11-20 | W1 | Vùng kéo thả thư mục lớn, đổi màu khi rê file vào. Chạy xong, trang tự lấy curl (WF-13 `Progress: done` gửi kèm `curl`, lưu ở cột `web_jobs.curl`), chuyển sang tab "Chạy curl" và hiện thông báo. Tab curl không còn ô chọn nhà, lấy nhà theo cổng. Ô quan hệ chỉ lọc theo tên quan hệ, không theo câu ví dụ | — | Chờ triển khai | 44/44 test đạt; đã chạy thử bộ lọc thật |
+| 2026-11-20 | W1 | Sửa lỗi web vẫn "Đang chạy" khi n8n đã báo lỗi: các node `Progress:` từng nằm dưới nhánh chính nên chạy sau cùng, hoặc không chạy vì `Mark Execution Failed1` dừng trước. Đã chuyển lên trên (`patched-progress/`). Trang không còn hiện `-1:-1`, có nhắc khi 15 phút chưa có cập nhật | hồ sơ X2 (PDF tên chữ Hán) | Web đã hiện lỗi và dừng | Lỗi PDF chữ Hán: bạn chọn không sửa |
+| 2026-11-20 | W1 | Gọn giao diện tiến độ (chỉ các bước đã chạy tới; ô lỗi chỉ gồm Lỗi, Bước, link n8n; nhãn trạng thái; khung tiến độ chỉ ở tab Khởi chạy). Form to hơn (rộng 880px, chữ 17px, ô và nút lớn). Commit `67c0df6`, `63c90cf` | — | Chờ triển khai | |
+| 2026-11-20 | — | Thêm mục 0 "Bàn giao" để làm tiếp ở session khác | — | — | |
+| 2026-11-20 | W1, B2 | Chạy lại chỉ cần số hộ chiếu: WF14 gửi kèm `passport_number` (`patched-rerun/`, bản gốc ở `backup-2026-11-20-before-rerun/`); bản lưu trữ đặt tên `_archive/<giờ>__<SỐ HC>/<thư mục>/`; `/r2/folders/restore` để trống `prefix` thì tự tìm theo số hộ chiếu; tab web chỉ cần số hộ chiếu, tự dò 3 nhà. 49/49 test đạt | — | Chờ triển khai | Bản lưu trữ cũ vẫn chạy lại được bằng nhà và tên thư mục |
