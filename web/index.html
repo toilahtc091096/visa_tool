@@ -81,6 +81,35 @@
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 32px);
            padding: 12px 18px; border-radius: 8px; background: var(--text); color: var(--bg); font-weight: 600;
            box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 20; }
+  main.wide { max-width: 1240px; }
+  .filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: end; }
+  .filters label { margin: 0 0 6px; font-size: 14px; }
+  .filters input, .filters select { padding: 9px 10px; }
+  @media (max-width: 900px) { .filters { grid-template-columns: 1fr 1fr; } }
+  .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .quick button { margin: 0; padding: 7px 14px; font-size: 15px; }
+  .tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 18px 0 4px; }
+  @media (max-width: 700px) { .tiles { grid-template-columns: 1fr 1fr; } }
+  .tile { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .tile .n { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tile .l { color: var(--muted); font-size: 14px; }
+  h2 { font-size: 19px; margin: 26px 0 8px; }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.data th, table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  table.data th { color: var(--muted); font-weight: 600; font-size: 13px; background: var(--bg); position: sticky; top: 0; }
+  table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.data tr.total td { font-weight: 700; }
+  table.data tr.click { cursor: pointer; }
+  table.data tr.click:hover td { background: var(--track); }
+  table.data td.zero { color: var(--muted); }
+  .st { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--track); color: var(--muted); }
+  .st.approved { background: var(--ok-bg); color: var(--ok); }
+  .st.rejected, .st.cancelled { background: var(--err-bg); color: var(--err); }
+  .pager { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--muted); }
+  .pager button { margin: 0; padding: 7px 14px; }
+  .search { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .search { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -102,6 +131,7 @@
       <button id="tabStart" class="on">Khởi chạy hồ sơ</button>
       <button id="tabRerun">Chạy lại hồ sơ</button>
       <button id="tabCurl">Chạy curl</button>
+      <button id="tabAdmin" class="hidden">Quản trị</button>
     </div>
 
     <div id="startCard" class="card">
@@ -191,6 +221,41 @@
       </div>
       <div id="rerunMsg"></div>
     </div>
+    <div id="adminCard" class="card hidden">
+      <div class="filters">
+        <div><label for="aFrom">Từ ngày</label><input id="aFrom" type="date"></div>
+        <div><label for="aTo">Đến ngày</label><input id="aTo" type="date"></div>
+        <div><label for="aStaff">Người làm</label><select id="aStaff"></select></div>
+        <div><label for="aHouse">Nhà</label><select id="aHouse"></select></div>
+        <div><label for="aVisa">Loại visa</label><select id="aVisa"></select></div>
+      </div>
+      <div class="quick">
+        <button class="secondary" data-range="today">Hôm nay</button>
+        <button class="secondary" data-range="yesterday">Hôm qua</button>
+        <button class="secondary" data-range="7">7 ngày</button>
+        <button class="secondary" data-range="month">Tháng này</button>
+        <button class="secondary" data-range="lastmonth">Tháng trước</button>
+        <button id="aLoad">Xem</button>
+      </div>
+      <div id="adminMsg"></div>
+
+      <div class="tiles" id="aTiles"></div>
+      <div class="hint">Mỗi bộ tính một lần, vào ngày và cho người chạy /run lần đầu. Hồ sơ từ trước khi có ghi người làm hiện "Không rõ".</div>
+
+      <h2>Theo người làm</h2>
+      <div class="tbl-wrap"><table class="data" id="aByStaff"></table></div>
+
+      <h2>Theo ngày</h2>
+      <div class="tbl-wrap" style="max-height:420px; overflow:auto"><table class="data" id="aByDay"></table></div>
+
+      <h2>Hồ sơ</h2>
+      <div class="search">
+        <div><label for="aQ">Tìm <span class="hint">số hộ chiếu, tên, mã hồ sơ</span></label><input id="aQ"></div>
+        <div><label for="aStatus">Trạng thái</label><select id="aStatus"></select></div>
+      </div>
+      <div class="tbl-wrap" style="margin-top:12px"><table class="data" id="aRecords"></table></div>
+      <div class="pager"><button class="secondary" id="aPrev">‹ Trước</button><span id="aPage"></span><button class="secondary" id="aNext">Sau ›</button></div>
+    </div>
   </section>
 </main>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -242,6 +307,9 @@ function render(info) {
   relationRequired = info.relation_required || [];
   STEPS = info.steps || [];
   onVisa();
+  isAdmin = info.staff === 'ADMIN';
+  $('tabAdmin').classList.toggle('hidden', !isAdmin);
+  if (isAdmin) { fill($('aVisa'), [{ value: '', label: 'Tất cả' }, ...info.visa_codes]); adminInit(); }
   const last = ls.get('visa_web_job');
   if (last) watchJob(last);
 }
@@ -539,7 +607,7 @@ $('loginBtn').onclick = async () => {
 };
 $('p').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
 $('logout').onclick = logout;
-const TABS = { tabStart: 'startCard', tabRerun: 'rerunCard', tabCurl: 'curlCard' };
+const TABS = { tabStart: 'startCard', tabRerun: 'rerunCard', tabCurl: 'curlCard', tabAdmin: 'adminCard' };
 Object.keys(TABS).forEach((tab) => {
   $(tab).onclick = () => {
     Object.entries(TABS).forEach(([t, card]) => {
@@ -547,8 +615,125 @@ Object.keys(TABS).forEach((tab) => {
       $(card).classList.toggle('hidden', t !== tab);
     });
     $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
+    document.querySelector('main').classList.toggle('wide', tab === 'tabAdmin');
+    if (tab === 'tabAdmin' && !adminLoaded) adminLoad();
   };
 });
+
+// ---------- admin: records of all houses ----------
+let isAdmin = false, adminLoaded = false, adminReady = null, aOffset = 0, aTotal = 0, aSearchTimer = null;
+const A_LIMIT = 50;
+const UNKNOWN = '_none';
+const STATUS_LABEL = { draft: 'Nháp', under_review: 'Đang xét', pending_review: 'Chờ xét', submitted: 'Đã nộp',
+                       approved: 'Đã duyệt', rejected: 'Từ chối', cancelled: 'Huỷ' };
+const staffName = (c) => c ? c : 'Không rõ';
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const num = (n) => Number(n || 0).toLocaleString('vi-VN');
+const adminErr = (e) => show($('adminMsg'), e.message, false);
+
+function setRange(r) {
+  const t = new Date(); let from = new Date(t), to = new Date(t);
+  if (r === 'yesterday') { from.setDate(t.getDate() - 1); to = new Date(from); }
+  else if (r === '7') from.setDate(t.getDate() - 6);
+  else if (r === 'month') from = new Date(t.getFullYear(), t.getMonth(), 1);
+  else if (r === 'lastmonth') { from = new Date(t.getFullYear(), t.getMonth() - 1, 1); to = new Date(t.getFullYear(), t.getMonth(), 0); }
+  $('aFrom').value = isoDay(from); $('aTo').value = isoDay(to);
+}
+
+function adminInit() {
+  if (adminReady) return adminReady;
+  setRange('month');
+  adminReady = api('/web/admin/options').then((o) => {
+    fill($('aStaff'), [{ value: '', label: 'Tất cả' }, ...o.staff, { value: o.unknown_staff, label: 'Không rõ' }]);
+    fill($('aHouse'), [{ value: '', label: 'Tất cả' }, ...o.houses]);
+    fill($('aStatus'), [{ value: '', label: 'Tất cả' }, ...o.statuses.map((s) => ({ value: s, label: STATUS_LABEL[s] || s }))]);
+  }).catch(adminErr);
+  return adminReady;
+}
+
+function adminQuery(extra) {
+  const q = new URLSearchParams({ date_from: $('aFrom').value, date_to: $('aTo').value, staff: $('aStaff').value,
+                                  house: $('aHouse').value, visa_code: $('aVisa').value, ...extra });
+  [...q.keys()].forEach((k) => { if (!q.get(k)) q.delete(k); });
+  return q.toString();
+}
+
+async function adminLoad() {
+  adminLoaded = true; aOffset = 0;
+  await adminInit();
+  const b = $('aLoad'); b.disabled = true; clear($('adminMsg'));
+  try {
+    const d = await api('/web/admin/stats?' + adminQuery({}));
+    renderStats(d.rows);
+    await adminRecords();
+  } catch (e) { adminErr(e); }
+  b.disabled = false;
+}
+
+function cell(n) { return `<td class="num${n ? '' : ' zero'}">${num(n)}</td>`; }
+
+function renderStats(rows) {
+  const KEYS = ['total', 'draft', 'in_progress', 'approved', 'rejected'];
+  const sum = Object.fromEntries(KEYS.map((k) => [k, 0]));
+  const byStaff = {}, byDay = {};
+  rows.forEach((r) => {
+    KEYS.forEach((k) => { sum[k] += r[k]; });
+    const s = byStaff[r.staff_code] ||= { ...Object.fromEntries(KEYS.map((k) => [k, 0])), houses: {} };
+    KEYS.forEach((k) => { s[k] += r[k]; });
+    s.houses[r.house || '?'] = (s.houses[r.house || '?'] || 0) + r.total;
+    const d = byDay[r.day] ||= {};
+    d[r.staff_code] = (d[r.staff_code] || 0) + r.total;
+  });
+  $('aTiles').innerHTML = [['total', 'Tổng số bộ'], ['draft', 'Nháp'], ['in_progress', 'Đang xử lý'], ['approved', 'Đã duyệt'], ['rejected', 'Từ chối / huỷ']]
+    .map(([k, l]) => `<div class="tile"><div class="n">${num(sum[k])}</div><div class="l">${l}</div></div>`).join('');
+
+  const order = Object.keys(byStaff).sort((a, b) => byStaff[b].total - byStaff[a].total);
+  const houseText = (h) => Object.entries(h).map(([k, v]) => `${esc(k)} ${num(v)}`).join(' · ');
+  $('aByStaff').innerHTML = rows.length
+    ? `<tr><th>Người làm</th><th class="num">Tổng</th><th class="num">Nháp</th><th class="num">Đang xử lý</th><th class="num">Đã duyệt</th><th class="num">Từ chối / huỷ</th><th>Theo nhà</th></tr>`
+      + order.map((k) => { const s = byStaff[k];
+          return `<tr class="click" title="Lọc theo người này" data-staff="${esc(k || UNKNOWN)}"><td>${esc(staffName(k))}</td>${KEYS.map((x) => cell(s[x])).join('')}<td>${houseText(s.houses)}</td></tr>`; }).join('')
+      + `<tr class="total"><td>Tổng</td>${KEYS.map((x) => cell(sum[x])).join('')}<td></td></tr>`
+    : '<tr><td class="hint">Không có hồ sơ nào trong khoảng này</td></tr>';
+  $('aByStaff').querySelectorAll('tr.click').forEach((tr) => {
+    tr.onclick = () => { $('aStaff').value = tr.dataset.staff; adminLoad(); };
+  });
+
+  const days = Object.keys(byDay).sort().reverse();
+  $('aByDay').innerHTML = rows.length
+    ? `<tr><th>Ngày</th>${order.map((c) => `<th class="num">${esc(staffName(c))}</th>`).join('')}<th class="num">Tổng</th></tr>`
+      + days.map((d) => { const r = byDay[d]; const t = Object.values(r).reduce((a, b) => a + b, 0);
+          return `<tr><td>${d.split('-').reverse().join('/')}</td>${order.map((c) => cell(r[c] || 0)).join('')}${cell(t)}</tr>`; }).join('')
+    : '';
+}
+
+async function adminRecords() {
+  const d = await api('/web/admin/records?' + adminQuery({ q: $('aQ').value.trim(), status: $('aStatus').value, limit: A_LIMIT, offset: aOffset }));
+  aTotal = d.total;
+  const two = (n) => String(n).padStart(2, '0');
+  const fmt = (iso) => { if (!iso) return ''; const t = new Date(iso);
+    return `${two(t.getDate())}/${two(t.getMonth() + 1)}/${t.getFullYear()} ${two(t.getHours())}:${two(t.getMinutes())}`; };
+  $('aRecords').innerHTML = `<tr><th>Ngày tạo</th><th>Nhà</th><th>Người làm</th><th>Họ tên</th><th>Hộ chiếu</th><th>Loại</th><th>Trạng thái</th><th>Mã hồ sơ</th><th>Đại lý</th></tr>`
+    + (d.items.length ? d.items.map((r) => `<tr><td>${fmt(r.created_at)}</td><td>${esc(r.house)}</td><td>${esc(staffName(r.staff_code))}</td>`
+        + `<td>${esc(r.full_name)}${r.is_vip ? ' <span class="st approved">VIP</span>' : ''}</td><td class="mono">${esc(r.passport_number)}</td><td>${esc(r.visa_type)}</td>`
+        + `<td><span class="st ${esc(r.status)}">${esc(STATUS_LABEL[r.status] || r.status)}</span></td><td class="mono">${esc(r.application_code)}</td><td>${esc(r.agency_code)}</td></tr>`).join('')
+      : '<tr><td colspan="9" class="hint">Không có hồ sơ</td></tr>');
+  $('aPage').textContent = aTotal ? `${num(aOffset + 1)}–${num(aOffset + d.items.length)} / ${num(aTotal)}` : '0 hồ sơ';
+  $('aPrev').disabled = aOffset <= 0;
+  $('aNext').disabled = aOffset + A_LIMIT >= aTotal;
+}
+
+function reloadRecords() { adminRecords().catch(adminErr); }
+document.querySelectorAll('[data-range]').forEach((b) => { b.onclick = () => { setRange(b.dataset.range); adminLoad(); }; });
+$('aLoad').onclick = adminLoad;
+['aFrom', 'aTo', 'aStaff', 'aHouse', 'aVisa'].forEach((id) => $(id).addEventListener('change', adminLoad));
+$('aStatus').addEventListener('change', () => { aOffset = 0; reloadRecords(); });
+$('aQ').addEventListener('input', () => {
+  clearTimeout(aSearchTimer);
+  aSearchTimer = setTimeout(() => { aOffset = 0; reloadRecords(); }, 350);
+});
+$('aPrev').onclick = () => { aOffset = Math.max(0, aOffset - A_LIMIT); reloadRecords(); };
+$('aNext').onclick = () => { aOffset += A_LIMIT; reloadRecords(); };
 
 // ---------- paste a curl, edit the JSON, run it (Postman-like) ----------
 const PORT_HOUSE = { '10000': 'HAI', '20000': 'PHONG', '30000': 'TAI' };

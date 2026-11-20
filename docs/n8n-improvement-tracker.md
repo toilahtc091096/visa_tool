@@ -48,7 +48,8 @@ Code Python: các commit trên `main` từ `838d3c6` đến `63c90cf`. Kiểm tr
 
 ### Việc tiếp theo
 - **Đóng W1**, sau khi bạn triển khai và test xong.
-- **F1:** viết tài liệu dựng VPS mới cho server Python, gồm danh sách biến `.env`, danh sách biến Railway và các bước import n8n.
+- **W2 + W3** (thống kê cho admin, gộp 3 DB về 1): đã code xong cả Python và n8n (`n8n-flow/patched-W2/`: WF01-GENERAL, WF-13). Chờ bạn triển khai theo các bước ở mục 5, W2 và W3.
+- **F1:** bạn bảo bỏ qua (2026-11-20).
 - Đã biết nhưng **bạn chọn không sửa**: WF-02 báo "PDF conversion returned no pages" với một số PDF tên có chữ Hán. Hiện chỉ cần web báo lỗi và dừng, và việc đó đã làm.
 
 ### Cách làm việc với n8n (quy ước của dự án)
@@ -68,7 +69,10 @@ Code Python: các commit trên `main` từ `838d3c6` đến `63c90cf`. Kiểm tr
 | DB trang web | `database/schema.sql` (`web_users`, `web_jobs`), `database/crud/web_user.py`, `web_job.py` |
 | Tài khoản web | `scripts/web_user.py` |
 | Danh sách quan hệ (nhãn gửi trong curl) | `services/web_portal.py` `RELATIONS`; WF-12 node 5 nhận nhãn viết hoa và dùng nguyên |
-| Test | `tests/test_access_guard.py`, `test_r2_archive.py`, `test_web_portal.py` (44 test). Chạy: `.venv\Scripts\python.exe -m unittest tests.test_web_portal tests.test_access_guard tests.test_r2_archive` |
+| DB chung, nhà của instance | `database/house.py` (`HOUSE`, mặc định theo `PORT`); mọi hàm trong `database/crud/visa_registration.py`, `agency.py`, `approval_print_job.py` tự lọc theo nhà |
+| Báo cáo admin (đọc mọi nhà) | `database/crud/admin_report.py`, endpoint `/web/admin/*`, tab "Quản trị" trong `web/index.html` |
+| Gộp DB | `scripts/merge_databases.py` (mặc định chạy thử rồi huỷ, `--apply` mới ghi) |
+| Test | `tests/test_access_guard.py`, `test_r2_archive.py`, `test_web_portal.py`, `test_house_db.py` (68 test). Chạy: `.venv\Scripts\python.exe -m unittest tests.test_web_portal tests.test_access_guard tests.test_r2_archive tests.test_house_db` |
 
 ---
 
@@ -163,7 +167,9 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | E4  | E   | Tên file upload cố định cho 4 node rồi bật retry                                      | n8n WF-07B, 10, 11     | Đạt | 2026-11-20 |
 | E5  | E   | Tin báo lỗi ghi rõ workflow con và node gây lỗi (hiện chỉ ghi `Call PDF & Image Preprocessing'1`) | n8n WF01-GENERAL       | Đạt | 2026-11-20 |
 | W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Chờ triển khai |  |
-| F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Chưa làm   |           |
+| W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Chờ triển khai |  |
+| W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Chờ triển khai |  |
+| F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Bỏ qua (bạn chọn, 2026-11-20) |           |
 | G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
 | G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
 ---
@@ -505,6 +511,89 @@ Tiêu chí:
 
 ---
 
+### W2 — Thống kê số bộ cho admin
+
+**Ban đầu:** `visa_registrations` không ghi ai làm hồ sơ. Curl `/run` (WF-13) chỉ có `agency_code`, `is_vip`, `source_prefix`. `web_jobs` có người làm nhưng chỉ cho hồ sơ khởi chạy từ web, không nối được với bản ghi hồ sơ, và n8n chạy xong chưa chắc `/run` đã chạy. Mỗi nhà một DB, nên không có chỗ nào xem chung được.
+
+**Bạn chốt (2026-11-20)**
+- Một bộ tính **một lần**, cho **người chạy đầu tiên**. Chạy lại cùng `first_applyid` không đổi người, không tính thêm.
+- Ngày của bộ là ngày tạo bản ghi (`created_at`, giờ Việt Nam).
+- "Quản lý hồ sơ" tạm thời chỉ cần xem, tìm và lọc.
+
+**Cách làm**
+- Cột mới `visa_registrations.staff_code` và `job_id`. Người đã ghi thì giữ nguyên (`set_visa_registration_owner`, và `create_visa_registration` khi gặp bản ghi đã có).
+- `staff` chỉ có ở WF01-GENERAL (`Validate Input1`), không đi xuống các workflow con; còn `job_id` thì đi tới WF-13. Nên không kéo `staff` qua các workflow, mà nối qua `job_id`:
+  - **WF01-GENERAL** `Progress: files`: gửi thêm `staff`, `house`, `visa_type`, `source_prefix`. Server tạo dòng `web_jobs` cho cả lần chạy từ WF-01 (`username` rỗng; lần chạy từ web thì giữ dòng cũ).
+  - **WF-13** `Build API Request Body1`: thêm `job_id` vào body curl.
+  - `/run`: người làm = `staff_code` của `job_id` trong `web_jobs`; không tìm thấy thì lấy `staff` trong body.
+- `/web/run` (tab Chạy curl): curl nào chưa có `staff` thì thêm người đang đăng nhập. Dùng cho curl cũ (chưa có `job_id`).
+- Bản sửa: `n8n-flow/patched-W2/`, bản gốc (export 19:24) ở `backup-2026-11-20-before-W2/`. Chỉ 2 node đổi, connections giữ nguyên; đã chạy thử cả 2 bằng Node.
+- Curl cũ chạy bằng Postman (không có `job_id`, không có `staff`) thì hồ sơ hiện "Không rõ".
+- `database/crud/admin_report.py`: đếm theo ngày × người × nhà (tổng, nháp, đang xử lý, đã duyệt, từ chối/huỷ), danh sách hồ sơ có phân trang. Đọc **mọi nhà**, chỉ đọc.
+- Endpoint `GET /web/admin/options`, `/web/admin/stats`, `/web/admin/records`, chỉ tài khoản `staff_code = ADMIN` (người khác nhận 403).
+- Tab **Quản trị** trên `/web` (chỉ hiện với ADMIN):
+  - Lọc từ ngày, đến ngày, người, nhà, loại visa; nút nhanh Hôm nay / Hôm qua / 7 ngày / Tháng này / Tháng trước.
+  - Ô số tổng, bảng theo người (bấm vào một người để lọc theo người đó), bảng ngày × người.
+  - Danh sách hồ sơ: tìm theo số hộ chiếu, tên, mã hồ sơ; lọc trạng thái; 50 dòng mỗi trang.
+- Hồ sơ cũ không có người làm, hiện "Không rõ", lọc được riêng.
+
+**Kỳ vọng**
+- [x] Unit test (`tests/test_house_db.py`, `test_web_portal.py`): chỉ ADMIN vào được, bộ lọc ngày/người/nhà/loại/tìm kiếm, người chạy đầu được giữ, tra người làm theo `job_id`, WF-01 đăng ký job qua `/web/progress`. 68/68 đạt.
+- [ ] Sau khi import `patched-W2`: mỗi nhân viên chạy 1 hồ sơ từ web và 1 từ WF-01, chạy curl bằng Postman. Tab Quản trị hiện đúng người, đúng nhà, đúng ngày.
+- [ ] Chạy lại một hồ sơ đã có bằng tài khoản khác: số bộ không tăng, người làm không đổi.
+- [ ] Tài khoản không phải ADMIN không thấy tab Quản trị; gọi `/web/admin/stats` trả 403.
+
+**Triển khai:** Python (cùng bước 1 của W3) trước, rồi import 2 file trong `n8n-flow/patched-W2/`. Nếu import n8n trước, server cũ bỏ qua các trường mới, không lỗi.
+
+**Hiện tại (2026-11-20):** đã code, chờ triển khai.
+
+---
+
+### W3 — Gộp 3 DB về 1 DB
+
+**Ban đầu** (env thật bạn đưa, 2026-11-20): cùng một Postgres trên VPS, mỗi nhà một DB:
+
+| Nhà | Cổng | DB | Miền | Dùng riêng |
+|---|---|---|---|---|
+| HAI | 10000 | `visa_db` | Bắc | `web_users`, `web_jobs` (trang web chạy ở đây) |
+| PHONG | 20000 | `visa_db_phong` | Bắc | IMAP duyệt HAN (`han_approval_jobs`) |
+| TAI | 30000 | `visa_db_tai` | Nam | Sheet đại lý (`agencies`) |
+
+Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xoá theo hộ chiếu) đọc toàn bộ bảng, dùng token và tài khoản của nhà đó.
+
+**Bạn chốt:** gộp về 1 DB, mỗi dòng có mã nhà. `agencies` tách theo nhà (chỉ miền Nam dùng thật).
+
+**Cách làm**
+- `database/house.py`: nhà của instance lấy từ `HOUSE` trong `.env`; không có thì theo `PORT` (10000 HAI, 20000 PHONG, 30000 TAI).
+- Cột `house` trong `visa_registrations`, `han_approval_jobs`, `agencies`. `agencies` đổi khoá duy nhất từ `code` sang `(house, code)`; MB và CHUNG được tạo cho từng nhà khi server khởi động.
+- **Mọi hàm** trong `database/crud/visa_registration.py`, `agency.py`, `approval_print_job.py` tự lọc `house = <nhà của instance>`. Chỗ gọi không phải tự lọc nên không quên được. Test kiểm tra từng hàm đều có điều kiện nhà. Ghi đè bản ghi của nhà khác (trùng `first_applyid`) bị từ chối.
+- Khi khởi động, các dòng chưa có nhà được gán cho nhà của instance, **chỉ khi** bảng chưa có dòng của nhà khác (tức DB vẫn là DB riêng). Trong DB chung thì không gán.
+- `scripts/merge_databases.py`:
+  - Đọc 3 DB nguồn (chỉ đọc, không sửa).
+  - Báo lỗi và dừng nếu trùng `first_applyid`, `application_code`, `han_code`, `username`, `api_key`, `job_id` giữa các nhà.
+  - Chép vào DB đích trong một transaction, cấp id mới, map lại `agency_id` theo mã đại lý.
+  - So số dòng theo từng nhà giữa nguồn và đích.
+  - Mặc định chạy thử rồi huỷ; thêm `--apply` mới ghi.
+
+**Các bước triển khai** (làm theo thứ tự)
+1. `git pull` code mới, khởi động lại cả 3 instance. Thêm `HOUSE=HAI`, `HOUSE=PHONG`, `HOUSE=TAI` vào 3 file `.env` (không thêm thì lấy theo `PORT`). Lúc này mỗi nhà vẫn dùng DB riêng, các dòng cũ được gán nhà.
+2. Tạo DB đích trống: `CREATE DATABASE visa_main;` (cùng user Postgres).
+3. Chạy thử: `$env:ENV_FILE = ".env"; python scripts\merge_databases.py --target visa_main`. Mọi dòng `[check]` phải `OK`.
+4. **Dừng cả 3 instance** (để không có hồ sơ mới ghi vào DB cũ trong lúc gộp), rồi chạy lại lệnh ở bước 3 kèm `--apply`.
+5. Đổi `POSTGRES_DB=visa_main` trong cả 3 file `.env`, khởi động lại.
+6. Giữ 3 DB cũ ít nhất 2 tuần để quay lại nếu cần: chỉ cần đổi `POSTGRES_DB` về DB cũ, nhưng hồ sơ phát sinh sau bước 5 sẽ chỉ có trong `visa_main`.
+
+**Kỳ vọng**
+- [x] Unit test: mọi hàm CRUD đều lọc theo nhà; khởi động không gán nhầm dòng của nhà khác; script phát hiện mã trùng giữa các nhà. 66/66 đạt. SQL đã chạy qua bộ parser của Postgres (`pglast`). Chưa chạy trên Postgres thật vì máy này không có.
+- [ ] Bước 3 trên VPS: mọi dòng `[check]` OK.
+- [ ] Sau bước 5: sync trạng thái của mỗi nhà chỉ chạy hồ sơ của nhà đó (log `[sync_draft] loaded status=draft count=...` bằng số trước khi gộp).
+- [ ] PHONG duyệt HAN, TAI ghi sheet đại lý vẫn chạy như cũ.
+- [ ] Tab Quản trị thấy hồ sơ của cả 3 nhà.
+
+**Hiện tại (2026-11-20):** đã code, chờ triển khai.
+
+---
+
 ### F1 — Dựng VPS mới
 
 **Ban đầu:** n8n cài trực tiếp trên VPS. Server Python cài bằng `scripts/install_tasks.ps1`. Chưa có tài liệu đầy đủ để dựng VPS mới: cài n8n, Redis, Postgres, import workflow, credential, biến môi trường, Word.
@@ -602,3 +691,6 @@ Tiêu chí:
 | 2026-11-20 | W1 | Gọn giao diện tiến độ (chỉ các bước đã chạy tới; ô lỗi chỉ gồm Lỗi, Bước, link n8n; nhãn trạng thái; khung tiến độ chỉ ở tab Khởi chạy). Form to hơn (rộng 880px, chữ 17px, ô và nút lớn). Commit `67c0df6`, `63c90cf` | — | Chờ triển khai | |
 | 2026-11-20 | — | Thêm mục 0 "Bàn giao" để làm tiếp ở session khác | — | — | |
 | 2026-11-20 | W1, B2 | Chạy lại chỉ cần số hộ chiếu: WF14 gửi kèm `passport_number` (`patched-rerun/`, bản gốc ở `backup-2026-11-20-before-rerun/`); bản lưu trữ đặt tên `_archive/<giờ>__<SỐ HC>/<thư mục>/`; `/r2/folders/restore` để trống `prefix` thì tự tìm theo số hộ chiếu; tab web chỉ cần số hộ chiếu, tự dò 3 nhà. 49/49 test đạt | — | Chờ triển khai | Bản lưu trữ cũ vẫn chạy lại được bằng nhà và tên thư mục |
+| 2026-11-20 | W2, W3 | Bạn yêu cầu: admin xem số bộ theo người và ngày; gộp DB về 1, có mã nhà. Bỏ qua F1. Env thật: HAI `visa_db`, PHONG `visa_db_phong`, TAI `visa_db_tai` (cùng Postgres). Bạn chốt: tính cho người chạy đầu; quản lý hồ sơ tạm chỉ xem, lọc; `agencies` tách theo nhà | — | — | |
+| 2026-11-20 | W2, W3 | Code: cột `house`, `staff_code`, `job_id`; CRUD tự lọc theo nhà (`database/house.py`); `/run` lưu người làm; endpoint `/web/admin/*` và tab Quản trị; `scripts/merge_databases.py` | — | Chờ triển khai | |
+| 2026-11-20 | W2 | Duyệt lại trên export 19:24 (bạn báo bản cũ). `staff` chỉ có ở WF01-GENERAL nên nối qua `job_id`: WF01-GENERAL `Progress: files` gửi `staff`, `house`; WF-13 thêm `job_id` vào curl; `/run` tra người làm theo `job_id`. Kết quả `patched-W2/`, bản gốc `backup-2026-11-20-before-W2/`. 68/68 test đạt | Node: body có `job_id`, progress có `staff` | Chờ triển khai | |

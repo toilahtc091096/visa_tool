@@ -5,6 +5,7 @@ import threading
 import time
 import traceback
 from contextlib import asynccontextmanager
+from datetime import date
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, Body, Form, Query
@@ -22,7 +23,7 @@ from api import api_archive_r2_folder, api_restore_r2_folder, api_stat_r2_folder
 from api import api_sign_and_push_image_to_r2
 from constants import REGION, REGION_SOUTH
 from database.connection import init_database
-from database.crud import set_visa_registration_vip
+from database.crud import set_visa_registration_owner, set_visa_registration_vip
 from main import build_case, main
 from services.han_approval import (
     list_han_approval_jobs,
@@ -51,8 +52,10 @@ from services.web_portal import step_status as web_step_status
 from services.web_portal import upload_file as web_upload_file
 from services.web_portal import house_by_port as web_house_by_port
 from services.web_portal import run_case as web_run_case
-from database.crud.web_job import add_web_job_step, create_web_job, get_web_job
+from database.crud.web_job import add_web_job_step, create_web_job, get_job_staff, get_web_job
 from database.crud.web_job import now_iso as web_now_iso
+from database.crud import admin_report
+from database.house import HOUSES as HOUSE_NAMES
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -254,8 +257,12 @@ def web_run(request: Request, payload: dict[str, Any] = Body(...)):
     user = _web_user(request)
     try:
         house = payload.get("house") or web_house_by_port(payload.get("port"))
+        body = payload.get("body")
+        # A curl without `staff` (built before WF-13 sent it) counts for the person running it.
+        if isinstance(body, dict) and not str(body.get("staff", "") or "").strip():
+            body = {**body, "staff": user["staff_code"]}
         started = time.time()
-        result = web_run_case(house, payload.get("body"))
+        result = web_run_case(house, body)
     except WebFormError as exc:
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     except Exception as exc:
@@ -279,6 +286,15 @@ def web_progress(request: Request, payload: dict[str, Any] = Body(...)):
     except WebFormError as exc:
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     curl = str(payload.get("curl", "") or "")[:300_000]  # WF-13 sends the curl with the "done" step
+    staff = str(payload.get("staff", "") or "").strip().upper()
+    if job_id and staff:
+        # WF01-GENERAL sends staff/house with its first step: a run started from WF-01 (not /web)
+        # gets a job row too, so /run can tell who made the record. Existing (web) jobs are kept.
+        create_web_job({"job_id": job_id, "staff": staff,
+                        "house": str(payload.get("house", "") or "").strip().upper(),
+                        "visa_type": str(payload.get("visa_type", "") or "").strip(),
+                        "source_prefix": str(payload.get("source_prefix", "") or "").strip()},
+                       "", web_make_step("received", "", web_now_iso()))
     known = bool(job_id) and add_web_job_step(job_id, step, web_step_status(step["step"]), curl)
     return {"ok": True, "tracked": known}  # False = run not started from /web (or already finished)
 
@@ -290,6 +306,48 @@ def web_job(request: Request, job_id: str):
     if not job or (job["username"] != user["username"] and user["staff_code"] != "ADMIN"):
         raise HTTPException(status_code=404, detail={"ok": False, "error": "Không tìm thấy lần chạy này"})
     return {"ok": True, "job": job, "now": web_now_iso()}
+
+
+# ---------- /web admin: records of all houses (staff_code ADMIN only) ----------
+_ADMIN_FILTER_KEYS = ("date_from", "date_to", "staff", "house", "visa_code", "status", "q")
+
+
+def _web_admin(request: Request) -> dict[str, Any]:
+    user = _web_user(request)
+    if user["staff_code"] != "ADMIN":
+        raise HTTPException(status_code=403, detail={"ok": False, "error": "Chỉ tài khoản ADMIN được xem trang này"})
+    return user
+
+
+def _admin_filters(request: Request) -> dict[str, str]:
+    filters = {key: request.query_params.get(key, "") for key in _ADMIN_FILTER_KEYS}
+    for key in ("date_from", "date_to"):
+        if filters[key]:
+            try:
+                filters[key] = date.fromisoformat(filters[key]).isoformat()
+            except ValueError:
+                raise HTTPException(status_code=400, detail={"ok": False, "error": f"Ngày không hợp lệ: {filters[key]}"})
+    return filters
+
+
+@app.get("/web/admin/options")
+def web_admin_options(request: Request):
+    _web_admin(request)
+    return {"ok": True, "staff": admin_report.list_staff_codes(), "houses": list(HOUSE_NAMES),
+            "statuses": ["draft", "under_review", "pending_review", "submitted", "approved", "rejected", "cancelled"],
+            "unknown_staff": admin_report.UNKNOWN_STAFF}
+
+
+@app.get("/web/admin/stats")
+def web_admin_stats(request: Request):
+    _web_admin(request)
+    return {"ok": True, "rows": admin_report.count_by_staff_day(_admin_filters(request))}
+
+
+@app.get("/web/admin/records")
+def web_admin_records(request: Request, limit: int = Query(50), offset: int = Query(0)):
+    _web_admin(request)
+    return {"ok": True, **admin_report.list_records(_admin_filters(request), limit=limit, offset=offset)}
 
 
 @app.post("/web/folder-stat")
@@ -363,6 +421,7 @@ def run(payload: dict[str, Any] = Body(...)):
     if result.get("ok"):
         # Before the sheet write below, so the row already has is_vip.
         is_vip = _save_is_vip(result.get("record_id"), payload)
+        _save_owner(result.get("record_id"), payload)
         if is_vip is not None:
             result["is_vip"] = is_vip
         agency = assign_agency_to_registration(result.get("record_id"), payload)
@@ -465,6 +524,25 @@ def _save_is_vip(record_id: int | None, payload: dict[str, Any]) -> int | None:
         )
         return None
     return int(is_vip)
+
+
+def _save_owner(record_id: int | None, payload: dict[str, Any]) -> None:
+    """
+    Store who started the record. WF-13 puts the n8n `job_id` in the curl; the
+    staff of that job is known from /web/start or from WF01-GENERAL's first
+    progress call. `staff` in the body (added by /web/run) is used when the
+    job is unknown. The first run keeps the owner. Never raises.
+    """
+    if not record_id:
+        return
+    job_id = str(payload.get("job_id", "") or "").strip()
+    try:
+        staff = get_job_staff(job_id) or str(payload.get("staff", "") or "").strip()
+        if staff:
+            set_visa_registration_owner(record_id, staff, job_id)
+    except Exception as exc:
+        log_event({"step": "save_owner", "ok": False, "record_id": record_id,
+                   "error": f"{type(exc).__name__}: {exc}"})
 
 
 def _write_agency_sheet_safely(

@@ -161,7 +161,7 @@ class EndpointTest(unittest.TestCase):
             mock.patch.dict(os.environ, {"ACCESS_GUARD": "enforce", "VISA_API_KEY": "shared"}),
             mock.patch.object(self.server, "get_web_user_by_api_key", side_effect=lambda k: user if k == "user-key" else None),
             mock.patch.object(self.server, "authenticate_web_user", side_effect=lambda u, pw: dict(user) if (u, pw) == ("bao", "pw") else None),
-            mock.patch.object(self.server, "create_web_job", side_effect=lambda job, u, step: self.jobs.update({job["job_id"]: {"username": u, "steps": [step], "status": "running"}})),
+            mock.patch.object(self.server, "create_web_job", side_effect=lambda job, u, step: self.jobs.setdefault(job["job_id"], {"username": u, "staff": job["staff"], "steps": [step], "status": "running"})),
             mock.patch.object(self.server, "add_web_job_step", side_effect=self._add_step),
             mock.patch.object(self.server, "get_web_job", side_effect=lambda jid: self.jobs.get(jid) and {"job_id": jid, **self.jobs[jid]}),
         ]
@@ -234,6 +234,32 @@ class EndpointTest(unittest.TestCase):
         self.assertEqual([s["step"] for s in j["steps"]], ["received", "classifying", "done"])
         self.assertEqual(j["status"], "done")
 
+    def test_progress_with_staff_registers_wf01_run(self):
+        body = {"job_id": "job-wf01", "step": "files_loaded", "message": "3 file", "staff": "long", "house": "tai",
+                "visa_type": "L30", "source_prefix": "A/"}
+        r = self.client.post("/web/progress", json=body, headers={"X-Api-Key": "shared"})
+        self.assertEqual(r.json(), {"ok": True, "tracked": True})
+        self.assertEqual((self.jobs["job-wf01"]["username"], self.jobs["job-wf01"]["staff"]), ("", "LONG"))
+        self.assertEqual(self.server.create_web_job.call_args.args[0]["house"], "TAI")
+        # a run from /web keeps its row (user, staff)
+        form = {"house": "HAI", "visa_code": "L", "days": "30", "source_prefix": "L30 - A"}
+        with mock.patch.object(self.server, "start_case", side_effect=lambda c: {"ok": True, "job_id": c["job_id"]}):
+            job_id = self.client.post("/web/start", json=form, headers={"X-Api-Key": "user-key"}).json()["job_id"]
+        self.client.post("/web/progress", json={**body, "job_id": job_id, "staff": "HANG"}, headers={"X-Api-Key": "shared"})
+        self.assertEqual((self.jobs[job_id]["username"], self.jobs[job_id]["staff"]), ("bao", "BAO"))
+
+    def test_run_owner_from_job_id(self):
+        with mock.patch.object(self.server, "set_visa_registration_owner") as own, \
+             mock.patch.object(self.server, "get_job_staff", side_effect=lambda j: {"job-1": "LONG"}.get(j, "")):
+            self.server._save_owner(5, {"job_id": "job-1", "staff": "BAO"})  # job known: its staff wins
+            self.assertEqual(own.call_args.args, (5, "LONG", "job-1"))
+            self.server._save_owner(6, {"job_id": "job-x", "staff": "BAO"})  # unknown job: staff from /web/run
+            self.assertEqual(own.call_args.args, (6, "BAO", "job-x"))
+            own.reset_mock()
+            self.server._save_owner(7, {"passportNumber": "E1"})  # old curl run from Postman: unknown
+            self.server._save_owner(None, {"job_id": "job-1"})
+            own.assert_not_called()
+
     def test_start_n8n_failure_marks_job_error(self):
         form = {"house": "HAI", "visa_code": "M", "days": "", "source_prefix": "A"}
         with mock.patch.object(self.server, "start_case", side_effect=RuntimeError("n8n down")):
@@ -262,7 +288,10 @@ class EndpointTest(unittest.TestCase):
         with mock.patch.object(self.server, "web_run_case", return_value={"ok": True, "status_code": 200, "house": "HAI", "response": {"ok": True}}) as rc:
             r = self.client.post("/web/run", json={"port": "10000", "body": body}, headers={"X-Api-Key": "user-key"})
         self.assertEqual(r.status_code, 200, r.text)
-        self.assertEqual(rc.call_args.args, ("HAI", body))
+        self.assertEqual(rc.call_args.args, ("HAI", {**body, "staff": "BAO"}))  # counts for the person running it
+        with mock.patch.object(self.server, "web_run_case", return_value={"ok": True, "status_code": 200, "house": "HAI", "response": {}}) as rc:
+            self.client.post("/web/run", json={"port": "10000", "body": {**body, "staff": "HANG"}}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(rc.call_args.args[1]["staff"], "HANG")  # staff from the curl (WF-13) is kept
         r = self.client.post("/web/run", json={"port": "8080", "body": body}, headers={"X-Api-Key": "user-key"})
         self.assertEqual(r.status_code, 400)
 

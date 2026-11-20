@@ -5,25 +5,26 @@ from typing import Any
 from psycopg2.extras import RealDictCursor
 
 from database.connection import get_connection
+from database.house import current_house
 
 
 def get_or_create_agency(code: str) -> dict[str, Any]:
-    """Return the agency with this code, creating it (name = code) if new."""
+    """Return the current house's agency with this code, creating it (name = code) if new."""
     code = str(code or "").strip().upper()
     if not code:
         raise ValueError("agency code is required")
 
     sql = """
-        INSERT INTO agencies (code, name)
-        VALUES (%s, %s)
-        ON CONFLICT (code) DO UPDATE SET code = EXCLUDED.code
+        INSERT INTO agencies (house, code, name)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (house, code) DO UPDATE SET code = EXCLUDED.code
         RETURNING id, code, name
     """
     conn = get_connection()
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(sql, (code, code))
+                cursor.execute(sql, (current_house(), code, code))
                 return dict(cursor.fetchone())
     finally:
         conn.close()
@@ -45,7 +46,7 @@ def set_visa_registration_agency(
             SELECT vr.id, a.code AS old_code
             FROM visa_registrations vr
             LEFT JOIN agencies a ON a.id = vr.agency_id
-            WHERE vr.id = %s
+            WHERE vr.id = %s AND vr.house = %s
         )
         UPDATE visa_registrations vr
         SET agency_id = {new_agency}, updated_at = NOW()
@@ -57,7 +58,7 @@ def set_visa_registration_agency(
     try:
         with conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, (record_id, agency_id))
+                cursor.execute(sql, (record_id, current_house(), agency_id))
                 row = cursor.fetchone()
                 return None if row is None else (row[0] or "")
     finally:
@@ -78,6 +79,7 @@ def list_visa_registrations_with_agency(
         FROM visa_registrations vr
         JOIN agencies a ON a.id = vr.agency_id
         WHERE vr.id = ANY(%s)
+          AND vr.house = %s
           AND NOT (a.code = ANY(%s))
         ORDER BY vr.id
     """
@@ -85,7 +87,7 @@ def list_visa_registrations_with_agency(
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(sql, (ids, list(exclude_codes or [])))
+                cursor.execute(sql, (ids, current_house(), list(exclude_codes or [])))
                 return list(cursor.fetchall())
     finally:
         conn.close()
@@ -113,7 +115,7 @@ def find_visa_registrations_with_agency(
                vr.status, a.code AS agency_code
         FROM visa_registrations vr
         LEFT JOIN agencies a ON a.id = vr.agency_id
-        WHERE {where}
+        WHERE {where} AND vr.house = %s
         ORDER BY vr.id DESC
         LIMIT 1
     """
@@ -121,18 +123,18 @@ def find_visa_registrations_with_agency(
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(sql, (param,))
+                cursor.execute(sql, (param, current_house()))
                 return list(cursor.fetchall())
     finally:
         conn.close()
 
 
 def update_agency_name(agency_id: int, name: str) -> None:
-    sql = "UPDATE agencies SET name = %s, updated_at = NOW() WHERE id = %s"
+    sql = "UPDATE agencies SET name = %s, updated_at = NOW() WHERE id = %s AND house = %s"
     conn = get_connection()
     try:
         with conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, (name, agency_id))
+                cursor.execute(sql, (name, agency_id, current_house()))
     finally:
         conn.close()

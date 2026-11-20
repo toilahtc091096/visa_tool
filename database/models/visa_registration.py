@@ -14,6 +14,9 @@ class VisaRegistration:
     visa_type: str = ""
     status: str = "draft"
     payload: dict[str, Any] = field(default_factory=dict)
+    staff_code: str = ""
+    job_id: str = ""
+    house: str = ""
     id: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -29,6 +32,9 @@ class VisaRegistration:
             visa_type=data.get("visa_type", "") or "",
             status=data.get("status", "draft") or "draft",
             payload=dict(data.get("payload") or {}),
+            staff_code=data.get("staff_code", "") or "",
+            job_id=data.get("job_id", "") or "",
+            house=data.get("house", "") or "",
             created_at=data.get("created_at"),
             updated_at=data.get("updated_at"),
         )

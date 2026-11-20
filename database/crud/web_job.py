@@ -65,6 +65,21 @@ def add_web_job_step(job_id: str, step: dict[str, Any], status: str = "running",
         conn.close()
 
 
+def get_job_staff(job_id: str) -> str:
+    """Staff who started this run (web or WF-01), "" when unknown."""
+    job_id = str(job_id or "").strip()
+    if not job_id:
+        return ""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT staff_code FROM web_jobs WHERE job_id = %s", (job_id,))
+            row = cursor.fetchone()
+            return str(row[0] or "") if row else ""
+    finally:
+        conn.close()
+
+
 def get_web_job(job_id: str) -> dict[str, Any] | None:
     conn = get_connection()
     try:

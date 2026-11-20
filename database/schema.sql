@@ -67,10 +67,7 @@ CREATE TABLE IF NOT EXISTS agencies (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO agencies (code, name) VALUES
-    ('MB', 'Miền Bắc'),
-    ('CHUNG', 'Đại lý chung')
-ON CONFLICT (code) DO NOTHING;
+-- MB and CHUNG are created per house by init_database (database/connection.py).
 
 -- Old records keep agency_id NULL.
 ALTER TABLE visa_registrations
@@ -132,3 +129,20 @@ CREATE INDEX IF NOT EXISTS idx_web_jobs_username_started ON web_jobs (username, 
 
 -- The curl WF-13 built (sent by n8n with the "done" step); the page loads it into the curl tab.
 ALTER TABLE web_jobs ADD COLUMN IF NOT EXISTS curl TEXT NOT NULL DEFAULT '';
+
+-- One database for every house (HAI, PHONG, TAI). Each row carries its house;
+-- database/crud filters on the instance's house (database/house.py).
+-- staff_code / job_id: who started the record (first /run that created it).
+ALTER TABLE visa_registrations ADD COLUMN IF NOT EXISTS house TEXT NOT NULL DEFAULT '';
+ALTER TABLE visa_registrations ADD COLUMN IF NOT EXISTS staff_code TEXT NOT NULL DEFAULT '';
+ALTER TABLE visa_registrations ADD COLUMN IF NOT EXISTS job_id TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_visa_registrations_house_created ON visa_registrations (house, created_at);
+CREATE INDEX IF NOT EXISTS idx_visa_registrations_staff_created ON visa_registrations (staff_code, created_at);
+
+ALTER TABLE han_approval_jobs ADD COLUMN IF NOT EXISTS house TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_han_approval_jobs_house ON han_approval_jobs (house);
+
+-- Agencies are per house (only the South house really uses them): code is unique per house.
+ALTER TABLE agencies ADD COLUMN IF NOT EXISTS house TEXT NOT NULL DEFAULT '';
+ALTER TABLE agencies DROP CONSTRAINT IF EXISTS agencies_code_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agencies_house_code ON agencies (house, code);

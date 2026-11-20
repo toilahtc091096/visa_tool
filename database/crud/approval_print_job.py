@@ -5,13 +5,14 @@ from typing import Any
 from psycopg2.extras import Json, RealDictCursor
 
 from database.connection import get_connection
+from database.house import current_house
 
 
 def get_approval_print_job_by_han_code(han_code: str) -> dict[str, Any] | None:
     sql = """
         SELECT *
         FROM han_approval_jobs
-        WHERE han_code = %s
+        WHERE han_code = %s AND house = %s
         LIMIT 1
     """
 
@@ -19,7 +20,7 @@ def get_approval_print_job_by_han_code(han_code: str) -> dict[str, Any] | None:
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(sql, (han_code,))
+                cursor.execute(sql, (han_code, current_house()))
                 return cursor.fetchone()
     finally:
         conn.close()
@@ -40,9 +41,10 @@ def upsert_approval_print_job_processing(
             status,
             attempt_count,
             last_error,
-            updated_at
+            updated_at,
+            house
         )
-        VALUES (%s, %s, %s, %s, 'printing', 1, '', NOW())
+        VALUES (%s, %s, %s, %s, 'printing', 1, '', NOW(), %s)
         ON CONFLICT (han_code) DO UPDATE
         SET source_email = EXCLUDED.source_email,
             message_id = EXCLUDED.message_id,
@@ -51,6 +53,7 @@ def upsert_approval_print_job_processing(
             attempt_count = han_approval_jobs.attempt_count + 1,
             last_error = '',
             updated_at = NOW()
+        WHERE han_approval_jobs.house = EXCLUDED.house
         RETURNING *
     """
 
@@ -65,6 +68,7 @@ def upsert_approval_print_job_processing(
                         source_email,
                         message_id,
                         subject,
+                        current_house(),
                     ),
                 )
                 row = cursor.fetchone()
@@ -88,7 +92,7 @@ def update_approval_print_job_by_han_code(
             last_error = %s,
             printed_at = CASE WHEN %s = 'printed' THEN NOW() ELSE printed_at END,
             updated_at = NOW()
-        WHERE han_code = %s
+        WHERE han_code = %s AND house = %s
     """
 
     conn = get_connection()
@@ -104,6 +108,7 @@ def update_approval_print_job_by_han_code(
                         last_error or "",
                         status,
                         han_code,
+                        current_house(),
                     ),
                 )
                 return cursor.rowcount > 0
@@ -124,14 +129,14 @@ def update_approval_print_job_status_by_ids(
         SET status = %s,
             last_error = '',
             updated_at = NOW()
-        WHERE id = ANY(%s)
+        WHERE id = ANY(%s) AND house = %s
     """
 
     conn = get_connection()
     try:
         with conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, (status, record_ids))
+                cursor.execute(sql, (status, record_ids, current_house()))
                 return cursor.rowcount
     finally:
         conn.close()
@@ -150,14 +155,14 @@ def update_approval_print_job_status_by_codes(
         SET status = %s,
             last_error = '',
             updated_at = NOW()
-        WHERE han_code = ANY(%s)
+        WHERE han_code = ANY(%s) AND house = %s
     """
 
     conn = get_connection()
     try:
         with conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, (status, han_codes))
+                cursor.execute(sql, (status, han_codes, current_house()))
                 return cursor.rowcount
     finally:
         conn.close()
@@ -176,13 +181,14 @@ def reset_approval_print_jobs_by_printed_range(
         WHERE printed_at >= %s
           AND printed_at < %s
           AND status = 'printed'
+          AND house = %s
     """
 
     conn = get_connection()
     try:
         with conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, (start_dt, end_dt))
+                cursor.execute(sql, (start_dt, end_dt, current_house()))
                 return cursor.rowcount
     finally:
         conn.close()
@@ -192,6 +198,7 @@ def list_approval_print_jobs(limit: int = 100, offset: int = 0) -> list[dict[str
     sql = """
         SELECT *
         FROM han_approval_jobs
+        WHERE house = %s
         ORDER BY id DESC
         LIMIT %s OFFSET %s
     """
@@ -200,7 +207,7 @@ def list_approval_print_jobs(limit: int = 100, offset: int = 0) -> list[dict[str
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(sql, (limit, offset))
+                cursor.execute(sql, (current_house(), limit, offset))
                 return list(cursor.fetchall())
     finally:
         conn.close()
