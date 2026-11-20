@@ -108,6 +108,9 @@
   .st.rejected, .st.cancelled { background: var(--err-bg); color: var(--err); }
   .pager { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--muted); }
   .pager button { margin: 0; padding: 7px 14px; }
+  .tbar { height: 8px; min-width: 2px; background: var(--accent); border-radius: 4px; }
+  table.data tr.fail td { background: var(--err-bg); color: var(--err); font-weight: 600; }
+  table.data td.barcell { width: 45%; }
   .search { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .search { grid-template-columns: 1fr; } }
 </style>
@@ -195,6 +198,10 @@
         </div>
       </div>
       <div id="curlMsg"></div>
+      <div id="curlTimes" class="hidden">
+        <h2>Thời gian từng bước</h2>
+        <div class="tbl-wrap"><table class="data" id="curlTimesTbl"></table></div>
+      </div>
       <pre id="curlResult" class="result hidden"></pre>
     </div>
 
@@ -818,8 +825,35 @@ function readBody() {
 $('curlBody').addEventListener('input', () => { try { readBody(); } catch (e) {} });
 $('fmtBtn').onclick = () => { try { $('curlBody').value = JSON.stringify(readBody(), null, 2); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
 
+// Phases of /run (flows/run_flow.py, result.timings), in run order.
+const PHASE_LABEL = {
+  validate: 'Kiểm tra dữ liệu', token_ocr: 'Token + đọc hộ chiếu (OCR)', draft_person: 'Tìm bản nháp, chuẩn bị thông tin',
+  person_apply: 'Lưu thông tin cá nhân + đơn', family_work_education: 'Gia đình, công việc, học vấn',
+  travel_docs: 'Lịch trình + tạo giấy tờ', upload_files: 'Tải file lên', total: 'Tổng',
+};
+
+// timings = {phase: seconds}; a failed run stops in its last phase (before "total").
+function renderTimings(timings, ok) {
+  const box = $('curlTimes');
+  const phases = Object.entries(timings || {}).filter(([k]) => k !== 'total');
+  if (!phases.length) { box.classList.add('hidden'); return; }
+  const total = Number(timings.total ?? phases.reduce((a, [, s]) => a + Number(s || 0), 0));
+  const failed = ok ? '' : phases[phases.length - 1][0];
+  const secs = (s) => `${Number(s || 0).toFixed(2)} s`;
+  const row = ([k, s], cls = '') => {
+    const pct = total > 0 ? Math.max(0, Math.min(100, (Number(s || 0) / total) * 100)) : 0;
+    return `<tr class="${cls}"><td>${esc(PHASE_LABEL[k] || k)}${k === failed ? ' — lỗi ở đây' : ''}`
+      + ` <span class="hint mono">${esc(k)}</span></td><td class="num">${secs(s)}</td>`
+      + `<td class="num">${pct.toFixed(0)}%</td><td class="barcell"><div class="tbar" style="width:${pct.toFixed(1)}%"></div></td></tr>`;
+  };
+  $('curlTimesTbl').innerHTML = '<tr><th>Bước</th><th class="num">Thời gian</th><th class="num">%</th><th></th></tr>'
+    + phases.map((p) => row(p, p[0] === failed ? 'fail' : '')).join('')
+    + `<tr class="total"><td>Tổng</td><td class="num">${secs(total)}</td><td class="num">100%</td><td></td></tr>`;
+  box.classList.remove('hidden');
+}
+
 $('runBtn').onclick = async () => {
-  const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden');
+  const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden'); $('curlTimes').classList.add('hidden');
   let body;
   try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
   if (!curlPort) { show($('curlMsg'), 'Bấm "Đọc curl" trước', false); return; }
@@ -836,6 +870,7 @@ $('runBtn').onclick = async () => {
       if (res.error || res.message) lines.push(`Lỗi: ${res.error || res.message}${res.status_code ? ` (mã ${res.status_code})` : ''}`);
     }
     show($('curlMsg'), lines.join('\n'), r.ok);
+    renderTimings(res.timings, r.ok);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
   } catch (e) { show($('curlMsg'), e.message, false); }
