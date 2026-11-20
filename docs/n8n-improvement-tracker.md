@@ -100,9 +100,9 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | B1  | B   | WF14 chuyển thư mục gốc vào `_archive/` thay vì xoá, Cloudflare tự xoá sau 7 ngày     | n8n WF14 + Python + R2 | Đạt | 2026-11-20 |
 | B2  | B   | Quy trình chạy lại hồ sơ và workflow hỗ trợ WF-15                                     | n8n + Python           | Đạt | 2026-11-20 |
 | C1  | C   | Server: mọi lời gọi từ ngoài VPS (n8n trên Railway, curl của nhân viên) phải có khoá `X-Api-Key` | Python + n8n           | Chờ triển khai |  |
-| C2  | C   | Token Telegram chuyển sang credential hoặc biến môi trường                            | n8n                    | Chưa làm   |           |
-| C3  | C   | Tắt truy cập công khai r2.dev, bỏ `r2_public_url` khỏi trường bắt buộc                | R2 + n8n               | Chưa làm   |           |
-| D1  | D   | WF-01 nhập liệu bằng Form Trigger, gộp 3 bản thành 1                                  | n8n                    | Chưa làm   |           |
+| C2  | C   | Token Telegram chuyển sang credential hoặc biến môi trường                            | n8n                    | Chờ triển khai |  |
+| C3  | C   | Tắt truy cập công khai r2.dev, bỏ `r2_public_url` khỏi trường bắt buộc                | R2 + n8n               | Chờ triển khai |  |
+| D1  | D   | WF-01 nhập liệu bằng Form Trigger, gộp 3 bản thành 1                                  | n8n                    | Bỏ (thay bằng trang web nhập liệu, làm sau cùng) |  |
 | E1  | E   | Get Folder Name kiểm tra `ready` trước khi đổi `folder_name`                          | n8n                    | Chưa làm   |           |
 | E2  | E   | WF-11 gắn cờ khi upload lỗi                                                           | n8n                    | Chưa làm   |           |
 | E3  | E   | Gom code lặp (`Apply Folder Context`, hàm tìm api_port, 3 nhánh School)               | n8n                    | Chưa làm   |           |
@@ -327,30 +327,48 @@ Tiêu chí:
 
 ---
 
-### C2 — Token Telegram
+### C2 — Token Telegram ra biến Railway, gửi thêm vào nhóm của chủ
 
-**Ban đầu:** token bot viết cứng trong `generate-id` của 3 bản WF-01 và trong biểu thức dự phòng của WF-20 (`Send Curl1`, `Send Error1`). Chat_id dự phòng `728598263`.
+**Ban đầu**
+- Token bot viết cứng trong `generate-id` của từng bản WF-01, và trong biểu thức dự phòng của WF-20 (`Send Curl1`, `Send Error1`). Chat dự phòng là `728598263`.
+- Các node gửi ảnh của WF-20 dùng token của **item đầu tiên** cho cả lô.
+
+**Mô hình (bạn xác nhận 2026-11-20)**
+- Có 3 nhà: `HAI` (cổng 10000), `PHONG` (20000), `TAI` (30000).
+- **Mỗi người**, cả nhân viên lẫn chủ, có **1 bot và 1 nhóm cho mỗi nhà**.
+- Nhân viên S chạy hồ sơ ở nhà H: bot S-H gửi vào nhóm S-H, đồng thời bot của chủ cho nhà H gửi một bản vào nhóm của chủ cho nhà H. Mỗi nhóm nhận đủ số ảnh.
+
+**Biến Railway**
+- `TELE_PEOPLE` (vd `BAO,HANG,PHONG,ADMIN`), `TELE_HOUSES=HAI,PHONG,TAI`, `TELE_OWNER=ADMIN`
+- `TELE_<NGƯỜI>_<NHÀ>_TOKEN` và `TELE_<NGƯỜI>_<NHÀ>_CHAT` cho mỗi người và mỗi nhà
+- `TELE_FALLBACK_TOKEN` và `TELE_FALLBACK_CHAT` cho lỗi không xác định được ai chạy
+
+**Cách sửa** (`n8n-flow/patched-C2C3/`, dựng trên `patched-C2` nên vẫn giữ khoá API)
+- WF-01: node 2 chỉ ghi `staff` và `house`. Bỏ `chat_token`, `chat_id`, `r2_public_url`.
+- WF01-GENERAL `Validate Input1`: lấy bot và nhóm của người chạy, cùng bot và nhóm của chủ cho nhà đó, từ biến Railway. Thiếu biến thì báo rõ tên biến còn thiếu. Bản WF-01 cũ (còn token và chat) vẫn chạy được: dò ra người và nhà qua token hoặc chat.
+- WF-20: thêm node `Route To Groups` trước Switch, nhân mỗi tin thành bản cho nhóm người chạy và bản cho nhóm của chủ. Chủ tự chạy thì chỉ gửi 1 lần. 6 node Send dùng `tg_token` và `tg_chat` của từng tin.
 
 **Kỳ vọng**
+- [x] Chạy thử bằng Node: nhân viên ở từng nhà, WF-01 cũ, gửi curl, chủ tự chạy, lỗi không rõ người chạy, thiếu biến. Kết quả đúng bot, đúng nhóm. Không còn token, `728598263` hay r2.dev trong các node.
+- [ ] Nhân viên chạy TC-01: mọi ảnh, curl và lỗi có mặt ở nhóm của nhân viên (bot của họ) và nhóm của chủ cho nhà đó (bot của chủ).
 
-- [ ] Không còn token trong bất kỳ file export nào (kiểm tra bằng cách grep `bot[0-9]+:` ra 0 kết quả).
-- [ ] Tin Telegram vẫn về đúng chat của từng người chạy.
-
-**Hiện tại:** —
+**Hiện tại:** đã sửa, chờ triển khai.
 
 ---
 
 ### C3 — r2.dev công khai
 
-**Ban đầu:** 3 bản WF-01 khai báo `r2_public_url`; WF01-GENERAL coi đây là trường bắt buộc; WF-07 chỉ truyền tiếp. Không node nào dùng giá trị này để tải file. Python chỉ dùng khi có `R2_PUBLIC_BASE`, mà các file `.env` trong repo không đặt biến này.
+**Ban đầu:** WF01-GENERAL bắt buộc phải có `r2_public_url`, nhưng không node nào dùng giá trị này. Server không có `R2_PUBLIC_BASE` (bạn xác nhận 2026-11-20).
+
+**Cách sửa**
+- `Validate Input1` bỏ `r2_public_url` khỏi danh sách trường bắt buộc.
+- WF-01 bỏ dòng `r2_public_url`.
+- Trên Cloudflare, tắt Public Development URL (r2.dev) của từng bucket.
 
 **Kỳ vọng**
+- [ ] Đã tắt r2.dev trên mọi bucket. TC-01 chạy bình thường.
 
-- [ ] Đã kiểm tra `.env` trên VPS không có `R2_PUBLIC_BASE`, và không hệ thống nào khác dùng link r2.dev.
-- [ ] Đã tắt Public Development URL của từng bucket trên Cloudflare.
-- [ ] `r2_public_url` không còn là trường bắt buộc. TC-01 chạy bình thường.
-
-**Hiện tại:** —
+**Hiện tại:** đã sửa phần n8n, chờ bạn tắt r2.dev trên Cloudflare.
 
 ---
 
@@ -459,3 +477,5 @@ Tiêu chí:
 | 2026-11-20 | B1, B2, G1, G2 | Bạn triển khai và test | TC-03, hồ sơ có giấy 停留 | **Đạt** | Bạn báo "kết quả ok hết" |
 | 2026-11-20 | C1 | Phát hiện n8n chạy trên Railway, không cùng VPS với server, nên cách chặn theo `127.0.0.1` không dùng được | — | **Không import `patched-C/`** | Thiết kế lại: n8n gửi `X-Api-Key` cho mọi lời gọi server |
 | 2026-11-20 | C1 | Thiết kế lại cho Railway: dùng khoá `VISA_API_KEY` cho mọi lời gọi từ ngoài. Python 12 test; `patched-C2/` (23 node). Đã xoá `patched-C` | — | Chờ triển khai | Railway đã có `N8N_ENCRYPTION_KEY` và cho phép đọc biến môi trường, bạn đã restart thử thành công |
+| 2026-11-20 | C2, C3 | Token Telegram chuyển ra biến Railway; mỗi tin gửi cả nhóm nhân viên và nhóm nhà của chủ; bỏ bắt buộc `r2_public_url`. Kết quả `patched-C2C3/` (dựng trên `patched-C2`) | — | Chờ triển khai | D1 bỏ, vì sẽ làm trang web nhập liệu sau cùng |
+| 2026-11-20 | C2 | Làm lại theo mô hình mỗi người 1 bot và 1 nhóm cho mỗi nhà (HAI 10000, PHONG 20000, TAI 30000); bản sao cho chủ gửi bằng bot của chủ cho nhà đó | — | Chờ triển khai | Thay bản `patched-C2C3` trước, bản đó dựng theo kiểu bot theo nhà |
