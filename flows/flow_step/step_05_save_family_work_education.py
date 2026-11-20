@@ -234,7 +234,8 @@ async def save_family_work_education(ctx, client) -> bool:
         body_save_family_info.phoneNumber = ctx.phone
     # Both regions: email chosen by phone (Vietnamese -> name_123@gmail.com,
     # Chinese mobile -> phone_123@qq.cn).
-    body_save_family_info.email = contact_email(
+    # An email from the request (applicant's own, read from the INFO file) wins.
+    body_save_family_info.email = getattr(ctx, "email", "") or contact_email(
         body_save_family_info.mobilePhoneNumber or body_save_family_info.phoneNumber,
         ctx.ocr_data.Response.Data.passportFamilyName or "",
         ctx.ocr_data.Response.Data.passportFirstName or "",

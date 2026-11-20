@@ -1,7 +1,17 @@
+import re
 from types import SimpleNamespace
 
 from utils.person_name import join_person_name
 from visa_types.base import get_visa_profile, normalize_visa_type
+
+
+_EMAIL_RE = re.compile(r"^[a-z0-9._%+\-]+@[a-z0-9\-]+(\.[a-z0-9\-]+)*\.[a-z]{2,}$")
+
+
+def normalize_email(value) -> str:
+    """Lower-case email without spaces, or "" when it does not look like an email."""
+    email = re.sub(r"\s+", "", str(value or "")).lower()
+    return email if _EMAIL_RE.match(email) else ""
 
 
 def get_in(d, *keys, default=None):
@@ -95,6 +105,8 @@ def build_flow_context(**kwargs):
     ctx.guarantorNote = kwargs.get("guarantorNote", "")
     # Applicant phone from the request, used for SaveFamilyInfo phones (both regions).
     ctx.phone = str(kwargs.get("phone", "") or "").strip()
+    # Applicant email from the request ("" or not an email -> generated in SaveFamilyInfo).
+    ctx.email = normalize_email(kwargs.get("email", ""))
     ctx.emergencyFamilyName = kwargs.get("emergencyFamilyName", "")
     ctx.emergencyGivenName = kwargs.get("emergencyGivenName", "")
     ctx.emergencyRelationship = kwargs.get("emergencyRelationship", "")
