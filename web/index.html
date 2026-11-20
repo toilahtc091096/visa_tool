@@ -39,13 +39,22 @@
   .progress { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-top: 8px; }
   .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
   .timer { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .steps { list-style: none; padding: 0; margin: 12px 0 0; }
-  .steps li { display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--line); }
-  .steps li:last-child { border-bottom: 0; }
-  .steps .t { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .steps .pending { color: var(--muted); }
-  .steps .sub { grid-column: 2 / 4; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
-  .steps .error { color: var(--err); }
+  .job-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .job-title { color: var(--muted); font-size: 13px; word-break: break-word; }
+  .x { margin: 0; padding: 0 4px; background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1; }
+  .job-status { display: flex; align-items: baseline; gap: 10px; margin-top: 2px; }
+  .badge { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--track); color: var(--muted); }
+  .badge.done { background: var(--ok-bg); color: var(--ok); }
+  .badge.error { background: var(--err-bg); color: var(--err); }
+  .steps { list-style: none; padding: 0; margin: 10px 0 0; }
+  .steps li { display: grid; grid-template-columns: 20px 1fr auto; gap: 6px; padding: 4px 0; }
+  .steps .t { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .steps .msg-inline { color: var(--muted); font-size: 13px; }
+  .steps .next { color: var(--muted); }
+  .errbox { margin-top: 10px; padding: 10px 12px; border-radius: 7px; background: var(--err-bg); color: var(--err); font-size: 14px; }
+  .errbox b { font-weight: 600; }
+  .errbox a { color: inherit; }
+  .errbox div + div { margin-top: 4px; }
   textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); font: inherit; resize: vertical; }
   .mono, pre.result { font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
   pre.result { margin: 14px 0 0; padding: 10px; border: 1px solid var(--line); border-radius: 7px; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
@@ -132,10 +141,11 @@
     </div>
 
     <div id="jobCard" class="card hidden">
-      <div class="bar" style="margin:0"><span id="jobTitle"></span><button class="secondary" id="jobClose">Đóng</button></div>
-      <div class="timer" id="timer">00:00</div>
-      <div id="jobState" class="hint"></div>
+      <div class="job-head"><span id="jobTitle" class="job-title"></span><button class="x" id="jobClose" title="Đóng" aria-label="Đóng">×</button></div>
+      <div class="job-status"><span class="timer" id="timer">00:00</span><span id="jobState" class="badge"></span></div>
+      <div id="jobIdle" class="hint"></div>
       <ul class="steps" id="steps"></ul>
+      <div id="jobError"></div>
     </div>
 
     <div id="curlCard" class="card hidden">
@@ -157,7 +167,7 @@
     </div>
 
     <div id="rerunCard" class="card hidden">
-      <p class="hint">Xoá thư mục số hộ chiếu (kết quả lần chạy trước) và đưa thư mục gốc từ lưu trữ về lại. Bấm <b>Kiểm tra</b> trước, đúng rồi mới <b>Thực hiện</b>. Sau đó khởi chạy lại hồ sơ ở tab bên cạnh.</p>
+      <p class="hint">Đưa hồ sơ về trạng thái chưa chạy để chạy lại. <b>Kiểm tra</b> trước, đúng rồi mới <b>Thực hiện</b>.</p>
       <label for="rHouse">Nhà</label>
       <select id="rHouse"></select>
       <label for="rPrefix">Thư mục hồ sơ</label>
@@ -425,32 +435,54 @@ function stopWatch() { clearInterval(pollTimer); clearInterval(clockTimer); poll
 // Mốc "Đã nhận" được ghi giờ trước khi DB đặt started_at vài ms -> không để ra số âm
 function secs(iso) { return Math.max(0, (Date.parse(iso) - Date.parse(curJob.started_at)) / 1000); }
 
+// Chỉ giữ dòng cần đọc trong tin lỗi Telegram: Bước, Lỗi, link Xem chi tiết (Job/Folder/Visa/Thời gian đã có ở tiêu đề)
+function errorBox(text) {
+  const lines = String(text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const get = (k) => (lines.find((l) => l.startsWith(k)) || '').slice(k.length).trim();
+  const step = get('Bước:'), err = get('Lỗi:'), link = get('Xem chi tiết:');
+  if (!step && !err && !link) return `<div class="errbox">${esc(text)}</div>`;
+  return '<div class="errbox">' +
+    (err ? `<div><b>Lỗi:</b> ${esc(err)}</div>` : '') +
+    (step ? `<div><b>Bước:</b> ${esc(step)}</div>` : '') +
+    (/^https?:\/\//.test(link) ? `<div><a href="${esc(link)}" target="_blank" rel="noopener">Xem chi tiết trong n8n ↗</a></div>` : '') +
+    '</div>';
+}
+
 function drawJob() {
   const j = curJob;
-  $('jobTitle').textContent = `${j.job_id} · Nhà ${j.house} · ${j.visa_type} · ${j.source_prefix}`;
+  $('jobTitle').textContent = `${j.job_id} · ${j.house} · ${j.visa_type} · ${j.source_prefix}`;
   const reached = {};
   (j.steps || []).forEach((s) => { reached[s.step] = s; });
-  const lastStep = (j.steps || []).filter((s) => s.step !== 'error').slice(-1)[0];
+  const running = j.status === 'running';
+  const order = STEPS.map((s) => s.step);
+  const lastIdx = Math.max(-1, ...Object.keys(reached).map((k) => order.indexOf(k)));
   let html = '';
-  for (const s of STEPS) {
+  STEPS.forEach((s, i) => {
     const r = reached[s.step];
-    const current = j.status === 'running' && lastStep && lastStep.step === s.step && s.step !== 'done';
-    const icon = r ? (current ? '▶' : '✔') : '·';
-    html += `<li class="${r ? '' : 'pending'}"><span>${icon}</span><span>${esc(s.label)}</span><span class="t">${r ? mmss(secs(r.at)) : ''}</span>` +
-      (r && r.message ? `<span class="sub">${esc(r.message)}</span>` : '') + '</li>';
-  }
-  if (reached.error) {
-    html += `<li class="error"><span>❌</span><span>Lỗi</span><span class="t">${mmss(secs(reached.error.at))}</span><span class="sub">${esc(reached.error.message)}</span></li>`;
-  }
+    if (r) {
+      const current = running && i === lastIdx && s.step !== 'done';
+      // "Đã tải file" + "Đã tải 10 file" -> một dòng: dùng message nếu nó đã đủ nghĩa
+      const text = r.message && plain(r.message).startsWith(plain(s.label).split(' ').slice(0, 2).join(' '))
+        ? esc(r.message)
+        : esc(s.label) + (r.message ? ` <span class="msg-inline">· ${esc(r.message)}</span>` : '');
+      html += `<li><span>${current ? '▶' : '✔'}</span><span>${text}</span><span class="t">${s.step === 'received' ? '' : mmss(secs(r.at))}</span></li>`;
+    } else if (running && i === lastIdx + 1) {
+      html += `<li class="next"><span>·</span><span>${esc(s.label)}</span><span class="t"></span></li>`;   // chỉ hiện bước kế tiếp
+    }
+  });
   $('steps').innerHTML = html;
-  let state = j.status === 'done' ? 'Hoàn tất' : j.status === 'error' ? 'Dừng vì lỗi' : 'Đang chạy…';
-  if (j.status === 'running') {
-    // Lâu không có mốc mới: có thể n8n đã dừng mà không báo về được -> nhắc xem Telegram
+  $('jobError').innerHTML = reached.error ? errorBox(reached.error.message) : '';
+  const badge = $('jobState');
+  badge.textContent = j.status === 'done' ? 'Hoàn tất' : j.status === 'error' ? 'Lỗi' : 'Đang chạy';
+  badge.className = 'badge ' + (j.status === 'running' ? '' : j.status);
+  let idle = '';
+  if (running) {
+    // Lâu không có mốc mới: có thể n8n đã dừng mà không báo về được
     const last = (j.steps || []).slice(-1)[0];
     const idleMin = last ? (Date.now() + skew - Date.parse(last.at)) / 60000 : 0;
-    if (idleMin >= 15) state = `Đang chạy… (đã ${Math.floor(idleMin)} phút chưa có cập nhật — xem Telegram hoặc n8n)`;
+    if (idleMin >= 15) idle = `${Math.floor(idleMin)} phút chưa có cập nhật — xem Telegram hoặc n8n`;
   }
-  $('jobState').textContent = state;
+  $('jobIdle').textContent = idle;
 }
 
 function tickClock() {
@@ -498,10 +530,13 @@ $('p').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn')
 $('logout').onclick = logout;
 const TABS = { tabStart: 'startCard', tabRerun: 'rerunCard', tabCurl: 'curlCard' };
 Object.keys(TABS).forEach((tab) => {
-  $(tab).onclick = () => Object.entries(TABS).forEach(([t, card]) => {
-    $(t).classList.toggle('on', t === tab);
-    $(card).classList.toggle('hidden', t !== tab);
-  });
+  $(tab).onclick = () => {
+    Object.entries(TABS).forEach(([t, card]) => {
+      $(t).classList.toggle('on', t === tab);
+      $(card).classList.toggle('hidden', t !== tab);
+    });
+    $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
+  };
 });
 
 // ---------- paste a curl, edit the JSON, run it (Postman-like) ----------
