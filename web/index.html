@@ -270,7 +270,9 @@ let key = ls.get('visa_web_key');
 let relationRequired = [];
 let STEPS = [];
 
-async function api(path, body, isForm) {
+// keepNotOk: return a 2xx answer with ok:false instead of throwing (e.g. /web/run: the
+// /run result inside is shown as it is, with its own status code).
+async function api(path, body, isForm, keepNotOk) {
   const opt = { method: body === undefined ? 'GET' : 'POST', headers: { 'X-Api-Key': key } };
   if (body !== undefined) {
     if (isForm) opt.body = body;
@@ -281,7 +283,7 @@ async function api(path, body, isForm) {
   try { data = await res.json(); } catch (e) {}
   const d = data.detail || data;
   if (res.status === 401 && path !== '/web/login') logout();
-  if (!res.ok || d.ok === false) throw new Error(d.error || d.message || `Lỗi ${res.status}`);
+  if (!res.ok || (d.ok === false && !keepNotOk)) throw new Error(d.error || d.message || `Lỗi ${res.status}`);
   return d;
 }
 
@@ -826,8 +828,14 @@ $('runBtn').onclick = async () => {
   const t0 = Date.now();
   const tick = setInterval(() => { b.textContent = `Đang chạy… ${mmss((Date.now() - t0) / 1000)}`; }, 500);
   try {
-    const r = await api('/web/run', { port: curlPort, body });
-    show($('curlMsg'), `${r.ok ? 'Xong' : 'Lỗi'} (HTTP ${r.status_code}) sau ${mmss((Date.now() - t0) / 1000)}`, r.ok);
+    const r = await api('/web/run', { port: curlPort, body }, false, true);
+    const res = r.response || {};
+    const lines = [`${r.ok ? 'Xong' : 'Lỗi'} (HTTP ${r.status_code}) sau ${mmss((Date.now() - t0) / 1000)}`];
+    if (!r.ok) {
+      if (res.step) lines.push(`Bước: ${res.step}`);
+      if (res.error || res.message) lines.push(`Lỗi: ${res.error || res.message}${res.status_code ? ` (mã ${res.status_code})` : ''}`);
+    }
+    show($('curlMsg'), lines.join('\n'), r.ok);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
   } catch (e) { show($('curlMsg'), e.message, false); }
