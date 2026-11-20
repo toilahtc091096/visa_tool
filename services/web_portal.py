@@ -20,20 +20,38 @@ HOUSES: dict[str, dict[str, str]] = {
 
 VISA_CODES = ["L", "M", "Q1", "Q2", "F", "X1", "X2", "S2"]
 
+# Inviter relation = what the INVITER is to the applicant. value goes as-is into the curl
+# (WF-12 passes an upper-case label through) and must be a label the server knows
+# (constants.INVITER_RELATION_ZH_SOUTH: "chong" -> 丈夫, "vo sap cuoi" -> 未婚妻 ...).
+# (value, label shown, example). "first_for" = visa codes that list it at the top.
 RELATIONS = [
-    ("spouse", "Vợ/chồng"),
-    ("parents", "Cha mẹ"),
-    ("spouseParents", "Cha mẹ vợ/chồng"),
-    ("children", "Con cái"),
-    ("siblings", "Anh chị em"),
-    ("paternalGrandparents", "Ông bà nội"),
-    ("maternalGrandparents", "Ông bà ngoại"),
-    ("grandchildren", "Cháu (nội)"),
-    ("maternalGrandchildren", "Cháu (ngoại)"),
-    ("childrenSpouse", "Con dâu/con rể"),
-    ("relative", "Họ hàng"),
+    {"value": "CHONG", "label": "Chồng", "example": "chồng mời vợ"},
+    {"value": "VO", "label": "Vợ", "example": "vợ mời chồng"},
+    {"value": "CHONG SAP CUOI", "label": "Chồng sắp cưới", "example": "chồng sắp cưới mời vợ sắp cưới", "first_for": ["S2"]},
+    {"value": "VO SAP CUOI", "label": "Vợ sắp cưới", "example": "vợ sắp cưới mời chồng sắp cưới", "first_for": ["S2"]},
+    {"value": "BO", "label": "Bố", "example": "bố mời con"},
+    {"value": "ME", "label": "Mẹ", "example": "mẹ mời con"},
+    {"value": "CON TRAI", "label": "Con trai", "example": "con trai mời bố / mẹ"},
+    {"value": "CON GAI", "label": "Con gái", "example": "con gái mời bố / mẹ"},
+    {"value": "CON RE", "label": "Con rể", "example": "con rể mời bố / mẹ vợ"},
+    {"value": "CON DAU", "label": "Con dâu", "example": "con dâu mời bố / mẹ chồng"},
+    {"value": "BO VO", "label": "Bố vợ", "example": "bố vợ mời con rể"},
+    {"value": "ME VO", "label": "Mẹ vợ", "example": "mẹ vợ mời con rể"},
+    {"value": "BO CHONG", "label": "Bố chồng", "example": "bố chồng mời con dâu"},
+    {"value": "ME CHONG", "label": "Mẹ chồng", "example": "mẹ chồng mời con dâu"},
+    {"value": "ANH TRAI", "label": "Anh trai", "example": "anh trai mời em"},
+    {"value": "CHI GAI", "label": "Chị gái", "example": "chị gái mời em"},
+    {"value": "EM TRAI", "label": "Em trai", "example": "em trai mời anh / chị"},
+    {"value": "EM GAI", "label": "Em gái", "example": "em gái mời anh / chị"},
+    {"value": "ONG NOI", "label": "Ông nội", "example": "ông nội mời cháu"},
+    {"value": "BA NOI", "label": "Bà nội", "example": "bà nội mời cháu"},
+    {"value": "ONG NGOAI", "label": "Ông ngoại", "example": "ông ngoại mời cháu"},
+    {"value": "BA NGOAI", "label": "Bà ngoại", "example": "bà ngoại mời cháu"},
+    {"value": "CHAU NOI", "label": "Cháu nội", "example": "cháu nội mời ông / bà nội"},
+    {"value": "CHAU NGOAI", "label": "Cháu ngoại", "example": "cháu ngoại mời ông / bà ngoại"},
+    {"value": "HO HANG", "label": "Họ hàng", "example": "họ hàng khác mời"},
 ]
-_RELATION_KEYS = {k for k, _ in RELATIONS}
+_RELATION_KEYS = {r["value"] for r in RELATIONS}
 _RELATION_REQUIRED = {"Q1", "Q2"}
 
 
@@ -143,10 +161,96 @@ def rerun_prepare(form: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def _local(house: dict[str, str], path: str) -> str:
+    return f"http://127.0.0.1:{house['api_port']}{path}"
+
+
+def _json_or_error(resp) -> dict[str, Any]:
+    try:
+        data = resp.json()
+    except ValueError:
+        data = {"ok": False, "error": resp.text[:300]}
+    if resp.status_code >= 400:
+        detail = data.get("detail", data) if isinstance(data, dict) else data
+        return {"ok": False, **(detail if isinstance(detail, dict) else {"error": str(detail)})}
+    return data
+
+
+def folder_stat(house_name: str, source_prefix: str) -> dict[str, Any]:
+    """Files already under the folder in the house's bucket (asked before uploading)."""
+    house = house_config(house_name)
+    resp = requests.post(_local(house, "/r2/folders/stat"), json={"prefix": normalize_source_prefix(source_prefix)}, timeout=30)
+    return _json_or_error(resp)
+
+
+def upload_file(house_name: str, source_prefix: str, relative_path: str, content: bytes,
+                content_type: str = "") -> dict[str, Any]:
+    """Put one file of the chosen folder into the house's bucket at <folder>/<relative path>."""
+    house = house_config(house_name)
+    folder = normalize_source_prefix(source_prefix)
+    rel = str(relative_path or "").replace("\\", "/").strip().lstrip("/")
+    if not rel or ".." in rel.split("/") or rel.endswith("/"):
+        raise FormError(f"Tên file không hợp lệ: {relative_path}")
+    if not content:
+        raise FormError(f"File rỗng: {rel}")
+    resp = requests.post(
+        _local(house, "/r2/images"),
+        data={"mode": "upload", "key": folder + rel, "content_type": content_type},
+        files={"file": (rel.rsplit("/", 1)[-1], content, content_type or "application/octet-stream")},
+        timeout=180,
+    )
+    return _json_or_error(resp)
+
+
+def house_by_port(port: Any) -> str:
+    for name, cfg in HOUSES.items():
+        if str(port).strip() == cfg["api_port"]:
+            return name
+    raise FormError(f"Cổng {port} không thuộc nhà nào (chỉ nhận {', '.join(c['api_port'] for c in HOUSES.values())})")
+
+
+def run_case(house_name: str, body: Any) -> dict[str, Any]:
+    """Run the (edited) curl body on /run of the house's instance - like sending it from Postman.
+    Only the port of the pasted curl is used; the host is always 127.0.0.1."""
+    house = house_config(house_name)
+    if not isinstance(body, dict) or not body:
+        raise FormError("Nội dung JSON của curl rỗng hoặc không phải object")
+    resp = requests.post(_local(house, "/run"), json=body, timeout=1800)
+    try:
+        data = resp.json()
+    except ValueError:
+        data = {"raw": resp.text[:5000]}
+    return {"ok": resp.status_code < 400, "status_code": resp.status_code, "house": house["house"], "response": data}
+
+
+# Progress steps n8n reports (POST /web/progress) - shown in this order on the page.
+STEPS = [
+    ("received", "Đã nhận hồ sơ"),
+    ("files_loaded", "Đã tải file"),
+    ("classifying", "Đang phân loại tài liệu"),
+    ("processing", "Đang xử lý giấy tờ"),
+    ("building", "Đang dựng hồ sơ"),
+    ("done", "Xong: curl đã gửi Telegram"),
+]
+_STEP_LABELS = dict(STEPS) | {"error": "Lỗi"}
+
+
+def make_step(step: str, message: str = "", at: str = "") -> dict[str, str]:
+    key = str(step or "").strip()
+    if key not in _STEP_LABELS:
+        raise FormError(f"Bước không hợp lệ: {key}")
+    return {"step": key, "label": _STEP_LABELS[key], "message": str(message or "")[:1500], "at": at}
+
+
+def step_status(step: str) -> str:
+    return "done" if step == "done" else "error" if step == "error" else "running"
+
+
 def form_options() -> dict[str, Any]:
     return {
         "houses": list(HOUSES),
         "visa_codes": VISA_CODES,
-        "relations": [{"value": k, "label": v} for k, v in RELATIONS],
+        "relations": RELATIONS,
         "relation_required": sorted(_RELATION_REQUIRED),
+        "steps": [{"step": k, "label": v} for k, v in STEPS],
     }

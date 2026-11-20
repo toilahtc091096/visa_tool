@@ -8,19 +8,21 @@
   :root {
     --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #667085; --line: #d9dde5;
     --accent: #1f6feb; --accent-text: #fff; --ok-bg: #e8f6ee; --ok: #116b3a; --err-bg: #fdecec; --err: #a4161a;
+    --track: #e6e9ef;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #14171c; --card: #1d2129; --text: #e6e8ec; --muted: #9aa3b2; --line: #333a46;
-            --accent: #4c8dff; --ok-bg: #12301f; --ok: #7fd6a2; --err-bg: #3a1618; --err: #ff9a9a; }
+            --accent: #4c8dff; --ok-bg: #12301f; --ok: #7fd6a2; --err-bg: #3a1618; --err: #ff9a9a; --track: #2a303b; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+  main { max-width: 600px; margin: 0 auto; padding: 24px 16px 48px; }
   h1 { font-size: 20px; margin: 0 0 16px; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
   label { display: block; font-weight: 600; margin: 12px 0 4px; }
   .hint { color: var(--muted); font-size: 13px; font-weight: 400; }
   input, select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); font: inherit; }
+  input[type=file] { padding: 7px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   button { margin-top: 16px; padding: 10px 16px; border: 0; border-radius: 7px; background: var(--accent); color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
   button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--line); }
@@ -34,6 +36,28 @@
   .msg.ok { background: var(--ok-bg); color: var(--ok); }
   .msg.err { background: var(--err-bg); color: var(--err); }
   .hidden { display: none; }
+  .progress { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .timer { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .steps { list-style: none; padding: 0; margin: 12px 0 0; }
+  .steps li { display: grid; grid-template-columns: 22px 1fr auto; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .steps li:last-child { border-bottom: 0; }
+  .steps .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .steps .pending { color: var(--muted); }
+  .steps .sub { grid-column: 2 / 4; color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+  .steps .error { color: var(--err); }
+  textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--text); font: inherit; resize: vertical; }
+  .mono, pre.result { font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; }
+  pre.result { margin: 14px 0 0; padding: 10px; border: 1px solid var(--line); border-radius: 7px; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+  textarea.bad { border-color: var(--err); }
+  .combo { position: relative; }
+  .combo-list { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none;
+                max-height: 260px; overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 7px;
+                box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  .combo-list li { padding: 7px 10px; cursor: pointer; }
+  .combo-list li .ex { color: var(--muted); font-size: 13px; }
+  .combo-list li.active, .combo-list li:hover { background: var(--track); }
+  .combo-list li.empty { color: var(--muted); cursor: default; }
 </style>
 </head>
 <body>
@@ -54,11 +78,18 @@
     <div class="tabs">
       <button id="tabStart" class="on">Khởi chạy hồ sơ</button>
       <button id="tabRerun">Chạy lại hồ sơ</button>
+      <button id="tabCurl">Chạy curl</button>
     </div>
 
     <div id="startCard" class="card">
       <label for="house">Nhà</label>
       <select id="house"></select>
+
+      <label for="dir">Thư mục hồ sơ trên máy <span class="hint">tuỳ chọn: chọn để tải lên bucket của nhà</span></label>
+      <input id="dir" type="file" webkitdirectory directory multiple>
+      <div id="dirInfo" class="hint"></div>
+      <div id="upBox" class="hidden"><div class="progress"><div id="upBar"></div></div><div id="upText" class="hint"></div></div>
+
       <div class="row">
         <div>
           <label for="visa">Loại visa</label>
@@ -70,13 +101,43 @@
         </div>
       </div>
       <div id="relationBox">
-        <label for="relation">Quan hệ <span class="hint">người mời là gì của người xin visa</span></label>
-        <select id="relation"></select>
+        <label for="relation">Quan hệ <span class="hint">người mời là gì của người xin visa — gõ để tìm, vd "chong"</span></label>
+        <div class="combo">
+          <input id="relation" autocomplete="off" placeholder="Gõ: chồng, vợ, con trai, sắp cưới…">
+          <ul id="relationList" class="combo-list hidden"></ul>
+        </div>
+        <div id="relationPicked" class="hint"></div>
       </div>
-      <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">chép đúng tên thư mục</span></label>
+      <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">tự điền khi chọn thư mục; hoặc gõ tên thư mục đã có</span></label>
       <input id="prefix" placeholder="vd: L30 - NGUYEN VAN A">
       <button id="startBtn">Gửi</button>
       <div id="startMsg"></div>
+    </div>
+
+    <div id="jobCard" class="card hidden">
+      <div class="bar" style="margin:0"><span id="jobTitle"></span><button class="secondary" id="jobClose">Đóng</button></div>
+      <div class="timer" id="timer">00:00</div>
+      <div id="jobState" class="hint"></div>
+      <ul class="steps" id="steps"></ul>
+    </div>
+
+    <div id="curlCard" class="card hidden">
+      <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Chạy trên đúng nhà theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI).</p>
+      <label for="curlText">Lệnh curl</label>
+      <textarea id="curlText" rows="4" placeholder="curl -X POST &quot;http://160.250.5.191:10000/run&quot; -H ... -d '{...}'"></textarea>
+      <button id="parseBtn" class="secondary">Đọc curl</button>
+      <div id="curlEdit" class="hidden">
+        <label for="curlHouse">Nhà</label>
+        <select id="curlHouse"></select>
+        <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
+        <textarea id="curlBody" rows="16" spellcheck="false" class="mono"></textarea>
+        <div style="display:flex; gap:8px">
+          <button id="fmtBtn" class="secondary">Định dạng lại</button>
+          <button id="runBtn">Chạy</button>
+        </div>
+      </div>
+      <div id="curlMsg"></div>
+      <pre id="curlResult" class="result hidden"></pre>
     </div>
 
     <div id="rerunCard" class="card hidden">
@@ -98,95 +159,364 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const store = {
-  get: () => { try { return localStorage.getItem('visa_web_key') || ''; } catch (e) { return ''; } },
-  set: (v) => { try { v ? localStorage.setItem('visa_web_key', v) : localStorage.removeItem('visa_web_key'); } catch (e) {} },
+const ls = {
+  get: (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+  set: (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} },
 };
-let key = store.get();
+let key = ls.get('visa_web_key');
 let relationRequired = [];
+let STEPS = [];
 
-async function api(path, body) {
-  const res = await fetch(path, {
-    method: body === undefined ? 'GET' : 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+async function api(path, body, isForm) {
+  const opt = { method: body === undefined ? 'GET' : 'POST', headers: { 'X-Api-Key': key } };
+  if (body !== undefined) {
+    if (isForm) opt.body = body;
+    else { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  }
+  const res = await fetch(path, opt);
   let data = {};
   try { data = await res.json(); } catch (e) {}
   const d = data.detail || data;
-  if (res.status === 401 && path !== '/web/login') { logout(); }
+  if (res.status === 401 && path !== '/web/login') logout();
   if (!res.ok || d.ok === false) throw new Error(d.error || d.message || `Lỗi ${res.status}`);
   return d;
 }
 
 function show(el, text, ok) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.textContent = text; }
-function fill(sel, items) { sel.innerHTML = items.map((x) => `<option value="${x.value ?? x}">${x.label ?? x}</option>`).join(''); }
+function clear(el) { el.className = ''; el.textContent = ''; }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function fill(sel, items) { sel.innerHTML = items.map((x) => `<option value="${esc(x.value ?? x)}">${esc(x.label ?? x)}</option>`).join(''); }
+const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const mb = (b) => (b / 1048576).toFixed(2) + ' MB';
 
 function render(info) {
   $('login').classList.add('hidden');
   $('app').classList.remove('hidden');
   $('who').textContent = `${info.username} (${info.staff})`;
-  fill($('house'), info.houses); fill($('rHouse'), info.houses);
+  fill($('house'), info.houses); fill($('rHouse'), info.houses); fill($('curlHouse'), info.houses);
   fill($('visa'), info.visa_codes);
-  fill($('relation'), [{ value: '', label: '— không —' }, ...info.relations]);
+  RELATIONS = info.relations || [];
   relationRequired = info.relation_required || [];
+  STEPS = info.steps || [];
   onVisa();
+  const last = ls.get('visa_web_job');
+  if (last) watchJob(last);
 }
 
 function logout() {
-  key = ''; store.set('');
+  key = ''; ls.set('visa_web_key', ''); stopWatch();
   $('app').classList.add('hidden'); $('login').classList.remove('hidden');
 }
 
+// ---------- form ----------
 const DAYS_HINT = { L: '15 hoặc 30', M: '15/30/90, trống = 90', F: '15/30/90, trống = 15', X1: '> 180', X2: '1–180', Q1: 'tuỳ chọn', Q2: 'tuỳ chọn', S2: 'tuỳ chọn' };
 function onVisa() {
   const v = $('visa').value;
+  const needRel = relationRequired.includes(v) || v === 'S2';
   $('daysHint').textContent = DAYS_HINT[v] || '';
-  $('relationBox').style.display = (relationRequired.includes(v) || v === 'S2') ? '' : 'none';
-  if (!(relationRequired.includes(v) || v === 'S2')) $('relation').value = '';
+  $('relationBox').style.display = needRel ? '' : 'none';
+  if (!needRel) pickRelation(null);
 }
 $('visa').addEventListener('change', onVisa);
 
+// ---------- relation combobox: type to filter ("chong" -> "Chồng — chồng mời vợ") ----------
+let RELATIONS = [];
+let relationValue = '';
+let comboItems = [], comboActive = 0;
+const plain = (s) => String(s || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+const relText = (r) => `${r.label} — ${r.example}`;
+
+function pickRelation(r) {
+  relationValue = r ? r.value : '';
+  $('relation').value = r ? relText(r) : '';
+  $('relationPicked').textContent = r ? `Gửi trong curl: ${r.value}` : '';
+  $('relationList').classList.add('hidden');
+}
+
+function openCombo() {
+  const visa = $('visa').value;
+  const q = plain($('relation').value);
+  const scored = RELATIONS
+    .map((r, i) => {
+      const hay = plain(`${r.label} ${r.example} ${r.value}`);
+      const lab = plain(r.label);
+      if (q && !q.split(' ').every((w) => hay.includes(w))) return null;
+      const top = (r.first_for || []).includes(visa) ? 0 : 1;          // S2: "sắp cưới" lên đầu
+      const starts = !q || lab.startsWith(q) || plain(r.value).startsWith(q) ? 0 : 1;
+      return { r, key: [top, starts, i] };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2]);
+  comboItems = scored.map((x) => x.r);
+  comboActive = 0;
+  $('relationList').innerHTML = comboItems.length
+    ? comboItems.map((r, i) => `<li data-i="${i}" class="${i === 0 ? 'active' : ''}">${esc(r.label)} <span class="ex">— ${esc(r.example)}</span></li>`).join('')
+    : '<li class="empty">Không có quan hệ phù hợp</li>';
+  $('relationList').classList.remove('hidden');
+}
+
+$('relation').addEventListener('focus', () => { $('relation').select(); openCombo(); });
+$('relation').addEventListener('input', () => { relationValue = ''; $('relationPicked').textContent = ''; openCombo(); });
+$('relation').addEventListener('keydown', (e) => {
+  const list = $('relationList');
+  if (list.classList.contains('hidden') && ['ArrowDown', 'ArrowUp'].includes(e.key)) openCombo();
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!comboItems.length) return;
+    comboActive = (comboActive + (e.key === 'ArrowDown' ? 1 : -1) + comboItems.length) % comboItems.length;
+    [...list.children].forEach((li, i) => li.classList.toggle('active', i === comboActive));
+    list.children[comboActive]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (comboItems[comboActive]) pickRelation(comboItems[comboActive]);
+  } else if (e.key === 'Escape') {
+    list.classList.add('hidden');
+  }
+});
+$('relationList').addEventListener('mousedown', (e) => {
+  const li = e.target.closest('li[data-i]');
+  if (li) { e.preventDefault(); pickRelation(comboItems[Number(li.dataset.i)]); }
+});
+$('relation').addEventListener('blur', () => {
+  setTimeout(() => {
+    $('relationList').classList.add('hidden');
+    if (!relationValue && $('relation').value.trim() && comboItems.length === 1) pickRelation(comboItems[0]);
+  }, 120);
+});
+
+// ---------- folder upload ----------
+const SKIP = /(^|\/)(\.|desktop\.ini$|thumbs\.db$)/i;
+let picked = [];       // [{file, rel}]
+let uploadedTo = '';   // "<house>|<prefix>" already uploaded
+$('dir').addEventListener('change', () => {
+  const files = [...$('dir').files];
+  picked = files
+    .map((f) => { const parts = (f.webkitRelativePath || f.name).split('/'); return { file: f, top: parts[0], rel: parts.slice(1).join('/') || f.name }; })
+    .filter((x) => !SKIP.test(x.rel) && x.file.size > 0);
+  uploadedTo = '';
+  if (!picked.length) { $('dirInfo').textContent = 'Thư mục trống'; return; }
+  $('prefix').value = picked[0].top;
+  $('dirInfo').textContent = `${picked.length} file, ${mb(picked.reduce((s, x) => s + x.file.size, 0))} — sẽ tải lên khi bấm Gửi`;
+});
+['house', 'prefix'].forEach((id) => $(id).addEventListener('input', () => { uploadedTo = ''; }));
+$('house').addEventListener('change', () => { uploadedTo = ''; });
+
+async function uploadPicked() {
+  const house = $('house').value, prefix = $('prefix').value.trim();
+  const stat = await api('/web/folder-stat', { house, source_prefix: prefix });
+  if (stat.files > 0 && !confirm(`Thư mục "${prefix}" trên bucket nhà ${house} đã có ${stat.files} file.\nVẫn tải thêm vào?`)) {
+    throw new Error('Đã huỷ tải lên');
+  }
+  $('upBox').classList.remove('hidden');
+  let done = 0;
+  const total = picked.length;
+  const tick = () => { $('upBar').style.width = `${(100 * done / total).toFixed(0)}%`; $('upText').textContent = `Đã tải ${done}/${total} file`; };
+  tick();
+  const queue = [...picked];
+  const worker = async () => {
+    while (queue.length) {
+      const x = queue.shift();
+      const fd = new FormData();
+      fd.append('house', house); fd.append('source_prefix', prefix); fd.append('relative_path', x.rel); fd.append('file', x.file);
+      try { await api('/web/upload', fd, true); } catch (e) { throw new Error(`Lỗi tải "${x.rel}": ${e.message}`); }
+      done++; tick();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  uploadedTo = `${house}|${prefix}`;
+}
+
+$('startBtn').onclick = async () => {
+  const b = $('startBtn'); b.disabled = true; clear($('startMsg'));
+  try {
+    if ($('relation').value.trim() && !relationValue) throw new Error('Chọn quan hệ trong danh sách gợi ý (gõ rồi bấm vào một dòng)');
+    if (picked.length && uploadedTo !== `${$('house').value}|${$('prefix').value.trim()}`) {
+      b.textContent = 'Đang tải lên…';
+      await uploadPicked();
+    }
+    b.textContent = 'Đang gửi…';
+    const r = await api('/web/start', {
+      house: $('house').value, visa_code: $('visa').value, days: $('days').value.trim(),
+      relation: relationValue, source_prefix: $('prefix').value,
+    });
+    picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden');
+    $('prefix').value = ''; pickRelation(null);
+    watchJob(r.job_id);
+  } catch (e) { show($('startMsg'), e.message, false); }
+  b.disabled = false; b.textContent = 'Gửi';
+};
+
+// ---------- progress ----------
+let pollTimer = null, clockTimer = null, skew = 0, curJob = null;
+function stopWatch() { clearInterval(pollTimer); clearInterval(clockTimer); pollTimer = clockTimer = null; }
+function secs(iso) { return (Date.parse(iso) - Date.parse(curJob.started_at)) / 1000; }
+
+function drawJob() {
+  const j = curJob;
+  $('jobTitle').textContent = `${j.job_id} · Nhà ${j.house} · ${j.visa_type} · ${j.source_prefix}`;
+  const reached = {};
+  (j.steps || []).forEach((s) => { reached[s.step] = s; });
+  const lastStep = (j.steps || []).filter((s) => s.step !== 'error').slice(-1)[0];
+  let html = '';
+  for (const s of STEPS) {
+    const r = reached[s.step];
+    const current = j.status === 'running' && lastStep && lastStep.step === s.step && s.step !== 'done';
+    const icon = r ? (current ? '▶' : '✔') : '·';
+    html += `<li class="${r ? '' : 'pending'}"><span>${icon}</span><span>${esc(s.label)}</span><span class="t">${r ? mmss(secs(r.at)) : ''}</span>` +
+      (r && r.message ? `<span class="sub">${esc(r.message)}</span>` : '') + '</li>';
+  }
+  if (reached.error) {
+    html += `<li class="error"><span>❌</span><span>Lỗi</span><span class="t">${mmss(secs(reached.error.at))}</span><span class="sub">${esc(reached.error.message)}</span></li>`;
+  }
+  $('steps').innerHTML = html;
+  $('jobState').textContent = j.status === 'done' ? 'Hoàn tất' : j.status === 'error' ? 'Dừng vì lỗi' : 'Đang chạy…';
+}
+
+function tickClock() {
+  if (!curJob) return;
+  const end = curJob.finished_at ? Date.parse(curJob.finished_at) : Date.now() + skew;
+  $('timer').textContent = mmss(Math.max(0, (end - Date.parse(curJob.started_at)) / 1000));
+}
+
+async function poll(jobId) {
+  try {
+    const r = await api(`/web/job/${encodeURIComponent(jobId)}`);
+    skew = Date.parse(r.now) - Date.now();
+    curJob = r.job; drawJob(); tickClock();
+    if (curJob.status !== 'running') { stopWatch(); tickClock(); }
+  } catch (e) { stopWatch(); $('jobState').textContent = e.message; }
+}
+
+function watchJob(jobId) {
+  stopWatch(); ls.set('visa_web_job', jobId);
+  $('jobCard').classList.remove('hidden');
+  $('timer').textContent = '00:00'; $('steps').innerHTML = ''; $('jobState').textContent = 'Đang tải…';
+  poll(jobId);
+  pollTimer = setInterval(() => poll(jobId), 3000);
+  clockTimer = setInterval(tickClock, 1000);
+}
+$('jobClose').onclick = () => { stopWatch(); ls.set('visa_web_job', ''); $('jobCard').classList.add('hidden'); };
+
+// ---------- login / tabs ----------
 $('loginBtn').onclick = async () => {
   const b = $('loginBtn'); b.disabled = true;
   try {
     const info = await api('/web/login', { username: $('u').value, password: $('p').value });
-    key = info.api_key; store.set(key); $('p').value = ''; $('loginMsg').className = ''; $('loginMsg').textContent = '';
+    key = info.api_key; ls.set('visa_web_key', key); $('p').value = ''; clear($('loginMsg'));
     render(info);
   } catch (e) { show($('loginMsg'), e.message, false); }
   b.disabled = false;
 };
 $('p').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
 $('logout').onclick = logout;
+const TABS = { tabStart: 'startCard', tabRerun: 'rerunCard', tabCurl: 'curlCard' };
+Object.keys(TABS).forEach((tab) => {
+  $(tab).onclick = () => Object.entries(TABS).forEach(([t, card]) => {
+    $(t).classList.toggle('on', t === tab);
+    $(card).classList.toggle('hidden', t !== tab);
+  });
+});
 
-$('tabStart').onclick = () => { $('tabStart').classList.add('on'); $('tabRerun').classList.remove('on'); $('startCard').classList.remove('hidden'); $('rerunCard').classList.add('hidden'); };
-$('tabRerun').onclick = () => { $('tabRerun').classList.add('on'); $('tabStart').classList.remove('on'); $('rerunCard').classList.remove('hidden'); $('startCard').classList.add('hidden'); };
+// ---------- paste a curl, edit the JSON, run it (Postman-like) ----------
+const PORT_HOUSE = { '10000': 'HAI', '20000': 'PHONG', '30000': 'TAI' };
 
-$('startBtn').onclick = async () => {
-  const b = $('startBtn'); b.disabled = true;
+// Shell-like split: handles '...' (with ''' inside), "..." with \-escapes, and line continuations.
+function shellWords(s) {
+  s = s.replace(/\\\r?\n/g, ' ');
+  const out = []; let cur = null, i = 0;
+  const push = () => { if (cur !== null) out.push(cur); cur = null; };
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { push(); i++; continue; }
+    cur = cur ?? '';
+    if (c === "'") {
+      const j = s.indexOf("'", i + 1);
+      if (j < 0) throw new Error("Thiếu dấu ' đóng");
+      cur += s.slice(i + 1, j); i = j + 1;
+    } else if (c === '"') {
+      i++;
+      while (i < s.length && s[i] !== '"') {
+        if (s[i] === '\\' && i + 1 < s.length) { cur += s[i + 1]; i += 2; } else cur += s[i++];
+      }
+      if (s[i] !== '"') throw new Error('Thiếu dấu " đóng');
+      i++;
+    } else if (c === '\\' && i + 1 < s.length) { cur += s[i + 1]; i += 2; }
+    else { cur += c; i++; }
+  }
+  push();
+  return out;
+}
+
+function parseCurl(text) {
+  const w = shellWords(text.trim());
+  if (!w.length || w[0] !== 'curl') throw new Error('Không phải lệnh curl');
+  let url = '', data = null;
+  for (let i = 1; i < w.length; i++) {
+    const a = w[i];
+    if (['-d', '--data', '--data-raw', '--data-binary'].includes(a)) data = w[++i];
+    else if (['-H', '--header', '-X', '--request', '-m', '--max-time'].includes(a)) i++;
+    else if (/^https?:\/\//.test(a)) url = a;
+  }
+  if (!url) throw new Error('Không thấy địa chỉ http trong curl');
+  if (data == null) throw new Error("Không thấy phần -d '{...}' trong curl");
+  const port = (url.match(/^https?:\/\/[^/:]+:(\d+)/) || [])[1] || '';
+  if (!/\/run(\?|$)/.test(url)) throw new Error('Curl không gọi /run');
+  let body;
+  try { body = JSON.parse(data); } catch (e) { throw new Error('JSON trong curl bị lỗi: ' + e.message); }
+  return { port, body };
+}
+
+$('parseBtn').onclick = () => {
+  clear($('curlMsg')); $('curlResult').classList.add('hidden');
   try {
-    const r = await api('/web/start', {
-      house: $('house').value, visa_code: $('visa').value, days: $('days').value.trim(),
-      relation: $('relation').value, source_prefix: $('prefix').value,
-    });
-    show($('startMsg'), `Đã gửi: ${r.job_id}\nNhà ${r.house} · ${r.visa_type} · ${r.source_prefix}\nKết quả sẽ về Telegram như thường lệ.`, true);
-    $('prefix').value = '';
-  } catch (e) { show($('startMsg'), e.message, false); }
-  b.disabled = false;
+    const { port, body } = parseCurl($('curlText').value);
+    const house = PORT_HOUSE[port];
+    if (!house) throw new Error(`Cổng ${port || '(không có)'} không thuộc nhà nào`);
+    $('curlHouse').value = house;
+    $('curlBody').value = JSON.stringify(body, null, 2);
+    $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
+    $('curlBody').classList.remove('bad');
+    $('curlEdit').classList.remove('hidden');
+  } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); }
 };
 
-function fmt(s) { return s ? `${s.files} file, ${(s.bytes / 1048576).toFixed(2)} MB` : 'không có'; }
-async function rerun(confirm) {
-  const body = { house: $('rHouse').value, source_prefix: $('rPrefix').value, passport_number: $('rPassport').value, confirm };
-  const btn = confirm ? $('doBtn') : $('checkBtn'); btn.disabled = true;
+function readBody() {
+  try { const b = JSON.parse($('curlBody').value); $('curlBody').classList.remove('bad'); return b; }
+  catch (e) { $('curlBody').classList.add('bad'); throw new Error('JSON đang sửa bị lỗi: ' + e.message); }
+}
+$('curlBody').addEventListener('input', () => { try { readBody(); } catch (e) {} });
+$('fmtBtn').onclick = () => { try { $('curlBody').value = JSON.stringify(readBody(), null, 2); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
+
+$('runBtn').onclick = async () => {
+  const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden');
+  let body;
+  try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
+  if (!confirm(`Chạy /run trên nhà ${$('curlHouse').value}${body.passportNumber ? ' cho hộ chiếu ' + body.passportNumber : ''}?`)) return;
+  b.disabled = true;
+  const t0 = Date.now();
+  const tick = setInterval(() => { b.textContent = `Đang chạy… ${mmss((Date.now() - t0) / 1000)}`; }, 500);
+  try {
+    const r = await api('/web/run', { house: $('curlHouse').value, body });
+    show($('curlMsg'), `${r.ok ? 'Xong' : 'Lỗi'} (HTTP ${r.status_code}) sau ${mmss((Date.now() - t0) / 1000)}`, r.ok);
+    $('curlResult').textContent = JSON.stringify(r.response, null, 2);
+    $('curlResult').classList.remove('hidden');
+  } catch (e) { show($('curlMsg'), e.message, false); }
+  clearInterval(tick); b.disabled = false; b.textContent = 'Chạy';
+};
+
+// ---------- rerun ----------
+async function rerun(confirmIt) {
+  const body = { house: $('rHouse').value, source_prefix: $('rPrefix').value, passport_number: $('rPassport').value, confirm: confirmIt };
+  const btn = confirmIt ? $('doBtn') : $('checkBtn'); btn.disabled = true;
+  const fmt = (s) => (s ? `${s.files} file, ${mb(s.bytes)}` : 'không có');
   try {
     const r = await api('/web/rerun', body);
-    show($('rerunMsg'), (confirm ? 'ĐÃ THỰC HIỆN.\n' : 'Kiểm tra (chưa thay đổi gì):\n') +
+    show($('rerunMsg'), (confirmIt ? 'ĐÃ THỰC HIỆN.\n' : 'Kiểm tra (chưa thay đổi gì):\n') +
       `Khôi phục: ${r.archive || '(thư mục gốc vẫn còn)'} → ${fmt(r.restore)}\n` +
       `Xoá thư mục đầu ra: ${r.delete_output?.prefix} → ${fmt(r.delete_output)}`, true);
-    $('doBtn').disabled = confirm;
+    $('doBtn').disabled = confirmIt;
   } catch (e) { show($('rerunMsg'), e.message, false); $('doBtn').disabled = true; }
-  if (!confirm) btn.disabled = false;
+  if (!confirmIt) btn.disabled = false;
 }
 $('checkBtn').onclick = () => rerun(false);
 $('doBtn').onclick = () => rerun(true);

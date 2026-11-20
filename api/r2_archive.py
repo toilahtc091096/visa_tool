@@ -114,6 +114,21 @@ def api_archive_r2_folder(prefix: str, *, now: datetime | None = None) -> dict[s
         return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
 
 
+def api_stat_r2_folder(prefix: str) -> dict[str, Any]:
+    """How many files are already under <prefix>/ (used by /web before uploading)."""
+    missing = _missing_r2_env_vars()
+    if missing:
+        return {"ok": False, "error": "missing_r2_env_vars", "missing": missing}
+    folder = _folder(prefix)
+    if not folder:
+        return {"ok": False, "error": "missing_prefix"}
+    try:
+        client, config = _build_r2_client()
+        return {"ok": True, "bucket": config.bucket_name, "prefix": folder, **_summary(_list(client, config.bucket_name, folder))}
+    except Exception as exc:
+        return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+
+
 def api_restore_r2_folder(
     prefix: str,
     passport_number: str,

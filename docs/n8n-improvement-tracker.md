@@ -428,6 +428,25 @@ Tiêu chí:
 - [ ] Tab chạy lại: Kiểm tra rồi Thực hiện với một hồ sơ đã chạy xong.
 - [ ] Sai mật khẩu 5 lần thì bị khoá 10 phút. Gọi `/web/start` mà không có khoá thì trả 401.
 
+**Bổ sung (2026-11-20): tải thư mục lên và theo dõi tiến độ**
+- Tải thư mục: chọn thư mục trên máy, trang tự điền tên thư mục R2. Khi bấm Gửi, trang hỏi `/web/folder-stat`; nếu thư mục trên R2 đã có file thì hỏi lại trước khi tải thêm. Tải mỗi lúc 3 file qua `/web/upload`. Server chuyển tiếp sang `/r2/images` của instance ứng với nhà, giữ nguyên đường dẫn và tên file gốc, kể cả tên có dấu. Thêm `/r2/folders/stat` (`api_stat_r2_folder`).
+- Tiến độ: bảng `web_jobs`. n8n báo về `/web/progress` (khoá chung) ở các mốc:
+  - `files_loaded`: WF01-GENERAL, sau `Assign Document IDs1`
+  - `classifying`: WF-04, ngay sau trigger
+  - `processing`: WF-04, sau `Merge2`
+  - `building`: WF-12, ngay sau trigger
+  - `done`: WF-13, sau khi gửi Telegram
+  - `error`: WF01-GENERAL `Build Error Notification1` và WF-13 `Skip1`
+- Trang hỏi `/web/job/<id>` mỗi 3 giây, đồng hồ đếm giây chạy liên tục. Tải lại trang vẫn theo dõi tiếp được.
+- 7 node n8n mới chạy song song với luồng chính: chỉ chạy một lần, lỗi thì bỏ qua, không đổi node nào có sẵn. File ở `n8n-flow/patched-progress/` (WF01-GENERAL, WF-04, WF-12, WF-13), bản gốc ở `backup-2026-11-20-before-progress/`.
+- Test: 41/41 đạt (gồm luồng tiến độ, tải file, quyền xem job). Đã thử các biểu thức của node báo tiến độ bằng Node.
+
+**Bổ sung (2026-11-20): quan hệ rõ ràng và chạy curl trên web**
+- Quan hệ: thay danh sách cũ (`spouse` → "VO CHONG"…) bằng nhãn có giới tính và chiều mời, kèm ví dụ: `CHONG` (chồng mời vợ), `VO` (vợ mời chồng), `BO`, `ME`, `CON TRAI`, `CON GAI`, `CON RE`, `CON DAU`, `BO VO`, `ME VO`, `BO CHONG`, `ME CHONG`, `ANH TRAI`, `CHI GAI`, `EM TRAI`, `EM GAI`, `ONG/BA NOI/NGOAI`, `CHAU NOI/NGOAI`, `HO HANG`. Với S2 thêm `CHONG SAP CUOI` và `VO SAP CUOI`, đưa lên đầu danh sách. Mọi nhãn đều có trong bảng tiếng Trung của server (`INVITER_RELATION_ZH_SOUTH`), trừ `HO HANG` (vẫn gửi nguyên như trước). Ô quan hệ là ô gõ để lọc, không phân biệt dấu ("chong" ra "Chồng — chồng mời vợ").
+- WF-12 `5. Companion / Special / Visit1`: ngoài các khoá cũ của WF-01, nhận thêm nhãn viết hoa không dấu do web gửi và dùng nguyên vào curl. Sửa trên bản `patched-progress`, nên vẫn giữ node báo tiến độ.
+- Tab "Chạy curl": dán curl → trang đọc cổng và JSON (hiểu cả `'`, `'''` và lệnh nhiều dòng) → sửa JSON → Chạy. Server gọi `/run` của instance theo cổng, luôn qua `127.0.0.1`, không dùng địa chỉ máy trong curl. Trang hiện đồng hồ trong lúc chạy và kết quả trả về.
+- Test 44/44 đạt.
+
 **Hiện tại (2026-11-20):** đã code, chờ triển khai.
 
 ---
@@ -522,3 +541,5 @@ Tiêu chí:
 | 2026-11-20 | E1, E2, E4, E5 | Bạn đã import `patched-E` và `patched-curl-fix`, test xong | — | **Đạt. Đóng đợt E** | |
 | 2026-11-20 | E3 | Bỏ. Cụm `Has Folder Context?` + `Apply Folder Context` (7 chỗ trong WF-04E, WF-04I, WF-COMMON Merge) là tối ưu có chủ ý (PERF-D): WF-04 đọc Redis một lần rồi gắn sẵn `folder_ctx`, nên không phải gọi `Get Folder Name` kèm ảnh. Gom về một workflow con sẽ làm mất tối ưu này. Các chỗ lặp còn lại (XNH/XJW, `getText`, `safeParse`…) lợi ích nhỏ, n8n không cho dùng chung code | — | Bỏ | Không đề xuất lại |
 | 2026-11-20 | W1 | Code trang `/web`: bảng `web_users`, `services/web_portal.py`, 5 endpoint, `web/index.html`, `scripts/web_user.py`, WF-00 Web Start (`n8n-flow/patched-web/`). 34/34 test đạt | — | Chờ triển khai | F1 để sau cùng |
+| 2026-11-20 | W1 | Thêm tải thư mục lên R2 từ trang web, theo dõi tiến độ có đồng hồ (bảng `web_jobs`, 7 node báo tiến độ trong n8n) | — | Chờ triển khai | 41/41 test đạt |
+| 2026-11-20 | W1 | Quan hệ có giới tính và chiều mời (ô gõ để lọc; S2 ưu tiên sắp cưới); WF-12 nhận nhãn từ web; tab "Chạy curl" kiểu Postman | — | Chờ triển khai | 44/44 test đạt |

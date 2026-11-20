@@ -33,6 +33,7 @@ _EXPORTS = {
     "api_delete_r2_objects": ("r2_image", "api_delete_r2_objects"),
     "api_archive_r2_folder": ("r2_archive", "api_archive_r2_folder"),
     "api_restore_r2_folder": ("r2_archive", "api_restore_r2_folder"),
+    "api_stat_r2_folder": ("r2_archive", "api_stat_r2_folder"),
     "api_sign_and_push_image_to_r2": ("r2_image", "api_sign_and_push_image_to_r2"),
     "login": ("api_login", "login"),
     "needs_relogin": ("api_login", "needs_relogin"),

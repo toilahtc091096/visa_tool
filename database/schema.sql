@@ -111,3 +111,21 @@ CREATE TABLE IF NOT EXISTS web_users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Runs started from /web, with the progress steps n8n reports back (POST /web/progress).
+-- steps = [{"step": "files_loaded", "label": "...", "message": "...", "at": "<iso>"}, ...]
+CREATE TABLE IF NOT EXISTS web_jobs (
+    job_id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    staff_code TEXT NOT NULL,
+    house TEXT NOT NULL,
+    visa_type TEXT NOT NULL,
+    source_prefix TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running',
+    steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+    message TEXT NOT NULL DEFAULT '',
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_web_jobs_username_started ON web_jobs (username, started_at DESC);

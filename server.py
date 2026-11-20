@@ -18,7 +18,7 @@ from api.convert_input_pdfs import api_cleanup_pdf_page_images, render_pdf_pages
 from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
-from api import api_archive_r2_folder, api_restore_r2_folder
+from api import api_archive_r2_folder, api_restore_r2_folder, api_stat_r2_folder
 from api import api_sign_and_push_image_to_r2
 from constants import REGION, REGION_SOUTH
 from database.connection import init_database
@@ -45,6 +45,14 @@ from services.web_portal import FormError as WebFormError
 from services.web_portal import build_start_payload, start_case
 from services.web_portal import form_options as web_form_options
 from services.web_portal import rerun_prepare as web_rerun_prepare
+from services.web_portal import folder_stat as web_folder_stat_call
+from services.web_portal import make_step as web_make_step
+from services.web_portal import step_status as web_step_status
+from services.web_portal import upload_file as web_upload_file
+from services.web_portal import house_by_port as web_house_by_port
+from services.web_portal import run_case as web_run_case
+from database.crud.web_job import add_web_job_step, create_web_job, get_web_job
+from database.crud.web_job import now_iso as web_now_iso
 from utils.token_store import append_authorization
 
 print("START", flush=True)
@@ -214,11 +222,14 @@ def web_start(request: Request, payload: dict[str, Any] = Body(...)):
     user = _web_user(request)
     try:
         case = build_start_payload(user["staff_code"], payload)
-        result = start_case(case)
     except WebFormError as exc:
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    create_web_job(case, user["username"], web_make_step("received", "", web_now_iso()))
+    try:
+        result = start_case(case)
     except Exception as exc:
         log_exception(exc, {"event": "web_start_failed", "user": user["username"]})
+        add_web_job_step(case["job_id"], web_make_step("error", f"Không gọi được n8n: {exc}", web_now_iso()), "error")
         raise HTTPException(status_code=502, detail={"ok": False, "error": str(exc)})
     log_event({"event": "web_start", "user": user["username"], "job_id": case["job_id"], "house": case["house"],
                "visa_type": case["visa_type"], "source_prefix": case["source_prefix"]})
@@ -234,6 +245,87 @@ def web_rerun(request: Request, payload: dict[str, Any] = Body(...)):
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     log_event({"event": "web_rerun", "user": user["username"], "confirm": bool(payload.get("confirm")),
                "house": payload.get("house"), "prefix": payload.get("source_prefix"), "ok": result.get("ok")})
+    return result
+
+
+@app.post("/web/run")
+def web_run(request: Request, payload: dict[str, Any] = Body(...)):
+    # Paste a curl from Telegram on the page, edit the JSON, run it (Postman-like).
+    user = _web_user(request)
+    try:
+        house = payload.get("house") or web_house_by_port(payload.get("port"))
+        started = time.time()
+        result = web_run_case(house, payload.get("body"))
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        log_exception(exc, {"event": "web_run_failed", "user": user["username"]})
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không gọi được /run: {exc}"})
+    body = payload.get("body") or {}
+    log_event({"event": "web_run", "user": user["username"], "house": result["house"], "status": result["status_code"],
+               "passport": body.get("passportNumber", ""), "seconds": round(time.time() - started, 1)})
+    return result
+
+
+@app.post("/web/progress")
+def web_progress(request: Request, payload: dict[str, Any] = Body(...)):
+    # Called by n8n at each milestone, with the shared VISA_API_KEY (not a user key).
+    expected = os.getenv("VISA_API_KEY", "").strip()
+    if not expected or request.headers.get("x-api-key", "") != expected:
+        raise HTTPException(status_code=401, detail={"ok": False, "error": "bad key"})
+    job_id = str(payload.get("job_id", "") or "").strip()
+    try:
+        step = web_make_step(str(payload.get("step", "")), str(payload.get("message", "") or ""), web_now_iso())
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    known = bool(job_id) and add_web_job_step(job_id, step, web_step_status(step["step"]))
+    return {"ok": True, "tracked": known}  # False = run not started from /web (or already finished)
+
+
+@app.get("/web/job/{job_id}")
+def web_job(request: Request, job_id: str):
+    user = _web_user(request)
+    job = get_web_job(job_id)
+    if not job or (job["username"] != user["username"] and user["staff_code"] != "ADMIN"):
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không tìm thấy lần chạy này"})
+    return {"ok": True, "job": job, "now": web_now_iso()}
+
+
+@app.post("/web/folder-stat")
+def web_folder_stat(request: Request, payload: dict[str, Any] = Body(...)):
+    _web_user(request)
+    try:
+        return web_folder_stat_call(payload.get("house"), payload.get("source_prefix"))
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+
+
+@app.post("/web/upload")
+async def web_upload(
+    request: Request,
+    house: str = Form(""),
+    source_prefix: str = Form(""),
+    relative_path: str = Form(""),
+    file: UploadFile = File(...),
+):
+    _web_user(request)
+    content = await file.read()
+    try:
+        result = await asyncio.to_thread(
+            web_upload_file, house, source_prefix, relative_path, content, file.content_type or ""
+        )
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    if not result.get("ok"):
+        raise HTTPException(status_code=502, detail=result)
+    return {"ok": True, "key": result.get("key"), "size": result.get("size")}
+
+
+@app.post("/r2/folders/stat")
+def r2_folders_stat(payload: dict[str, Any] = Body(...)):
+    result = api_stat_r2_folder(str(payload.get("prefix", "") or ""))
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
     return result
 
 

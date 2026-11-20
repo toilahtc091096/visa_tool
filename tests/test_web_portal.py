@@ -29,10 +29,10 @@ class FormTest(unittest.TestCase):
 
     def test_payload_matches_wf01_fields(self):
         p = wp.build_start_payload("bao", {"house": "phong", "visa_code": "Q2", "days": "180",
-                                           "relation": "childrenSpouse", "source_prefix": "Be giau- Q2-180N"})
+                                           "relation": "CON RE", "source_prefix": "Be giau- Q2-180N"})
         self.assertRegex(p.pop("job_id"), r"^job-[a-z0-9]{8}$")
         self.assertEqual(p, {"staff": "BAO", "house": "PHONG", "bucket": "visa-data-phong", "api_port": "20000",
-                             "visa_type": "Q2180", "relation": "childrenSpouse",
+                             "visa_type": "Q2180", "relation": "CON RE",
                              "source_prefix": "Be giau- Q2-180N/", "folder_name": "t"})
 
     def test_relation_rules(self):
@@ -42,6 +42,9 @@ class FormTest(unittest.TestCase):
         with self.assertRaises(wp.FormError):
             wp.build_start_payload("BAO", {**base, "visa_code": "Q1", "relation": "friend"})
         self.assertEqual(wp.build_start_payload("BAO", {**base, "visa_code": "M"})["relation"], "")
+        self.assertEqual(wp.build_start_payload("BAO", {**base, "visa_code": "S2", "relation": "VO SAP CUOI"})["relation"], "VO SAP CUOI")
+        with self.assertRaises(wp.FormError):  # old WF-01 keys are not offered on the web form
+            wp.build_start_payload("BAO", {**base, "visa_code": "Q2", "relation": "spouse"})
         with self.assertRaises(wp.FormError):
             wp.build_start_payload("BAO", {**base, "visa_code": "M", "house": "XYZ"})
 
@@ -68,6 +71,53 @@ class FormTest(unittest.TestCase):
             wp.rerun_prepare({"house": "TAI", "source_prefix": "A", "passport_number": "abc/.."})
 
 
+    def test_relation_labels_known_by_server(self):
+        import constants
+        from visa_types.family import _relation_key
+        unknown = [r["value"] for r in wp.RELATIONS if _relation_key(r["value"]) not in constants.INVITER_RELATION_ZH_SOUTH]
+        self.assertEqual(unknown, ["HO HANG"])  # sent as-is, same as before
+        self.assertEqual([r["value"] for r in wp.RELATIONS if "S2" in r.get("first_for", [])], ["CHONG SAP CUOI", "VO SAP CUOI"])
+
+    def test_run_case_uses_local_instance_of_port(self):
+        self.assertEqual(wp.house_by_port("20000"), "PHONG")
+        with self.assertRaises(wp.FormError):
+            wp.house_by_port("8080")
+        resp = mock.Mock(status_code=400, json=lambda: {"detail": {"ok": False, "step": "Step 3"}})
+        with mock.patch.object(wp.requests, "post", return_value=resp) as post:
+            r = wp.run_case("PHONG", {"passportNumber": "E1"})
+        self.assertEqual(post.call_args.args[0], "http://127.0.0.1:20000/run")
+        self.assertEqual(post.call_args.kwargs["json"], {"passportNumber": "E1"})
+        self.assertEqual((r["ok"], r["status_code"], r["house"]), (False, 400, "PHONG"))
+        with self.assertRaises(wp.FormError):
+            wp.run_case("PHONG", [])
+
+    def test_steps(self):
+        s = wp.make_step("classifying", "12 file", "2026-01-01T00:00:00+00:00")
+        self.assertEqual((s["step"], s["label"]), ("classifying", "Đang phân loại tài liệu"))
+        self.assertEqual([wp.step_status(x) for x in ("files_loaded", "done", "error")], ["running", "done", "error"])
+        with self.assertRaises(wp.FormError):
+            wp.make_step("hack")
+
+    def test_upload_forwards_to_house_instance_with_exact_key(self):
+        resp = mock.Mock(status_code=200, json=lambda: {"ok": True, "key": "L30 - Ánh/sub/hộ chiếu.jpg", "size": 3})
+        with mock.patch.object(wp.requests, "post", return_value=resp) as post:
+            r = wp.upload_file("phong", "L30 - Ánh", "sub/hộ chiếu.jpg", b"abc", "image/jpeg")
+        self.assertTrue(r["ok"])
+        self.assertEqual(post.call_args.args[0], "http://127.0.0.1:20000/r2/images")
+        self.assertEqual(post.call_args.kwargs["data"]["key"], "L30 - Ánh/sub/hộ chiếu.jpg")
+        for bad in ["", "../x.jpg", "a/../../b", "dir/"]:
+            with self.assertRaises(wp.FormError, msg=bad):
+                wp.upload_file("phong", "A", bad, b"x")
+        with self.assertRaises(wp.FormError):
+            wp.upload_file("phong", "A", "x.jpg", b"")
+
+    def test_folder_stat(self):
+        resp = mock.Mock(status_code=200, json=lambda: {"ok": True, "files": 3, "bytes": 10})
+        with mock.patch.object(wp.requests, "post", return_value=resp) as post:
+            self.assertEqual(wp.folder_stat("TAI", "A")["files"], 3)
+        self.assertEqual(post.call_args.args[0], "http://127.0.0.1:30000/r2/folders/stat")
+
+
 class PasswordTest(unittest.TestCase):
     def test_hash_roundtrip(self):
         h = hash_password("bí mật 123", iterations=1000)
@@ -91,7 +141,11 @@ class EndpointTest(unittest.TestCase):
             mock.patch.dict(os.environ, {"ACCESS_GUARD": "enforce", "VISA_API_KEY": "shared"}),
             mock.patch.object(self.server, "get_web_user_by_api_key", side_effect=lambda k: user if k == "user-key" else None),
             mock.patch.object(self.server, "authenticate_web_user", side_effect=lambda u, pw: dict(user) if (u, pw) == ("bao", "pw") else None),
+            mock.patch.object(self.server, "create_web_job", side_effect=lambda job, u, step: self.jobs.update({job["job_id"]: {"username": u, "steps": [step], "status": "running"}})),
+            mock.patch.object(self.server, "add_web_job_step", side_effect=self._add_step),
+            mock.patch.object(self.server, "get_web_job", side_effect=lambda jid: self.jobs.get(jid) and {"job_id": jid, **self.jobs[jid]}),
         ]
+        self.jobs = {}
         for x in p:
             x.start()
             self.addCleanup(x.stop)
@@ -131,6 +185,63 @@ class EndpointTest(unittest.TestCase):
 
     def test_other_paths_still_need_shared_key(self):
         self.assertEqual(self.client.post("/r2/images/delete", json={}, headers={"X-Api-Key": "user-key"}).status_code, 401)
+
+    def _add_step(self, job_id, step, status):
+        job = self.jobs.get(job_id)
+        if not job or job["status"] != "running":
+            return False
+        job["steps"].append(step)
+        job["status"] = status
+        return True
+
+    def test_start_records_job_and_progress_flow(self):
+        form = {"house": "HAI", "visa_code": "L", "days": "30", "source_prefix": "L30 - A"}
+        with mock.patch.object(self.server, "start_case", side_effect=lambda c: {"ok": True, "job_id": c["job_id"]}):
+            job_id = self.client.post("/web/start", json=form, headers={"X-Api-Key": "user-key"}).json()["job_id"]
+        self.assertEqual(self.jobs[job_id]["steps"][0]["step"], "received")
+        # n8n reports with the shared key only
+        self.assertEqual(self.client.post("/web/progress", json={"job_id": job_id, "step": "classifying"}, headers={"X-Api-Key": "user-key"}).status_code, 401)
+        r = self.client.post("/web/progress", json={"job_id": job_id, "step": "classifying", "message": "12 file"}, headers={"X-Api-Key": "shared"})
+        self.assertEqual(r.json(), {"ok": True, "tracked": True})
+        self.client.post("/web/progress", json={"job_id": job_id, "step": "done"}, headers={"X-Api-Key": "shared"})
+        # closed job does not take more steps; unknown job (started from WF-01) is ignored
+        self.assertFalse(self.client.post("/web/progress", json={"job_id": job_id, "step": "error"}, headers={"X-Api-Key": "shared"}).json()["tracked"])
+        self.assertFalse(self.client.post("/web/progress", json={"job_id": "job-wf01", "step": "done"}, headers={"X-Api-Key": "shared"}).json()["tracked"])
+        j = self.client.get(f"/web/job/{job_id}", headers={"X-Api-Key": "user-key"}).json()["job"]
+        self.assertEqual([s["step"] for s in j["steps"]], ["received", "classifying", "done"])
+        self.assertEqual(j["status"], "done")
+
+    def test_start_n8n_failure_marks_job_error(self):
+        form = {"house": "HAI", "visa_code": "M", "days": "", "source_prefix": "A"}
+        with mock.patch.object(self.server, "start_case", side_effect=RuntimeError("n8n down")):
+            r = self.client.post("/web/start", json=form, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.status_code, 502)
+        (job,) = self.jobs.values()
+        self.assertEqual((job["status"], job["steps"][-1]["step"]), ("error", "error"))
+
+    def test_job_of_other_user_hidden(self):
+        self.jobs["job-x"] = {"username": "hang", "steps": [], "status": "running"}
+        self.assertEqual(self.client.get("/web/job/job-x", headers={"X-Api-Key": "user-key"}).status_code, 404)
+
+    def test_upload_endpoint(self):
+        with mock.patch.object(self.server, "web_upload_file", return_value={"ok": True, "key": "A/x.jpg", "size": 3}) as up:
+            r = self.client.post("/web/upload", data={"house": "HAI", "source_prefix": "A", "relative_path": "x.jpg"},
+                                 files={"file": ("x.jpg", b"abc", "image/jpeg")}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(up.call_args.args[:4], ("HAI", "A", "x.jpg", b"abc"))
+        r = self.client.post("/web/upload", data={"house": "HAI", "source_prefix": "A", "relative_path": "x.jpg"},
+                             files={"file": ("x.jpg", b"abc", "image/jpeg")})
+        self.assertEqual(r.status_code, 401)
+
+    def test_web_run_endpoint(self):
+        body = {"passportNumber": "E1"}
+        self.assertEqual(self.client.post("/web/run", json={"port": "10000", "body": body}).status_code, 401)
+        with mock.patch.object(self.server, "web_run_case", return_value={"ok": True, "status_code": 200, "house": "HAI", "response": {"ok": True}}) as rc:
+            r = self.client.post("/web/run", json={"port": "10000", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(rc.call_args.args, ("HAI", body))
+        r = self.client.post("/web/run", json={"port": "8080", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.status_code, 400)
 
 
 if __name__ == "__main__":
