@@ -300,6 +300,46 @@ def delete_visa_registrations_by_passport_except_status(
     return _execute(sql, (passport_number, status, current_house()))
 
 
+def list_approved_pending_r2_cleanup(limit: int = 200) -> list[dict[str, Any]]:
+    """Approved records (status in the DB) whose passport R2 folder was not deleted yet.
+
+    Skipped while the same passport has a newer record still in progress (the R2
+    folder is named by passport number: a new case would lose its files).
+    """
+    sql = """
+        SELECT vr.id, vr.passport_number, vr.full_name, vr.updated_at
+        FROM visa_registrations vr
+        WHERE vr.house = %s
+          AND vr.status = 'approved'
+          AND vr.r2_deleted_at IS NULL
+          AND vr.passport_number <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM visa_registrations o
+              WHERE o.house = vr.house
+                AND o.passport_number = vr.passport_number
+                AND o.id <> vr.id
+                AND o.status NOT IN ('approved', 'rejected', 'cancelled')
+                AND o.created_at > vr.created_at
+          )
+        ORDER BY vr.updated_at DESC, vr.id DESC
+        LIMIT %s
+    """
+    return _execute(sql, (current_house(), max(1, int(limit))), fetch="all", dict_rows=True)
+
+
+def mark_r2_deleted(record_ids: list[int]) -> int:
+    """Remember the R2 folder of these records is gone (not tried again)."""
+    ids = [int(i) for i in record_ids if i is not None]
+    if not ids:
+        return 0
+    sql = """
+        UPDATE visa_registrations
+        SET r2_deleted_at = NOW()
+        WHERE id = ANY(%s) AND house = %s
+    """
+    return _execute(sql, (ids, current_house()))
+
+
 def set_visa_registration_vip(record_id: int, is_vip: bool) -> None:
     sql = """
         UPDATE visa_registrations

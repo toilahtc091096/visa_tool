@@ -12,6 +12,8 @@ from constants import REGION, REGION_SOUTH
 from database.crud import (
     batch_update_visa_registration_status_and_payload,
     delete_visa_registrations_by_passport_except_status,
+    list_approved_pending_r2_cleanup,
+    mark_r2_deleted,
     list_visa_registrations_by_status,
 )
 from services.agency_sheets import is_agency_sheet_enabled, write_agency_sheets
@@ -159,6 +161,53 @@ def _build_display_only_item(row: dict[str, Any]) -> dict[str, Any]:
         "remote_status": "",
         "internal_status": internal_status,
     }
+
+
+R2_CLEANUP_LIMIT = 200  # records per sync run (the first run after deploy has a backlog)
+
+
+def cleanup_approved_r2(limit: int = R2_CLEANUP_LIMIT) -> dict[str, Any]:
+    """Delete the R2 folder (passport number) of approved records.
+
+    Decided from status = 'approved' in the DB, not from this run's API answer,
+    so records approved earlier, or whose delete failed, are cleaned too. Each
+    record is marked (r2_deleted_at) once its folder is gone. Never raises.
+    """
+    started_at = time.perf_counter()
+    result: dict[str, Any] = {"checked": 0, "cleaned": 0, "objects": 0, "failed": []}
+    try:
+        rows = list_approved_pending_r2_cleanup(limit)
+    except Exception as exc:
+        print(f"[r2_cleanup] db read failed: {type(exc).__name__}: {exc}", flush=True)
+        result["error"] = f"{type(exc).__name__}: {exc}"
+        return result
+    done_ids: list[int] = []
+    folders_done: dict[str, int] = {}
+    for row in rows:
+        result["checked"] += 1
+        passport = str(row.get("passport_number") or "").strip()
+        try:
+            if passport not in folders_done:   # same passport twice: delete once
+                folders_done[passport] = remove_r2.delete_r2_folder(passport)
+                result["objects"] += folders_done[passport]
+            done_ids.append(row["id"])
+        except Exception as exc:
+            result["failed"].append({"id": row.get("id"), "passport_number": passport,
+                                     "error": f"{type(exc).__name__}: {exc}"})
+            print(f"[r2_cleanup] failed passport={passport}: {type(exc).__name__}: {exc}", flush=True)
+    try:
+        result["cleaned"] = mark_r2_deleted(done_ids)
+    except Exception as exc:
+        result["error"] = f"mark failed: {type(exc).__name__}: {exc}"
+        print(f"[r2_cleanup] mark failed: {exc}", flush=True)
+    if rows:
+        print(
+            f"[r2_cleanup] approved={result['checked']} cleaned={result['cleaned']} "
+            f"objects={result['objects']} failed={len(result['failed'])} "
+            f"duration={time.perf_counter() - started_at:.2f}s",
+            flush=True,
+        )
+    return result
 
 
 def _should_sync_row_with_api(row: dict[str, Any]) -> bool:
@@ -455,7 +504,7 @@ async def sync_draft_visa_registrations(
                     f"[sync_draft] approved cleanup passport={passport_number}",
                     flush=True,
                 )
-                remove_r2.delete_r2_folder(passport_number)
+                # R2 folder: cleanup_approved_r2() below, from the status in the DB.
                 item["deleted_others"] = (
                     delete_visa_registrations_by_passport_except_status(
                         passport_number=passport_number,
@@ -470,6 +519,10 @@ async def sync_draft_visa_registrations(
             f"duration={time.perf_counter() - cleanup_started_at:.2f}s",
             flush=True,
         )
+
+    # R2 folder of every approved record (status in the DB, this run or earlier),
+    # once; a failure is logged and tried again next run, never stops the sync.
+    summary["r2_cleanup"] = await asyncio.to_thread(cleanup_approved_r2)
 
     sheet_url = spreadsheet_url.strip() or os.getenv("GOOGLE_SHEET_SYNC_URL", "").strip()
     if sheet_url and not skip_google_sheet:

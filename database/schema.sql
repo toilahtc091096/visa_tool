@@ -146,3 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_han_approval_jobs_house ON han_approval_jobs (hou
 ALTER TABLE agencies ADD COLUMN IF NOT EXISTS house TEXT NOT NULL DEFAULT '';
 ALTER TABLE agencies DROP CONSTRAINT IF EXISTS agencies_code_key;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_agencies_house_code ON agencies (house, code);
+
+-- When the passport's R2 folder was deleted after approval (sync cleanup, decided
+-- from status = 'approved' in this table). NULL = not cleaned yet.
+ALTER TABLE visa_registrations ADD COLUMN IF NOT EXISTS r2_deleted_at TIMESTAMPTZ;
