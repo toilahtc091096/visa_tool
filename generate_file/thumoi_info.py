@@ -26,6 +26,7 @@ from constants import (
 )
 from generate_file.docx_to_pdf import convert_docx_to_pdf
 from generate_file.path_utils import passport_data_dir
+from generate_file.signature_fit import fit_signature_to_frame, frame_ratio
 from utils.person_name import join_person_name
 from utils import pdf_helper
 
@@ -428,13 +429,14 @@ async def render_thumoi_docx_output_pdf(
 
     out = out_dir / (Path(output_name or template_name).stem + ".docx")
     doc = DocxTemplate(str(src))
+    # replace_pic keeps the template frame and stretches the image into it: fit the
+    # signature to the frame first (cropped, transparent, same ratio) - not flat, bigger.
     if signature_path:
-        doc.replace_pic(SIGNATURE_MEDIA_NAME, BytesIO(signature_path.read_bytes()))
+        doc.replace_pic(SIGNATURE_MEDIA_NAME, BytesIO(fit_signature_to_frame(
+            signature_path.read_bytes(), frame_ratio(src, SIGNATURE_MEDIA_NAME))))
     if guarantor_signature_path and template_name == GUARANTOR_TEMPLATE_NAME:
-        doc.replace_pic(
-            GUARANTOR_SIGNATURE_MEDIA_NAME,
-            BytesIO(guarantor_signature_path.read_bytes()),
-        )
+        doc.replace_pic(GUARANTOR_SIGNATURE_MEDIA_NAME, BytesIO(fit_signature_to_frame(
+            guarantor_signature_path.read_bytes(), frame_ratio(src, GUARANTOR_SIGNATURE_MEDIA_NAME))))
     print(
         f"[thumoi] template={template_name} signature={signature_path} "
         f"guarantor_signature={guarantor_signature_path}",
