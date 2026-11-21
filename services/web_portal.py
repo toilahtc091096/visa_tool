@@ -231,6 +231,29 @@ def upload_file(house_name: str, source_prefix: str, relative_path: str, content
     return _json_or_error(resp)
 
 
+# Images of a case on R2, in the passport folder (= passport number):
+# passport.png by n8n WF-06 (the OCR image), the edited portrait by WF-08.
+CASE_IMAGES = {
+    "passport": ("passport.png", "Ảnh hộ chiếu"),
+    "portrait": ("anh_chan_dung/portrait.png", "Ảnh chân dung"),
+}
+_PASSPORT_FOLDER_RE = re.compile(r"^[A-Za-z0-9_-]{3,40}$")
+
+
+def case_image(house_name: str, passport_number: str, kind: str) -> tuple[int, bytes, str, str]:
+    """(status, content, content_type, file name) of one case image from the house's bucket."""
+    house = house_config(house_name)
+    folder = str(passport_number or "").strip().upper()
+    if not _PASSPORT_FOLDER_RE.match(folder):
+        raise FormError(f"Số hộ chiếu không hợp lệ: {passport_number or '(trống)'}")
+    if kind not in CASE_IMAGES:
+        raise FormError(f"Loại ảnh không hợp lệ: {kind}")
+    rel = CASE_IMAGES[kind][0]
+    resp = requests.get(_local(house, "/r2/images/get"), params={"key": f"{folder}/{rel}"}, timeout=60)
+    name = f"{folder}_{kind}.{rel.rsplit('.', 1)[-1]}"
+    return resp.status_code, resp.content, resp.headers.get("content-type", "application/octet-stream"), name
+
+
 def bio_credentials(house_name: str) -> dict[str, Any]:
     """Bio login URL + account of the house (from the house instance's own .env)."""
     house = house_config(house_name)

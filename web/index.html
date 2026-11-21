@@ -138,6 +138,14 @@
   @media (max-width: 420px) { .dlg-actions { flex-direction: column-reverse; } .dlg-actions button { width: 100%; } }
   @keyframes dlg-fade { from { opacity: 0; } }
   @keyframes dlg-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+  .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .img-grid { grid-template-columns: 1fr; } }
+  .img-card { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+  .img-box { height: 260px; display: flex; align-items: center; justify-content: center; background: var(--track); }
+  .img-box img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; }
+  .img-empty { color: var(--muted); font-size: 14px; padding: 0 12px; text-align: center; }
+  .img-card figcaption { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-weight: 600; background: var(--card); }
+  .img-dl { padding: 6px 12px; border-radius: 7px; background: var(--accent); color: var(--accent-text); text-decoration: none; font-size: 14px; }
   .card-head { display: flex; justify-content: flex-end; margin: -8px 0 4px; }
   .card-head button { margin: 0; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
   .spin-icon { display: inline-block; font-size: 20px; line-height: 1; transition: transform .4s; }
@@ -276,6 +284,19 @@
       <div id="curlTimes" class="hidden">
         <h2>Thời gian từng bước</h2>
         <div class="tbl-wrap"><table class="data" id="curlTimesTbl"></table></div>
+      </div>
+      <div id="curlImages" class="hidden">
+        <h2>Ảnh hồ sơ <span class="hint" id="curlImagesInfo"></span></h2>
+        <div class="img-grid">
+          <figure class="img-card" id="img-passport">
+            <div class="img-box"><span class="img-empty">Đang tải…</span></div>
+            <figcaption><span>Ảnh hộ chiếu</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
+          </figure>
+          <figure class="img-card" id="img-portrait">
+            <div class="img-box"><span class="img-empty">Đang tải…</span></div>
+            <figcaption><span>Ảnh chân dung</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
+          </figure>
+        </div>
       </div>
       <pre id="curlResult" class="result hidden"></pre>
     </div>
@@ -1100,6 +1121,39 @@ function readBody() {
 $('curlBody').addEventListener('input', () => { try { readBody(); } catch (e) {} });
 $('fmtBtn').onclick = () => { try { $('curlBody').value = JSON.stringify(readBody(), null, 2); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
 
+// ---------- case images (R2: <passport>/passport.png, <passport>/anh_chan_dung/portrait.png) ----------
+const imageUrls = [];
+function clearCaseImages() {
+  imageUrls.splice(0).forEach((u) => URL.revokeObjectURL(u));
+  $('curlImages').classList.add('hidden');
+}
+async function showCaseImages(house, passport) {
+  clearCaseImages();
+  if (!house || !passport) return;
+  $('curlImagesInfo').textContent = `· nhà ${house} · hộ chiếu ${passport}`;
+  $('curlImages').classList.remove('hidden');
+  await Promise.all(['passport', 'portrait'].map(async (kind) => {
+    const card = $('img-' + kind), box = card.querySelector('.img-box'), dl = card.querySelector('.img-dl');
+    box.innerHTML = '<span class="img-empty">Đang tải…</span>'; dl.classList.add('hidden');
+    try {
+      const q = new URLSearchParams({ house, passport, kind });
+      const res = await fetch('/web/case-image?' + q, { headers: { 'X-Api-Key': key } });
+      if (!res.ok) {
+        let msg = `Lỗi ${res.status}`;
+        try { const d = await res.json(); msg = (d.detail || d).error || msg; } catch (e) {}
+        box.innerHTML = `<span class="img-empty">${esc(msg)}</span>`; return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      imageUrls.push(url);
+      const img = document.createElement('img');
+      img.src = url; img.alt = card.querySelector('figcaption span').textContent;
+      img.title = 'Bấm để xem ảnh lớn'; img.onclick = () => window.open(url, '_blank');
+      box.innerHTML = ''; box.appendChild(img);
+      dl.href = url; dl.download = `${passport}_${kind}.png`; dl.classList.remove('hidden');
+    } catch (e) { box.innerHTML = `<span class="img-empty">${esc(e.message)}</span>`; }
+  }));
+}
+
 // Phases of /run (flows/run_flow.py, result.timings), in run order.
 const PHASE_LABEL = {
   validate: 'Kiểm tra dữ liệu', token_ocr: 'Token + đọc hộ chiếu (OCR)', draft_person: 'Tìm bản nháp, chuẩn bị thông tin',
@@ -1129,6 +1183,7 @@ function renderTimings(timings, ok) {
 
 $('runBtn').onclick = async () => {
   const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden'); $('curlTimes').classList.add('hidden');
+  clearCaseImages();
   let body;
   try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
   if (!curlPort) { show($('curlMsg'), 'Bấm "Đọc curl" trước', false); return; }
@@ -1155,6 +1210,7 @@ $('runBtn').onclick = async () => {
     show($('curlMsg'), lines.join('\n'), r.ok);
     if (tokenIssue) openTokenCard(r.house);
     renderTimings(res.timings, r.ok);
+    showCaseImages(r.house, String(body.passportNumber || '').trim());
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
   } catch (e) { show($('curlMsg'), e.message, false); }

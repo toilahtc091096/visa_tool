@@ -509,6 +509,27 @@ def web_bio_check(request: Request, house: str = Query("")):
         raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không hỏi được instance nhà: {exc}"})
 
 
+@app.get("/web/case-image")
+def web_case_image(request: Request, house: str = Query(""), passport: str = Query(""),
+                   kind: str = Query(""), download: bool = Query(False)):
+    # Passport image / edited portrait of a case, from the house's bucket (curl tab, after Chạy).
+    _web_user(request)
+    try:
+        status, content, content_type, name = web_portal.case_image(house, passport, kind)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không đọc được R2: {exc}"})
+    if status == 404:
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Chưa có ảnh này trên R2"})
+    if status >= 400:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"R2 trả HTTP {status}"})
+    headers = {"Cache-Control": "no-store"}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{name}"'
+    return Response(content=content, media_type=content_type, headers=headers)
+
+
 @app.get("/web/visa-token.user.js")
 def web_userscript(request: Request):
     base = str(request.base_url).rstrip("/")
