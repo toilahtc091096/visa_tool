@@ -20,6 +20,7 @@ from api import api_download_r2_folder_zip
 from api import api_download_r2_object_bytes
 from api import api_delete_r2_objects
 from api import api_archive_r2_folder, api_restore_r2_folder, api_stat_r2_folder
+from api import api_find_case_images
 from api import api_sign_and_push_image_to_r2
 from constants import REGION, REGION_SOUTH
 from database.connection import init_database
@@ -565,6 +566,15 @@ async def web_upload(
     if not result.get("ok"):
         raise HTTPException(status_code=502, detail=result)
     return {"ok": True, "key": result.get("key"), "size": result.get("size")}
+
+
+@app.get("/r2/case-images")
+def r2_case_images(passport: str = Query("")):
+    # Keys of the passport image / edited portrait in this house's bucket (asked by /web).
+    result = api_find_case_images(passport)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
 
 
 @app.post("/r2/folders/stat")

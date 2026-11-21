@@ -1143,13 +1143,15 @@ async function showCaseImages(house, passport) {
         try { const d = await res.json(); msg = (d.detail || d).error || msg; } catch (e) {}
         box.innerHTML = `<span class="img-empty">${esc(msg)}</span>`; return;
       }
-      const url = URL.createObjectURL(await res.blob());
+      const blob = await res.blob();
+      const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' })[blob.type] || 'png';
+      const url = URL.createObjectURL(blob);
       imageUrls.push(url);
       const img = document.createElement('img');
       img.src = url; img.alt = card.querySelector('figcaption span').textContent;
       img.title = 'Bấm để xem ảnh lớn'; img.onclick = () => window.open(url, '_blank');
       box.innerHTML = ''; box.appendChild(img);
-      dl.href = url; dl.download = `${passport}_${kind}.png`; dl.classList.remove('hidden');
+      dl.href = url; dl.download = `${passport}_${kind}.${ext}`; dl.classList.remove('hidden');
     } catch (e) { box.innerHTML = `<span class="img-empty">${esc(e.message)}</span>`; }
   }));
 }

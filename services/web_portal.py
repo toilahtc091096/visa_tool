@@ -231,12 +231,10 @@ def upload_file(house_name: str, source_prefix: str, relative_path: str, content
     return _json_or_error(resp)
 
 
-# Images of a case on R2, in the passport folder (= passport number):
-# passport.png by n8n WF-06 (the OCR image), the edited portrait by WF-08.
-CASE_IMAGES = {
-    "passport": ("passport.png", "Ảnh hộ chiếu"),
-    "portrait": ("anh_chan_dung/portrait.png", "Ảnh chân dung"),
-}
+# Images of a case on R2, in the passport folder (= passport number). The house
+# instance finds the keys (/r2/case-images): the passport image as /run picks it,
+# the edited portrait saved by n8n WF-08.
+CASE_IMAGES = {"passport": "Ảnh hộ chiếu", "portrait": "Ảnh chân dung"}
 _PASSPORT_FOLDER_RE = re.compile(r"^[A-Za-z0-9_-]{3,40}$")
 
 
@@ -248,9 +246,15 @@ def case_image(house_name: str, passport_number: str, kind: str) -> tuple[int, b
         raise FormError(f"Số hộ chiếu không hợp lệ: {passport_number or '(trống)'}")
     if kind not in CASE_IMAGES:
         raise FormError(f"Loại ảnh không hợp lệ: {kind}")
-    rel = CASE_IMAGES[kind][0]
-    resp = requests.get(_local(house, "/r2/images/get"), params={"key": f"{folder}/{rel}"}, timeout=60)
-    name = f"{folder}_{kind}.{rel.rsplit('.', 1)[-1]}"
+    found = _json_or_error(requests.get(_local(house, "/r2/case-images"), params={"passport": folder}, timeout=60))
+    if not found.get("ok"):
+        raise RuntimeError(found.get("message") or found.get("error") or "Không liệt kê được thư mục R2")
+    key = str(found.get(kind) or "")
+    if not key:
+        return 404, b"", "", ""
+    resp = requests.get(_local(house, "/r2/images/get"), params={"key": key}, timeout=60)
+    ext = key.rsplit(".", 1)[-1].lower() if "." in key.rsplit("/", 1)[-1] else "png"
+    name = f"{folder}_{kind}.{ext}"
     return resp.status_code, resp.content, resp.headers.get("content-type", "application/octet-stream"), name
 
 

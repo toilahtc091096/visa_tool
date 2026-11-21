@@ -218,3 +218,44 @@ def api_restore_r2_folder(
         return {"ok": True, "mode": "done", **plan}
     except Exception as exc:
         return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+
+
+_IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff")
+PORTRAIT_KEY = "anh_chan_dung/portrait.png"  # n8n WF-08 (edited portrait)
+
+
+def api_find_case_images(passport_number: str) -> dict[str, Any]:
+    """Keys of the case images under <PASSPORT>/ in this house's bucket.
+
+    passport: picked like /run picks the image it sends to OCR
+    (utils/upload_file.get_passport_file_path): passport.png, else an image in
+    passport/, else the first image right in the folder (by name).
+    portrait: anh_chan_dung/portrait.png. "" when missing.
+    """
+    missing = _missing_r2_env_vars()
+    if missing:
+        return {"ok": False, "error": "missing_r2_env_vars", "missing": missing}
+    passport = str(passport_number or "").strip().upper()
+    if not _PASSPORT_RE.fullmatch(passport):
+        return {"ok": False, "error": "invalid_passport_number", "passport_number": passport}
+    folder = f"{passport}/"
+    try:
+        client, config = _build_r2_client()
+        keys = sorted(o["Key"] for o in _list(client, config.bucket_name, folder))
+    except Exception as exc:
+        return {"ok": False, "error": type(exc).__name__, "message": str(exc)}
+    rel = [k[len(folder):] for k in keys]
+    images = [r for r in rel if r.lower().endswith(_IMAGE_EXT)]
+    if "passport.png" in images:
+        passport_rel = "passport.png"
+    else:
+        passport_rel = next((r for r in images if r.lower().startswith("passport/")), "") \
+            or next((r for r in images if "/" not in r), "")
+    return {
+        "ok": True,
+        "bucket": config.bucket_name,
+        "folder": folder,
+        "passport": folder + passport_rel if passport_rel else "",
+        "portrait": folder + PORTRAIT_KEY if PORTRAIT_KEY in rel else "",
+        "files": len(keys),
+    }
