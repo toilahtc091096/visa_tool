@@ -29,7 +29,7 @@ import requests
 from constants import CHECK_OLD_LIST_BASE_URL
 
 TICKET_TTL = 15 * 60  # seconds a ticket (open login tab) stays usable
-SCRIPT_VERSION = "1.3"
+SCRIPT_VERSION = "1.4"
 
 
 # ---------- house side (each instance, its own .env) ----------
@@ -187,13 +187,46 @@ _USERSCRIPT = r"""// ==UserScript==
 
   // ---- *.visaforchina.cn only (the VPS host is matched on every port) ----
   if (!/(^|\.)visaforchina\.cn$/.test(location.hostname)) return;
+  const KEY = 'visa_tool_ticket';
   const m = location.hash.match(/visa_tool=([A-Za-z0-9_-]+)/);
-  if (m) GM_setValue('visa_tool_ticket', { ticket: m[1], at: Date.now() });
-  const saved = GM_getValue('visa_tool_ticket', null);
-  if (!saved || Date.now() - saved.at > TTL) return;   // not opened from /web: do nothing
-  const ticket = saved.ticket;
+  let state = GM_getValue(KEY, null);
+  if (m && (!state || state.ticket !== m[1])) state = { ticket: m[1], at: Date.now() };
+  if (!state || Date.now() - state.at > TTL) return;   // not opened from /web: do nothing
+  // Session state, kept across the bio site's page loads. Only a token from a NEW login
+  // in this session is sent: tokens already there (another house maybe) never are.
+  //   baseline: tokens seen before the login; sawLogin: the login form was shown.
+  if (!state.init) state = { ticket: state.ticket, at: state.at, init: true, baseline: [], sawLogin: false, redirected: false };
+  const save = () => GM_setValue(KEY, state);
+  const ticket = state.ticket;
+  const addBaseline = (t) => { if (t && !state.baseline.includes(t)) { state.baseline.push(t); save(); } };
 
-  // Authorization header the site's own requests send (seen after login)
+  function readCookie(name) {
+    const c = document.cookie.split('; ').find((x) => x.startsWith(name + '='));
+    return c ? decodeURIComponent(c.slice(name.length + 1)) : '';
+  }
+  const clean = (t) => String(t || '').replace(/^Bearer\s+/i, '').trim();
+
+  // First page of the session: remember the old token(s) and log the old session out,
+  // so the site has to show its login form.
+  if (!state.cleared) {
+    addBaseline(clean(readCookie('Admin-Token')));
+    addBaseline(clean(new URLSearchParams(location.search).get('token')));
+    const past = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    const host = location.hostname;
+    for (const domain of ['', '; domain=' + host, '; domain=.visaforchina.cn']) {
+      for (const path of ['/', location.pathname.replace(/[^/]*$/, '') || '/']) {
+        document.cookie = 'Admin-Token=; ' + past + '; path=' + path + domain;
+      }
+    }
+    for (const store of [localStorage, sessionStorage]) {
+      try {
+        for (const k of Object.keys(store)) if (/token/i.test(k)) { addBaseline(clean(store.getItem(k))); store.removeItem(k); }
+      } catch (e) {}
+    }
+    state.cleared = true; save();
+  }
+
+  // Authorization header the site's own requests send
   let seenAuth = '';
   try {
     const W = unsafeWindow;
@@ -243,6 +276,7 @@ _USERSCRIPT = r"""// ==UserScript==
   }
 
   const visible = (el) => !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+  const passwordBox = () => [...document.querySelectorAll('input')].filter(visible).find((i) => i.type === 'password');
   function setValue(el, value) {
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     setter.call(el, value);
@@ -261,28 +295,28 @@ _USERSCRIPT = r"""// ==UserScript==
     return true;
   }
 
-  function readCookie(name) {
-    const c = document.cookie.split('; ').find((x) => x.startsWith(name + '='));
-    return c ? decodeURIComponent(c.slice(name.length + 1)) : '';
-  }
   function currentToken() {
-    const fromUrl = new URLSearchParams(location.search).get('token') || '';
-    const t = seenAuth || readCookie('Admin-Token') || fromUrl;
-    return t.replace(/^Bearer\s+/i, '').trim();
+    return clean(seenAuth || readCookie('Admin-Token') || new URLSearchParams(location.search).get('token'));
   }
 
   const sent = new Set();
   let sending = false, finished = false;
   async function trySend() {
     if (finished || sending) return;
+    if (passwordBox()) {                        // login form on screen: not logged in yet
+      if (!state.sawLogin) { state.sawLogin = true; save(); }
+      addBaseline(currentToken());              // whatever token is around now is not the new one
+      return;
+    }
     const token = currentToken();
     if (!token || !token.startsWith('eyJ') || sent.has(token)) return;
+    if (!state.sawLogin || state.baseline.includes(token)) return;   // old session: never sent
     sending = true; sent.add(token);
-    say('Đã thấy token, đang gửi về server…');
+    say('Đã đăng nhập, đang gửi token mới về server…');
     try {
       const r = await call('POST', '/web/bio/ticket/' + ticket + '/token', { authorization: token });
       if (r.status === 200 && r.data.ok) {
-        finished = true; GM_deleteValue('visa_tool_ticket');
+        finished = true; GM_deleteValue(KEY);
         say('Đã cập nhật token nhà ' + (r.data.house || '') + ' ✓ — có thể tiếp tục dùng tab này', '#116b3a');
         setTimeout(() => { if (banner) banner.remove(); banner = null; }, 8000);   // the tab stays open
       } else {
@@ -299,15 +333,26 @@ _USERSCRIPT = r"""// ==UserScript==
       const r = await call('GET', '/web/bio/ticket/' + ticket);
       if (r.status !== 200 || !r.data.ok) {
         say((r.data.error || 'Phiên lấy token không còn hiệu lực') + '. Bấm "Lấy token" trên /web lại.', '#a4161a');
-        GM_deleteValue('visa_tool_ticket');
+        GM_deleteValue(KEY);
         return;
       }
       acc = r.data;
     } catch (e) { say(e.message, '#a4161a'); return; }
-    say('Nhà ' + acc.house + ': đã điền tài khoản. Hãy làm bước xác minh rồi bấm đăng nhập.');
+    say(state.sawLogin ? 'Nhà ' + acc.house + ': chờ đăng nhập xong…'
+                       : 'Nhà ' + acc.house + ': đã điền tài khoản. Hãy làm bước xác minh rồi bấm đăng nhập.');
     let tries = 0;
     const filler = setInterval(() => { if (fill(acc) || ++tries > 120) clearInterval(filler); }, 500);
     setInterval(trySend, 1500);
+    // No login form (the site kept the old session): go to the login page once, then ask.
+    setTimeout(() => {
+      if (state.sawLogin || passwordBox()) return;
+      if (!state.redirected && acc.login_url) {
+        state.redirected = true; save();
+        location.href = acc.login_url;
+      } else {
+        say('Không thấy form đăng nhập. Bấm Đăng xuất trên trang bio rồi đăng nhập lại tài khoản nhà ' + acc.house + '.', '#a4161a');
+      }
+    }, 4000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

@@ -90,6 +90,7 @@ class BioEndpointTest(unittest.TestCase):
         # the userscript (no user key) gets the account with the ticket
         acc = self.client.get(f"/web/bio/ticket/{t}").json()
         self.assertEqual((acc["house"], acc["username"], acc["password"]), ("PHONG", "a@b.com", "pw"))
+        self.assertEqual(acc["login_url"], "https://bio.visaforchina.cn/login")  # the script goes there if no login form
         # a token the bio site does not accept: still waiting
         with mock.patch.object(self.server.web_portal, "bio_save_authorization", return_value={"ok": False, "error": "Token không dùng được"}):
             self.assertEqual(self.client.post(f"/web/bio/ticket/{t}/token", json={"authorization": "eyJold"}).status_code, 400)

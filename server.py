@@ -432,7 +432,8 @@ def web_bio_ticket(ticket: str):
     if not cred.get("ok"):
         raise HTTPException(status_code=400, detail={"ok": False, "error": cred.get("error") or "Thiếu tài khoản bio"})
     bio_token.set_ticket_state(ticket, "waiting", "Tab bio đã mở, đã điền tài khoản; chờ xác minh và đăng nhập")
-    return {"ok": True, "house": t["house"], "username": cred["username"], "password": cred["password"]}
+    return {"ok": True, "house": t["house"], "username": cred["username"], "password": cred["password"],
+            "login_url": cred.get("login_url") or t.get("login_url", "")}
 
 
 @app.post("/web/bio/ticket/{ticket}/token")
