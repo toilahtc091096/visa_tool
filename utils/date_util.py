@@ -29,6 +29,27 @@ def work_experience_end_date() -> str:
     return year_month_str(date.today())
 
 
+def not_after_current_month(value: str, today: date | None = None) -> str:
+    """A work date from the request (YYYY-MM-DD, YYYY-MM, DD/MM/YYYY...) that is
+    after the current month becomes the current year-month (YYYY-MM): the form
+    does not accept a future date. Other values are returned unchanged."""
+    import re
+
+    text = str(value or "").strip()
+    today = today or date.today()
+    m = re.match(r"^(\d{4})[-/.](\d{1,2})(?:[-/.]\d{1,2})?$", text) \
+        or re.match(r"^(?:\d{1,2}[-/.])?(\d{1,2})[-/.](\d{4})$", text)
+    if not m:
+        return text
+    if len(m.group(1)) == 4:
+        year, month = int(m.group(1)), int(m.group(2))
+    else:
+        month, year = int(m.group(1)), int(m.group(2))
+    if (year, month) > (today.year, today.month):
+        return year_month_str(today)
+    return text
+
+
 def monday_and_friday_skip_x_weeks(d: date, x: int):
     # Monday of the week that contains d
     monday = d - timedelta(days=d.weekday())  # weekday(): Mon=0..Sun=6

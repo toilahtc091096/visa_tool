@@ -68,9 +68,12 @@ class VisaProfile:
     """Forced work-info job type; None picks a random preferred one."""
     works_at_inviting_company: ClassVar[bool] = False
     # South: an employer in the request (employer_name) gives a "Company
-    # employee" work experience instead of the position-only remark.
-    south_employer_work: ClassVar[bool] = False
-    """Work experience is the company given in the request (company* fields)."""
+    # employee" (713004) work experience with all the request's work fields
+    # (name, address, phone, supervisor, position, duty, from/to) instead of the
+    # position-only "not applicable" remark. Every South type since 2026-11-21
+    # (was M only); a type can still turn it off.
+    south_employer_work: ClassVar[bool] = True
+    """Work experience is the company given in the request (employer_* fields)."""
     manager_is_emergency_contact: ClassVar[bool] = False
     always_self_paid: ClassVar[bool] = False
     cv_visa_type_number: ClassVar[str | None] = None

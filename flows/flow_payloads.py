@@ -353,8 +353,9 @@ def build_work_info_profile(
         not_apply_items = []
         work_experience = [
             _work_experience_entry(
-                str(work_from or work_begin_date).strip() or work_begin_date,
-                str(work_to or work_end_date).strip() or work_end_date,
+                # no date after the current month (e.g. a contract end 2027-10-05 -> 2026-11)
+                date_util.not_after_current_month(str(work_from or work_begin_date).strip() or work_begin_date),
+                date_util.not_after_current_month(str(work_to or work_end_date).strip() or work_end_date),
                 _normalize_ascii_upper(employer_address) or province_city_code,
                 _normalize_ascii_upper(position) or "NHAN VIEN",
                 _normalize_ascii_upper(duty) or "NHAN VIEN",
