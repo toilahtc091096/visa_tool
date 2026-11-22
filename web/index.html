@@ -331,6 +331,7 @@
         <div><label for="aStaff">Người làm</label><select id="aStaff"></select></div>
         <div><label for="aHouse">Nhà</label><select id="aHouse"></select></div>
         <div><label for="aVisa">Loại visa</label><select id="aVisa"></select></div>
+        <div><label for="aAgency">Đại lý</label><select id="aAgency"></select></div>
       </div>
       <div class="quick">
         <button class="secondary" data-range="today">Hôm nay</button>
@@ -339,6 +340,7 @@
         <button class="secondary" data-range="month">Tháng này</button>
         <button class="secondary" data-range="lastmonth">Tháng trước</button>
         <button id="aLoad">Xem</button>
+        <a href="/web/stats" target="_blank" rel="noopener" style="align-self:center;margin-left:auto">Mở trang biểu đồ ↗</a>
       </div>
       <div id="adminMsg"></div>
 
@@ -934,6 +936,8 @@ function adminInit() {
   adminReady = api('/web/admin/options').then((o) => {
     fill($('aStaff'), [{ value: '', label: 'Tất cả' }, ...o.staff, { value: o.unknown_staff, label: 'Không rõ' }]);
     fill($('aHouse'), [{ value: '', label: 'Tất cả' }, ...o.houses]);
+    fill($('aAgency'), [{ value: '', label: 'Tất cả' }, ...(o.agencies || []).map((a) => ({ value: a.code, label: a.name && a.name !== a.code ? `${a.code} · ${a.name}` : a.code })),
+                        { value: o.unknown_agency || '_none', label: '(chưa gán)' }]);
     fill($('aStatus'), [{ value: '', label: 'Tất cả' }, ...o.statuses.map((s) => ({ value: s, label: STATUS_LABEL[s] || s }))]);
   }).catch(adminErr);
   return adminReady;
@@ -941,7 +945,7 @@ function adminInit() {
 
 function adminQuery(extra) {
   const q = new URLSearchParams({ date_from: $('aFrom').value, date_to: $('aTo').value, staff: $('aStaff').value,
-                                  house: $('aHouse').value, visa_code: $('aVisa').value, ...extra });
+                                  house: $('aHouse').value, visa_code: $('aVisa').value, agency: $('aAgency').value, ...extra });
   [...q.keys()].forEach((k) => { if (!q.get(k)) q.delete(k); });
   return q.toString();
 }
@@ -1014,7 +1018,7 @@ async function adminRecords() {
 function reloadRecords() { adminRecords().catch(adminErr); }
 document.querySelectorAll('[data-range]').forEach((b) => { b.onclick = () => { setRange(b.dataset.range); adminLoad(); }; });
 $('aLoad').onclick = adminLoad;
-['aFrom', 'aTo', 'aStaff', 'aHouse', 'aVisa'].forEach((id) => $(id).addEventListener('change', adminLoad));
+['aFrom', 'aTo', 'aStaff', 'aHouse', 'aVisa', 'aAgency'].forEach((id) => $(id).addEventListener('change', adminLoad));
 $('aStatus').addEventListener('change', () => { aOffset = 0; reloadRecords(); });
 $('aQ').addEventListener('input', () => {
   clearTimeout(aSearchTimer);

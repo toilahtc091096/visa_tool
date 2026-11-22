@@ -312,7 +312,7 @@ def web_job(request: Request, job_id: str):
 
 
 # ---------- /web admin: records of all houses (staff_code ADMIN only) ----------
-_ADMIN_FILTER_KEYS = ("date_from", "date_to", "staff", "house", "visa_code", "status", "q")
+_ADMIN_FILTER_KEYS = ("date_from", "date_to", "staff", "house", "visa_code", "status", "q", "agency", "vip")
 
 
 def _web_admin(request: Request) -> dict[str, Any]:
@@ -338,13 +338,29 @@ def web_admin_options(request: Request):
     _web_admin(request)
     return {"ok": True, "staff": admin_report.list_staff_codes(), "houses": list(HOUSE_NAMES),
             "statuses": ["draft", "under_review", "pending_review", "submitted", "approved", "rejected", "cancelled"],
-            "unknown_staff": admin_report.UNKNOWN_STAFF}
+            "unknown_staff": admin_report.UNKNOWN_STAFF,
+            "agencies": admin_report.list_agencies(), "unknown_agency": admin_report.UNKNOWN_AGENCY}
 
 
 @app.get("/web/admin/stats")
 def web_admin_stats(request: Request):
     _web_admin(request)
     return {"ok": True, "rows": admin_report.count_by_staff_day(_admin_filters(request))}
+
+
+@app.get("/web/admin/charts")
+def web_admin_charts(request: Request):
+    _web_admin(request)
+    return {"ok": True, **admin_report.chart_summary(_admin_filters(request))}
+
+
+_STATS_PAGE = Path(__file__).resolve().parent / "web" / "stats.html"
+
+
+@app.get("/web/stats")
+def web_stats_page():
+    # Chart page for ADMIN; the data endpoints above check the key.
+    return HTMLResponse(_STATS_PAGE.read_text(encoding="utf-8"))
 
 
 @app.get("/web/admin/records")

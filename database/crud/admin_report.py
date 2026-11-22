@@ -15,6 +15,7 @@ from psycopg2.extras import RealDictCursor
 from database.connection import get_connection
 
 UNKNOWN_STAFF = "_none"  # filter value for records without a staff (before staff was recorded)
+UNKNOWN_AGENCY = "_none"  # filter value for records without an agency
 
 # Status groups shown in the report.
 APPROVED = ("approved",)
@@ -60,6 +61,16 @@ def build_filters(filters: dict[str, Any]) -> tuple[str, list[Any]]:
     if status:
         where.append("vr.status = %s")
         params.append(status)
+    vip = str(filters.get("vip") or "").strip()
+    if vip in ("1", "0"):
+        where.append("vr.is_vip" if vip == "1" else "NOT vr.is_vip")
+    agency = str(filters.get("agency") or "").strip()
+    if agency == UNKNOWN_AGENCY:
+        where.append("vr.agency_id IS NULL")
+    elif agency:
+        # Agencies are per house: one code can exist in several houses -> match by code.
+        where.append("vr.agency_id IN (SELECT id FROM agencies WHERE code = %s)")
+        params.append(agency.upper())
     q = str(filters.get("q") or "").strip()
     if q:
         where.append("(vr.passport_number ILIKE %s OR vr.full_name ILIKE %s OR vr.application_code ILIKE %s)")
@@ -155,3 +166,69 @@ def list_staff_codes() -> list[str]:
         ORDER BY 1
     """
     return [row["staff_code"] for row in _fetch_all(sql, [])]
+
+
+def list_agencies() -> list[dict[str, Any]]:
+    """Agency codes for the filter (codes are per house; the same code in two houses is one entry)."""
+    sql = """
+        SELECT a.code,
+               MIN(NULLIF(a.name, '')) AS name,
+               ARRAY_AGG(DISTINCT a.house ORDER BY a.house) AS houses
+        FROM agencies a
+        GROUP BY a.code
+        ORDER BY a.code
+    """
+    rows = _fetch_all(sql, [])
+    return [{"code": r["code"], "name": r["name"] or r["code"], "houses": [h for h in (r["houses"] or []) if h]} for r in rows]
+
+
+# Visa group shown in charts: Q1/Q2/X1/X2/S2 keep 2 letters, others the first letter (L15, L30 -> L).
+_VISA_GROUP = (
+    "CASE WHEN UPPER(vr.visa_type) ~ '^(Q1|Q2|X1|X2|S2)' THEN UPPER(SUBSTRING(vr.visa_type FROM 1 FOR 2)) "
+    "WHEN vr.visa_type = '' THEN '' ELSE UPPER(SUBSTRING(vr.visa_type FROM 1 FOR 1)) END"
+)
+IN_PROGRESS = ("submitted", "pending_review", "under_review")
+
+
+def chart_summary(filters: dict[str, Any]) -> dict[str, Any]:
+    """Everything the chart page needs for one filter set, in a single round trip."""
+    where, params = build_filters(filters)
+    base = f"FROM visa_registrations vr LEFT JOIN agencies a ON a.id = vr.agency_id {where}"
+
+    def grouped(expr: str, order: str = "n DESC, key") -> list[dict[str, Any]]:
+        rows = _fetch_all(
+            f"""SELECT {expr} AS key,
+                       COUNT(*) AS n,
+                       COUNT(*) FILTER (WHERE vr.status = ANY(%s)) AS approved,
+                       COUNT(*) FILTER (WHERE vr.status = ANY(%s)) AS rejected
+                {base} GROUP BY 1 ORDER BY {order}""",
+            [list(APPROVED), list(REJECTED), *params],
+        )
+        return [{"key": "" if r["key"] is None else str(r["key"]), "n": int(r["n"]),
+                 "approved": int(r["approved"]), "rejected": int(r["rejected"])} for r in rows]
+
+    by_day = _fetch_all(
+        f"SELECT (vr.created_at AT TIME ZONE %s)::date AS key, COUNT(*) AS n {base} GROUP BY 1 ORDER BY 1",
+        [_tz(), *params],
+    )
+    by_status = grouped("vr.status")
+    total = sum(r["n"] for r in by_status)
+    count = {r["key"]: r["n"] for r in by_status}
+    approved = sum(count.get(s, 0) for s in APPROVED)
+    rejected = sum(count.get(s, 0) for s in REJECTED)
+    return {
+        "totals": {
+            "total": total,
+            "approved": approved,
+            "rejected": rejected,
+            "draft": sum(count.get(s, 0) for s in DRAFT),
+            "in_progress": sum(count.get(s, 0) for s in IN_PROGRESS),
+            "vip": _fetch_all(f"SELECT COUNT(*) AS n {base} AND vr.is_vip", params)[0]["n"],
+        },
+        "by_day": [{"key": r["key"].isoformat(), "n": int(r["n"])} for r in by_day],
+        "by_status": by_status,
+        "by_agency": grouped(f"COALESCE(a.code, '{UNKNOWN_AGENCY}')"),
+        "by_visa": grouped(_VISA_GROUP),
+        "by_staff": grouped(f"COALESCE(NULLIF(vr.staff_code, ''), '{UNKNOWN_STAFF}')"),
+        "by_house": grouped("vr.house", order="key"),
+    }
