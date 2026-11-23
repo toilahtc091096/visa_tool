@@ -99,8 +99,16 @@
   .hist-act { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   .hist-act button { margin: 0; padding: 5px 10px; font-size: 14px; }
   .hfields { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; font-size: 13px; }
-  .hf { display: grid; grid-template-columns: 42% 1fr auto; gap: 6px; align-items: center; padding: 2px 0; }
-  .hk { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hf { display: grid; grid-template-columns: 46% 1fr auto; gap: 6px; align-items: center; padding: 2px 0; }
+  .hf.on { background: var(--ok-bg); border-radius: 5px; }
+  .hk { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400; cursor: pointer; }
+  .hk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hfields input[type=checkbox] { width: 15px; height: 15px; padding: 0; margin: 0; flex: none; cursor: pointer; }
+  .hpick { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 0 6px; }
+  .hpick label { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400; color: var(--muted); cursor: pointer; }
+  .hpick button { margin: 0; padding: 5px 10px; font-size: 13px; }
+  .hpick button:disabled { opacity: .45; cursor: default; }
+  .hk { color: var(--muted); min-width: 0; }
   .hv { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
   .hcopy { margin: 0; padding: 1px 7px; font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--line); }
   .filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: end; }
@@ -1316,6 +1324,7 @@ $('redoBtn').onclick = () => {
 };
 
 let histItems = [], histTimer = null, histOpen = null;
+const histPicked = new Set();   // fields ticked in the open history item
 const histTime = (iso) => { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 async function loadHistory() {
@@ -1334,11 +1343,15 @@ function renderHistory() {
   if (!histItems.length) { $('histList').innerHTML = '<div class="hint">Chưa có curl nào chạy thành công.</div>'; return; }
   $('histList').innerHTML = histItems.map((it) => {
     const open = histOpen === it.id;
-    const fields = open ? histFields(it.body).map(([k, v]) => {
-      const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
-      return `<div class="hf"><span class="hk">${esc(k)}</span><span class="hv" title="${esc(val)}">${esc(val)}</span>`
+    const list = open ? histFields(it.body) : [];
+    const fields = list.map(([k, v]) => {
+      const val = typeof v === 'object' ? JSON.stringify(v) : String(v), on = histPicked.has(k);
+      return `<div class="hf${on ? ' on' : ''}"><label class="hk"><input type="checkbox" data-pick="${esc(k)}"${on ? ' checked' : ''}><span>${esc(k)}</span></label>`
+        + `<span class="hv" title="${esc(val)}">${esc(val)}</span>`
         + `<button class="hcopy" data-act="field" data-id="${it.id}" data-k="${esc(k)}" title="Sao chép">⧉</button></div>`;
-    }).join('') : '';
+    }).join('');
+    const head = open ? `<div class="hpick"><label><input type="checkbox" data-pick-all${list.length && list.every(([k]) => histPicked.has(k)) ? ' checked' : ''}> Chọn tất cả</label>`
+      + `<button data-act="apply" data-id="${it.id}" title="Đè các trường đã chọn sang curl bên trái (trường chưa có thì thêm vào)"${histPicked.size ? '' : ' disabled'}>Dùng ${histPicked.size} trường đã chọn</button></div>` : '';
     return `<div class="hist${open ? ' open' : ''}">
       <div class="hist-top"><b>${esc(it.passport_number || '(không có hộ chiếu)')}</b><span class="hint">${esc(histTime(it.created_at))}</span></div>
       <div class="hint">${esc([it.visa_type, 'nhà ' + it.house, it.full_name, isAdmin ? it.staff_code : ''].filter(Boolean).join(' · '))}</div>
@@ -1347,7 +1360,7 @@ function renderHistory() {
         <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Ẩn trường' : 'Các trường'}</button>
         <button class="secondary" data-act="curl" data-id="${it.id}" title="Sao chép cả lệnh curl">⧉ curl</button>
       </div>
-      ${open ? `<div class="hfields">${fields}</div>` : ''}
+      ${open ? `<div class="hfields">${head}${fields}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1357,7 +1370,8 @@ $('histList').addEventListener('click', async (e) => {
   const it = histItems.find((x) => String(x.id) === b.dataset.id);
   if (!it) return;
   const act = b.dataset.act;
-  if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; renderHistory(); return; }
+  if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; histPicked.clear(); renderHistory(); return; }
+  if (act === 'apply') { applyFields(it); return; }
   if (act === 'field') {
     const v = it.body[b.dataset.k];
     await copyText(typeof v === 'object' ? JSON.stringify(v) : String(v));
@@ -1378,6 +1392,56 @@ $('histList').addEventListener('click', async (e) => {
   }
   loadCurl(text, `Đã điền lại curl ${it.passport_number || ''}`.trim());
 });
+// Tick boxes: keep the list as it is (no re-render) so the scroll position stays.
+$('histList').addEventListener('change', (e) => {
+  const box = e.target;
+  const item = histItems.find((x) => x.id === histOpen);
+  if (!item || box.type !== 'checkbox') return;
+  const card = box.closest('.hfields');
+  if (box.hasAttribute('data-pick-all')) {
+    histPicked.clear();
+    card.querySelectorAll('input[data-pick]').forEach((c) => { c.checked = box.checked; if (box.checked) histPicked.add(c.dataset.pick); });
+  } else if (box.checked) histPicked.add(box.dataset.pick); else histPicked.delete(box.dataset.pick);
+  card.querySelectorAll('input[data-pick]').forEach((c) => c.closest('.hf').classList.toggle('on', c.checked));
+  const all = card.querySelectorAll('input[data-pick]');
+  card.querySelector('input[data-pick-all]').checked = all.length > 0 && [...all].every((c) => c.checked);
+  const btn = card.querySelector('button[data-act="apply"]');
+  btn.disabled = !histPicked.size; btn.textContent = `Dùng ${histPicked.size} trường đã chọn`;
+});
+
+// Put the ticked fields into the curl on the left: overwrite the ones it has, add the ones it lacks.
+// No curl on the left yet -> a new curl with only these fields (port of the history item).
+function applyFields(it) {
+  const keys = [...histPicked].filter((k) => k in it.body);
+  if (!keys.length) return;
+  const label = it.passport_number || 'lịch sử';
+  if ($('curlEdit').classList.contains('hidden') && $('curlText').value.trim()) $('parseBtn').click();
+  if ($('curlEdit').classList.contains('hidden')) {
+    if ($('curlText').value.trim()) { show($('curlMsg'), 'Curl bên trái đang lỗi, sửa rồi bấm "Đọc curl" trước khi dùng trường', false); return; }
+    const body = Object.fromEntries(keys.map((k) => [k, it.body[k]]));
+    loadCurl(buildCurl(it.port, body), `Chưa có curl → tạo curl mới với ${keys.length} trường của ${label}`);
+    return;
+  }
+  let main;
+  try { main = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
+  setDraft(curlState());   // "↶ Lấy lại" brings back the curl before these fields
+  const replaced = [], added = [], same = [];
+  keys.forEach((k) => {
+    const v = it.body[k];
+    if (!(k in main)) added.push(k);
+    else if (JSON.stringify(main[k]) === JSON.stringify(v)) same.push(k);
+    else replaced.push(k);
+    main[k] = v;
+  });
+  $('curlBody').value = JSON.stringify(main, null, 2);
+  $('curlBody').classList.remove('bad');
+  const lines = [`Đã dùng ${keys.length} trường của ${label}:`];
+  if (replaced.length) lines.push(`• Đè: ${replaced.join(', ')}`);
+  if (added.length) lines.push(`• Thêm: ${added.join(', ')}`);
+  if (same.length) lines.push(`• Giống sẵn: ${same.join(', ')}`);
+  show($('curlMsg'), lines.join('\n'), true);
+  toast(`Đè ${replaced.length}, thêm ${added.length} trường`);
+}
 $('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(loadHistory, 300); });
 $('histReload').onclick = loadHistory;
 $('tabCurl').addEventListener('click', loadHistory);
