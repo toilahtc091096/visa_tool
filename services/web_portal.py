@@ -53,8 +53,9 @@ RELATIONS = [
 ]
 _RELATION_KEYS = {r["value"] for r in RELATIONS}
 _RELATION_REQUIRED = {"Q1", "Q2"}
-# Visit visas (A invites B): both phone numbers are typed on the form and go into the curl
-# as inviterPhone (Chinese inviter) and payMobile + phone (Vietnamese applicant).
+# Every visa: the applicant's phone (optional) goes into the curl as `phone`.
+# Visit visas (A invites B): it is required and also payMobile; the Chinese inviter's
+# phone is required too (inviterPhone).
 PHONE_REQUIRED = {"Q1", "Q2", "S2"}
 
 
@@ -128,9 +129,12 @@ def build_start_payload(staff_code: str, form: dict[str, Any]) -> dict[str, str]
     inviter_phone = pay_mobile = ""
     if visa_code in PHONE_REQUIRED:
         inviter_phone = clean_phone(form.get("inviter_phone"), "Số điện thoại người mời (bên Trung)")
-        pay_mobile = clean_phone(form.get("pay_mobile"), "Số điện thoại người được mời (bên Việt)")
+        pay_mobile = clean_phone(form.get("phone") or form.get("pay_mobile"), "Số điện thoại người được mời (bên Việt)")
         if not inviter_phone or not pay_mobile:
             raise FormError(f"Visa {visa_code}: phải điền 2 số điện thoại (người mời bên Trung, người được mời bên Việt)")
+        phone = pay_mobile
+    else:
+        phone = clean_phone(form.get("phone"), "Số điện thoại người khai")
     return {
         "job_id": new_job_id(),
         "staff": str(staff_code or "").strip().upper(),
@@ -141,6 +145,7 @@ def build_start_payload(staff_code: str, form: dict[str, Any]) -> dict[str, str]
         "relation": relation,
         "inviter_phone": inviter_phone,
         "pay_mobile": pay_mobile,
+        "phone": phone,
         "source_prefix": normalize_source_prefix(form.get("source_prefix")),
         "folder_name": "t",
     }

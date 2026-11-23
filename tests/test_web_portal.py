@@ -34,7 +34,7 @@ class FormTest(unittest.TestCase):
         self.assertRegex(p.pop("job_id"), r"^job-[a-z0-9]{8}$")
         self.assertEqual(p, {"staff": "BAO", "house": "PHONG", "bucket": "visa-data-phong", "api_port": "20000",
                              "visa_type": "Q2180", "relation": "CON RE",
-                             "inviter_phone": "13800138000", "pay_mobile": "0912345678",
+                             "inviter_phone": "13800138000", "pay_mobile": "0912345678", "phone": "0912345678",
                              "source_prefix": "Be giau- Q2-180N/", "folder_name": "t"})
 
     def test_relation_rules(self):
@@ -60,9 +60,17 @@ class FormTest(unittest.TestCase):
         for bad in ("12345", "0912abc678", "1" * 16):
             with self.assertRaises(wp.FormError, msg=bad):
                 wp.build_start_payload("BAO", {**base, "visa_code": "Q1", "inviter_phone": bad, "pay_mobile": "0912345678"})
-        # other visas ignore the phones
-        p = wp.build_start_payload("BAO", {"house": "HAI", "days": "30", "source_prefix": "x", "visa_code": "L", "inviter_phone": "x"})
-        self.assertEqual((p["inviter_phone"], p["pay_mobile"]), ("", ""))
+        # the form now sends the applicant's phone as "phone"
+        p = wp.build_start_payload("BAO", {**base, "visa_code": "Q1", "inviter_phone": "13800138000", "phone": "0912 345 678"})
+        self.assertEqual((p["pay_mobile"], p["phone"]), ("0912345678", "0912345678"))
+        # other visas: no inviter phone / payMobile; the applicant's phone is optional
+        other = {"house": "HAI", "days": "30", "source_prefix": "x", "visa_code": "L", "inviter_phone": "x"}
+        p = wp.build_start_payload("BAO", other)
+        self.assertEqual((p["inviter_phone"], p["pay_mobile"], p["phone"]), ("", "", ""))
+        p = wp.build_start_payload("BAO", {**other, "phone": "+84 912-345-678"})
+        self.assertEqual((p["inviter_phone"], p["pay_mobile"], p["phone"]), ("", "", "+84912345678"))
+        with self.assertRaises(wp.FormError):
+            wp.build_start_payload("BAO", {**other, "phone": "12ab"})
 
     def test_start_case_posts_to_webhook_with_key(self):
         with mock.patch.dict(os.environ, {"N8N_START_WEBHOOK_URL": "https://n8n/webhook/visa-start", "VISA_API_KEY": "k"}), \

@@ -279,14 +279,14 @@
         </div>
         <div id="relationPicked" class="hint"></div>
       </div>
-      <div id="phoneBox" class="row" style="display:none">
+      <div id="phoneBox" class="row">
         <div>
+          <label for="payMobile"><span id="payMobileLabel">SĐT người khai</span> <span class="hint" id="payMobileHint">không bắt buộc</span></label>
+          <input id="payMobile" inputmode="tel" autocomplete="off" placeholder="vd: 0912345678">
+        </div>
+        <div id="inviterPhoneBox" style="display:none">
           <label for="inviterPhone">SĐT người mời <span class="hint">bên Trung</span></label>
           <input id="inviterPhone" inputmode="tel" autocomplete="off" placeholder="vd: 13800138000">
-        </div>
-        <div>
-          <label for="payMobile">SĐT người được mời <span class="hint">bên Việt</span></label>
-          <input id="payMobile" inputmode="tel" autocomplete="off" placeholder="vd: 0912345678">
         </div>
       </div>
       <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">tự điền khi chọn thư mục; hoặc gõ tên thư mục đã có</span></label>
@@ -539,7 +539,11 @@ function onVisa() {
   $('daysHint').textContent = DAYS_HINT[v] || '';
   $('relationBox').style.display = needRel ? '' : 'none';
   if (!needRel) pickRelation(null);
-  $('phoneBox').style.display = phoneRequired.includes(v) ? '' : 'none';
+  // Every visa: the applicant's phone (optional) -> curl "phone". Q/S: required, also payMobile, plus the inviter's phone.
+  const visit = phoneRequired.includes(v);
+  $('inviterPhoneBox').style.display = visit ? '' : 'none';
+  $('payMobileLabel').textContent = visit ? 'SĐT người được mời' : 'SĐT người khai';
+  $('payMobileHint').textContent = visit ? 'bên Việt, bắt buộc' : 'không bắt buộc';
 }
 $('visa').addEventListener('change', onVisa);
 
@@ -721,7 +725,7 @@ $('startBtn').onclick = async () => {
     const r = await api('/web/start', {
       house: $('house').value, visa_code: $('visa').value, days: $('days').value.trim(),
       relation: relationValue, source_prefix: $('prefix').value,
-      inviter_phone: needPhone ? $('inviterPhone').value.trim() : '', pay_mobile: needPhone ? $('payMobile').value.trim() : '',
+      inviter_phone: needPhone ? $('inviterPhone').value.trim() : '', phone: $('payMobile').value.trim(),
     });
     picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden'); $('drop').classList.remove('has');
     $('prefix').value = ''; pickRelation(null); $('inviterPhone').value = ''; $('payMobile').value = '';
