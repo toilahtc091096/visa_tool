@@ -327,6 +327,43 @@ def run_case(house_name: str, body: Any) -> dict[str, Any]:
     return {"ok": resp.status_code < 400, "status_code": resp.status_code, "house": house["house"], "response": data}
 
 
+_NAME_KEYS = ("full_name", "fullName", "fullname", "name_en")
+
+
+def _find_name(data: Any, depth: int = 0) -> str:
+    if depth > 3:
+        return ""
+    if isinstance(data, dict):
+        for k in _NAME_KEYS:
+            if isinstance(data.get(k), str) and data[k].strip():
+                return data[k].strip()
+        for v in data.values():
+            found = _find_name(v, depth + 1)
+            if found:
+                return found
+    return ""
+
+
+def history_entry(user: dict[str, Any], result: dict[str, Any], port: Any, body: dict[str, Any], seconds: float) -> dict[str, Any]:
+    """What the curl history keeps of a successful run. The token is dropped: reusing the curl
+    later takes the house's current token (authorization "")."""
+    house = house_config(result["house"])
+    clean = {**body}
+    if "authorization" in clean:
+        clean["authorization"] = ""
+    return {
+        "username": user["username"],
+        "staff_code": user.get("staff_code", ""),
+        "house": house["house"],
+        "port": str(port or house["api_port"]),
+        "passport_number": str(body.get("passportNumber") or "").strip(),
+        "full_name": _find_name(result.get("response")),
+        "visa_type": str(body.get("visa_type") or "").strip(),
+        "body": clean,
+        "seconds": seconds,
+    }
+
+
 # Progress steps n8n reports (POST /web/progress) - shown in this order on the page.
 STEPS = [
     ("received", "Đã nhận hồ sơ"),

@@ -1,0 +1,64 @@
+"""Curls that ran OK from the /web curl tab, kept KEEP_DAYS days so they can be reused."""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from psycopg2.extras import RealDictCursor
+
+from database.connection import get_connection
+
+KEEP_DAYS = 15
+_PURGE = f"DELETE FROM web_curl_history WHERE created_at < NOW() - INTERVAL '{KEEP_DAYS} days'"
+
+
+def save_curl(entry: dict[str, Any]) -> int:
+    """Store one successful run (body without the token) and drop rows older than KEEP_DAYS."""
+    sql = """
+        INSERT INTO web_curl_history (username, staff_code, house, port, passport_number, full_name, visa_type, body, seconds)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+        RETURNING id
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(_PURGE)
+                cursor.execute(sql, (entry["username"], entry.get("staff_code", ""), entry["house"], entry["port"],
+                                     entry.get("passport_number", ""), entry.get("full_name", ""), entry.get("visa_type", ""),
+                                     json.dumps(entry["body"], ensure_ascii=False), float(entry.get("seconds") or 0)))
+                return int(cursor.fetchone()[0])
+    finally:
+        conn.close()
+
+
+def list_curls(username: str | None, q: str = "", limit: int = 100) -> list[dict[str, Any]]:
+    """Newest first. username None = every user (ADMIN)."""
+    where, params = [f"created_at >= NOW() - INTERVAL '{KEEP_DAYS} days'"], []
+    if username is not None:
+        where.append("username = %s")
+        params.append(username)
+    q = str(q or "").strip()
+    if q:
+        like = "%" + q.replace("%", "").replace("_", "") + "%"
+        where.append("(passport_number ILIKE %s OR full_name ILIKE %s OR visa_type ILIKE %s)")
+        params += [like, like, like]
+    sql = f"""
+        SELECT id, username, staff_code, house, port, passport_number, full_name, visa_type, body, seconds, created_at
+        FROM web_curl_history WHERE {' AND '.join(where)}
+        ORDER BY created_at DESC, id DESC LIMIT %s
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(_PURGE)
+                cursor.execute(sql, [*params, max(1, min(int(limit), 300))])
+                rows = [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+    for r in rows:
+        r["created_at"] = r["created_at"].isoformat()
+        r["seconds"] = round(float(r["seconds"] or 0), 1)
+    return rows

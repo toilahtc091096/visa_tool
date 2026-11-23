@@ -84,6 +84,25 @@
            padding: 12px 18px; border-radius: 8px; background: var(--text); color: var(--bg); font-weight: 600;
            box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 20; }
   main.wide { max-width: 1240px; }
+  .curl-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; }
+  .curl-main { min-width: 0; }
+  .curl-side { border-left: 1px solid var(--line); padding-left: 24px; min-width: 0; }
+  @media (max-width: 980px) { .curl-layout { grid-template-columns: 1fr; } .curl-side { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 16px; } }
+  .side-head { display: flex; justify-content: space-between; align-items: center; }
+  .side-head h2 { margin: 0; font-size: 18px; }
+  .side-head button { margin: 0; padding: 4px 10px; }
+  #histQ { margin: 10px 0; padding: 9px 12px; font-size: 15px; }
+  #histList { display: flex; flex-direction: column; gap: 8px; max-height: 75vh; overflow-y: auto; }
+  .hist { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 15px; }
+  .hist.open { border-color: var(--accent); }
+  .hist-top { display: flex; justify-content: space-between; gap: 8px; }
+  .hist-act { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .hist-act button { margin: 0; padding: 5px 10px; font-size: 14px; }
+  .hfields { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; font-size: 13px; }
+  .hf { display: grid; grid-template-columns: 42% 1fr auto; gap: 6px; align-items: center; padding: 2px 0; }
+  .hk { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hv { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
+  .hcopy { margin: 0; padding: 1px 7px; font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--line); }
   .filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: end; }
   .filters label { margin: 0 0 6px; font-size: 14px; }
   .filters input, .filters select { padding: 9px 10px; }
@@ -277,10 +296,15 @@
     </div>
 
     <div id="curlCard" class="card hidden">
+     <div class="curl-layout">
+      <div class="curl-main">
       <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Nhà lấy theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI). Hồ sơ khởi chạy từ trang này sẽ tự điền curl vào đây khi chạy xong.</p>
       <label for="curlText">Lệnh curl</label>
       <textarea id="curlText" rows="4" placeholder="curl -X POST &quot;http://160.250.5.191:10000/run&quot; -H ... -d '{...}'"></textarea>
-      <button id="parseBtn" class="secondary">Đọc curl</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="parseBtn" class="secondary">Đọc curl</button>
+        <button id="redoBtn" class="secondary hidden"></button>
+      </div>
       <div id="curlEdit" class="hidden">
         <div id="curlHouseInfo" class="hint" style="margin-top:12px"></div>
         <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
@@ -309,6 +333,14 @@
         </div>
       </div>
       <pre id="curlResult" class="result hidden"></pre>
+      </div>
+      <aside class="curl-side" aria-label="Lịch sử curl">
+        <div class="side-head"><h2>Lịch sử curl</h2><button id="histReload" class="secondary" title="Tải lại">↻</button></div>
+        <div class="hint" id="histInfo"></div>
+        <input id="histQ" placeholder="Tìm hộ chiếu, tên, visa…">
+        <div id="histList"></div>
+      </aside>
+     </div>
     </div>
 
     <div id="rerunCard" class="card hidden">
@@ -921,7 +953,7 @@ Object.keys(TABS).forEach((tab) => {
       $(card).classList.toggle('hidden', t !== tab);
     });
     $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
-    document.querySelector('main').classList.toggle('wide', tab === 'tabAdmin');
+    document.querySelector('main').classList.toggle('wide', tab === 'tabAdmin' || tab === 'tabCurl');
     if (tab === 'tabAdmin' && !adminLoaded) adminLoad();
   };
 });
@@ -1094,7 +1126,7 @@ function parseCurl(text) {
 
 let curlPort = '';
 function loadCurl(text, message) {
-  $('curlText').value = text;
+  replaceCurl(text);
   $('tabCurl').click();
   $('parseBtn').click();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1235,9 +1267,121 @@ $('runBtn').onclick = async () => {
     showCaseImages(r.house, String(body.passportNumber || '').trim());
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
+    if (r.ok) loadHistory();
   } catch (e) { show($('curlMsg'), e.message, false); }
   clearInterval(tick); b.disabled = false; b.textContent = 'Chạy';
 };
+
+// ---------- curl history (runs that went OK, kept 15 days on the server) ----------
+// Rebuild a curl from the saved body: same shape as the curl WF-13 sends (only the port matters).
+function buildCurl(port, body) {
+  const json = JSON.stringify(body).replace(/'/g, "'\\''");
+  return `curl -X POST "http://${location.hostname}:${port}/run" -H "Content-Type: application/json" -d '${json}'`;
+}
+
+// The curl being edited, kept as a draft when something overwrites it ("↶ Lấy lại" puts it back).
+const DRAFT_KEY = 'visa_web_curl_draft';
+function curlState() {
+  return { text: $('curlText').value, body: $('curlEdit').classList.contains('hidden') ? '' : $('curlBody').value };
+}
+function getDraft() { try { return JSON.parse(ls.get(DRAFT_KEY) || 'null'); } catch (e) { return null; } }
+function setDraft(d) {
+  ls.set(DRAFT_KEY, d && d.text.trim() ? JSON.stringify({ ...d, at: new Date().toISOString() }) : '');
+  showRedo();
+}
+function draftLabel(d) {
+  try { const p = parseCurl(d.text).body.passportNumber; if (p) return `hộ chiếu ${p}`; } catch (e) {}
+  return d.text.trim().slice(0, 30) + '…';
+}
+function showRedo() {
+  const d = getDraft();
+  $('redoBtn').classList.toggle('hidden', !d);
+  if (d) $('redoBtn').textContent = `↶ Lấy lại curl bị ghi đè (${draftLabel(d)})`;
+}
+// Put text in the editor; whatever was there (and differs) becomes the draft.
+function replaceCurl(text) {
+  const cur = curlState();
+  if (cur.text.trim() && cur.text.trim() !== text.trim()) setDraft(cur);
+  $('curlText').value = text;
+}
+$('redoBtn').onclick = () => {
+  const d = getDraft();
+  if (!d) return;
+  const now = curlState();
+  $('curlText').value = d.text;
+  $('parseBtn').click();
+  if (d.body && !$('curlEdit').classList.contains('hidden')) $('curlBody').value = d.body;
+  setDraft(now.text.trim() ? now : null);   // swap: the replaced curl can be brought back too
+  toast('Đã lấy lại curl bị ghi đè');
+};
+
+let histItems = [], histTimer = null, histOpen = null;
+const histTime = (iso) => { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+async function loadHistory() {
+  try {
+    const d = await api('/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim() }));
+    histItems = d.items || [];
+    $('histInfo').textContent = `chạy thành công · giữ ${d.keep_days} ngày${isAdmin ? ' · mọi nhân viên' : ''}`;
+    renderHistory();
+  } catch (e) { $('histList').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+}
+function histFields(body) {
+  return Object.entries(body || {}).filter(([k, v]) => k !== 'authorization' && v !== '' && v !== null && v !== undefined
+    && !(Array.isArray(v) && !v.length) && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length));
+}
+function renderHistory() {
+  if (!histItems.length) { $('histList').innerHTML = '<div class="hint">Chưa có curl nào chạy thành công.</div>'; return; }
+  $('histList').innerHTML = histItems.map((it) => {
+    const open = histOpen === it.id;
+    const fields = open ? histFields(it.body).map(([k, v]) => {
+      const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
+      return `<div class="hf"><span class="hk">${esc(k)}</span><span class="hv" title="${esc(val)}">${esc(val)}</span>`
+        + `<button class="hcopy" data-act="field" data-id="${it.id}" data-k="${esc(k)}" title="Sao chép">⧉</button></div>`;
+    }).join('') : '';
+    return `<div class="hist${open ? ' open' : ''}">
+      <div class="hist-top"><b>${esc(it.passport_number || '(không có hộ chiếu)')}</b><span class="hint">${esc(histTime(it.created_at))}</span></div>
+      <div class="hint">${esc([it.visa_type, 'nhà ' + it.house, it.full_name, isAdmin ? it.staff_code : ''].filter(Boolean).join(' · '))}</div>
+      <div class="hist-act">
+        <button data-act="use" data-id="${it.id}">Dùng lại</button>
+        <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Ẩn trường' : 'Các trường'}</button>
+        <button class="secondary" data-act="curl" data-id="${it.id}" title="Sao chép cả lệnh curl">⧉ curl</button>
+      </div>
+      ${open ? `<div class="hfields">${fields}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+$('histList').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const it = histItems.find((x) => String(x.id) === b.dataset.id);
+  if (!it) return;
+  const act = b.dataset.act;
+  if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; renderHistory(); return; }
+  if (act === 'field') {
+    const v = it.body[b.dataset.k];
+    await copyText(typeof v === 'object' ? JSON.stringify(v) : String(v));
+    toast(`Đã sao chép ${b.dataset.k}`); return;
+  }
+  const text = buildCurl(it.port, it.body);
+  if (act === 'curl') { await copyText(text); toast('Đã sao chép curl'); return; }
+  // use: ask before overwriting a curl that is being edited
+  const cur = $('curlText').value.trim();
+  if (cur && cur !== text.trim()) {
+    const ok = await ask({
+      icon: '↻', tone: 'warn', title: 'Ghi đè curl đang có?',
+      message: 'Curl đang soạn sẽ được lưu nháp. Bấm "↶ Lấy lại curl bị ghi đè" để quay lại bản đó.',
+      details: [['Dùng lại', [it.passport_number, it.visa_type, 'nhà ' + it.house].filter(Boolean).join(' · ')], ['Lúc chạy', histTime(it.created_at)]],
+      okText: 'Ghi đè', cancelText: 'Huỷ',
+    });
+    if (!ok) return;
+  }
+  loadCurl(text, `Đã điền lại curl ${it.passport_number || ''}`.trim());
+});
+$('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(loadHistory, 300); });
+$('histReload').onclick = loadHistory;
+$('tabCurl').addEventListener('click', loadHistory);
+showRedo();
 
 // ---------- rerun ----------
 let rerunFound = null;   // {house, prefix} from the last successful Kiểm tra

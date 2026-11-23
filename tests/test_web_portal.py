@@ -180,7 +180,9 @@ class EndpointTest(unittest.TestCase):
             mock.patch.object(self.server, "create_web_job", side_effect=lambda job, u, step: self.jobs.setdefault(job["job_id"], {"username": u, "staff": job["staff"], "steps": [step], "status": "running"})),
             mock.patch.object(self.server, "add_web_job_step", side_effect=self._add_step),
             mock.patch.object(self.server, "get_web_job", side_effect=lambda jid: self.jobs.get(jid) and {"job_id": jid, **self.jobs[jid]}),
+            mock.patch.object(self.server.web_curl, "save_curl", side_effect=lambda e: self.saved.append(e) or len(self.saved)),
         ]
+        self.saved = []
         self.jobs = {}
         for x in p:
             x.start()
@@ -310,6 +312,38 @@ class EndpointTest(unittest.TestCase):
         self.assertEqual(rc.call_args.args[1]["staff"], "HANG")  # staff from the curl (WF-13) is kept
         r = self.client.post("/web/run", json={"port": "8080", "body": body}, headers={"X-Api-Key": "user-key"})
         self.assertEqual(r.status_code, 400)
+
+    def test_successful_run_goes_to_curl_history(self):
+        body = {"passportNumber": "E1", "visa_type": "Q2180", "authorization": "secret-token"}
+        ok = {"ok": True, "status_code": 200, "house": "TAI", "response": {"data": {"full_name": "NGUYEN VAN A"}}}
+        with mock.patch.object(self.server, "web_run_case", return_value=ok):
+            r = self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.json()["history_id"], 1)
+        e = self.saved[0]
+        self.assertEqual((e["username"], e["house"], e["port"], e["passport_number"], e["full_name"], e["visa_type"]),
+                         ("bao", "TAI", "30000", "E1", "NGUYEN VAN A", "Q2180"))
+        self.assertEqual(e["body"]["authorization"], "")  # token never stored
+        self.assertEqual(e["body"]["staff"], "BAO")
+        bad = {"ok": False, "status_code": 500, "house": "TAI", "response": {"error": "x"}}
+        with mock.patch.object(self.server, "web_run_case", return_value=bad):
+            self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(len(self.saved), 1)  # failed runs are not kept
+        with mock.patch.object(self.server.web_curl, "save_curl", side_effect=RuntimeError("db down")),              mock.patch.object(self.server, "web_run_case", return_value=ok):
+            r = self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.status_code, 200)  # history failure never breaks the run
+
+    def test_curl_history_own_or_all_for_admin(self):
+        with mock.patch.object(self.server.web_curl, "list_curls", return_value=[]) as lc:
+            self.assertEqual(self.client.get("/web/curl-history").status_code, 401)
+            r = self.client.get("/web/curl-history?q=E1", headers={"X-Api-Key": "user-key"})
+            self.assertEqual(r.json()["keep_days"], 15)
+            self.assertEqual(lc.call_args.args, ("bao", "E1"))
+            admin = {"id": 9, "username": "boss", "staff_code": "ADMIN", "api_key": "admin-key"}
+            with mock.patch.object(self.server, "get_web_user_by_api_key", side_effect=lambda k: admin if k == "admin-key" else None):
+                self.client.get("/web/curl-history", headers={"X-Api-Key": "admin-key"})
+                self.assertEqual(lc.call_args.args, (None, ""))
+                self.client.get("/web/curl-history?mine=1", headers={"X-Api-Key": "admin-key"})
+                self.assertEqual(lc.call_args.args, ("boss", ""))
 
 
 if __name__ == "__main__":

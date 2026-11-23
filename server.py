@@ -45,6 +45,8 @@ from utils.access_guard import GuardConfig, decide
 from database.crud.web_user import authenticate_web_user, get_web_user_by_api_key
 from services.web_portal import FormError as WebFormError
 from services.web_portal import build_start_payload, start_case
+from services.web_portal import history_entry as web_history_entry
+from database.crud import web_curl
 from services.web_portal import form_options as web_form_options
 from services.web_portal import rerun_prepare as web_rerun_prepare
 from services.web_portal import folder_stat as web_folder_stat_call
@@ -271,10 +273,25 @@ def web_run(request: Request, payload: dict[str, Any] = Body(...)):
     except Exception as exc:
         log_exception(exc, {"event": "web_run_failed", "user": user["username"]})
         raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không gọi được /run: {exc}"})
+    seconds = round(time.time() - started, 1)
+    if result.get("ok") and isinstance(body, dict):
+        # Successful runs go to the curl history (15 days) so the curl can be reused from the page.
+        try:
+            result["history_id"] = web_curl.save_curl(web_history_entry(user, result, payload.get("port"), body, seconds))
+        except Exception as exc:
+            log_exception(exc, {"event": "web_curl_save_failed", "user": user["username"]})
     body = payload.get("body") or {}
     log_event({"event": "web_run", "user": user["username"], "house": result["house"], "status": result["status_code"],
-               "passport": body.get("passportNumber", ""), "seconds": round(time.time() - started, 1)})
+               "passport": body.get("passportNumber", ""), "seconds": seconds})
     return result
+
+
+@app.get("/web/curl-history")
+def web_curl_history(request: Request, q: str = "", mine: str = ""):
+    # Own history; ADMIN sees everyone's unless mine=1.
+    user = _web_user(request)
+    who = None if user["staff_code"] == "ADMIN" and mine != "1" else user["username"]
+    return {"ok": True, "keep_days": web_curl.KEEP_DAYS, "items": web_curl.list_curls(who, q)}
 
 
 @app.post("/web/progress")

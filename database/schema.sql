@@ -150,3 +150,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_agencies_house_code ON agencies (house, cod
 -- When the passport's R2 folder was deleted after approval (sync cleanup, decided
 -- from status = 'approved' in this table). NULL = not cleaned yet.
 ALTER TABLE visa_registrations ADD COLUMN IF NOT EXISTS r2_deleted_at TIMESTAMPTZ;
+
+-- Curls that ran OK from the /web curl tab: kept 15 days (older rows are deleted on each save / list).
+CREATE TABLE IF NOT EXISTS web_curl_history (
+    id BIGSERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    staff_code TEXT NOT NULL DEFAULT '',
+    house TEXT NOT NULL,
+    port TEXT NOT NULL,
+    passport_number TEXT NOT NULL DEFAULT '',
+    full_name TEXT NOT NULL DEFAULT '',
+    visa_type TEXT NOT NULL DEFAULT '',
+    body JSONB NOT NULL,
+    seconds REAL NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_web_curl_history_created ON web_curl_history (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_web_curl_history_user_created ON web_curl_history (username, created_at DESC);
