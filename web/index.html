@@ -91,7 +91,9 @@
   .side-head { display: flex; justify-content: space-between; align-items: center; }
   .side-head h2 { margin: 0; font-size: 18px; }
   .side-head button { margin: 0; padding: 4px 10px; }
-  #histQ { margin: 10px 0; padding: 9px 12px; font-size: 15px; }
+  .hist-filter { display: flex; gap: 8px; margin: 10px 0; }
+  .hist-filter #histQ { flex: 1; min-width: 0; padding: 9px 12px; font-size: 15px; }
+  .hist-filter select { width: auto; padding: 9px 8px; font-size: 15px; }
   #histList { display: flex; flex-direction: column; gap: 8px; max-height: 75vh; overflow-y: auto; }
   .hist { border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 15px; }
   .hist.open { border-color: var(--accent); }
@@ -347,7 +349,12 @@
       <aside class="curl-side" aria-label="Lịch sử curl">
         <div class="side-head"><h2>Lịch sử curl</h2><button id="histReload" class="secondary" title="Tải lại">↻</button></div>
         <div class="hint" id="histInfo"></div>
-        <input id="histQ" placeholder="Tìm hộ chiếu, tên, visa…">
+        <div class="hist-filter">
+          <select id="histHouse" aria-label="Lọc theo nhà" title="Lọc theo nhà (mặc định: nhà của curl đang soạn)">
+            <option value="">Mọi nhà</option><option>HAI</option><option>PHONG</option><option>TAI</option>
+          </select>
+          <input id="histQ" placeholder="Tìm hộ chiếu, tên, visa…">
+        </div>
         <div id="histList"></div>
         <div class="pager hist-pager hidden" id="histPager"><button class="secondary" id="histPrev">‹ Trước</button><span id="histPage"></span><button class="secondary" id="histNext">Sau ›</button></div>
       </aside>
@@ -1169,6 +1176,7 @@ $('parseBtn').onclick = () => {
     const house = PORT_HOUSE[port];
     if (!house) throw new Error(`Cổng ${port || '(không có)'} không thuộc nhà nào`);
     curlPort = port;
+    setHistHouse(house);
     $('curlHouseInfo').textContent = `Nhà ${house} (cổng ${port})`;
     $('curlBody').value = JSON.stringify(body, null, 2);
     $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
@@ -1395,7 +1403,7 @@ const histTime = (iso) => { const d = new Date(iso); const p = (n) => String(n).
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 async function loadHistory() {
   try {
-    const d = await api('/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim(), page: histPage }));
+    const d = await api('/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim(), page: histPage, house: $('histHouse').value }));
     histItems = d.items || [];
     histPages = Math.max(1, Math.ceil((d.total || 0) / (d.page_size || 10)));
     if (!histItems.length && histPage > 1) { histPage = Math.min(histPage - 1, histPages); return loadHistory(); }
@@ -1456,6 +1464,13 @@ $('histList').addEventListener('click', async (e) => {
   loadCurl(text, `Đã điền lại curl ${it.passport_number || ''}`.trim());
 });
 $('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(() => { histPage = 1; loadHistory(); }, 300); });
+// House filter: follows the house of the curl being edited; can be changed by hand.
+function setHistHouse(house) {
+  if ($('histHouse').value === house) return;
+  $('histHouse').value = house; histPage = 1; histOpen = null;
+  if (!$('curlCard').classList.contains('hidden')) loadHistory();
+}
+$('histHouse').addEventListener('change', () => { histPage = 1; histOpen = null; loadHistory(); });
 $('histPrev').onclick = () => { if (histPage > 1) { histPage--; histOpen = null; loadHistory(); } };
 $('histNext').onclick = () => { if (histPage < histPages) { histPage++; histOpen = null; loadHistory(); } };
 

@@ -33,12 +33,16 @@ def save_curl(entry: dict[str, Any]) -> int:
         conn.close()
 
 
-def list_curls(username: str | None, q: str = "", limit: int = 10, offset: int = 0) -> tuple[list[dict[str, Any]], int]:
+def list_curls(username: str | None, q: str = "", limit: int = 10, offset: int = 0, house: str = "") -> tuple[list[dict[str, Any]], int]:
     """One page, newest first, plus the total matching rows. username None = every user (ADMIN)."""
     where, params = [f"created_at >= NOW() - INTERVAL '{KEEP_DAYS} days'"], []
     if username is not None:
         where.append("username = %s")
         params.append(username)
+    house = str(house or "").strip().upper()
+    if house:
+        where.append("house = %s")
+        params.append(house)
     q = str(q or "").strip()
     if q:
         like = "%" + q.replace("%", "").replace("_", "") + "%"

@@ -345,16 +345,16 @@ class EndpointTest(unittest.TestCase):
             self.assertEqual(self.client.get("/web/curl-history").status_code, 401)
             r = self.client.get("/web/curl-history?q=E1", headers={"X-Api-Key": "user-key"})
             self.assertEqual(r.json()["keep_days"], 15)
-            self.assertEqual(lc.call_args.args, ("bao", "E1", 10, 0))
-            r = self.client.get("/web/curl-history?page=3", headers={"X-Api-Key": "user-key"})
-            self.assertEqual(lc.call_args.args, ("bao", "", 10, 20))
+            self.assertEqual(lc.call_args.args, ("bao", "E1", 10, 0, ""))
+            r = self.client.get("/web/curl-history?page=3&house=TAI", headers={"X-Api-Key": "user-key"})
+            self.assertEqual(lc.call_args.args, ("bao", "", 10, 20, "TAI"))
             self.assertEqual((r.json()["page"], r.json()["total"]), (3, 0))
             admin = {"id": 9, "username": "boss", "staff_code": "ADMIN", "api_key": "admin-key"}
             with mock.patch.object(self.server, "get_web_user_by_api_key", side_effect=lambda k: admin if k == "admin-key" else None):
                 self.client.get("/web/curl-history", headers={"X-Api-Key": "admin-key"})
-                self.assertEqual(lc.call_args.args, (None, "", 10, 0))
+                self.assertEqual(lc.call_args.args, (None, "", 10, 0, ""))
                 self.client.get("/web/curl-history?mine=1", headers={"X-Api-Key": "admin-key"})
-                self.assertEqual(lc.call_args.args, ("boss", "", 10, 0))
+                self.assertEqual(lc.call_args.args, ("boss", "", 10, 0, ""))
 
 
 if __name__ == "__main__":
