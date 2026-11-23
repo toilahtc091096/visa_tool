@@ -29,14 +29,16 @@ class FormTest(unittest.TestCase):
 
     def test_payload_matches_wf01_fields(self):
         p = wp.build_start_payload("bao", {"house": "phong", "visa_code": "Q2", "days": "180",
-                                           "relation": "CON RE", "source_prefix": "Be giau- Q2-180N"})
+                                           "relation": "CON RE", "source_prefix": "Be giau- Q2-180N",
+                                           "inviter_phone": "138 0013 8000", "pay_mobile": "0912.345.678"})
         self.assertRegex(p.pop("job_id"), r"^job-[a-z0-9]{8}$")
         self.assertEqual(p, {"staff": "BAO", "house": "PHONG", "bucket": "visa-data-phong", "api_port": "20000",
                              "visa_type": "Q2180", "relation": "CON RE",
+                             "inviter_phone": "13800138000", "pay_mobile": "0912345678",
                              "source_prefix": "Be giau- Q2-180N/", "folder_name": "t"})
 
     def test_relation_rules(self):
-        base = {"house": "HAI", "days": "", "source_prefix": "x"}
+        base = {"house": "HAI", "days": "", "source_prefix": "x", "inviter_phone": "13800138000", "pay_mobile": "0912345678"}
         with self.assertRaises(wp.FormError):
             wp.build_start_payload("BAO", {**base, "visa_code": "Q1"})  # Q needs a relation
         with self.assertRaises(wp.FormError):
@@ -47,6 +49,20 @@ class FormTest(unittest.TestCase):
             wp.build_start_payload("BAO", {**base, "visa_code": "Q2", "relation": "spouse"})
         with self.assertRaises(wp.FormError):
             wp.build_start_payload("BAO", {**base, "visa_code": "M", "house": "XYZ"})
+
+    def test_phones_for_visit_visas(self):
+        base = {"house": "HAI", "days": "", "source_prefix": "x", "relation": "CHONG"}
+        for code in ("Q1", "Q2", "S2"):
+            with self.assertRaises(wp.FormError, msg=code):
+                wp.build_start_payload("BAO", {**base, "visa_code": code, "inviter_phone": "13800138000"})
+        p = wp.build_start_payload("BAO", {**base, "visa_code": "S2", "inviter_phone": "+86 138-0013-8000", "pay_mobile": "0912345678"})
+        self.assertEqual((p["inviter_phone"], p["pay_mobile"]), ("+8613800138000", "0912345678"))
+        for bad in ("12345", "0912abc678", "1" * 16):
+            with self.assertRaises(wp.FormError, msg=bad):
+                wp.build_start_payload("BAO", {**base, "visa_code": "Q1", "inviter_phone": bad, "pay_mobile": "0912345678"})
+        # other visas ignore the phones
+        p = wp.build_start_payload("BAO", {"house": "HAI", "days": "30", "source_prefix": "x", "visa_code": "L", "inviter_phone": "x"})
+        self.assertEqual((p["inviter_phone"], p["pay_mobile"]), ("", ""))
 
     def test_start_case_posts_to_webhook_with_key(self):
         with mock.patch.dict(os.environ, {"N8N_START_WEBHOOK_URL": "https://n8n/webhook/visa-start", "VISA_API_KEY": "k"}), \

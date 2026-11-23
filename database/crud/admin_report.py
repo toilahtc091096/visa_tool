@@ -190,25 +190,42 @@ _VISA_GROUP = (
 IN_PROGRESS = ("submitted", "pending_review", "under_review")
 
 
+def _merge_houses(rows: list[dict[str, Any]], extra: tuple[str, ...] = ()) -> list[dict[str, Any]]:
+    """Rows grouped by (key, house) -> one row per key with totals and `houses` {house: n}."""
+    out: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        key = r["key"].isoformat() if isinstance(r["key"], date) else ("" if r["key"] is None else str(r["key"]))
+        row = out.setdefault(key, {"key": key, "n": 0, **{k: 0 for k in extra}, "houses": {}})
+        n = int(r["n"])
+        row["n"] += n
+        for k in extra:
+            row[k] += int(r.get(k) or 0)
+        house = str(r.get("house") or "")
+        row["houses"][house] = row["houses"].get(house, 0) + n
+    return list(out.values())
+
+
 def chart_summary(filters: dict[str, Any]) -> dict[str, Any]:
-    """Everything the chart page needs for one filter set, in a single round trip."""
+    """Everything the chart page needs for one filter set; every series is split by house."""
     where, params = build_filters(filters)
     base = f"FROM visa_registrations vr LEFT JOIN agencies a ON a.id = vr.agency_id {where}"
 
-    def grouped(expr: str, order: str = "n DESC, key") -> list[dict[str, Any]]:
+    def grouped(expr: str, by_key: bool = False) -> list[dict[str, Any]]:
         rows = _fetch_all(
             f"""SELECT {expr} AS key,
+                       vr.house AS house,
                        COUNT(*) AS n,
                        COUNT(*) FILTER (WHERE vr.status = ANY(%s)) AS approved,
                        COUNT(*) FILTER (WHERE vr.status = ANY(%s)) AS rejected
-                {base} GROUP BY 1 ORDER BY {order}""",
+                {base} GROUP BY 1, 2""",
             [list(APPROVED), list(REJECTED), *params],
         )
-        return [{"key": "" if r["key"] is None else str(r["key"]), "n": int(r["n"]),
-                 "approved": int(r["approved"]), "rejected": int(r["rejected"])} for r in rows]
+        merged = _merge_houses(rows, ("approved", "rejected"))
+        merged.sort(key=(lambda r: r["key"]) if by_key else (lambda r: (-r["n"], r["key"])))
+        return merged
 
     by_day = _fetch_all(
-        f"SELECT (vr.created_at AT TIME ZONE %s)::date AS key, COUNT(*) AS n {base} GROUP BY 1 ORDER BY 1",
+        f"SELECT (vr.created_at AT TIME ZONE %s)::date AS key, vr.house AS house, COUNT(*) AS n {base} GROUP BY 1, 2",
         [_tz(), *params],
     )
     by_status = grouped("vr.status")
@@ -216,6 +233,7 @@ def chart_summary(filters: dict[str, Any]) -> dict[str, Any]:
     count = {r["key"]: r["n"] for r in by_status}
     approved = sum(count.get(s, 0) for s in APPROVED)
     rejected = sum(count.get(s, 0) for s in REJECTED)
+    by_house = grouped("vr.house", by_key=True)
     return {
         "totals": {
             "total": total,
@@ -223,12 +241,13 @@ def chart_summary(filters: dict[str, Any]) -> dict[str, Any]:
             "rejected": rejected,
             "draft": sum(count.get(s, 0) for s in DRAFT),
             "in_progress": sum(count.get(s, 0) for s in IN_PROGRESS),
-            "vip": _fetch_all(f"SELECT COUNT(*) AS n {base} AND vr.is_vip", params)[0]["n"],
+            "vip": int(_fetch_all(f"SELECT COUNT(*) AS n {base} AND vr.is_vip", params)[0]["n"]),
         },
-        "by_day": [{"key": r["key"].isoformat(), "n": int(r["n"])} for r in by_day],
+        "houses": [r["key"] for r in by_house],
+        "by_day": sorted(_merge_houses(by_day), key=lambda r: r["key"]),
         "by_status": by_status,
         "by_agency": grouped(f"COALESCE(a.code, '{UNKNOWN_AGENCY}')"),
         "by_visa": grouped(_VISA_GROUP),
         "by_staff": grouped(f"COALESCE(NULLIF(vr.staff_code, ''), '{UNKNOWN_STAFF}')"),
-        "by_house": grouped("vr.house", order="key"),
+        "by_house": by_house,
     }

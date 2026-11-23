@@ -252,6 +252,16 @@
         </div>
         <div id="relationPicked" class="hint"></div>
       </div>
+      <div id="phoneBox" class="row" style="display:none">
+        <div>
+          <label for="inviterPhone">SĐT người mời <span class="hint">bên Trung</span></label>
+          <input id="inviterPhone" inputmode="tel" autocomplete="off" placeholder="vd: 13800138000">
+        </div>
+        <div>
+          <label for="payMobile">SĐT người được mời <span class="hint">bên Việt</span></label>
+          <input id="payMobile" inputmode="tel" autocomplete="off" placeholder="vd: 0912345678">
+        </div>
+      </div>
       <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">tự điền khi chọn thư mục; hoặc gõ tên thư mục đã có</span></label>
       <input id="prefix" placeholder="vd: L30 - NGUYEN VAN A">
       <button id="startBtn">Gửi</button>
@@ -385,6 +395,7 @@ const ls = {
 };
 let key = ls.get('visa_web_key');
 let relationRequired = [];
+let phoneRequired = [];
 let STEPS = [];
 
 // keepNotOk: return a 2xx answer with ok:false instead of throwing (e.g. /web/run: the
@@ -464,6 +475,7 @@ function render(info) {
   fill($('visa'), info.visa_codes);
   RELATIONS = info.relations || [];
   relationRequired = info.relation_required || [];
+  phoneRequired = info.phone_required || [];
   STEPS = info.steps || [];
   onVisa();
   isAdmin = info.staff === 'ADMIN';
@@ -487,6 +499,7 @@ function onVisa() {
   $('daysHint').textContent = DAYS_HINT[v] || '';
   $('relationBox').style.display = needRel ? '' : 'none';
   if (!needRel) pickRelation(null);
+  $('phoneBox').style.display = phoneRequired.includes(v) ? '' : 'none';
 }
 $('visa').addEventListener('change', onVisa);
 
@@ -658,6 +671,8 @@ $('startBtn').onclick = async () => {
   const b = $('startBtn'); b.disabled = true; clear($('startMsg'));
   try {
     if ($('relation').value.trim() && !relationValue) throw new Error('Chọn quan hệ trong danh sách gợi ý (gõ rồi bấm vào một dòng)');
+    const needPhone = phoneRequired.includes($('visa').value);
+    if (needPhone && (!$('inviterPhone').value.trim() || !$('payMobile').value.trim())) throw new Error('Điền 2 số điện thoại: người mời (bên Trung) và người được mời (bên Việt)');
     if (picked.length && uploadedTo !== `${$('house').value}|${$('prefix').value.trim()}`) {
       b.textContent = 'Đang tải lên…';
       await uploadPicked();
@@ -666,9 +681,10 @@ $('startBtn').onclick = async () => {
     const r = await api('/web/start', {
       house: $('house').value, visa_code: $('visa').value, days: $('days').value.trim(),
       relation: relationValue, source_prefix: $('prefix').value,
+      inviter_phone: needPhone ? $('inviterPhone').value.trim() : '', pay_mobile: needPhone ? $('payMobile').value.trim() : '',
     });
     picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden'); $('drop').classList.remove('has');
-    $('prefix').value = ''; pickRelation(null);
+    $('prefix').value = ''; pickRelation(null); $('inviterPhone').value = ''; $('payMobile').value = '';
     watchJob(r.job_id);
   } catch (e) { show($('startMsg'), e.message, false); }
   b.disabled = false; b.textContent = 'Gửi';

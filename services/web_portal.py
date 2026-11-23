@@ -53,10 +53,25 @@ RELATIONS = [
 ]
 _RELATION_KEYS = {r["value"] for r in RELATIONS}
 _RELATION_REQUIRED = {"Q1", "Q2"}
+# Visit visas (A invites B): both phone numbers are typed on the form and go into the curl
+# as inviterPhone (Chinese inviter) and payMobile + phone (Vietnamese applicant).
+PHONE_REQUIRED = {"Q1", "Q2", "S2"}
 
 
 class FormError(ValueError):
     """A message for the person filling the form."""
+
+
+def clean_phone(value: Any, label: str) -> str:
+    """Digits only (a leading + is kept); spaces, dots and dashes are dropped."""
+    raw = str(value or "").strip()
+    plus = raw.startswith("+")
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    if not digits:
+        return ""
+    if not 8 <= len(digits) <= 15 or any(not (ch.isdigit() or ch in " .-()+") for ch in raw):
+        raise FormError(f"{label} không hợp lệ: {raw}")
+    return ("+" if plus else "") + digits
 
 
 def build_visa_type(code: str, days: str) -> str:
@@ -110,6 +125,12 @@ def build_start_payload(staff_code: str, form: dict[str, Any]) -> dict[str, str]
         raise FormError(f"Quan hệ không hợp lệ: {relation}")
     if visa_code in _RELATION_REQUIRED and not relation:
         raise FormError(f"Visa {visa_code}: phải chọn quan hệ (người mời là gì của người xin visa)")
+    inviter_phone = pay_mobile = ""
+    if visa_code in PHONE_REQUIRED:
+        inviter_phone = clean_phone(form.get("inviter_phone"), "Số điện thoại người mời (bên Trung)")
+        pay_mobile = clean_phone(form.get("pay_mobile"), "Số điện thoại người được mời (bên Việt)")
+        if not inviter_phone or not pay_mobile:
+            raise FormError(f"Visa {visa_code}: phải điền 2 số điện thoại (người mời bên Trung, người được mời bên Việt)")
     return {
         "job_id": new_job_id(),
         "staff": str(staff_code or "").strip().upper(),
@@ -118,6 +139,8 @@ def build_start_payload(staff_code: str, form: dict[str, Any]) -> dict[str, str]
         "api_port": house["api_port"],
         "visa_type": visa_type,
         "relation": relation,
+        "inviter_phone": inviter_phone,
+        "pay_mobile": pay_mobile,
         "source_prefix": normalize_source_prefix(form.get("source_prefix")),
         "folder_name": "t",
     }
@@ -333,5 +356,6 @@ def form_options() -> dict[str, Any]:
         "visa_codes": VISA_CODES,
         "relations": RELATIONS,
         "relation_required": sorted(_RELATION_REQUIRED),
+        "phone_required": sorted(PHONE_REQUIRED),
         "steps": [{"step": k, "label": v} for k, v in STEPS],
     }

@@ -10,6 +10,7 @@
     --page: #f9f9f7; --surface: #fcfcfb; --text: #0b0b0b; --text-2: #52514e; --muted: #898781;
     --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
     --series: #2a78d6; --series-hover: #1c5cab; --wash: #eef4fc;
+    --h1: #2a78d6; --h2: #eb6834; --h3: #1baf7a; --h0: #a3a29b;
     --good: #006300; --bad: #d03b3b; --accent: #2a78d6;
   }
   @media (prefers-color-scheme: dark) {
@@ -18,6 +19,7 @@
       --page: #0d0d0d; --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --muted: #898781;
       --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
       --series: #3987e5; --series-hover: #6da7ec; --wash: #1d2a3a;
+      --h1: #3987e5; --h2: #d95926; --h3: #199e70; --h0: #6b6a65;
       --good: #0ca30c; --bad: #e66767; --accent: #3987e5;
     }
   }
@@ -26,6 +28,7 @@
     --page: #0d0d0d; --surface: #1a1a19; --text: #f0efec; --text-2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
     --series: #3987e5; --series-hover: #6da7ec; --wash: #1d2a3a;
+    --h1: #3987e5; --h2: #d95926; --h3: #199e70; --h0: #6b6a65;
     --good: #0ca30c; --bad: #e66767; --accent: #3987e5;
   }
   * { box-sizing: border-box; }
@@ -74,16 +77,18 @@
   .hrow.on { background: var(--wash); box-shadow: inset 3px 0 0 var(--accent); }
   .hlabel { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .htrack { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .hbar { height: 16px; background: var(--series); border-radius: 0 4px 4px 0; min-width: 2px; transition: width .2s; }
-  .hrow:hover .hbar { background: var(--series-hover); }
+  .hbar { height: 16px; display: flex; gap: 2px; border-radius: 0 4px 4px 0; overflow: hidden; min-width: 2px; transition: width .2s; }
+  .hbar span { display: block; height: 100%; min-width: 1px; }
+  .hrow:hover .hbar span, .colchart .col.hl .seg { filter: brightness(.88); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--text-2); margin: -4px 0 14px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .tip i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
   .hval { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
 
   /* column chart (SVG) */
   .colchart { position: relative; }
   .colchart svg { display: block; width: 100%; height: 240px; overflow: visible; }
-  .colchart .bar { fill: var(--series); }
-  .colchart .hit:hover + .bar, .colchart .bar.hl { fill: var(--series-hover); }
   .colchart text { fill: var(--muted); font-size: 11px; }
   .colchart .gridline { stroke: var(--grid); stroke-width: 1; }
   .colchart .baseline { stroke: var(--axis); stroke-width: 1; }
@@ -134,6 +139,7 @@
     </div>
 
     <div class="tiles" id="tiles"></div>
+    <div class="legend" id="legend" aria-label="Màu theo nhà"></div>
 
     <div class="grid">
       <div class="card wide">
@@ -170,6 +176,20 @@ const STATUS_VI = { draft: 'Nháp', submitted: 'Đã nộp', pending_review: 'Ch
   approved: 'Đạt', rejected: 'Từ chối', cancelled: 'Huỷ', unknown: 'Không rõ' };
 let OPTS = { unknown_staff: '_none', unknown_agency: '_none', agencies: [] };
 const NONE_LABEL = { staff: '(chưa ghi)', agency: '(chưa gán)' };
+// Màu đi theo nhà, cố định (lọc bớt nhà thì nhà còn lại vẫn giữ màu cũ)
+const HOUSE_ORDER = ['HAI', 'PHONG', 'TAI'];
+const houseColor = (h) => { const i = HOUSE_ORDER.indexOf(h); return `var(--h${i >= 0 ? i + 1 : 0})`; };
+const houseName = (h) => h || '(trống)';
+function sortHouses(list) {
+  return [...new Set(list)].sort((a, b) => (HOUSE_ORDER.indexOf(a) + 1 || 99) - (HOUSE_ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
+}
+function houseRows(houses) {
+  return sortHouses(Object.keys(houses || {})).filter((h) => houses[h]).map((h) => [`<i style="background:${houseColor(h)}"></i>${esc(houseName(h))}`, fmt(houses[h])]);
+}
+function legend(list) {
+  $('legend').innerHTML = 'Màu theo nhà:' + sortHouses([...HOUSE_ORDER, ...list]).map((h) =>
+    `<span><i style="background:${houseColor(h)}"></i>${esc(houseName(h))}</span>`).join('');
+}
 
 async function api(path) {
   const res = await fetch(path, { headers: { 'X-Api-Key': key } });
@@ -217,7 +237,7 @@ const tip = $('tip');
 function showTip(e, title, rows) {
   tip.innerHTML = `<div><b>${esc(rows[0][1])}</b> <span class="muted">${esc(rows[0][0])}</span></div>` +
     `<div class="hint" style="margin:2px 0 4px">${esc(title)}</div>` +
-    rows.slice(1).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+    rows.slice(1).map(([k, v]) => `<div class="row"><span>${k.startsWith('<i ') ? k : esc(k)}</span><span>${esc(v)}</span></div>`).join('');
   tip.classList.remove('hidden');
   const r = e.target.getBoundingClientRect ? e.target.getBoundingClientRect() : { left: e.clientX, top: e.clientY, width: 0 };
   const x = Math.min(window.innerWidth - tip.offsetWidth - 8, Math.max(8, (e.clientX ?? r.left + r.width / 2) + 12));
@@ -227,13 +247,14 @@ function showTip(e, title, rows) {
 const hideTip = () => tip.classList.add('hidden');
 
 // ---------- horizontal bars ----------
-function hbars(el, rows, { label, filterId, valueOf, max = 12 }) {
+function hbars(el, rows, { label, filterId, valueFor, max = 12 }) {
   if (!rows.length) { el.innerHTML = '<div class="empty">Không có dữ liệu</div>'; return; }
   let list = rows.slice(0, max);
   if (rows.length > max) {
     const rest = rows.slice(max);
     list.push({ key: '__other', n: rest.reduce((s, r) => s + r.n, 0), approved: rest.reduce((s, r) => s + r.approved, 0),
-                rejected: rest.reduce((s, r) => s + r.rejected, 0), other: rest.length });
+                rejected: rest.reduce((s, r) => s + r.rejected, 0), other: rest.length,
+                houses: rest.reduce((acc, r) => { for (const [h, n] of Object.entries(r.houses || {})) acc[h] = (acc[h] || 0) + n; return acc; }, {}) });
   }
   const top = Math.max(...list.map((r) => r.n), 1);
   const current = filterId ? $(filterId).value : '';
@@ -241,22 +262,26 @@ function hbars(el, rows, { label, filterId, valueOf, max = 12 }) {
   list.forEach((r) => {
     const name = r.key === '__other' ? `Khác (${r.other})` : label(r.key);
     const row = document.createElement('div');
-    row.className = 'hrow' + (filterId && (valueOf ? valueOf(r.key) : r.key) === current && current ? ' on' : '');
+    row.className = 'hrow' + (filterId && (valueFor ? valueFor(r.key) : r.key) === current && current ? ' on' : '');
     row.tabIndex = 0;
     row.setAttribute('role', 'button');
     row.setAttribute('aria-label', `${name}: ${r.n} hồ sơ`);
     const lab = document.createElement('div'); lab.className = 'hlabel'; lab.textContent = name; lab.title = name;
     const track = document.createElement('div'); track.className = 'htrack';
     const bar = document.createElement('div'); bar.className = 'hbar'; bar.style.width = `${(78 * r.n / top).toFixed(1)}%`;
+    const hs = r.houses && Object.keys(r.houses).length ? r.houses : { '': r.n };
+    sortHouses(Object.keys(hs)).filter((h) => hs[h]).forEach((h) => {
+      const s = document.createElement('span'); s.style.flex = `${hs[h]} 1 0`; s.style.background = houseColor(h); bar.append(s);
+    });
     const val = document.createElement('div'); val.className = 'hval'; val.textContent = fmt(r.n);
     track.append(bar, val); row.append(lab, track);
-    const tipRows = [['hồ sơ', fmt(r.n)], ['Đạt', fmt(r.approved)], ['Từ chối / huỷ', fmt(r.rejected)]];
+    const tipRows = [['hồ sơ', fmt(r.n)], ['Đạt', fmt(r.approved)], ['Từ chối / huỷ', fmt(r.rejected)], ...houseRows(r.houses)];
     row.addEventListener('pointermove', (e) => showTip(e, name, tipRows));
     row.addEventListener('pointerleave', hideTip);
     row.addEventListener('focus', (e) => { const b = row.getBoundingClientRect(); showTip({ clientX: b.left + 40, clientY: b.top, target: row }, name, tipRows); });
     row.addEventListener('blur', hideTip);
     if (filterId && r.key !== '__other') {
-      const pick = () => { const v = valueOf ? valueOf(r.key) : r.key; $(filterId).value = $(filterId).value === v ? '' : v; hideTip(); reload(); };
+      const pick = () => { const v = valueFor ? valueFor(r.key) : r.key; $(filterId).value = $(filterId).value === v ? '' : v; hideTip(); reload(); };
       row.addEventListener('click', pick);
       row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
     } else { row.style.cursor = 'default'; }
@@ -264,24 +289,24 @@ function hbars(el, rows, { label, filterId, valueOf, max = 12 }) {
   });
 }
 
-// ---------- column chart by day ----------
+// ---------- column chart by day (stacked by house) ----------
 function columns(el, data) {
   if (!data.length) { el.innerHTML = '<div class="empty">Không có dữ liệu</div>'; return; }
   // fill the missing days between the first and the last day (or the chosen range)
   const start = $('from').value || data[0].key, end = $('to').value || data[data.length - 1].key;
-  const byKey = Object.fromEntries(data.map((d) => [d.key, d.n]));
+  const byKey = Object.fromEntries(data.map((d) => [d.key, d]));
   const days = [];
   for (let d = new Date(start + 'T00:00:00Z'); d <= new Date(end + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1)) {
-    const k = d.toISOString().slice(0, 10); days.push({ key: k, n: byKey[k] || 0 });
+    const k = d.toISOString().slice(0, 10); days.push({ key: k, n: byKey[k]?.n || 0, houses: byKey[k]?.houses || {} });
     if (days.length > 400) break;
   }
-  const W = Math.max(el.clientWidth, 300), H = 240, L = 34, B = 22, T = 10;
+  const W = Math.max(el.clientWidth, 300), H = 240, L = 34, B = 22, T = 10, GAP = 2;
   const top = Math.max(...days.map((d) => d.n), 1);
   const nice = Math.ceil(top / Math.pow(10, Math.floor(Math.log10(top)))) * Math.pow(10, Math.floor(Math.log10(top)));
   const yMax = Math.max(nice, 1), step = (W - L) / days.length;
   const bw = Math.min(24, Math.max(2, step - 2));
   const y = (v) => T + (H - T - B) * (1 - v / yMax);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Số hồ sơ theo ngày">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Số hồ sơ theo ngày, chia theo nhà">`;
   [0, 0.5, 1].forEach((f) => {
     const v = Math.round(yMax * f), yy = y(v);
     svg += `<line class="${f === 0 ? 'baseline' : 'gridline'}" x1="${L}" x2="${W}" y1="${yy}" y2="${yy}"/>`;
@@ -289,25 +314,40 @@ function columns(el, data) {
   });
   const every = Math.ceil(days.length / Math.max(2, Math.floor((W - L) / 64)));
   days.forEach((d, i) => {
-    const x = L + i * step + (step - bw) / 2, yy = y(d.n), h = H - B - yy;
-    // hit area = the whole column slot (bigger than the mark), then the bar with a 4px rounded top
-    svg += `<rect class="hit" data-i="${i}" x="${L + i * step}" y="${T}" width="${step}" height="${H - T - B}" fill="transparent"/>`;
-    if (d.n > 0) {
-      const r = Math.min(4, bw / 2, h);
-      svg += `<path class="bar" data-i="${i}" d="M${x},${H - B} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + bw - r} Q${x + bw},${yy} ${x + bw},${yy + r} V${H - B} Z"/>`;
-    }
+    const x = L + i * step + (step - bw) / 2;
+    svg += `<g class="col" data-i="${i}">`;
+    // houses bottom -> top in fixed order; 2px surface gap between segments; 4px rounded top on the last one
+    const segs = sortHouses(Object.keys(d.houses)).filter((h) => d.houses[h]);
+    if (!segs.length && d.n) segs.push('');
+    let acc = 0;
+    segs.forEach((h, j) => {
+      const n = h === '' && !d.houses[h] ? d.n : d.houses[h];
+      const y0 = y(acc), y1 = y(acc + n);
+      acc += n;
+      const bottom = j === 0 ? y0 : y0 - GAP / 2, topY = j === segs.length - 1 ? y1 : y1 + GAP / 2;
+      const h2 = bottom - topY;
+      if (h2 <= 0.5) return;
+      if (j === segs.length - 1) {
+        const r = Math.min(4, bw / 2, h2);
+        svg += `<path class="seg" fill="${houseColor(h)}" d="M${x},${bottom} V${topY + r} Q${x},${topY} ${x + r},${topY} H${x + bw - r} Q${x + bw},${topY} ${x + bw},${topY + r} V${bottom} Z"/>`;
+      } else {
+        svg += `<rect class="seg" fill="${houseColor(h)}" x="${x}" y="${topY}" width="${bw}" height="${h2}"/>`;
+      }
+    });
+    // hit area = the whole column slot (bigger than the mark)
+    svg += `<rect class="hit" data-i="${i}" x="${L + i * step}" y="${T}" width="${step}" height="${H - T - B}" fill="transparent"/></g>`;
     if (i % every === 0) svg += `<text x="${L + i * step + step / 2}" y="${H - 6}" text-anchor="middle">${d.key.slice(8, 10)}/${d.key.slice(5, 7)}</text>`;
   });
   svg += '</svg>';
   el.innerHTML = svg;
   const total = days.reduce((s, d) => s + d.n, 0);
-  $('daySub').textContent = `Số hồ sơ tạo mới mỗi ngày (giờ Việt Nam) · ${fmt(total)} hồ sơ trong ${days.length} ngày`;
+  $('daySub').textContent = `Số hồ sơ tạo mới mỗi ngày (giờ Việt Nam), chia theo nhà · ${fmt(total)} hồ sơ trong ${days.length} ngày`;
   el.querySelectorAll('.hit').forEach((h) => {
     const d = days[Number(h.dataset.i)];
     const label = `${d.key.slice(8, 10)}/${d.key.slice(5, 7)}/${d.key.slice(0, 4)}`;
-    h.addEventListener('pointermove', (e) => { el.querySelectorAll('.bar.hl').forEach((b) => b.classList.remove('hl'));
-      el.querySelector(`.bar[data-i="${h.dataset.i}"]`)?.classList.add('hl'); showTip(e, label, [['hồ sơ', fmt(d.n)]]); });
-    h.addEventListener('pointerleave', () => { el.querySelectorAll('.bar.hl').forEach((b) => b.classList.remove('hl')); hideTip(); });
+    h.addEventListener('pointermove', (e) => { el.querySelectorAll('.col.hl').forEach((b) => b.classList.remove('hl'));
+      h.parentNode.classList.add('hl'); showTip(e, label, [['hồ sơ', fmt(d.n)], ...houseRows(d.houses)]); });
+    h.addEventListener('pointerleave', () => { el.querySelectorAll('.col.hl').forEach((b) => b.classList.remove('hl')); hideTip(); });
   });
 }
 
@@ -355,6 +395,7 @@ async function reload() {
     const [c] = await Promise.all([api('/web/admin/charts?' + query()), (offset = 0, loadRows())]);
     if (my !== seq) return;
     tiles(c.totals);
+    legend(c.houses || []);
     lastDays = c.by_day;
     columns($('byDay'), c.by_day);
     hbars($('byAgency'), c.by_agency, { label: (k) => k === OPTS.unknown_agency ? NONE_LABEL.agency : (agencyName(k)), filterId: 'agency', max: 12 });

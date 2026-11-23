@@ -31,21 +31,32 @@ class ChartSummaryTest(unittest.TestCase):
 
         def fake_fetch(sql, params):
             calls.append((sql, params))
-            if "AS key, COUNT(*) AS n FROM" in sql and "::date" in sql:
-                return [{"key": date(2026, 11, 20), "n": 3}, {"key": date(2026, 11, 22), "n": 2}]
+            if "::date AS key" in sql:
+                return [{"key": date(2026, 11, 22), "house": "TAI", "n": 2},
+                        {"key": date(2026, 11, 20), "house": "HAI", "n": 2},
+                        {"key": date(2026, 11, 20), "house": "TAI", "n": 1}]
             if "COUNT(*) AS n FROM" in sql and "is_vip" in sql:
                 return [{"n": 1}]
             if "vr.status AS key" in sql:
-                return [{"key": "approved", "n": 2, "approved": 2, "rejected": 0},
-                        {"key": "rejected", "n": 1, "approved": 0, "rejected": 1},
-                        {"key": "under_review", "n": 1, "approved": 0, "rejected": 0},
-                        {"key": "draft", "n": 1, "approved": 0, "rejected": 0}]
-            return [{"key": "ABC", "n": 5, "approved": 2, "rejected": 1}]
+                return [{"key": "approved", "house": "HAI", "n": 1, "approved": 1, "rejected": 0},
+                        {"key": "approved", "house": "TAI", "n": 1, "approved": 1, "rejected": 0},
+                        {"key": "rejected", "house": "TAI", "n": 1, "approved": 0, "rejected": 1},
+                        {"key": "under_review", "house": "HAI", "n": 1, "approved": 0, "rejected": 0},
+                        {"key": "draft", "house": "HAI", "n": 1, "approved": 0, "rejected": 0}]
+            if "vr.house AS key" in sql:
+                return [{"key": "TAI", "house": "TAI", "n": 3, "approved": 1, "rejected": 1},
+                        {"key": "HAI", "house": "HAI", "n": 2, "approved": 1, "rejected": 0}]
+            return [{"key": "ABC", "house": "HAI", "n": 2, "approved": 1, "rejected": 0},
+                    {"key": "ABC", "house": "TAI", "n": 3, "approved": 1, "rejected": 1}]
 
         with mock.patch.object(admin_report, "_fetch_all", side_effect=fake_fetch):
             s = admin_report.chart_summary({"agency": "ABC", "house": "HAI"})
         self.assertEqual(s["totals"], {"total": 5, "approved": 2, "rejected": 1, "draft": 1, "in_progress": 1, "vip": 1})
-        self.assertEqual(s["by_day"], [{"key": "2026-11-20", "n": 3}, {"key": "2026-11-22", "n": 2}])
+        self.assertEqual(s["by_day"], [{"key": "2026-11-20", "n": 3, "houses": {"HAI": 2, "TAI": 1}},
+                                       {"key": "2026-11-22", "n": 2, "houses": {"TAI": 2}}])
+        self.assertEqual(s["by_status"][0], {"key": "approved", "n": 2, "approved": 2, "rejected": 0, "houses": {"HAI": 1, "TAI": 1}})
+        self.assertEqual(s["by_agency"], [{"key": "ABC", "n": 5, "approved": 2, "rejected": 1, "houses": {"HAI": 2, "TAI": 3}}])
+        self.assertEqual(s["houses"], ["HAI", "TAI"])  # by_house sorted by name
         for k in ("by_agency", "by_visa", "by_staff", "by_house", "by_status"):
             self.assertIn(k, s)
         # every query is scoped by the same filters
