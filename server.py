@@ -34,6 +34,7 @@ from services.han_approval import (
 )
 from services import sync_draft_visa_registrations
 from services.agency import assign_agency_to_registration, reassign_agency
+from services.agency_merge import is_agency_merge_enabled, merge_small_agencies
 from services.agency_sheets import (
     remove_record_from_agency_sheet,
     write_agency_sheet_for_record,
@@ -143,17 +144,37 @@ async def _sync_draft_scheduler_loop() -> None:
         await asyncio.sleep(interval_seconds)
 
 
+AGENCY_MERGE_FIRST_DELAY_SECONDS = 10 * 60
+AGENCY_MERGE_INTERVAL_SECONDS = 24 * 60 * 60
+
+
+async def _agency_merge_loop() -> None:
+    """South: once a day, small agencies with no new record for 2 weeks go to CHUNG."""
+    await asyncio.sleep(AGENCY_MERGE_FIRST_DELAY_SECONDS)
+    while True:
+        try:
+            result = await asyncio.to_thread(merge_small_agencies)
+            print(f"[agency_merge] merged={[m['code'] for m in result.get('merged', [])]} ok={result.get('ok')}", flush=True)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            log_exception(exc, {"path": "agency_merge_loop"})
+        await asyncio.sleep(AGENCY_MERGE_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_database()
-    scheduler_task = None
+    tasks = []
     if _is_sync_scheduler_enabled():
-        scheduler_task = asyncio.create_task(_sync_draft_scheduler_loop())
+        tasks.append(asyncio.create_task(_sync_draft_scheduler_loop()))
+    if is_agency_merge_enabled():
+        tasks.append(asyncio.create_task(_agency_merge_loop()))
     yield
-    if scheduler_task is not None:
-        scheduler_task.cancel()
+    for task in tasks:
+        task.cancel()
         try:
-            await scheduler_task
+            await task
         except asyncio.CancelledError:
             pass
 
@@ -935,6 +956,14 @@ def agency_reassign(payload: dict[str, Any] = Body(...)):
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result.get("error"))
     return result
+
+
+@app.post("/agency/merge-small")
+def agency_merge_small(payload: dict[str, Any] = Body(default={})):
+    """South: merge small idle agencies (< 5 records, nothing new for 14 days) into CHUNG.
+    Body {"dry_run": true} only lists them. Also runs by itself once a day."""
+    dry_run = str((payload or {}).get("dry_run", "")).strip().lower() in {"1", "true", "yes"}
+    return merge_small_agencies(dry_run=dry_run)
 
 
 @app.post("/google-sheets/debug")

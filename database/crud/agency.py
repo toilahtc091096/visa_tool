@@ -138,3 +138,71 @@ def update_agency_name(agency_id: int, name: str) -> None:
                 cursor.execute(sql, (name, agency_id, current_house()))
     finally:
         conn.close()
+
+
+def list_idle_small_agencies(
+    max_records: int,
+    idle_days: int,
+    keep_codes: list[str],
+) -> list[dict[str, Any]]:
+    """Agencies of the current house with fewer than ``max_records`` records and no
+    new record for ``idle_days`` days (an agency without records: created that long ago).
+    ``keep_codes`` (CHUNG, MB) are never listed."""
+    sql = """
+        SELECT a.id, a.code, a.name, COUNT(vr.id) AS records,
+               MAX(vr.created_at) AS last_record_at
+        FROM agencies a
+        LEFT JOIN visa_registrations vr ON vr.agency_id = a.id AND vr.house = a.house
+        WHERE a.house = %s AND NOT (UPPER(a.code) = ANY(%s))
+        GROUP BY a.id, a.code, a.name, a.created_at
+        HAVING COUNT(vr.id) < %s
+           AND COALESCE(MAX(vr.created_at), a.created_at) < NOW() - make_interval(days => %s)
+        ORDER BY a.code
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(sql, (current_house(), [c.upper() for c in keep_codes],
+                                     int(max_records), int(idle_days)))
+                rows = [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+    for r in rows:
+        r["records"] = int(r["records"])
+        r["last_record_at"] = r["last_record_at"].isoformat() if r.get("last_record_at") else ""
+    return rows
+
+
+def move_agency_records(from_agency_id: int, to_agency_id: int) -> list[int]:
+    """Move every record of one agency (current house) to another; ids moved."""
+    sql = """
+        UPDATE visa_registrations SET agency_id = %s, updated_at = NOW()
+        WHERE agency_id = %s AND house = %s
+        RETURNING id
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (to_agency_id, from_agency_id, current_house()))
+                return sorted(int(r[0]) for r in cursor.fetchall())
+    finally:
+        conn.close()
+
+
+def delete_agency_if_unused(agency_id: int) -> bool:
+    """Delete an agency of the current house that no record points to any more."""
+    sql = """
+        DELETE FROM agencies a
+        WHERE a.id = %s AND a.house = %s
+          AND NOT EXISTS (SELECT 1 FROM visa_registrations vr WHERE vr.agency_id = a.id)
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (agency_id, current_house()))
+                return cursor.rowcount > 0
+    finally:
+        conn.close()

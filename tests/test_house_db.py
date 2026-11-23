@@ -71,8 +71,10 @@ def _dummy_args(fn):
             args.append([{"record_id": 1, "status": "draft"}])
         elif name.endswith("_ids") or name.endswith("codes") or name == "record_ids":
             args.append([1] if "id" in name else ["X"])
-        elif name in ("record_id", "agency_id"):
+        elif name in ("record_id", "agency_id") or name.endswith("_agency_id"):
             args.append(1)
+        elif name in ("max_records", "idle_days"):
+            args.append(5)
         elif name in ("start_dt", "end_dt"):
             args.append(date(2026, 11, 1))
         elif name == "is_vip":

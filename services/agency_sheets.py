@@ -47,6 +47,11 @@ AGENCY_SHEET_HEADER = [
     "is_vip",
 ]
 
+# Columns people own (never overwritten), that the server fills only when a row is
+# added or the cell is still empty: "note" gets the old agency when small agencies
+# are merged into CHUNG (services/agency_merge.py).
+ADD_ONLY_COLUMNS = ("note",)
+
 # Tab in the same spreadsheet listing the VIP rows of every agency tab.
 VIP_SUMMARY_TITLE = "TONG HOP VIP"
 VIP_SUMMARY_HEADER = [
@@ -217,7 +222,8 @@ def _upsert_worksheet(
         header = AGENCY_SHEET_HEADER[:]
 
     # Add our columns that the sheet does not have yet, after the existing ones.
-    missing = [name for name in AGENCY_SHEET_HEADER if name not in header]
+    add_only = [c for c in ADD_ONLY_COLUMNS if any(str(r.get(c) or "").strip() for r in rows)]
+    missing = [name for name in [*AGENCY_SHEET_HEADER, *add_only] if name not in header]
     if missing:
         first = len(header) + 1
         last = first + len(missing) - 1
@@ -238,6 +244,7 @@ def _upsert_worksheet(
         header.extend(missing)
 
     col_index = {name: header.index(name) for name in AGENCY_SHEET_HEADER}
+    add_only_index = {name: header.index(name) for name in add_only}
     key_idx = col_index[KEY_COLUMN]
     passport_idx = col_index["passport_no"]
     existing: dict[str, int] = {}
@@ -269,10 +276,18 @@ def _upsert_worksheet(
                 cell_updates.append(
                     {"range": f"{col}{row_num}", "values": [[row[name]]]}
                 )
+            current = all_values[row_num - 1] if row_num - 1 < len(all_values) else []
+            for name, idx in add_only_index.items():
+                value = str(row.get(name) or "").strip()
+                if value and not (idx < len(current) and str(current[idx]).strip()):
+                    col = _column_number_to_letter(idx + 1)
+                    cell_updates.append({"range": f"{col}{row_num}", "values": [[value]]})
         else:
             values = [""] * len(header)
             for name in AGENCY_SHEET_HEADER:
                 values[col_index[name]] = row[name]
+            for name, idx in add_only_index.items():
+                values[idx] = str(row.get(name) or "").strip()
             new_rows.append(values)
 
     for chunk in _chunked(cell_updates, 500):
@@ -531,3 +546,70 @@ def remove_record_from_agency_sheet(agency_code: str, visa_apply_id: str) -> int
         for row_num in reversed(row_nums):
             worksheet.delete_rows(row_num)
         return len(row_nums)
+
+
+def _clear_old_tab(spreadsheet: Any, title: str, moved_keys: set[str]) -> dict[str, Any]:
+    """Remove the moved rows from an agency tab; delete the tab when no data row is left.
+    Rows that were not moved (e.g. another house writing the same tab) keep the tab."""
+    if title in (VIP_SUMMARY_TITLE,):
+        return {"skipped": "protected"}
+    try:
+        worksheet = spreadsheet.worksheet(title)
+    except Exception:
+        return {"missing": True}
+    all_values = worksheet.get_all_values()
+    header = [str(cell).strip() for cell in all_values[0]] if all_values else []
+    key_idx = header.index(KEY_COLUMN) if KEY_COLUMN in header else -1
+    moved_rows: list[int] = []
+    kept = 0
+    for row_num, values in enumerate(all_values[1:], start=2):
+        if not any(str(v).strip() for v in values):
+            continue
+        key = str(values[key_idx]).strip() if 0 <= key_idx < len(values) else ""
+        if key and key in moved_keys:
+            moved_rows.append(row_num)
+        else:
+            kept += 1
+    if not kept:
+        spreadsheet.del_worksheet(worksheet)
+        return {"deleted": True, "rows": len(moved_rows)}
+    for row_num in reversed(moved_rows):
+        worksheet.delete_rows(row_num)
+    return {"deleted": False, "removed": len(moved_rows), "kept": kept}
+
+
+def move_records_to_agency_tab(
+    old_code: str,
+    new_code: str,
+    record_ids: list[int],
+    note: str,
+) -> dict[str, Any]:
+    """Small agency merged into another (CHUNG): its records go to the new tab with
+    ``note`` (only written on new rows / empty cells), then the old tab is cleared
+    and deleted when empty."""
+    if not is_agency_sheet_enabled():
+        return {"ok": True, "skipped": "disabled"}
+    records = list_visa_registrations_with_agency(record_ids, exclude_codes=[NORTH_AGENCY_CODE])
+    rows = [{**build_agency_sheet_row(record, {}, ""), "note": note} for record in records]
+    result: dict[str, Any] = {}
+    errors: dict[str, str] = {}
+    with _SHEET_LOCK:
+        client = _load_service_account_client()
+        spreadsheet = client.open_by_key(extract_spreadsheet_id(_agency_sheet_url()))
+        if rows:
+            try:
+                result["written"] = _upsert_worksheet(spreadsheet, new_code, rows)
+            except Exception as exc:
+                errors[new_code] = f"{type(exc).__name__}: {exc}"
+        if not errors:  # never drop the old rows before they are in the new tab
+            try:
+                result["old_tab"] = _clear_old_tab(
+                    spreadsheet, old_code, {row[KEY_COLUMN] for row in rows if row[KEY_COLUMN]}
+                )
+            except Exception as exc:
+                errors[old_code] = f"{type(exc).__name__}: {exc}"
+        try:
+            result["vip_summary"] = _rebuild_vip_summary(spreadsheet)
+        except Exception as exc:
+            errors["vip_summary"] = f"{type(exc).__name__}: {exc}"
+    return {"ok": not errors, "errors": errors, **result}
