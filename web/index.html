@@ -1432,6 +1432,7 @@ function renderHistory() {
         <button class="secondary" data-act="zoom" data-id="${it.id}" title="Xem JSON trong cửa sổ lớn">⛶</button>
         <button class="secondary" data-act="curl" data-id="${it.id}" title="Sao chép cả lệnh curl">⧉ curl</button>
         ${isM(it) ? `<button class="secondary" data-act="applyM" data-id="${it.id}" title="Chép hộ chiếu (vào company_passport) và thông tin công ty / thư mời sang JSON bên trái">Áp dụng M</button>` : ''}
+        ${isF(it) ? `<button class="secondary" data-act="applyF" data-id="${it.id}" title="Chép hộ chiếu (vào school_passport), thông tin trường mời và học vấn sang JSON bên trái">Áp dụng F</button>` : ''}
       </div>
       ${open ? `<div class="hint hjson-hint">Bôi đen các dòng cần, Ctrl+C rồi dán vào JSON bên trái. Trường bị trùng sẽ báo lỗi.</div>
       <pre class="hjson">${esc(histJson(it.body))}</pre>` : ''}
@@ -1447,7 +1448,8 @@ $('histList').addEventListener('click', async (e) => {
   const act = b.dataset.act;
   if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; renderHistory(); return; }
   if (act === 'zoom') { openJsonViewer(it); return; }
-  if (act === 'applyM') { applyM(it); return; }
+  if (act === 'applyM') { applyFrom(it, APPLY.M); return; }
+  if (act === 'applyF') { applyFrom(it, APPLY.F); return; }
   const text = buildCurl(it.port, it.body);
   if (act === 'curl') { await copyText(text); toast('Đã sao chép curl'); return; }
   // use: ask before overwriting a curl that is being edited
@@ -1474,24 +1476,40 @@ $('histHouse').addEventListener('change', () => { histPage = 1; histOpen = null;
 $('histPrev').onclick = () => { if (histPage > 1) { histPage--; histOpen = null; loadHistory(); } };
 $('histNext').onclick = () => { if (histPage < histPages) { histPage++; histOpen = null; loadHistory(); } };
 
-// "Áp dụng M": an M record from the history gives its passport (as company_passport) and the
-// company / inviter / trip fields to the JSON being edited; values are copied as they are.
-const M_FIELDS = ['companyNameVi', 'companyAddressUpperNoAccent', 'companyPhone', 'managerName', 'inviteCompanyName',
-  'inviteCompanyPhone', 'company_address', 'arrivalDate', 'departureDate', 'maxStayDays', 'invitationEndDate',
-  'provinceNamePinyin', 'cityNamePinyin', 'districtNamePinyin'];
-const isM = (it) => /^M/i.test(String(it.visa_type || (it.body || {}).visa_type || ''));
-async function applyM(it) {
-  if ($('curlEdit').classList.contains('hidden')) { toast('Đọc curl cần sửa trước (bấm "Đọc curl"), rồi mới Áp dụng M'); return; }
+// "Áp dụng M" / "Áp dụng F": a record from the history gives its passport (as company_passport /
+// school_passport: /run reuses that case's company / school files) and its fields to the JSON
+// being edited; values are copied as they are.
+const APPLY = {
+  M: {
+    passportKey: 'company_passport', label: 'M', what: 'công ty / thư mời',
+    fields: ['companyNameVi', 'companyAddressUpperNoAccent', 'companyPhone', 'managerName', 'inviteCompanyName',
+      'inviteCompanyPhone', 'company_address', 'arrivalDate', 'departureDate', 'maxStayDays', 'invitationEndDate',
+      'provinceNamePinyin', 'cityNamePinyin', 'districtNamePinyin'],
+  },
+  F: {
+    passportKey: 'school_passport', label: 'F', what: 'trường mời / học vấn',
+    // school (fthumoi / xnh / xjw) + education read from the study decision (fqddh)
+    fields: ['inviteSchoolName', 'school_address', 'arrivalDate', 'departureDate',
+      'provinceNamePinyin', 'cityNamePinyin', 'districtNamePinyin',
+      'name_of_institute', 'diploma_degree', 'major'],
+  },
+};
+const visaOf = (it) => String(it.visa_type || (it.body || {}).visa_type || '');
+const isM = (it) => /^M/i.test(visaOf(it));
+const isF = (it) => /^F/i.test(visaOf(it));
+async function applyFrom(it, cfg) {
+  if ($('curlEdit').classList.contains('hidden')) { toast(`Đọc curl cần sửa trước (bấm "Đọc curl"), rồi mới Áp dụng ${cfg.label}`); return; }
   let body;
   try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
   const src = it.body || {};
-  const take = { company_passport: src.passportNumber ?? '' };
-  M_FIELDS.forEach((k) => { if (k in src) take[k] = src[k]; });
+  const take = { [cfg.passportKey]: src.passportNumber ?? '' };
+  cfg.fields.forEach((k) => { if (k in src) take[k] = src[k]; });
   const changed = Object.entries(take).filter(([k, v]) => JSON.stringify(body[k]) !== JSON.stringify(v));
   if (!changed.length) { toast('JSON bên trái đã có đúng các giá trị này'); return; }
   const ok = await ask({
-    icon: 'M', title: 'Áp dụng thông tin M?',
-    message: `Ghi ${changed.length} trường từ hồ sơ ${src.passportNumber || ''} vào JSON đang sửa${body.passportNumber ? ` (hộ chiếu ${body.passportNumber})` : ''}.`,
+    icon: cfg.label, title: `Áp dụng thông tin ${cfg.label}?`,
+    message: `Ghi ${changed.length} trường (${cfg.what}) từ hồ sơ ${src.passportNumber || ''} vào JSON đang sửa`
+      + `${body.passportNumber ? ` (hộ chiếu ${body.passportNumber})` : ''}.`,
     details: changed.map(([k, v]) => [k, v === '' ? '(trống)' : String(v)]),
     okText: 'Áp dụng', cancelText: 'Huỷ',
   });
@@ -1499,7 +1517,7 @@ async function applyM(it) {
   Object.assign(body, take);
   $('curlBody').value = JSON.stringify(body, null, 2);
   $('curlBody').dispatchEvent(new Event('input'));
-  toast(`Đã áp dụng ${changed.length} trường M từ ${src.passportNumber || 'lịch sử'}`);
+  toast(`Đã áp dụng ${changed.length} trường ${cfg.label} từ ${src.passportNumber || 'lịch sử'}`);
 }
 
 // Big JSON viewer for one history item.
