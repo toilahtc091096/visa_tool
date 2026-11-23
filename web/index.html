@@ -1335,8 +1335,10 @@ async function loadHistory() {
     renderHistory();
   } catch (e) { $('histList').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
 }
+const HIST_HIDDEN = new Set(['authorization', 'staff']);
 function histFields(body) {
-  return Object.entries(body || {}).filter(([k, v]) => k !== 'authorization' && v !== '' && v !== null && v !== undefined
+  // authorization: token of the house; staff: who the record counts for -> never copied from someone else's curl
+  return Object.entries(body || {}).filter(([k, v]) => !HIST_HIDDEN.has(k) && v !== '' && v !== null && v !== undefined
     && !(Array.isArray(v) && !v.length) && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length));
 }
 function renderHistory() {
@@ -1412,7 +1414,7 @@ $('histList').addEventListener('change', (e) => {
 // Put the ticked fields into the curl on the left: overwrite the ones it has, add the ones it lacks.
 // No curl on the left yet -> a new curl with only these fields (port of the history item).
 function applyFields(it) {
-  const keys = [...histPicked].filter((k) => k in it.body);
+  const keys = [...histPicked].filter((k) => k in it.body && !HIST_HIDDEN.has(k));
   if (!keys.length) return;
   const label = it.passport_number || 'lịch sử';
   if ($('curlEdit').classList.contains('hidden') && $('curlText').value.trim()) $('parseBtn').click();
