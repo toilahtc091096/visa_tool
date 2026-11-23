@@ -307,13 +307,18 @@ def web_run(request: Request, payload: dict[str, Any] = Body(...)):
     return result
 
 
+HISTORY_PAGE_SIZE = 10
+
+
 @app.get("/web/curl-history")
-def web_curl_history(request: Request, q: str = "", mine: str = ""):
-    # Own history; ADMIN sees everyone's unless mine=1.
+def web_curl_history(request: Request, q: str = "", mine: str = "", page: int = 1):
+    # Own history; ADMIN sees everyone's unless mine=1. 10 per page.
     user = _web_user(request)
     who = None if user["staff_code"] == "ADMIN" and mine != "1" else user["username"]
-    return {"ok": True, "keep_days": web_curl.KEEP_DAYS, "items": web_curl.list_curls(who, q)}
-
+    page = max(1, int(page or 1))
+    items, total = web_curl.list_curls(who, q, HISTORY_PAGE_SIZE, (page - 1) * HISTORY_PAGE_SIZE)
+    return {"ok": True, "keep_days": web_curl.KEEP_DAYS, "items": items, "total": total,
+            "page": page, "page_size": HISTORY_PAGE_SIZE}
 
 @app.post("/web/progress")
 def web_progress(request: Request, payload: dict[str, Any] = Body(...)):

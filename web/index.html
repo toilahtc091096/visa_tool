@@ -101,6 +101,17 @@
   .hjson { margin: 8px 0 0; padding: 8px 10px; max-height: 55vh; overflow: auto; border-top: 1px solid var(--line);
            font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; user-select: text; cursor: text; }
   .hjson-hint { font-size: 12px; margin-top: 6px; }
+  .hist-pager { margin-top: 10px; justify-content: space-between; font-size: 14px; }
+  .hist-pager button { padding: 5px 12px; }
+  .hist-pager button:disabled { opacity: .45; cursor: default; }
+  /* big JSON viewer for one history item */
+  .jv { width: min(1000px, 100%); height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--card); color: var(--text);
+        border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
+  .jv-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .jv-head h3 { margin: 0; font-size: 18px; }
+  .jv-head button { margin: 0; padding: 6px 12px; }
+  .jv pre { flex: 1; margin: 10px 0 0; padding: 12px 14px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+            font: 15px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; user-select: text; cursor: text; }
   .filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: end; }
   .filters label { margin: 0 0 6px; font-size: 14px; }
   .filters input, .filters select { padding: 9px 10px; }
@@ -338,6 +349,7 @@
         <div class="hint" id="histInfo"></div>
         <input id="histQ" placeholder="Tìm hộ chiếu, tên, visa…">
         <div id="histList"></div>
+        <div class="pager hist-pager hidden" id="histPager"><button class="secondary" id="histPrev">‹ Trước</button><span id="histPage"></span><button class="secondary" id="histNext">Sau ›</button></div>
       </aside>
      </div>
     </div>
@@ -404,6 +416,19 @@
     </div>
   </section>
 </main>
+<div id="jv" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="jvTitle">
+  <div class="jv">
+    <div class="jv-head">
+      <h3 id="jvTitle"></h3>
+      <div class="bar-actions">
+        <button class="secondary" id="jvCopy" type="button">⧉ Sao chép tất cả</button>
+        <button class="secondary" id="jvClose" type="button">✕ Đóng</button>
+      </div>
+    </div>
+    <div class="hint hjson-hint">Bôi đen các dòng cần, Ctrl+C rồi dán vào JSON bên trái. Esc để đóng.</div>
+    <pre id="jvBody"></pre>
+  </div>
+</div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="dlg" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
   <div class="dlg" id="dlgBox">
@@ -1365,14 +1390,19 @@ $('redoBtn').onclick = () => {
   toast('Đã lấy lại curl bị ghi đè');
 };
 
-let histItems = [], histTimer = null, histOpen = null;
+let histItems = [], histTimer = null, histOpen = null, histPage = 1, histPages = 1;
 const histTime = (iso) => { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 async function loadHistory() {
   try {
-    const d = await api('/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim() }));
+    const d = await api('/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim(), page: histPage }));
     histItems = d.items || [];
-    $('histInfo').textContent = `chạy thành công · giữ ${d.keep_days} ngày${isAdmin ? ' · mọi nhân viên' : ''}`;
+    histPages = Math.max(1, Math.ceil((d.total || 0) / (d.page_size || 10)));
+    if (!histItems.length && histPage > 1) { histPage = Math.min(histPage - 1, histPages); return loadHistory(); }
+    $('histInfo').textContent = `${d.total || 0} curl chạy thành công · giữ ${d.keep_days} ngày${isAdmin ? ' · mọi nhân viên' : ''}`;
+    $('histPager').classList.toggle('hidden', histPages <= 1);
+    $('histPage').textContent = `Trang ${histPage}/${histPages}`;
+    $('histPrev').disabled = histPage <= 1; $('histNext').disabled = histPage >= histPages;
     renderHistory();
   } catch (e) { $('histList').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
 }
@@ -1391,7 +1421,9 @@ function renderHistory() {
       <div class="hist-act">
         <button data-act="use" data-id="${it.id}">Dùng lại</button>
         <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Ẩn JSON' : 'Xem JSON'}</button>
+        <button class="secondary" data-act="zoom" data-id="${it.id}" title="Xem JSON trong cửa sổ lớn">⛶</button>
         <button class="secondary" data-act="curl" data-id="${it.id}" title="Sao chép cả lệnh curl">⧉ curl</button>
+        ${isM(it) ? `<button class="secondary" data-act="applyM" data-id="${it.id}" title="Chép hộ chiếu (vào company_passport) và thông tin công ty / thư mời sang JSON bên trái">Áp dụng M</button>` : ''}
       </div>
       ${open ? `<div class="hint hjson-hint">Bôi đen các dòng cần, Ctrl+C rồi dán vào JSON bên trái. Trường bị trùng sẽ báo lỗi.</div>
       <pre class="hjson">${esc(histJson(it.body))}</pre>` : ''}
@@ -1399,12 +1431,15 @@ function renderHistory() {
   }).join('');
 }
 $('histList').addEventListener('click', async (e) => {
-  const b = e.target.closest('button[data-act]');
+  const b = e.target.closest('[data-act]');
   if (!b) return;
+  e.preventDefault();
   const it = histItems.find((x) => String(x.id) === b.dataset.id);
   if (!it) return;
   const act = b.dataset.act;
   if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; renderHistory(); return; }
+  if (act === 'zoom') { openJsonViewer(it); return; }
+  if (act === 'applyM') { applyM(it); return; }
   const text = buildCurl(it.port, it.body);
   if (act === 'curl') { await copyText(text); toast('Đã sao chép curl'); return; }
   // use: ask before overwriting a curl that is being edited
@@ -1420,7 +1455,53 @@ $('histList').addEventListener('click', async (e) => {
   }
   loadCurl(text, `Đã điền lại curl ${it.passport_number || ''}`.trim());
 });
-$('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(loadHistory, 300); });
+$('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(() => { histPage = 1; loadHistory(); }, 300); });
+$('histPrev').onclick = () => { if (histPage > 1) { histPage--; histOpen = null; loadHistory(); } };
+$('histNext').onclick = () => { if (histPage < histPages) { histPage++; histOpen = null; loadHistory(); } };
+
+// "Áp dụng M": an M record from the history gives its passport (as company_passport) and the
+// company / inviter / trip fields to the JSON being edited; values are copied as they are.
+const M_FIELDS = ['companyNameVi', 'companyAddressUpperNoAccent', 'companyPhone', 'managerName', 'inviteCompanyName',
+  'inviteCompanyPhone', 'company_address', 'arrivalDate', 'departureDate', 'maxStayDays', 'invitationEndDate',
+  'provinceNamePinyin', 'cityNamePinyin', 'districtNamePinyin'];
+const isM = (it) => /^M/i.test(String(it.visa_type || (it.body || {}).visa_type || ''));
+async function applyM(it) {
+  if ($('curlEdit').classList.contains('hidden')) { toast('Đọc curl cần sửa trước (bấm "Đọc curl"), rồi mới Áp dụng M'); return; }
+  let body;
+  try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
+  const src = it.body || {};
+  const take = { company_passport: src.passportNumber ?? '' };
+  M_FIELDS.forEach((k) => { if (k in src) take[k] = src[k]; });
+  const changed = Object.entries(take).filter(([k, v]) => JSON.stringify(body[k]) !== JSON.stringify(v));
+  if (!changed.length) { toast('JSON bên trái đã có đúng các giá trị này'); return; }
+  const ok = await ask({
+    icon: 'M', title: 'Áp dụng thông tin M?',
+    message: `Ghi ${changed.length} trường từ hồ sơ ${src.passportNumber || ''} vào JSON đang sửa${body.passportNumber ? ` (hộ chiếu ${body.passportNumber})` : ''}.`,
+    details: changed.map(([k, v]) => [k, v === '' ? '(trống)' : String(v)]),
+    okText: 'Áp dụng', cancelText: 'Huỷ',
+  });
+  if (!ok) return;
+  Object.assign(body, take);
+  $('curlBody').value = JSON.stringify(body, null, 2);
+  $('curlBody').dispatchEvent(new Event('input'));
+  toast(`Đã áp dụng ${changed.length} trường M từ ${src.passportNumber || 'lịch sử'}`);
+}
+
+// Big JSON viewer for one history item.
+let jvText = '';
+function jvKey(e) { if (e.key === 'Escape') { e.preventDefault(); closeJsonViewer(); } }
+function openJsonViewer(it) {
+  jvText = histJson(it.body);
+  $('jvTitle').textContent = [it.passport_number, it.visa_type, 'nhà ' + it.house, histTime(it.created_at)].filter(Boolean).join(' · ');
+  $('jvBody').textContent = jvText;
+  $('jv').classList.remove('hidden');
+  $('jvClose').focus();
+  document.addEventListener('keydown', jvKey, true);
+}
+function closeJsonViewer() { $('jv').classList.add('hidden'); document.removeEventListener('keydown', jvKey, true); }
+$('jvClose').onclick = closeJsonViewer;
+$('jv').addEventListener('mousedown', (e) => { if (e.target === $('jv')) closeJsonViewer(); });
+$('jvCopy').onclick = async () => { await copyText(jvText); toast('Đã sao chép JSON'); };
 $('histReload').onclick = loadHistory;
 $('tabCurl').addEventListener('click', loadHistory);
 showRedo();

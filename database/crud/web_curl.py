@@ -33,8 +33,8 @@ def save_curl(entry: dict[str, Any]) -> int:
         conn.close()
 
 
-def list_curls(username: str | None, q: str = "", limit: int = 100) -> list[dict[str, Any]]:
-    """Newest first. username None = every user (ADMIN)."""
+def list_curls(username: str | None, q: str = "", limit: int = 10, offset: int = 0) -> tuple[list[dict[str, Any]], int]:
+    """One page, newest first, plus the total matching rows. username None = every user (ADMIN)."""
     where, params = [f"created_at >= NOW() - INTERVAL '{KEEP_DAYS} days'"], []
     if username is not None:
         where.append("username = %s")
@@ -45,20 +45,27 @@ def list_curls(username: str | None, q: str = "", limit: int = 100) -> list[dict
         where.append("(passport_number ILIKE %s OR full_name ILIKE %s OR visa_type ILIKE %s)")
         params += [like, like, like]
     sql = f"""
-        SELECT id, username, staff_code, house, port, passport_number, full_name, visa_type, body, seconds, created_at
+        SELECT id, username, staff_code, house, port, passport_number, full_name, visa_type, body, seconds, created_at,
+               COUNT(*) OVER () AS total
         FROM web_curl_history WHERE {' AND '.join(where)}
-        ORDER BY created_at DESC, id DESC LIMIT %s
+        ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s
     """
     conn = get_connection()
     try:
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(_PURGE)
-                cursor.execute(sql, [*params, max(1, min(int(limit), 300))])
+                cursor.execute(sql, [*params, max(1, min(int(limit), 300)), max(0, int(offset))])
                 rows = [dict(r) for r in cursor.fetchall()]
+                if not rows and offset > 0:   # page past the end: still report the total
+                    cursor.execute(f"SELECT COUNT(*) FROM web_curl_history WHERE {' AND '.join(where)}", params)
+                    total = int(cursor.fetchone()["count"])
+                else:
+                    total = int(rows[0]["total"]) if rows else 0
     finally:
         conn.close()
     for r in rows:
+        r.pop("total", None)
         r["created_at"] = r["created_at"].isoformat()
         r["seconds"] = round(float(r["seconds"] or 0), 1)
-    return rows
+    return rows, total
