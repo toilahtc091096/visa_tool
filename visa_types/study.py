@@ -122,17 +122,20 @@ register(SouthShortStudyVisa if REGION == REGION_SOUTH else ShortStudyVisa)
 def _ascii_upper(value: str) -> str:
     if not value:
         return ""
-    normalized = unicodedata.normalize("NFD", value.upper())
+    # "Đ" has no combining-mark form: map it by hand
+    normalized = unicodedata.normalize("NFD", value.upper().replace("Đ", "D"))
     return "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
 
 
 def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInfoProfile:
     """SaveWorkInfo body for F / X1 / X2.
 
-    Over 25 with a school in the request (only when ``academic_over_25``):
-    academic working at that school (inviteSchoolName, else name_of_institute;
-    school_address). work_from, employer_*, position... from the request
-    override the school defaults.
+    Over 25 with the applicant's own school in the request (name_of_institute,
+    from the study decision; only when ``academic_over_25``): academic working
+    at that school, address = employer_address else the applicant's residence.
+    inviteSchoolName / school_address are the inviting school in China and are
+    not used here. work_from, employer_*, position... from the request override
+    the school defaults; dates after the current month become the current month.
     Otherwise: student, no work experience.
     An approved previous visa (ctx.job_type / ctx.experiences, loaded in
     step 5) takes precedence over all of the above.
@@ -166,9 +169,9 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
             [_to_dict(i) for i in ctx.experiences],
         )
 
-    school_name = _ascii_upper(
-        getattr(ctx, "inviteSchoolName", "") or getattr(ctx, "name_of_institute", "")
-    )
+    # The applicant's own school (name_of_institute, from the study decision), not
+    # inviteSchoolName / school_address: those are the inviting school in China.
+    school_name = _ascii_upper(getattr(ctx, "name_of_institute", ""))
     dob = ctx.ocr_data.Response.Data.dateOfBirth
     is_over_25 = academic_over_25 and bool(dob) and date_util.parse_date(dob) is not None and date_util.age(dob) > 25
     if not is_over_25 or not school_name:
@@ -177,20 +180,22 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
         work_experience: list[dict[str, Any]] = []
     else:
         province_city_code = ctx.ct08_province_city_code or ctx.province_city_code
-        school_address = _ascii_upper(getattr(ctx, "school_address", ""))
-        job_addr = (
-            _ascii_upper(getattr(ctx, "employer_address", ""))
-            or school_address
-            or province_city_code
-        )
+        # No address of the applicant's school in the request: the applicant's own
+        # residence (school_address is the inviting school in China).
+        job_addr = _ascii_upper(getattr(ctx, "employer_address", "")) or province_city_code
         job_type_code = JOB_TYPE_BY_LABEL["Academic"]
         not_apply_items = []
         work_experience = [
             _work_experience_entry(
-                str(getattr(ctx, "work_from", "") or "").strip()
-                or date_util.work_experience_begin_date(ctx.register_date),
-                str(getattr(ctx, "work_to", "") or "").strip()
-                or date_util.work_experience_end_date(),
+                # no date after the current month (as for the other visa types)
+                date_util.not_after_current_month(
+                    str(getattr(ctx, "work_from", "") or "").strip()
+                    or date_util.work_experience_begin_date(ctx.register_date)
+                ),
+                date_util.not_after_current_month(
+                    str(getattr(ctx, "work_to", "") or "").strip()
+                    or date_util.work_experience_end_date()
+                ),
                 job_addr,
                 _ascii_upper(getattr(ctx, "position", "")) or "GIANG VIEN",
                 _ascii_upper(getattr(ctx, "duty", "")) or "GIANG VIEN",
