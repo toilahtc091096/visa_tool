@@ -1313,4 +1313,10 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=_server_port(),
         reload=False,
+        # HTTPS: Caddy on the VPS (scripts/setup_https.ps1) forwards to 127.0.0.1. Only that
+        # local proxy is trusted for X-Forwarded-For / -Proto, so request.client is the real
+        # caller (access guard, login limit, local-only /bio/*) and the scheme is https.
+        # Fixed here: FORWARDED_ALLOW_IPS="*" would let anyone pose as 127.0.0.1.
+        proxy_headers=True,
+        forwarded_allow_ips="127.0.0.1",
     )

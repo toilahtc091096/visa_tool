@@ -59,6 +59,24 @@ Khi `/run` báo lỗi token: bấm "🔑 Lấy token", chọn nhà, "Mở trang 
   Script chỉ chạy khi tab được mở từ nút trên `/web` (có mã phiên 15 phút), ngoài ra không làm gì.
 - Code: `services/bio_token.py` (kiểm tra token, phiên, nội dung script), endpoint `/bio/*`, `/web/bio/*`.
 
+## HTTPS cho trang /web (domain DuckDNS miễn phí)
+
+1. Vào https://www.duckdns.org, đăng nhập (GitHub / Google), tạo sub-domain (vd `visa-xyz`),
+   ô "current ip" điền IP của VPS. Chép **token** ở đầu trang.
+2. Trên VPS, PowerShell **Run as Administrator**, trong thư mục repo:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\setup_https.ps1 -Domain visa-xyz.duckdns.org -DuckToken <token>
+   ```
+   Script tải Caddy vào `tools\caddy\` (không vào git), mở cổng 80/443, tạo task "VisaTool Caddy"
+   (chạy lúc khởi động máy) và "VisaTool DuckDNS" (cập nhật IP 30 phút/lần), rồi kiểm tra
+   `https://<domain>/health`. Chứng chỉ Let's Encrypt tự xin và tự gia hạn.
+   Nhà cung cấp VPS có tường lửa riêng thì mở thêm TCP 80, 443 ở đó.
+3. Dùng `https://<domain>/web`. Domain chỉ mở `/web` và `/health`; n8n và curl trên Telegram vẫn
+   gọi `http://<IP>:<cổng>` như cũ. Script lấy token: cài lại từ `https://<domain>/web/visa-token.user.js`.
+
+Sau Caddy mọi request tới server từ 127.0.0.1: server chỉ tin `X-Forwarded-For` từ 127.0.0.1
+(`server.py`, `tests/test_https_proxy.py`) nên lớp chặn truy cập vẫn thấy IP thật. Gỡ: thêm `-Uninstall`.
+
 ## Chạy
 
 **Trên máy dev:**
