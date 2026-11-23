@@ -30,7 +30,7 @@ class StudyWorkTest(unittest.TestCase):
         self.assertEqual(w["jobType"], JOB_TYPE_BY_LABEL["Academic"])
         exp = _d(w["workExperience"][0])
         self.assertEqual(exp["jobName"], "DAI HOC MAU")
-        self.assertEqual(exp["jobAddr"], "XA MAU, TINH MAU")          # applicant's residence
+        self.assertEqual(exp["jobAddr"], "")      # no address of the applicant's school yet: empty, not the residence
         for field in ("jobName", "jobAddr"):
             self.assertNotIn("TRUNG QUOC", exp[field])
             self.assertNotIn("BAC KINH", exp[field])

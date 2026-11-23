@@ -132,7 +132,8 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
 
     Over 25 with the applicant's own school in the request (name_of_institute,
     from the study decision; only when ``academic_over_25``): academic working
-    at that school, address = employer_address else the applicant's residence.
+    at that school, address = employer_address else empty (no address of the
+    applicant's school in the request yet).
     inviteSchoolName / school_address are the inviting school in China and are
     not used here. work_from, employer_*, position... from the request override
     the school defaults; dates after the current month become the current month.
@@ -179,10 +180,10 @@ def build_study_work_info_profile(ctx, academic_over_25: bool = True) -> WorkInf
         not_apply_items = [{"notApplyCode": "workExperience", "remark": "CHUA DI LAM"}]
         work_experience: list[dict[str, Any]] = []
     else:
-        province_city_code = ctx.ct08_province_city_code or ctx.province_city_code
-        # No address of the applicant's school in the request: the applicant's own
-        # residence (school_address is the inviting school in China).
-        job_addr = _ascii_upper(getattr(ctx, "employer_address", "")) or province_city_code
+        # The request has no address of the applicant's school (the study decision
+        # gives only its name): employer_address, else left empty - not the
+        # residence, not school_address (the inviting school in China).
+        job_addr = _ascii_upper(getattr(ctx, "employer_address", ""))
         job_type_code = JOB_TYPE_BY_LABEL["Academic"]
         not_apply_items = []
         work_experience = [
