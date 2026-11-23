@@ -23,6 +23,8 @@ from constants import (
     L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
     L_30_HOTEL_INFO,
     NATIONALITY_MAP,
+    Q2_GENERATED_BACKUP_SUFFIX,
+    Q2_OWN_THU_MOI_PREFIX,
     S2_GENERATED_THU_MOI_NAME,
     S2_THU_MOI_OUTPUT_PATH,
     SEX_MAP,
@@ -33,7 +35,7 @@ from constants import (
 )
 from flows.flow_payloads import build_L30_guest_names, invite_email
 from generate_file import cv_info, file_init_info, flight_info, hotel_info, thumoi_info
-from utils import format_date, get_today_parts, log_event, log_exception
+from utils import ensure_data_folder_downloaded, format_date, get_today_parts, log_event, log_exception
 
 
 # R2/local folders shared between applicants of the same family/company/school.
@@ -319,6 +321,51 @@ class InvitationLetter(DocumentStep):
                 e, {"event": "render_failed", "file": self.template_name or "Q_Template.docx"}
             )
             raise
+
+
+class SouthQ2InvitationLetter(InvitationLetter):
+    """South Q2: like InvitationLetter. When the applicant sent their own letter
+    (qthumoi_* files, put in the same folder by n8n), the one made from the
+    template is renamed <name>_backup.pdf and pushed to R2 next to it, to use
+    later if needed; the qthumoi letter is the one uploaded (UPLOAD_CONFIG_SOUTH_Q2)."""
+
+    async def render(self, ctx) -> None:
+        passport = str(ctx.input_passportNumber or "").strip()
+        ensure_data_folder_downloaded(passport)
+        try:
+            pdf_path = Path(
+                await thumoi_info.render_thumoi_docx_output_pdf(
+                    ctx, self.output_folder, passport, self.template_name
+                )
+            )
+        except Exception as e:
+            log_exception(e, {"event": "render_failed", "file": self.template_name})
+            raise
+        own_letters = sorted(
+            f.name
+            for f in pdf_path.parent.iterdir()
+            if f.is_file() and f.name.lower().startswith(Q2_OWN_THU_MOI_PREFIX)
+        )
+        if not own_letters:
+            log_event({"step": "generate invitation letter file", "ok": "ok", "file": pdf_path.name})
+            return
+        backup = pdf_path.with_name(f"{pdf_path.stem}{Q2_GENERATED_BACKUP_SUFFIX}.pdf")
+        backup.unlink(missing_ok=True)
+        pdf_path.rename(backup)
+        key = f"{passport}/{self.output_folder.replace(chr(92), '/')}/{backup.name}"
+        result = api_upload_r2_object(key, backup.read_bytes(), "application/pdf")
+        if not result.get("ok"):
+            raise RuntimeError(f"Failed to upload {key} to R2: {result.get('error')}")
+        log_event(
+            {
+                "step": "generate invitation letter file",
+                "ok": "ok",
+                "file": backup.name,
+                "r2_key": key,
+                # The applicant's letter is uploaded, not this one.
+                "own_letters": own_letters,
+            }
+        )
 
 
 _ENTRIES_ZH = {"S": "一次", "D": "两次", "M": "多次"}

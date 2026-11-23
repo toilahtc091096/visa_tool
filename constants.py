@@ -885,6 +885,11 @@ Q2_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
 Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
+# South Q2: the applicant's own invitation letter (n8n puts qthumoi_* files in
+# Q2_THU_MOI_OUTPUT_PATH). When there is one it is uploaded; the letter made
+# from the template is still generated, renamed <name>_backup.pdf and pushed to R2.
+Q2_OWN_THU_MOI_PREFIX = "qthumoi"
+Q2_GENERATED_BACKUP_SUFFIX = "_backup"
 
 S2_THU_MOI_OUTPUT_PATH = "tham-than\\thu-moi"
 # S2 (both regions): letter generated from S2_Template_MN.docx, saved in
@@ -1342,10 +1347,10 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "CCCD_NGUOI_MOI": MAT_SOUTH_Q2_INVITER_ID.slots(1),
             "CCCD_NGUOI_MOI_THU_MOI": MAT_SOUTH_Q2_INVITER_ID.slots(2),
             "CCCD_NGUOI_MOI_QUAN_HE": MAT_SOUTH_Q2_INVITER_ID.slots(3),
-            # Invitation letter category: _1(,_2) letter, _3 relationship proof
-            # (every file of tham-than\quan-he, merged PDF).
+            # Invitation letter category: _1(,_2) letter, _3 the letter again
+            # (3 places with the letter: here _1 and _3, inviter ID _2).
             "THU_MOI": MAT_SOUTH_Q2_INVITATION_LETTER.slots(1, 2),
-            "CHUNG_MINH_QUAN_HE": MAT_SOUTH_Q2_INVITATION_LETTER.slots(3),
+            "THU_MOI_3": MAT_SOUTH_Q2_INVITATION_LETTER.slots(3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
         },
@@ -1746,6 +1751,18 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
         _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
     ],
 }
+def _south_q2_letter(limit: int) -> dict[str, object]:
+    """South Q2 invitation letter: the applicant's qthumoi_* files (one merged
+    PDF) when there are any, else the letter made from the template."""
+    return _first_nonempty(
+        _merged_pdf(
+            "thu_moi_qthumoi.pdf",
+            _files(Q2_THU_MOI_OUTPUT_PATH, 100, prefix=Q2_OWN_THU_MOI_PREFIX),
+        ),
+        _files(Q2_THU_MOI_OUTPUT_PATH, limit),
+    )
+
+
 # South Q2, same idea: started from the North Q2 table.
 UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
     "PASSPORT_INFO_PAGE": _passport_image(),
@@ -1754,20 +1771,18 @@ UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
     "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
-    "THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 2),
+    "THU_MOI": _south_q2_letter(2),
     # Same layout as South Q1. One PDF of every file in tham-than\cccd.
     "CCCD_NGUOI_MOI": _merged_pdf(
         "cccd_nguoi_moi.pdf", _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 100)
     ),
-    "CCCD_NGUOI_MOI_THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 1),
+    "CCCD_NGUOI_MOI_THU_MOI": _south_q2_letter(1),
     # One PDF of every qcm_* file in tham-than\quan-he.
     "CCCD_NGUOI_MOI_QUAN_HE": _merged_pdf(
         "quan_he_qcm.pdf", _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
     ),
-    # One PDF of every file in tham-than\quan-he (qcm_* included).
-    "CHUNG_MINH_QUAN_HE": _merged_pdf(
-        "quan_he.pdf", _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100)
-    ),
+    # Invitation letter category _3: the letter (not the relationship proof).
+    "THU_MOI_3": _south_q2_letter(1),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
