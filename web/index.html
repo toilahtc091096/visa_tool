@@ -98,19 +98,9 @@
   .hist-top { display: flex; justify-content: space-between; gap: 8px; }
   .hist-act { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   .hist-act button { margin: 0; padding: 5px 10px; font-size: 14px; }
-  .hfields { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; font-size: 13px; }
-  .hf { display: grid; grid-template-columns: 46% 1fr auto; gap: 6px; align-items: center; padding: 2px 0; }
-  .hf.on { background: var(--ok-bg); border-radius: 5px; }
-  .hk { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400; cursor: pointer; }
-  .hk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hfields input[type=checkbox] { width: 15px; height: 15px; padding: 0; margin: 0; flex: none; cursor: pointer; }
-  .hpick { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 0 6px; }
-  .hpick label { display: flex; align-items: center; gap: 6px; margin: 0; font-weight: 400; color: var(--muted); cursor: pointer; }
-  .hpick button { margin: 0; padding: 5px 10px; font-size: 13px; }
-  .hpick button:disabled { opacity: .45; cursor: default; }
-  .hk { color: var(--muted); min-width: 0; }
-  .hv { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
-  .hcopy { margin: 0; padding: 1px 7px; font-size: 13px; background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  .hjson { margin: 8px 0 0; padding: 8px 10px; max-height: 55vh; overflow: auto; border-top: 1px solid var(--line);
+           font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre; user-select: text; cursor: text; }
+  .hjson-hint { font-size: 12px; margin-top: 6px; }
   .filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: end; }
   .filters label { margin: 0 0 6px; font-size: 14px; }
   .filters input, .filters select { padding: 9px 10px; }
@@ -317,6 +307,7 @@
         <div id="curlHouseInfo" class="hint" style="margin-top:12px"></div>
         <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
         <textarea id="curlBody" rows="16" spellcheck="false" class="mono"></textarea>
+        <div id="curlBodyErr" class="hidden"></div>
         <div style="display:flex; gap:8px">
           <button id="fmtBtn" class="secondary">Định dạng lại</button>
           <button id="runBtn">Chạy</button>
@@ -1157,6 +1148,7 @@ $('parseBtn').onclick = () => {
     $('curlBody').value = JSON.stringify(body, null, 2);
     $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
     $('curlBody').classList.remove('bad');
+    clear($('curlBodyErr')); $('curlBodyErr').classList.add('hidden');
     $('curlEdit').classList.remove('hidden');
     fillAuthorization(house, port);
   } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); }
@@ -1178,11 +1170,57 @@ async function fillAuthorization(house, port) {
   } catch (e) { /* not fatal: the server uses the stored token anyway */ }
 }
 
-function readBody() {
-  try { const b = JSON.parse($('curlBody').value); $('curlBody').classList.remove('bad'); return b; }
-  catch (e) { $('curlBody').classList.add('bad'); throw new Error('JSON đang sửa bị lỗi: ' + e.message); }
+// Same key twice in one JSON object (e.g. a field pasted from the history that the body
+// already has): JSON.parse keeps the last one silently, so find them and say where.
+function duplicateKeys(text) {
+  const stack = [];   // {obj: true, keys: Map(key -> [lines]), expectKey} | {obj: false}
+  const dupes = [];
+  let line = 1;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '\n') { line++; continue; }
+    const top = stack[stack.length - 1];
+    if (c === '{') stack.push({ obj: true, keys: new Map(), expectKey: true });
+    else if (c === '[') stack.push({ obj: false });
+    else if (c === '}' || c === ']') {
+      const done = stack.pop();
+      if (done && done.obj) for (const [k, lines] of done.keys) if (lines.length > 1) dupes.push({ key: k, lines });
+    } else if (c === ',') { if (top && top.obj) top.expectKey = true; }
+    else if (c === '"') {
+      let j = i + 1, s = '';
+      while (j < text.length && text[j] !== '"') {
+        if (text[j] === '\\') { s += text[j + 1] || ''; j += 2; } else { if (text[j] === '\n') line++; s += text[j++]; }
+      }
+      if (top && top.obj && top.expectKey) {
+        if (!top.keys.has(s)) top.keys.set(s, []);
+        top.keys.get(s).push(line);
+        top.expectKey = false;
+      }
+      i = j;
+    }
+  }
+  return dupes.sort((a, b) => a.lines[0] - b.lines[0]);
 }
-$('curlBody').addEventListener('input', () => { try { readBody(); } catch (e) {} });
+
+function readBody() {
+  const box = $('curlBody');
+  let body;
+  try { body = JSON.parse(box.value); }
+  catch (e) { box.classList.add('bad'); throw new Error('JSON đang sửa bị lỗi: ' + e.message); }
+  const dupes = duplicateKeys(box.value);
+  if (dupes.length) {
+    box.classList.add('bad');
+    throw new Error('Trường bị trùng (xoá bớt một dòng): '
+      + dupes.map((d) => `${d.key} (dòng ${d.lines.join(', ')})`).join('; '));
+  }
+  box.classList.remove('bad');
+  return body;
+}
+// Live check while editing / pasting: JSON errors and duplicate fields under the box.
+$('curlBody').addEventListener('input', () => {
+  try { readBody(); clear($('curlBodyErr')); $('curlBodyErr').classList.add('hidden'); }
+  catch (e) { show($('curlBodyErr'), e.message, false); $('curlBodyErr').classList.remove('hidden'); }
+});
 $('fmtBtn').onclick = () => { try { $('curlBody').value = JSON.stringify(readBody(), null, 2); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
 
 // ---------- case images (R2: <passport>/passport.png, <passport>/anh_chan_dung/portrait.png) ----------
@@ -1328,7 +1366,6 @@ $('redoBtn').onclick = () => {
 };
 
 let histItems = [], histTimer = null, histOpen = null;
-const histPicked = new Set();   // fields ticked in the open history item
 const histTime = (iso) => { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 async function loadHistory() {
@@ -1339,34 +1376,25 @@ async function loadHistory() {
     renderHistory();
   } catch (e) { $('histList').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
 }
+// authorization: the house's token; staff: who the record counts for -> not shown / copied.
 const HIST_HIDDEN = new Set(['authorization', 'staff']);
-function histFields(body) {
-  // authorization: token of the house; staff: who the record counts for -> never copied from someone else's curl
-  return Object.entries(body || {}).filter(([k, v]) => !HIST_HIDDEN.has(k) && v !== '' && v !== null && v !== undefined
-    && !(Array.isArray(v) && !v.length) && !(typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length));
+function histJson(body) {
+  return JSON.stringify(Object.fromEntries(Object.entries(body || {}).filter(([k]) => !HIST_HIDDEN.has(k))), null, 2);
 }
 function renderHistory() {
   if (!histItems.length) { $('histList').innerHTML = '<div class="hint">Chưa có curl nào chạy thành công.</div>'; return; }
   $('histList').innerHTML = histItems.map((it) => {
     const open = histOpen === it.id;
-    const list = open ? histFields(it.body) : [];
-    const fields = list.map(([k, v]) => {
-      const val = typeof v === 'object' ? JSON.stringify(v) : String(v), on = histPicked.has(k);
-      return `<div class="hf${on ? ' on' : ''}"><label class="hk"><input type="checkbox" data-pick="${esc(k)}"${on ? ' checked' : ''}><span>${esc(k)}</span></label>`
-        + `<span class="hv" title="${esc(val)}">${esc(val)}</span>`
-        + `<button class="hcopy" data-act="field" data-id="${it.id}" data-k="${esc(k)}" title="Sao chép">⧉</button></div>`;
-    }).join('');
-    const head = open ? `<div class="hpick"><label><input type="checkbox" data-pick-all${list.length && list.every(([k]) => histPicked.has(k)) ? ' checked' : ''}> Chọn tất cả</label>`
-      + `<button data-act="apply" data-id="${it.id}" title="Đè các trường đã chọn sang curl bên trái (trường chưa có thì thêm vào)"${histPicked.size ? '' : ' disabled'}>Dùng ${histPicked.size} trường đã chọn</button></div>` : '';
     return `<div class="hist${open ? ' open' : ''}">
       <div class="hist-top"><b>${esc(it.passport_number || '(không có hộ chiếu)')}</b><span class="hint">${esc(histTime(it.created_at))}</span></div>
       <div class="hint">${esc([it.visa_type, 'nhà ' + it.house, it.full_name, isAdmin ? it.staff_code : ''].filter(Boolean).join(' · '))}</div>
       <div class="hist-act">
         <button data-act="use" data-id="${it.id}">Dùng lại</button>
-        <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Ẩn trường' : 'Các trường'}</button>
+        <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Ẩn JSON' : 'Xem JSON'}</button>
         <button class="secondary" data-act="curl" data-id="${it.id}" title="Sao chép cả lệnh curl">⧉ curl</button>
       </div>
-      ${open ? `<div class="hfields">${head}${fields}</div>` : ''}
+      ${open ? `<div class="hint hjson-hint">Bôi đen các dòng cần, Ctrl+C rồi dán vào JSON bên trái. Trường bị trùng sẽ báo lỗi.</div>
+      <pre class="hjson">${esc(histJson(it.body))}</pre>` : ''}
     </div>`;
   }).join('');
 }
@@ -1376,13 +1404,7 @@ $('histList').addEventListener('click', async (e) => {
   const it = histItems.find((x) => String(x.id) === b.dataset.id);
   if (!it) return;
   const act = b.dataset.act;
-  if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; histPicked.clear(); renderHistory(); return; }
-  if (act === 'apply') { applyFields(it); return; }
-  if (act === 'field') {
-    const v = it.body[b.dataset.k];
-    await copyText(typeof v === 'object' ? JSON.stringify(v) : String(v));
-    toast(`Đã sao chép ${b.dataset.k}`); return;
-  }
+  if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; renderHistory(); return; }
   const text = buildCurl(it.port, it.body);
   if (act === 'curl') { await copyText(text); toast('Đã sao chép curl'); return; }
   // use: ask before overwriting a curl that is being edited
@@ -1398,56 +1420,6 @@ $('histList').addEventListener('click', async (e) => {
   }
   loadCurl(text, `Đã điền lại curl ${it.passport_number || ''}`.trim());
 });
-// Tick boxes: keep the list as it is (no re-render) so the scroll position stays.
-$('histList').addEventListener('change', (e) => {
-  const box = e.target;
-  const item = histItems.find((x) => x.id === histOpen);
-  if (!item || box.type !== 'checkbox') return;
-  const card = box.closest('.hfields');
-  if (box.hasAttribute('data-pick-all')) {
-    histPicked.clear();
-    card.querySelectorAll('input[data-pick]').forEach((c) => { c.checked = box.checked; if (box.checked) histPicked.add(c.dataset.pick); });
-  } else if (box.checked) histPicked.add(box.dataset.pick); else histPicked.delete(box.dataset.pick);
-  card.querySelectorAll('input[data-pick]').forEach((c) => c.closest('.hf').classList.toggle('on', c.checked));
-  const all = card.querySelectorAll('input[data-pick]');
-  card.querySelector('input[data-pick-all]').checked = all.length > 0 && [...all].every((c) => c.checked);
-  const btn = card.querySelector('button[data-act="apply"]');
-  btn.disabled = !histPicked.size; btn.textContent = `Dùng ${histPicked.size} trường đã chọn`;
-});
-
-// Put the ticked fields into the curl on the left: overwrite the ones it has, add the ones it lacks.
-// No curl on the left yet -> a new curl with only these fields (port of the history item).
-function applyFields(it) {
-  const keys = [...histPicked].filter((k) => k in it.body && !HIST_HIDDEN.has(k));
-  if (!keys.length) return;
-  const label = it.passport_number || 'lịch sử';
-  if ($('curlEdit').classList.contains('hidden') && $('curlText').value.trim()) $('parseBtn').click();
-  if ($('curlEdit').classList.contains('hidden')) {
-    if ($('curlText').value.trim()) { show($('curlMsg'), 'Curl bên trái đang lỗi, sửa rồi bấm "Đọc curl" trước khi dùng trường', false); return; }
-    const body = Object.fromEntries(keys.map((k) => [k, it.body[k]]));
-    loadCurl(buildCurl(it.port, body), `Chưa có curl → tạo curl mới với ${keys.length} trường của ${label}`);
-    return;
-  }
-  let main;
-  try { main = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
-  setDraft(curlState());   // "↶ Lấy lại" brings back the curl before these fields
-  const replaced = [], added = [], same = [];
-  keys.forEach((k) => {
-    const v = it.body[k];
-    if (!(k in main)) added.push(k);
-    else if (JSON.stringify(main[k]) === JSON.stringify(v)) same.push(k);
-    else replaced.push(k);
-    main[k] = v;
-  });
-  $('curlBody').value = JSON.stringify(main, null, 2);
-  $('curlBody').classList.remove('bad');
-  const lines = [`Đã dùng ${keys.length} trường của ${label}:`];
-  if (replaced.length) lines.push(`• Đè: ${replaced.join(', ')}`);
-  if (added.length) lines.push(`• Thêm: ${added.join(', ')}`);
-  if (same.length) lines.push(`• Giống sẵn: ${same.join(', ')}`);
-  show($('curlMsg'), lines.join('\n'), true);
-  toast(`Đè ${replaced.length}, thêm ${added.length} trường`);
-}
 $('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(loadHistory, 300); });
 $('histReload').onclick = loadHistory;
 $('tabCurl').addEventListener('click', loadHistory);
