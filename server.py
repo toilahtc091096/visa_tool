@@ -235,12 +235,17 @@ _GUIDE_KEY_RE = re.compile(r"^[a-z0-9_]+$")
 
 @app.get("/web/guide-examples/{key}")
 def web_guide_examples(key: str):
-    """Example photos of one file type (web/guide/vd/<key>/): whatever images the admin put there, sorted by name."""
-    folder = _GUIDE_DIR / "vd" / key
-    if not _GUIDE_KEY_RE.match(key) or not folder.is_dir():
-        return {"ok": True, "files": []}
-    files = sorted(f.name for f in folder.iterdir() if f.is_file() and _GUIDE_FILE_RE.match(f.name))
-    return {"ok": True, "files": files}
+    """Example photos of one file type: the images ADMIN added (web/guide/vd/<key>/, not in git), sorted by name;
+    when there are none, the sample images shipped with the code (web/guide/vd_default/<key>/).
+    base = the folder under /web/guide/ the files are served from; default = true for the samples."""
+    if not _GUIDE_KEY_RE.match(key):
+        return {"ok": True, "files": [], "base": "vd", "default": False}
+    for base in ("vd", "vd_default"):
+        folder = _GUIDE_DIR / base / key
+        files = sorted(f.name for f in folder.iterdir() if f.is_file() and _GUIDE_FILE_RE.match(f.name)) if folder.is_dir() else []
+        if files:
+            return {"ok": True, "files": files, "base": base, "default": base == "vd_default"}
+    return {"ok": True, "files": [], "base": "vd", "default": False}
 
 
 _GUIDE_MAX_BYTES = 8 * 1024 * 1024

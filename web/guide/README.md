@@ -25,6 +25,7 @@ của file cần làm → **＋ Thêm ảnh** (chọn 1 hoặc nhiều ảnh .jp
 Nhân viên khác chỉ xem.
 
 - Ảnh lưu trên VPS ở `web/guide/vd/<loại>/` (không nằm trong git, `git pull` không đụng tới). Sao lưu thư mục này nếu cài lại VPS.
+- Loại nào ADMIN chưa thêm ảnh thì hiện **ảnh mẫu** có sẵn trong code: `web/guide/vd_default/<loại>/` (nằm trong git, không xoá được từ web). Có ít nhất 1 ảnh thật thì chỉ hiện ảnh thật.
 - `<loại>` = tên file bỏ số cuối: `cv_1`, `cv_2` → `cv`; `qcm_1` → `qcm`; `qchuki_1` (cả `_goc`) → `qchuki`;
   `con_1`, `con_2` → `con_cai` (Windows không cho thư mục tên `con`).
   Riêng `qmoi_1`, `qmoi_2`, `qmoi_3`, `smoi_1`, `smoi_2`, `smoi_3` mỗi số 1 loại (mặt trước / mặt sau / trang 3–5).
