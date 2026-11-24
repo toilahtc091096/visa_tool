@@ -50,6 +50,7 @@ Code Python: các commit trên `main` từ `838d3c6` đến `63c90cf`. Kiểm tr
 - **Đóng W1**, sau khi bạn triển khai và test xong.
 - **W2 + W3** (thống kê cho admin, gộp 3 DB về 1): đã code xong cả Python và n8n (`n8n-flow/patched-W2/`: WF01-GENERAL, WF-13). Chờ bạn triển khai theo các bước ở mục 5, W2 và W3.
 - **F1:** bạn bảo bỏ qua (2026-11-20).
+- **W4 (chưa làm, ghi 2026-11-24):** khai nhiều thư mục liên tiếp + hàng chờ curl ở tab Chạy curl. Chi tiết ở mục 5, W4.
 - Đã biết nhưng **bạn chọn không sửa**: WF-02 báo "PDF conversion returned no pages" với một số PDF tên có chữ Hán. Hiện chỉ cần web báo lỗi và dừng, và việc đó đã làm.
 
 ### Cách làm việc với n8n (quy ước của dự án)
@@ -170,6 +171,7 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Chờ triển khai |  |
 | W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Chờ test |  |
 | W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Chờ test |  |
+| W4  | W   | Khai nhiều thư mục liên tiếp; curl xong mà đang chạy curl khác thì vào hàng chờ ở tab Chạy curl | Python + trang `/web` | Chưa làm |  |
 | F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Bỏ qua (bạn chọn, 2026-11-20) |           |
 | G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
 | G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
@@ -651,6 +653,31 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 **Kỳ vọng**
 - [x] Chạy thử bằng Node: `VTCHN…` (AI nói visa hoặc unknown) → `china_residence_permit`; `VLCHN…`, `V<CHN` → `china_visa` như cũ; `R<CHN` → giấy cư trú; `P<VNM` → hộ chiếu; `VTKOR` không bị đổi.
 - [ ] Chạy lại hồ sơ này: Telegram báo "ẢNH GIẤY CƯ TRÚ TRUNG QUỐC" cho giấy 停留, số XXX. Visa cũ là L, số XXX, nơi cấp `TP HO CHI MINH`, ngày cấp 2025-01-15.
+
+**Hiện tại:** —
+
+---
+
+### W4 — Khai nhiều thư mục liên tiếp, hàng chờ curl (ghi 2026-11-24, chưa làm)
+
+**Ban đầu:** mỗi lần chỉ làm được 1 hồ sơ:
+1. Tab **Khởi chạy hồ sơ** (phần 1): chọn / kéo 1 thư mục → Gửi → chờ n8n chạy xong → có curl, trang tự chuyển curl sang tab **Chạy curl**.
+2. Tab **Chạy curl** (phần 2): Đọc curl → Chạy → chờ kết quả.
+
+Muốn làm thư mục tiếp theo phải chờ xong cả 2 phần. Nếu đang chạy curl mà một hồ sơ khác vừa có curl thì curl mới đè lên ô curl (hoặc phải hỏi ghi đè), dễ mất / lẫn.
+
+**Kỳ vọng:**
+1. Phần 1 nhận **nhiều thư mục** (chọn hoặc kéo thả nhiều thư mục một lần). Các thư mục chạy **lần lượt**: thư mục 1 chạy xong phần 1 (đã có curl) thì tự gửi tiếp thư mục 2 vào phần 1, không chờ phần 2 của thư mục 1. Mỗi thư mục vẫn dùng lựa chọn chung (nhà, loại visa, số ngày, quan hệ) — *cần chốt*: cho sửa riêng từng thư mục hay không.
+2. Có danh sách tiến độ các thư mục: chờ / đang chạy phần 1 / có curl / lỗi (lỗi 1 thư mục thì ghi lỗi và chạy tiếp thư mục sau).
+3. Tab **Chạy curl** có **hàng chờ curl** (list ở trên ô curl):
+   - Curl mới có khi **không** có curl nào đang chạy và ô curl trống: điền thẳng vào ô curl như hiện nay.
+   - Curl mới có khi **đang chạy** curl khác (hoặc ô curl đang có curl chưa chạy): **đưa vào hàng chờ**, không đè.
+   - Người dùng chạy xong curl hiện tại thì **tự chọn** curl tiếp theo trong hàng chờ (bấm vào dòng) → curl được đưa vào ô curl (Đọc curl, hiện ảnh hộ chiếu / chân dung như hiện nay) và **bị bỏ khỏi hàng chờ**. Không tự chạy.
+   - Mỗi dòng hàng chờ: tên thư mục / họ tên, số hộ chiếu, loại visa, giờ có curl; có nút bỏ khỏi hàng chờ (có xác nhận).
+4. Tải lại trang không mất hàng chờ và tiến độ — *cần chốt*: lưu ở trình duyệt hay lưu DB (`web_jobs` đã có `curl`, có thể dùng trạng thái "có curl, chưa chạy").
+5. Không làm hỏng luồng 1 thư mục hiện tại (chọn 1 thư mục vẫn chạy như cũ).
+
+**Câu hỏi cần chốt trước khi làm:** (a) chạy phần 1 nối tiếp từng thư mục hay cho chạy song song vài thư mục (n8n chịu tải được bao nhiêu); (b) hàng chờ riêng từng người hay chung; (c) lựa chọn chung hay riêng từng thư mục (mục 1); (d) chỗ lưu hàng chờ (mục 4).
 
 **Hiện tại:** —
 
