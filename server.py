@@ -292,6 +292,20 @@ def web_guide_image(path: str):
     return Response(file.read_bytes(), media_type=media, headers={"Cache-Control": "public, max-age=3600"})
 
 
+_BRAND_DIR = _WEB_PAGE.parent / "brand"
+_BRAND_TYPES = {".ico": "image/x-icon", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json"}
+
+
+@app.get("/web/brand/{name}")
+def web_brand(name: str):
+    """Favicon, app icons, logo, manifest (web/brand/). Public: under /web, no key needed."""
+    file = _BRAND_DIR / name
+    media = _BRAND_TYPES.get(file.suffix.lower())
+    if not media or "/" in name or "\\" in name or not file.is_file():
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không có file"})
+    return Response(file.read_bytes(), media_type=media, headers={"Cache-Control": "public, max-age=86400"})
+
+
 @app.post("/web/login")
 def web_login(request: Request, payload: dict[str, Any] = Body(...)):
     ip = request.client.host if request.client else ""

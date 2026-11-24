@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Khai hồ sơ visa</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="/web/brand/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/web/brand/favicon.svg">
+<link rel="apple-touch-icon" href="/web/brand/apple-touch-icon.png">
+<link rel="manifest" href="/web/brand/site.webmanifest">
+<meta name="theme-color" content="#102A43">
+<meta property="og:title" content="Khai hồ sơ visa">
+<meta property="og:image" content="/web/brand/og-image.png">
 <style>
   :root {
     --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #667085; --line: #d9dde5;
@@ -20,6 +26,9 @@
   body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   main { max-width: 880px; margin: 0 auto; padding: 32px 16px 56px; }
   h1 { font-size: 26px; margin: 0 0 20px; }
+  .brand { margin: 0 0 20px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .brand img { width: 40px; height: 40px; flex: none; display: block; }
+  .brand h1 { margin: 0; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
   label { display: block; font-weight: 600; margin: 18px 0 6px; }
   .hint { color: var(--muted); font-size: 14px; font-weight: 400; }
@@ -246,7 +255,7 @@
 </head>
 <body>
 <main>
-  <h1>Khai hồ sơ visa</h1>
+  <a class="brand" href="/web" aria-label="Khai hồ sơ visa"><img src="/web/brand/favicon.svg" alt=""><h1>Khai hồ sơ visa</h1></a>
 
   <section id="login" class="card hidden">
     <label for="u">Tên đăng nhập</label>

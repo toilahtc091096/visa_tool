@@ -29,7 +29,7 @@ import requests
 from constants import CHECK_OLD_LIST_BASE_URL
 
 TICKET_TTL = 15 * 60  # seconds a ticket (open login tab) stays usable
-SCRIPT_VERSION = "1.4"
+SCRIPT_VERSION = "1.5"
 
 
 # ---------- house side (each instance, its own .env) ----------
@@ -148,6 +148,7 @@ def userscript(base_url: str) -> str:
 _USERSCRIPT = r"""// ==UserScript==
 // @name         Visa tool - lấy token bio
 // @namespace    visa-tool
+// @icon         __BASE__/web/brand/tampermonkey-icon.png
 // @version      __VERSION__
 // @description  Tự điền tài khoản của nhà và gửi token bio.visaforchina.cn về trang /web
 // @match        https://*.visaforchina.cn/*

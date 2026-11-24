@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 112" role="img" aria-labelledby="title desc">
+<title id="title">Khai hồ sơ visa</title><desc id="desc">Biểu tượng hộ chiếu với địa cầu và chữ V, kèm tên Khai hồ sơ visa.</desc>
+
+<g id="visa-mark">
+  <rect x="12" y="8" width="72" height="84" rx="9" fill="#102A43"/>
+  <rect x="18" y="14" width="60" height="72" rx="6" fill="none" stroke="#DCEAF2" stroke-width="2"/>
+  <circle cx="48" cy="43" r="18" fill="none" stroke="#DCEAF2" stroke-width="2.5"/>
+  <path d="M30 43h36 M48 25c-7 6-10 12-10 18s3 12 10 18 M48 25c7 6 10 12 10 18s-3 12-10 18" fill="none" stroke="#DCEAF2" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M32 55l16 20 23-31" fill="none" stroke="#087EAA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 55l16 20 23-31" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<text x="108" y="51" font-family="Arial, Helvetica, sans-serif" font-size="29" font-weight="700" fill="#102A43">Khai hồ sơ visa</text>
+<text x="109" y="77" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="2.1" font-weight="600" fill="#087EAA">HỒ SƠ • KẾT NỐI • QUỐC TẾ</text>
+</svg>

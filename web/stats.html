@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Thống kê hồ sơ</title>
+<link rel="icon" href="/web/brand/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/web/brand/favicon.svg">
+<link rel="apple-touch-icon" href="/web/brand/apple-touch-icon.png">
+<link rel="manifest" href="/web/brand/site.webmanifest">
+<meta name="theme-color" content="#102A43">
+<meta property="og:title" content="Thống kê hồ sơ">
+<meta property="og:image" content="/web/brand/og-image.png">
 <style>
   :root {
     color-scheme: light;
@@ -39,6 +46,9 @@
   main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 56px; }
   header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
   h1 { font-size: 24px; margin: 0; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .brand img { width: 34px; height: 34px; flex: none; display: block; }
+  .brand h1 { margin: 0; }
   a { color: var(--accent); }
   .muted { color: var(--muted); }
   .hint { color: var(--text-2); font-size: 13px; }
@@ -142,7 +152,7 @@
 <body>
 <main id="root">
   <header>
-    <h1>Thống kê hồ sơ</h1>
+    <a class="brand" href="/web" aria-label="Về trang khai hồ sơ"><img src="/web/brand/favicon.svg" alt=""><h1>Thống kê hồ sơ</h1></a>
     <span class="hint"><span id="who"></span> · <a href="/web">← Về trang khai hồ sơ</a></span>
   </header>
   <div id="msg" class="msg hidden"></div>
