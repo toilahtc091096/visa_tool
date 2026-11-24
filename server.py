@@ -230,6 +230,19 @@ _GUIDE_DIR = _WEB_PAGE.parent / "guide"
 _GUIDE_FILE_RE = re.compile(r"^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\.(jpg|jpeg|png|webp)$")
 
 
+_GUIDE_KEY_RE = re.compile(r"^[a-z0-9_]+$")
+
+
+@app.get("/web/guide-examples/{key}")
+def web_guide_examples(key: str):
+    """Example photos of one file type (web/guide/vd/<key>/): whatever images the admin put there, sorted by name."""
+    folder = _GUIDE_DIR / "vd" / key
+    if not _GUIDE_KEY_RE.match(key) or not folder.is_dir():
+        return {"ok": True, "files": []}
+    files = sorted(f.name for f in folder.iterdir() if f.is_file() and _GUIDE_FILE_RE.match(f.name))
+    return {"ok": True, "files": files}
+
+
 @app.get("/web/guide/{path:path}")
 def web_guide_image(path: str):
     """Example photo of the 'Hướng dẫn file' popup (web/guide/<visa>/<name>). 404 = the page keeps its drawing."""

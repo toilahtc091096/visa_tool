@@ -192,6 +192,15 @@
   .guide { width: 60vw; max-width: 100%; max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--card);
            color: var(--text); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
   @media (max-width: 1100px) { .guide { width: 92vw; } }
+  .exbtn { display: block; margin: 4px 0 0; padding: 2px 8px; font-size: 12px; font-weight: 600; border-radius: 6px; white-space: nowrap; vertical-align: middle; }
+  #exDlg { z-index: 60; }
+  .exbox { width: min(900px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--card);
+           border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
+  .exbody { padding: 16px 20px 20px; overflow: auto; }
+  .exgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+  .exgrid figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+  .exgrid img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+  .exgrid figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); }
   .guide-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
   .guide-head h3 { margin: 0; font-size: 20px; }
   .guide-head .bar-actions button { margin: 0; padding: 6px 12px; font-size: 14px; }
@@ -492,6 +501,15 @@
     <div class="guide-body" id="guideBody"></div>
   </div>
 </div>
+<div id="exDlg" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="exTitle">
+  <div class="exbox">
+    <div class="guide-head">
+      <h3 id="exTitle"></h3>
+      <div class="bar-actions"><button class="secondary" id="exClose" type="button">✕ Đóng</button></div>
+    </div>
+    <div class="exbody" id="exBody"></div>
+  </div>
+</div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="dlg" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
   <div class="dlg" id="dlgBox">
@@ -708,8 +726,15 @@ const nameKinds = `<div class="tbl-wrap" style="margin-top:10px"><table class="d
   <tr><td>File cơ bản: hộ chiếu, ảnh thẻ, trang trắng, CT07, visa cũ</td><td><b>Giữ tên gốc</b> (chỉ a-z A-Z 0-9 _ -). AI tự nhận ra.</td></tr>
   <tr><td>Người thân cắt từ hộ khẩu, người đi cùng, giấy tờ dưới 18</td><td><b>Đặt đúng tên</b>: <code>tt_cha</code>, <code>tt_me</code>, <code>vo_chong</code>, <code>con_1</code>, <code>cv_1</code>, <code>duoi18_ks</code>…</td></tr>
 </table></div>`;
+// Ảnh ví dụ: web/guide/vd/<key>/ (admin thả ảnh vào, server liệt kê). key = tên file bỏ số cuối,
+// trừ các file mà mỗi số là 1 giấy khác nhau (mặt trước / mặt sau).
+const EX_KEEP_NUM = ['qmoi_1', 'qmoi_2', 'smoi_1', 'smoi_2'];
+// con_N -> con_cai: Windows does not allow a folder named "con"
+const exKey = (n) => (EX_KEEP_NUM.includes(n) ? n : /^con_\d+$/.test(n) ? 'con_cai' : n.replace(/_\d+$/, ''));
+const fcell = (n, what, shown = n) => `<span class="fname">${esc(shown)}.jpg</span><button type="button" class="secondary exbtn"
+  data-ex="${esc(exKey(n))}" data-name="${esc(shown)}" data-what="${esc(String(what).replace(/<[^>]+>/g, ''))}">🖼 Ảnh ví dụ</button>`;
 const fileTable = (rows, head = 'Là gì') => `<div class="tbl-wrap"><table class="data"><tr><th>Tên file</th><th>${head}</th></tr>
-  ${rows.map(([n, what]) => `<tr><td><span class="fname">${esc(n)}.jpg</span></td><td>${what}</td></tr>`).join('')}</table></div>`;
+  ${rows.map(([n, what]) => `<tr><td>${fcell(n, what)}</td><td>${what}</td></tr>`).join('')}</table></div>`;
 
 // opt = { kind: 'canhan' | 'giadinh', order: 'dau' | 'sau', u18: bool }, house = Nhà đang chọn
 const GUIDES = {
@@ -820,7 +845,7 @@ GUIDES.M = {
       <div class="tbl-wrap"><table class="data"><tr><th>Tên file</th><th>Giấy gì</th><th>Của ai / từ đâu</th><th>Cần khi nào</th></tr>
         ${M_FILES.map(([n, what, who, when]) => {
           const copy = o.owner && n === 'qdct';
-          return `<tr><td><span class="fname">${n}.jpg</span></td><td>${copy ? 'Bản sao của <code>thumoi</code>' : esc(what)}</td>
+          return `<tr><td>${fcell(n, what)}</td><td>${copy ? 'Bản sao của <code>thumoi</code>' : esc(what)}</td>
             <td>${copy ? 'chủ doanh nghiệp không có quyết định công tác' : esc(who)}</td>
             <td><span class="st approved">${copy ? 'chép từ thumoi' : esc(when)}</span></td></tr>`;
         }).join('')}
@@ -880,7 +905,7 @@ function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors
       { id: 'docs', title: `Giấy tờ riêng của visa ${code}`, hint: 'tên phải bắt đầu đúng tiền tố', open: true, when: (o) => !next(o), html: (o) => `
         <p>Các file này <b>phải bắt đầu bằng đúng tiền tố</b> trong bảng (hệ thống dựa vào tiền tố để biết là giấy gì), sau đó là số thứ tự.</p>
         <div class="tbl-wrap"><table class="data"><tr><th>Tên file</th><th>Giấy gì</th><th>Của ai / từ đâu</th><th>Cần</th><th>Hệ thống</th></tr>
-          ${docs.map(([n, what, who, need, sys]) => `<tr><td><span class="fname">${esc(sigName(n, o))}.jpg</span></td><td>${esc(what)}</td><td>${esc(who)}</td>
+          ${docs.map(([n, what, who, need, sys]) => `<tr><td>${fcell(n, what, sigName(n, o))}</td><td>${esc(what)}</td><td>${esc(who)}</td>
             <td><span class="st ${need === 'bắt buộc' ? 'approved' : ''}">${esc(need)}</span></td><td>${sys}</td></tr>`).join('')}
         </table></div>${docsNote}` },
       ...extra,
@@ -1024,7 +1049,32 @@ function renderGuide() {
     im.src = '/web/guide/' + f.dataset.img;
   });
 }
+async function openExamples(btn) {
+  const key = btn.dataset.ex;
+  $('exTitle').textContent = `Ảnh ví dụ — ${btn.dataset.name}.jpg`;
+  $('exBody').innerHTML = `<p class="hint">${esc(btn.dataset.what)}</p><p class="hint">Đang tải ảnh…</p>`;
+  $('exDlg').classList.remove('hidden');
+  $('exClose').focus();
+  let files = [];
+  try {
+    const r = await fetch('/web/guide-examples/' + encodeURIComponent(key));
+    if (r.ok) files = (await r.json()).files || [];
+  } catch (_) { /* no list: shown as empty */ }
+  if ($('exDlg').classList.contains('hidden')) return;
+  $('exBody').innerHTML = `<p class="hint">${esc(btn.dataset.what)}</p>` + (files.length
+    ? `<p class="hint">Làm file của mình giống các ảnh dưới đây: đủ giấy, rõ chữ, không mất góc. Bấm vào ảnh để xem cỡ lớn.</p>
+       <div class="exgrid">${files.map((f) => {
+         const url = `/web/guide/vd/${encodeURIComponent(key)}/${encodeURIComponent(f)}`;
+         return `<figure><a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${esc(f)}" loading="lazy"></a><figcaption>${esc(f)}</figcaption></figure>`;
+       }).join('')}</div>`
+    : '<p>Chưa có ảnh ví dụ cho loại file này.</p>');
+}
+function closeExamples() { $('exDlg').classList.add('hidden'); $('exBody').innerHTML = ''; }
+$('exClose').addEventListener('click', closeExamples);
+$('exDlg').addEventListener('click', (e) => { if (e.target === $('exDlg')) closeExamples(); });
 $('guideBody').addEventListener('click', (e) => {
+  const ex = e.target.closest('.exbtn');
+  if (ex) { e.preventDefault(); openExamples(ex); return; }
   const b = e.target.closest('.seg button');
   if (!b) return;
   guideOpt[b.dataset.k] = ['u18', 'owner', 'goc'].includes(b.dataset.k) ? b.dataset.v === 'true' : b.dataset.v;
@@ -1044,7 +1094,11 @@ function closeGuide() { $('guide').classList.add('hidden'); $('guideBtn').focus(
 $('guideBtn').onclick = openGuide;
 $('guideClose').onclick = closeGuide;
 $('guide').addEventListener('click', (e) => { if (e.target === $('guide')) closeGuide(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('guide').classList.contains('hidden')) closeGuide(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('exDlg').classList.contains('hidden')) closeExamples();   // child popup first
+  else if (!$('guide').classList.contains('hidden')) closeGuide();
+});
 $('guideAll').onclick = () => {
   const all = [...$('guideBody').querySelectorAll('details')];
   const open = !all.every((d) => d.open);
