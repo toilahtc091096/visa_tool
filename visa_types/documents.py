@@ -323,11 +323,11 @@ class InvitationLetter(DocumentStep):
             raise
 
 
-class SouthQ2InvitationLetter(InvitationLetter):
-    """South Q2: like InvitationLetter. When the applicant sent their own letter
+class Q2InvitationLetter(InvitationLetter):
+    """Q2 (both regions): like InvitationLetter. When the applicant sent their own letter
     (qthumoi_* files, put in the same folder by n8n), the one made from the
     template is renamed <name>_backup.pdf and pushed to R2 next to it, to use
-    later if needed; the qthumoi letter is the one uploaded (UPLOAD_CONFIG_SOUTH_Q2)."""
+    later if needed; the qthumoi letter is the one uploaded (UPLOAD_CONFIG["Q2"], UPLOAD_CONFIG_SOUTH_Q2)."""
 
     async def render(self, ctx) -> None:
         passport = str(ctx.input_passportNumber or "").strip()

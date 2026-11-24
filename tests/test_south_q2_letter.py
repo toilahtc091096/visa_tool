@@ -1,5 +1,5 @@
-"""South Q2 invitation letter: the applicant's qthumoi_* letter wins, the template
-letter becomes <name>_backup.pdf on R2; the letter goes into 3 COVA slots.
+"""Q2 invitation letter (North and South): the applicant's qthumoi_* letter wins, the
+template letter becomes <name>_backup.pdf on R2; South puts the letter into 3 COVA slots.
 
     python -m unittest tests.test_south_q2_letter
 """
@@ -61,8 +61,9 @@ class SourceFilesTest(unittest.TestCase):
         p.start()
         self.addCleanup(p.stop)
 
-    def resolve(self, key):
-        return [f.name for f in step07._source_files(constants.UPLOAD_CONFIG_SOUTH_Q2[key], "P1")]
+    def resolve(self, key, cfg=None):
+        cfg = cfg or constants.UPLOAD_CONFIG_SOUTH_Q2
+        return [f.name for f in step07._source_files(cfg[key], "P1")]
 
     def test_template_letter_when_no_qthumoi(self):
         (self.letters / "Q_Template_MN_A_B.pdf").write_bytes(b"%PDF")
@@ -77,6 +78,15 @@ class SourceFilesTest(unittest.TestCase):
         for key in ("THU_MOI", "CCCD_NGUOI_MOI_THU_MOI", "THU_MOI_3"):
             self.assertEqual(self.resolve(key), ["thu_moi_qthumoi.pdf"], key)
         self.assertEqual(self.merged[0], ["QTHUMOI_1.jpg", "qthumoi_2.jpg"])  # the backup is never used
+
+    def test_north_q2_same_logic(self):
+        north = constants.UPLOAD_CONFIG["Q2"]
+        (self.letters / "Q_Template_A_B.pdf").write_bytes(b"%PDF")
+        self.assertEqual(self.resolve("THU_MOI", north), ["Q_Template_A_B.pdf"])
+        (self.letters / "Q_Template_A_B.pdf").rename(self.letters / "Q_Template_A_B_backup.pdf")
+        (self.letters / "qthumoi_1.pdf").write_bytes(b"%PDF")
+        self.assertEqual(self.resolve("THU_MOI", north), ["thu_moi_qthumoi.pdf"])
+        self.assertEqual(self.merged, [["qthumoi_1.pdf"]])
 
 
 class BackupLetterTest(unittest.TestCase):
@@ -98,7 +108,7 @@ class BackupLetterTest(unittest.TestCase):
              mock.patch.object(documents, "ensure_data_folder_downloaded"), \
              mock.patch.object(documents, "api_upload_r2_object",
                                side_effect=lambda k, data, ct: uploads.append((k, data)) or {"ok": True}):
-            letter = documents.SouthQ2InvitationLetter(constants.Q2_THU_MOI_OUTPUT_PATH, "Q_Template_MN.docx")
+            letter = documents.Q2InvitationLetter(constants.Q2_THU_MOI_OUTPUT_PATH, "Q_Template_MN.docx")
             asyncio.run(letter.render(SimpleNamespace(input_passportNumber="C123")))
         return sorted(f.name for f in folder.iterdir()), uploads
 
@@ -111,6 +121,14 @@ class BackupLetterTest(unittest.TestCase):
         files, uploads = self.run_render(["qthumoi_1.jpg"])
         self.assertEqual(files, ["Q_Template_MN_LI_NGUYEN_backup.pdf", "qthumoi_1.jpg"])
         self.assertEqual(uploads, [("C123/tham-than/thumoi/Q_Template_MN_LI_NGUYEN_backup.pdf", b"%PDF template")])
+
+
+class NorthQ2ProfileTest(unittest.TestCase):
+    def test_north_q2_uses_the_same_letter_step(self):
+        from visa_types import family
+        letters = [d for d in family.Q2Visa.documents if isinstance(d, documents.InvitationLetter)]
+        self.assertEqual([type(d) for d in letters], [documents.Q2InvitationLetter])
+        self.assertEqual(letters[0].template_name, "")   # North template (Q_Template.docx)
 
 
 if __name__ == "__main__":

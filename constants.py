@@ -885,7 +885,7 @@ Q2_THU_MOI_OUTPUT_PATH = "tham-than\\thumoi"
 Q2_CCCD_NGUOI_MOI_OUTPUT_PATH = "tham-than\\cccd"
 Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH = "tham-than\\quan-he"
 Q2_TAI_LIEU_KHAC_OUTPUT_PATH = "tham-than\\khac"
-# South Q2: the applicant's own invitation letter (n8n puts qthumoi_* files in
+# Q2 (both regions): the applicant's own invitation letter (n8n puts qthumoi_* files in
 # Q2_THU_MOI_OUTPUT_PATH). When there is one it is uploaded; the letter made
 # from the template is still generated, renamed <name>_backup.pdf and pushed to R2.
 Q2_OWN_THU_MOI_PREFIX = "qthumoi"
@@ -1524,6 +1524,18 @@ def _first_nonempty(*sources: dict[str, object] | list) -> dict[str, object]:
     return {"first_of": list(sources)}
 
 
+def _q2_letter(limit: int) -> dict[str, object]:
+    """Q2 invitation letter (both regions): the applicant's qthumoi_* files (one
+    merged PDF) when there are any, else the letter made from the template."""
+    return _first_nonempty(
+        _merged_pdf(
+            "thu_moi_qthumoi.pdf",
+            _files(Q2_THU_MOI_OUTPUT_PATH, 100, prefix=Q2_OWN_THU_MOI_PREFIX),
+        ),
+        _files(Q2_THU_MOI_OUTPUT_PATH, limit),
+    )
+
+
 def _south_hukou() -> dict[str, object]:
     """South HUKOU_OR_EMPLOYMENT_LETTER (mfa-097): only the first of these that
     has files: old Chinese visa photos, other countries' visa photos, CT07."""
@@ -1619,7 +1631,8 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "PREV_CHINESE_VISA": _files(
             L_15_PREVIOUS_TRAVEL_CHINA_VISA_PHOTOS_OUTPUT_PATH, 3
         ),
-        "THU_MOI": _files(Q2_THU_MOI_OUTPUT_PATH, 1),
+        # qthumoi_* (merged) when the applicant sent one, else the template letter (as South).
+        "THU_MOI": _q2_letter(1),
         "CCCD_NGUOI_MOI": _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
         "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
         "OTHER_MATERIALS": [
@@ -1751,18 +1764,6 @@ UPLOAD_CONFIG_SOUTH_Q1: dict[str, object] = {
         _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
     ],
 }
-def _south_q2_letter(limit: int) -> dict[str, object]:
-    """South Q2 invitation letter: the applicant's qthumoi_* files (one merged
-    PDF) when there are any, else the letter made from the template."""
-    return _first_nonempty(
-        _merged_pdf(
-            "thu_moi_qthumoi.pdf",
-            _files(Q2_THU_MOI_OUTPUT_PATH, 100, prefix=Q2_OWN_THU_MOI_PREFIX),
-        ),
-        _files(Q2_THU_MOI_OUTPUT_PATH, limit),
-    )
-
-
 # South Q2, same idea: started from the North Q2 table.
 UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
     "PASSPORT_INFO_PAGE": _passport_image(),
@@ -1771,18 +1772,18 @@ UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
         _files(L_15_PREVIOUS_TRAVEL_VISA_PHOTOS_OUTPUT_PATH, 3),
     ],
     "HUKOU_OR_EMPLOYMENT_LETTER": _south_hukou(),
-    "THU_MOI": _south_q2_letter(2),
+    "THU_MOI": _q2_letter(2),
     # Same layout as South Q1. One PDF of every file in tham-than\cccd.
     "CCCD_NGUOI_MOI": _merged_pdf(
         "cccd_nguoi_moi.pdf", _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 100)
     ),
-    "CCCD_NGUOI_MOI_THU_MOI": _south_q2_letter(1),
+    "CCCD_NGUOI_MOI_THU_MOI": _q2_letter(1),
     # One PDF of every qcm_* file in tham-than\quan-he.
     "CCCD_NGUOI_MOI_QUAN_HE": _merged_pdf(
         "quan_he_qcm.pdf", _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 100, prefix="qcm_")
     ),
     # Invitation letter category _3: the letter (not the relationship proof).
-    "THU_MOI_3": _south_q2_letter(1),
+    "THU_MOI_3": _q2_letter(1),
     "OTHER_MATERIALS": [
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 5),

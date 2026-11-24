@@ -22,7 +22,7 @@ from .base import VisaProfile, china_place_from_pinyin, register
 from .documents import (
     InvitationLetter,
     S2InvitationLetter,
-    SouthQ2InvitationLetter,
+    Q2InvitationLetter,
     VisaCenterConfirmation,
 )
 
@@ -125,7 +125,8 @@ class Q2Visa(FamilyVisa):
     """Short visit to relatives living in China."""
 
     code = "Q2"
-    documents = (VisaCenterConfirmation(), InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
+    # qthumoi_* from the applicant wins; the template letter becomes <name>_backup.pdf on R2.
+    documents = (VisaCenterConfirmation(), Q2InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
 
 
 class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
@@ -137,8 +138,7 @@ class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
     leave_after_stay_days = True
     documents = (
         VisaCenterConfirmation(),
-        # qthumoi_* from the applicant wins; the template letter becomes <name>_backup.pdf on R2.
-        SouthQ2InvitationLetter(Q2_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
+        Q2InvitationLetter(Q2_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
     )
 
 
