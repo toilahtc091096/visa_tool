@@ -23,8 +23,8 @@ Bấm vào mở popup hiện **mọi ảnh** trong thư mục `web/guide/vd/<lo�
 - Thêm / đổi ảnh: thả hoặc đè ảnh vào đúng thư mục, không cần sửa code. Xoá ảnh thì popup bớt ảnh đó.
 - Hiện có ảnh tạm `1.jpg`, `2.jpg` ghi đường dẫn của chính nó: đè ảnh thật lên (hoặc xoá đi).
 - `<loại>` = tên file bỏ số cuối: `cv_1`, `cv_2` → `vd/cv/`; `con_1`, `con_2` → `vd/con_cai/` (Windows không cho thư mục tên `con`); `qcm_1` → `vd/qcm/`;
-  `qchuki_1` (cả `_goc`) → `vd/qchuki/`. Riêng `qmoi_1`, `qmoi_2`, `smoi_1`, `smoi_2` mỗi số 1 thư mục (mặt trước / sau khác nhau).
+  `qchuki_1` (cả `_goc`) → `vd/qchuki/`. Riêng `qmoi_1`, `qmoi_2`, `qmoi_3`, `smoi_1`, `smoi_2`, `smoi_3` mỗi số 1 thư mục (mặt trước / mặt sau / trang 3–5).
 
 Thư mục có sẵn: `cv`, `con_cai`, `tt_cha`, `tt_me`, `vo_chong`, `duoi18_ks`, `duoi18_dc1`, `duoi18_dc2`, `duoi18_pay`,
-`thumoi`, `dktq`, `dkvn`, `qdct`, `fthumoi`, `fqddh`, `xnh`, `xjw`, `qmoi_1`, `qmoi_2`, `qcm`, `qchuki`, `qbaolanh`, `qkhac`,
-`smoi_1`, `smoi_2`, `scm`, `sthumoi`, `smoi_ruot`, `schuki`, `skhac`.
+`thumoi`, `dktq`, `dkvn`, `qdct`, `fthumoi`, `fqddh`, `xnh`, `xjw`, `qmoi_1`, `qmoi_2`, `qmoi_3`, `qthumoi`, `qcm`, `qchuki`, `qbaolanh`, `qkhac`,
+`smoi_1`, `smoi_2`, `smoi_3`, `scm`, `sthumoi`, `smoi_ruot`, `schuki`, `skhac`.
