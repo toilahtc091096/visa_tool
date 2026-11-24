@@ -692,6 +692,9 @@ const BASIC_L = [
   ['ct07_1', 'doc', 'Xác nhận cư trú CT07 / xác nhận việc làm', 'Nếu có. Nhiều trang thì đánh số theo thứ tự trang.', () => false],
   ['visacu_1', 'visa', 'Visa Trung Quốc cũ', 'Nếu có. Mỗi visa 1 file.', () => false],
 ];
+// short meaning shown next to the file in the folder trees
+const U18_SHORT = { duoi18_ks: 'giấy khai sinh', duoi18_dc1: 'người đi cùng 1 (vd bố)', duoi18_dc2: 'người đi cùng 2 (vd mẹ)', duoi18_pay: 'người trả tiền chuyến đi' };
+const u18Tree = () => U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + `<span class="hint">${U18_SHORT[n]} (dưới 18) — đúng tên</span>`);
 const U18_FILES = [
   ['duoi18_ks', 'Giấy khai sinh của người xin visa'],
   ['duoi18_dc1', 'Thông tin người đi cùng thứ 1 (vd bố)'],
@@ -719,9 +722,9 @@ const GUIDES = {
         const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
         if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
         lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'visa2023.jpg          <span class="hint">visa cũ, nếu có — tên gốc</span>',
-                   'tt_cha.jpg            <span class="hint">cắt từ hộ khẩu, nếu có — đúng tên</span>', 'tt_me.jpg             <span class="hint">nếu có — đúng tên</span>');
-        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">người đi cùng 1 — đúng tên</span>', 'cv_2.jpg              <span class="hint">người đi cùng 2 — đúng tên</span>');
-        if (o.u18) lines.push(...U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + '<span class="hint">dưới 18 — đúng tên</span>'));
+                   'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đúng tên</span>', 'tt_me.jpg             <span class="hint">mẹ — cắt từ hộ khẩu, nếu có — đúng tên</span>');
+        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">hộ chiếu người đi cùng 1 — đúng tên</span>', 'cv_2.jpg              <span class="hint">hộ chiếu người đi cùng 2 — đúng tên</span>');
+        if (o.u18) lines.push(...u18Tree());
         const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
         return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}), thư mục hồ sơ có dạng:</p>
           <div class="gtree">L30 - NGUYEN VAN A/\n${tree}</div>
@@ -770,7 +773,7 @@ const M_FILES = [
   ['qdct', 'Quyết định cử đi công tác', 'giám đốc công ty VN cử nhân viên sang TQ theo thư mời', 'luôn cần'],
 ];
 // Người đi cùng: hộ chiếu, tên bắt đầu bằng cv_ (n8n WF-04: companion_passport). M, F, X.
-const CV_TREE = 'cv_1.jpg              <span class="hint">hộ chiếu người đi cùng, nếu có — đúng tên</span>';
+const CV_TREE = 'cv_1.jpg              <span class="hint">hộ chiếu người đi cùng 1, nếu có — đúng tên</span>';
 const companionSection = { id: 'cv', title: 'Người đi cùng (cv_)', hint: 'nếu có · đặt đúng tên', html: () => `
   <p>Mỗi người đi cùng 1 file <b>trang thông tin hộ chiếu</b>, tên <b>bắt buộc</b> bắt đầu bằng <code>cv_</code> rồi đánh số: <code>cv_1</code>, <code>cv_2</code>…</p>
   ${fileTable([['cv_1', 'Hộ chiếu người đi cùng thứ 1'], ['cv_2', 'Hộ chiếu người đi cùng thứ 2'], ['cv_3', 'Người thứ 3… (nếu có)']])}
@@ -797,12 +800,12 @@ GUIDES.M = {
     { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
       const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
       if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
-      lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">cắt từ hộ khẩu, nếu có — đúng tên</span>', CV_TREE);
+      lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đúng tên</span>', CV_TREE);
       if (!isNext(o)) {
-        lines.push('thumoi.jpg            <span class="hint">thư mời TQ — đúng tên</span>', 'dktq.jpg              <span class="hint">ĐKKD công ty TQ — đúng tên</span>',
-                   'dkvn.jpg              <span class="hint">ĐKKD công ty VN — đúng tên</span>');
+        lines.push('thumoi.jpg            <span class="hint">thư mời của công ty TQ — đúng tên</span>', 'dktq.jpg              <span class="hint">đăng ký kinh doanh công ty TQ — đúng tên</span>',
+                   'dkvn.jpg              <span class="hint">đăng ký kinh doanh công ty VN — đúng tên</span>');
         lines.push(o.owner ? 'qdct.jpg              <span class="hint">BẢN SAO của thumoi.jpg — đúng tên</span>'
-                           : 'qdct.jpg              <span class="hint">quyết định công tác — đúng tên</span>');
+                           : 'qdct.jpg              <span class="hint">quyết định cử đi công tác — đúng tên</span>');
       }
       const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
       return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}, ${isNext(o) ? '<b>người sau trong đoàn</b>' : o.owner ? '<b>chủ doanh nghiệp</b>' : 'nhân viên'}), thư mục hồ sơ có dạng:</p>
@@ -858,11 +861,11 @@ function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors
       { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
         const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
         if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
-        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">cắt từ hộ khẩu, nếu có — đúng tên</span>');
+        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đúng tên</span>');
         if (companions) lines.push(CV_TREE);
-        if (u18 && o.u18) lines.push(...U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + '<span class="hint">dưới 18 — đúng tên</span>'));
+        if (u18 && o.u18) lines.push(...u18Tree());
         // short label in the tree: the part before "(" or ":"
-        if (!next(o)) docs.forEach(([n, what]) => lines.push(`${(n + '.jpg').padEnd(22)}<span class="hint">${esc(what.split(/[(:]/)[0].trim())} — đúng tên</span>`));
+        if (!next(o)) docs.forEach(([n, what, , , , short]) => lines.push(`${(n + '.jpg').padEnd(22)}<span class="hint">${esc((short || what.split(/[(:]/)[0].trim()).replace(/^./, (c) => c.toLowerCase()))} — đúng tên</span>`));
         const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
         return `<p>Nhà ${esc(h)}${next(o) ? ', <b>người sau trong đoàn</b>' : ''}, thư mục hồ sơ có dạng:</p>
           ${next(o) ? `<p class="hint">Người sau: không có giấy tờ riêng của ${esc(code)} — lấy từ người đầu bằng "Áp dụng ${esc(group.code)}" (mục bên dưới).</p>` : ''}
@@ -934,11 +937,11 @@ const qSign = { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'qchuki_ 
       <li>Muốn <b>giữ nguyên nét</b> (chỉ làm nền trắng): thêm <code>_goc</code> cuối tên, vd <code>qchuki_1_goc</code>.</li>
       <li><code>qbaolanh_1</code> (hoặc <code>qbl_1</code>): chữ ký <b>người bảo lãnh</b> — người ký thay người mời (vd người mời chưa đủ 18 tuổi). Có file này thì hệ thống dùng mẫu thư mời có thêm dòng người bảo lãnh.</li></ul>` };
 const qDocs = (maxRel) => [
-  ['qmoi_1', 'Giấy tờ người mời: CCCD / hộ khẩu / hộ chiếu Trung Quốc (mặt trước)', 'người mời (công dân TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ, tỉnh / thành / quận')],
-  ['qmoi_2', 'Giấy tờ người mời (mặt sau / trang 2)', 'người mời', 'nếu có', READ('như trên')],
+  ['qmoi_1', 'Giấy tờ người mời: CCCD / hộ khẩu / hộ chiếu Trung Quốc (mặt trước)', 'người mời (công dân TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ, tỉnh / thành / quận'), 'giấy tờ người mời — mặt trước'],
+  ['qmoi_2', 'Giấy tờ người mời (mặt sau / trang 2)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — mặt sau / trang 2'],
   ['qcm_1', `Giấy chứng minh quan hệ (giấy kết hôn, khai sinh, hộ khẩu…), tối đa ${maxRel} file`, 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY],
-  ['qchuki_1', 'Chữ ký người mời (cho thư mời)', 'người mời', 'nên có', READ('làm nền trắng, đưa vào thư mời')],
-  ['qbaolanh_1', 'Chữ ký người bảo lãnh (ký thay người mời)', 'người bảo lãnh', 'nếu có', READ('đưa vào thư mời mẫu bảo lãnh')],
+  ['qchuki_1', 'Chữ ký người mời (cho thư mời)', 'người mời', 'nên có', READ('làm nền trắng, đưa vào thư mời'), 'chữ ký người mời (cho thư mời)'],
+  ['qbaolanh_1', 'Chữ ký người bảo lãnh (ký thay người mời)', 'người bảo lãnh', 'nếu có', READ('đưa vào thư mời mẫu bảo lãnh'), 'chữ ký người bảo lãnh (ký thay người mời)'],
   ['qkhac_1', 'Giấy tờ khác hỗ trợ hồ sơ', '—', 'nếu có', UPLOAD_ONLY],
 ];
 const qNote = `<ul><li><b>Bắt buộc chọn "Quan hệ"</b> ở form (người mời là gì của người xin visa). Quan hệ này được in vào thư mời.</li>
@@ -962,12 +965,12 @@ GUIDES.S2 = typeGuide({
   code: 'S2', title: 'Visa S2 (thăm người thân là người nước ngoài ở TQ) — chuẩn bị file', u18: true,
   intro: 'Thăm người thân là người nước ngoài (vd người Việt) đang làm việc / học / sống ở Trung Quốc. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "S2 - NGUYEN VAN A".',
   docs: [
-    ['smoi_1', 'Giấy tờ người mời: hộ chiếu (trang thông tin)', 'người mời (người đang ở TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ ở TQ')],
-    ['smoi_2', 'Giấy tờ người mời: giấy cư trú / giấy phép ở TQ', 'người mời', 'bắt buộc', READ('như trên')],
+    ['smoi_1', 'Giấy tờ người mời: hộ chiếu (trang thông tin)', 'người mời (người đang ở TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ ở TQ'), 'hộ chiếu người mời'],
+    ['smoi_2', 'Giấy tờ người mời: giấy cư trú / giấy phép ở TQ', 'người mời', 'bắt buộc', READ('như trên'), 'giấy cư trú ở TQ của người mời'],
     ['scm_1', 'Giấy chứng minh quan hệ (giấy kết hôn, khai sinh…)', 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY],
     ['sthumoi_1', 'Thư mời đã viết sẵn (nếu người mời có)', 'người mời', 'nếu có', UPLOAD_ONLY],
-    ['smoi_ruot_1', 'Giấy tờ của chính người mời khi giấy smoi_ là của người khác', 'người mời', 'nếu có', READ('giới tính, ngày sinh người mời (cho thư mời)')],
-    ['schuki_1', 'Chữ ký (cho thư mời)', '—', 'nên có', READ('làm nền trắng, đưa vào thư mời')],
+    ['smoi_ruot_1', 'Giấy tờ của chính người mời khi giấy smoi_ là của người khác', 'người mời', 'nếu có', READ('giới tính, ngày sinh người mời (cho thư mời)'), 'giấy tờ của chính người mời (khi smoi_ là của người khác)'],
+    ['schuki_1', 'Chữ ký (cho thư mời)', '—', 'nên có', READ('làm nền trắng, đưa vào thư mời'), 'chữ ký (cho thư mời)'],
     ['skhac_1', 'Giấy tờ khác hỗ trợ hồ sơ', '—', 'nếu có', UPLOAD_ONLY],
   ],
   docsNote: `<ul><li><b>Bắt buộc chọn "Quan hệ"</b> ở form; với S2, "Chồng / Vợ sắp cưới" nằm đầu danh sách.</li>
