@@ -671,8 +671,9 @@ function mockDoc(kind) {
 const gimg = (img, svg, name, hint) =>
   `<figure class="gimg" ${img ? `data-img="${esc(img)}"` : ''}>${svg}<figcaption>${esc(name)}${hint ? `<span class="hint">${esc(hint)}</span>` : ''}</figcaption></figure>`;
 
-// Tên file: chỉ chữ không dấu, số, "_" hoặc "-" (a-z A-Z 0-9). File cơ bản đặt tên gì cũng được;
-// file có tiền tố (cv_, duoi18_, tt_…) thì phải đúng tiền tố vì hệ thống nhận diện theo tên.
+// Tên file: chỉ chữ không dấu, số, "_" hoặc "-" (a-z A-Z 0-9).
+// File cơ bản: giữ tên gốc (AI tự đọc ra là giấy gì). File người thân / đi cùng / dưới 18
+// (tt_cha, tt_me, vo_chong, con_N, cv_N, duoi18_…) phải đặt ĐÚNG tên vì hệ thống nhận diện theo tên.
 const NORTH_HOUSES = ['HAI', 'PHONG'];   // miền Bắc: thêm trang trắng hộ chiếu
 // [tên file, là ai so với người xin visa, người trong hình minh hoạ]
 const FAMILY_FILES = [
@@ -696,7 +697,13 @@ const U18_FILES = [
   ['duoi18_dc2', 'Thông tin người đi cùng thứ 2 (vd mẹ)'],
   ['duoi18_pay', 'Thông tin người sẽ thanh toán chuyến đi'],
 ];
-const nameRule = '<p class="hint">Tên file: chỉ chữ không dấu, số, <code>_</code> hoặc <code>-</code> (vd <code>hochieu.jpg</code>, <code>ct07_1.png</code>). Không dấu cách, không dấu tiếng Việt.</p>';
+const nameRule = '<p><b>Giữ tên gốc của file</b>, không cần đổi tên — AI tự đọc ra đó là giấy gì. Chỉ cần tên là chữ không dấu, số, <code>_</code> hoặc <code>-</code> (vd <code>IMG_2041.jpg</code>, <code>scan-01.png</code>). Tên có dấu cách / dấu tiếng Việt thì đổi lại cho không dấu.</p>';
+// two kinds of names, shown at the top of the guide
+const nameKinds = `<div class="tbl-wrap" style="margin-top:10px"><table class="data">
+  <tr><th>Loại file</th><th>Tên file</th></tr>
+  <tr><td>File cơ bản: hộ chiếu, ảnh thẻ, trang trắng, CT07, visa cũ</td><td><b>Giữ tên gốc</b> (chỉ a-z A-Z 0-9 _ -). AI tự nhận ra.</td></tr>
+  <tr><td>Người thân cắt từ hộ khẩu, người đi cùng, giấy tờ dưới 18</td><td><b>Đặt đúng tên</b>: <code>tt_cha</code>, <code>tt_me</code>, <code>vo_chong</code>, <code>con_1</code>, <code>cv_1</code>, <code>duoi18_ks</code>…</td></tr>
+</table></div>`;
 const fileTable = (rows, head = 'Là gì') => `<div class="tbl-wrap"><table class="data"><tr><th>Tên file</th><th>${head}</th></tr>
   ${rows.map(([n, what]) => `<tr><td><span class="fname">${esc(n)}.jpg</span></td><td>${what}</td></tr>`).join('')}</table></div>`;
 
@@ -708,18 +715,19 @@ const GUIDES = {
     options: true,
     sections: [
       { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
-        const lines = ['hochieu.jpg', 'anhthe.jpg'];
-        if (NORTH_HOUSES.includes(h)) lines.push('trangtrang_1.jpg', 'trangtrang_2.jpg');
-        lines.push('ct07_1.jpg            <span class="hint">nếu có</span>', 'visacu_1.jpg          <span class="hint">nếu có</span>');
-        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">người đi cùng 1</span>', 'cv_2.jpg              <span class="hint">người đi cùng 2</span>');
-        if (o.u18) lines.push(...U18_FILES.map(([n]) => n + '.jpg'));
+        const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
+        if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
+        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'visa2023.jpg          <span class="hint">visa cũ, nếu có — tên gốc</span>',
+                   'tt_cha.jpg            <span class="hint">cắt từ hộ khẩu, nếu có — đúng tên</span>', 'tt_me.jpg             <span class="hint">nếu có — đúng tên</span>');
+        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">người đi cùng 1 — đúng tên</span>', 'cv_2.jpg              <span class="hint">người đi cùng 2 — đúng tên</span>');
+        if (o.u18) lines.push(...U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + '<span class="hint">dưới 18 — đúng tên</span>'));
         const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
         return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}), thư mục hồ sơ có dạng:</p>
           <div class="gtree">L30 - NGUYEN VAN A/\n${tree}</div>
-          <p class="hint">Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>`;
+          <p class="hint">Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>${nameKinds}`;
       } },
       { id: 'basic', title: 'File cơ bản', hint: 'hộ chiếu + ảnh thẻ bắt buộc', html: (o, h) => nameRule + BASIC_L.map(([name, kind, what, note, need]) => `
-        <div class="gbasic">${gimg(`L/${name}.jpg`, mockDoc(kind), name + '.jpg', 'tên ví dụ')}
+        <div class="gbasic">${gimg(`L/${name}.jpg`, mockDoc(kind), what, 'giữ tên gốc')}
           <div><b>${esc(what)} <span class="st ${need(h) ? 'approved' : ''}">${need(h) ? 'bắt buộc' : 'nếu có'}</span></b><p>${esc(note)}</p></div></div>`).join('') },
       { id: 'family', title: 'Gia đình: file người đi cùng (cv_)', hint: 'đi theo gia đình', when: (o) => o.kind === 'giadinh', html: (o) => `
         <p>Mỗi người đi cùng 1 file, tên <b>bắt buộc</b> bắt đầu bằng <code>cv_</code> rồi đánh số: <code>cv_1</code>, <code>cv_2</code>…</p>
@@ -730,8 +738,8 @@ const GUIDES = {
         ${fileTable(U18_FILES.map(([n, w]) => [n, esc(w)]))}
         <div class="msg err" style="margin-top:12px">Chỉ đi cùng <b>1</b> người: thay 1 trong 2 file <code>duoi18_dc</code> bằng <b>giấy uỷ quyền của người còn lại</b>.<br>
           Vd đi cùng bố: <code>duoi18_dc1</code> = thông tin bố, <code>duoi18_dc2</code> = giấy uỷ quyền của mẹ.</div>` },
-      { id: 'hokhau', title: 'Hộ khẩu / giấy tờ có nhiều người → cắt từng người', hint: 'nếu có', html: () => `
-        <p>Ảnh hộ khẩu hay xác nhận cư trú thường có <b>nhiều người trên 1 trang</b>. Cắt ra <b>mỗi người thân 1 file</b>, đặt tên theo quan hệ <b>với người xin visa</b> (không phải với chủ hộ).</p>
+      { id: 'hokhau', title: 'Hộ khẩu / giấy tờ có nhiều người → cắt từng người', hint: 'nếu có · đặt đúng tên', html: () => `
+        <p>Ảnh hộ khẩu hay xác nhận cư trú thường có <b>nhiều người trên 1 trang</b>. Cắt ra <b>mỗi người thân 1 file</b> và <b>đặt đúng tên</b> trong bảng dưới (khác file cơ bản: ở đây hệ thống dựa vào tên để biết là ai). Tên theo quan hệ <b>với người xin visa</b>, không phải với chủ hộ.</p>
         <ul><li>Cắt đủ khung của người đó: ảnh (nếu có), họ tên, ngày sinh, quan hệ.</li>
             <li>Phần của chính người xin visa: không cần cắt riêng.</li>
             <li>Cắt xong thì bỏ ảnh gốc ra khỏi thư mục (tránh tải trùng).</li></ul>
@@ -745,8 +753,8 @@ const GUIDES = {
         ${fileTable(FAMILY_FILES.map(([n, w]) => [n, esc(w)]), 'Là ai (so với người xin visa)')}
         <p class="hint">Con đánh số theo tuổi: con_1 lớn nhất. Một người có 2 ảnh thì thêm số: tt_cha_1, tt_cha_2.</p>` },
       { id: 'err', title: 'Lỗi hay gặp', hint: 'kiểm tra trước khi Gửi', html: () => `
-        <ul><li>Tên file có dấu cách hoặc dấu tiếng Việt (<code>ho chieu.jpg</code>, <code>bố.jpg</code>) → đổi sang không dấu, không cách.</li>
-            <li>File người đi cùng / dưới 18 sai tiền tố (<code>cv1.jpg</code>, <code>ks.jpg</code>) → phải đúng <code>cv_1</code>, <code>duoi18_ks</code>…</li>
+        <ul><li>Tên file có dấu cách hoặc dấu tiếng Việt (<code>ảnh hộ chiếu.jpg</code>) → đổi sang không dấu, không cách.</li>
+            <li>File người thân / đi cùng / dưới 18 đặt sai tên (<code>bo.jpg</code>, <code>cv1.jpg</code>, <code>ks.jpg</code>) → phải đúng <code>tt_cha</code>, <code>cv_1</code>, <code>duoi18_ks</code>…</li>
             <li>Ảnh nghiêng, mất góc, loá đèn → chụp lại.</li>
             <li>Để cả ảnh gốc hộ khẩu lẫn ảnh đã cắt → xoá ảnh gốc.</li></ul>` },
     ],
