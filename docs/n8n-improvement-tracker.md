@@ -50,7 +50,7 @@ Code Python: các commit trên `main` từ `838d3c6` đến `63c90cf`. Kiểm tr
 - **Đóng W1**, sau khi bạn triển khai và test xong.
 - **W2 + W3** (thống kê cho admin, gộp 3 DB về 1): đã code xong cả Python và n8n (`n8n-flow/patched-W2/`: WF01-GENERAL, WF-13). Chờ bạn triển khai theo các bước ở mục 5, W2 và W3.
 - **F1:** bạn bảo bỏ qua (2026-11-20).
-- **W4 (chưa làm, ghi 2026-11-24):** khai nhiều thư mục liên tiếp + hàng chờ curl ở tab Chạy curl. Chi tiết ở mục 5, W4.
+- **W4 (chưa làm, đã chốt yêu cầu 2026-11-24):** khai nhiều thư mục liên tiếp (nối tiếp) + hàng chờ curl riêng từng người, lưu DB, có nút xoá. Chi tiết ở mục 5, W4.
 - Đã biết nhưng **bạn chọn không sửa**: WF-02 báo "PDF conversion returned no pages" với một số PDF tên có chữ Hán. Hiện chỉ cần web báo lỗi và dừng, và việc đó đã làm.
 
 ### Cách làm việc với n8n (quy ước của dự án)
@@ -171,7 +171,7 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Chờ triển khai |  |
 | W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Chờ test |  |
 | W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Chờ test |  |
-| W4  | W   | Khai nhiều thư mục liên tiếp; curl xong mà đang chạy curl khác thì vào hàng chờ ở tab Chạy curl | Python + trang `/web` | Chưa làm |  |
+| W4  | W   | Khai nhiều thư mục liên tiếp (nối tiếp); curl có khi đang chạy curl khác thì vào hàng chờ riêng từng người (lưu DB, có nút xoá) | Python + trang `/web` | Chưa làm (đã chốt yêu cầu) |  |
 | F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Bỏ qua (bạn chọn, 2026-11-20) |           |
 | G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
 | G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
@@ -666,18 +666,24 @@ Các việc chạy nền (sync trạng thái, duyệt HAN, sheet đại lý, xo�
 
 Muốn làm thư mục tiếp theo phải chờ xong cả 2 phần. Nếu đang chạy curl mà một hồ sơ khác vừa có curl thì curl mới đè lên ô curl (hoặc phải hỏi ghi đè), dễ mất / lẫn.
 
-**Kỳ vọng:**
-1. Phần 1 nhận **nhiều thư mục** (chọn hoặc kéo thả nhiều thư mục một lần). Các thư mục chạy **lần lượt**: thư mục 1 chạy xong phần 1 (đã có curl) thì tự gửi tiếp thư mục 2 vào phần 1, không chờ phần 2 của thư mục 1. Mỗi thư mục vẫn dùng lựa chọn chung (nhà, loại visa, số ngày, quan hệ) — *cần chốt*: cho sửa riêng từng thư mục hay không.
-2. Có danh sách tiến độ các thư mục: chờ / đang chạy phần 1 / có curl / lỗi (lỗi 1 thư mục thì ghi lỗi và chạy tiếp thư mục sau).
-3. Tab **Chạy curl** có **hàng chờ curl** (list ở trên ô curl):
-   - Curl mới có khi **không** có curl nào đang chạy và ô curl trống: điền thẳng vào ô curl như hiện nay.
-   - Curl mới có khi **đang chạy** curl khác (hoặc ô curl đang có curl chưa chạy): **đưa vào hàng chờ**, không đè.
-   - Người dùng chạy xong curl hiện tại thì **tự chọn** curl tiếp theo trong hàng chờ (bấm vào dòng) → curl được đưa vào ô curl (Đọc curl, hiện ảnh hộ chiếu / chân dung như hiện nay) và **bị bỏ khỏi hàng chờ**. Không tự chạy.
-   - Mỗi dòng hàng chờ: tên thư mục / họ tên, số hộ chiếu, loại visa, giờ có curl; có nút bỏ khỏi hàng chờ (có xác nhận).
-4. Tải lại trang không mất hàng chờ và tiến độ — *cần chốt*: lưu ở trình duyệt hay lưu DB (`web_jobs` đã có `curl`, có thể dùng trạng thái "có curl, chưa chạy").
-5. Không làm hỏng luồng 1 thư mục hiện tại (chọn 1 thư mục vẫn chạy như cũ).
+**Đã chốt (2026-11-24):**
+1. Phần 1 chạy **nối tiếp**, không song song.
+2. Hàng chờ curl **riêng từng người** (theo tài khoản đăng nhập).
+3. Mỗi thư mục là **một lần khai mới**: người dùng chọn nhà, loại visa, số ngày, quan hệ… riêng cho từng thư mục như hiện nay (không dùng lựa chọn chung). Khác hiện nay ở chỗ: không phải chờ phần 2 xong mới khai thư mục tiếp; curl có khi phần 2 đang bận thì **vào hàng chờ**.
+4. Hàng chờ **lưu DB, dạng nháp** (tải lại trang, đổi máy vẫn còn), có **nút xoá**.
 
-**Câu hỏi cần chốt trước khi làm:** (a) chạy phần 1 nối tiếp từng thư mục hay cho chạy song song vài thư mục (n8n chịu tải được bao nhiêu); (b) hàng chờ riêng từng người hay chung; (c) lựa chọn chung hay riêng từng thư mục (mục 1); (d) chỗ lưu hàng chờ (mục 4).
+**Kỳ vọng:**
+1. Tab **Khởi chạy hồ sơ**: thư mục trước đã chạy xong phần 1 (đã có curl) thì khai và Gửi được thư mục tiếp theo ngay, không chờ curl của thư mục trước chạy xong ở phần 2. Đang có thư mục chạy phần 1 thì thư mục mới **chờ tới lượt** (nối tiếp), trang báo rõ "đang chờ thư mục X".
+2. Tab **Chạy curl**, khi một hồ sơ vừa có curl:
+   - Ô curl trống và không có curl nào đang chạy → điền thẳng vào ô curl như hiện nay.
+   - Đang chạy curl khác, hoặc ô curl đang có curl chưa chạy → **đưa vào hàng chờ** (list ở trên ô curl), không đè.
+3. Hàng chờ:
+   - Mỗi dòng: họ tên / thư mục, số hộ chiếu, loại visa, nhà, giờ có curl.
+   - Bấm 1 dòng → curl vào ô curl (Đọc curl, hiện ảnh hộ chiếu / chân dung như hiện nay) và **bỏ khỏi hàng chờ**. Không tự chạy; người dùng bấm Chạy.
+   - Nút **Xoá** từng dòng (có xác nhận).
+   - Chỉ thấy hàng chờ của chính mình.
+4. Lưu DB: bản ghi nháp theo người (có thể dùng `web_jobs`, đã có cột `curl`, thêm trạng thái "trong hàng chờ" / "đã lấy ra" / "đã xoá"). Tải lại trang hay đăng nhập máy khác vẫn thấy hàng chờ.
+5. Luồng 1 thư mục hiện nay không đổi khi hàng chờ trống.
 
 **Hiện tại:** —
 
