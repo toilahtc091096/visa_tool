@@ -227,7 +227,7 @@ def web_page():
 
 
 _GUIDE_DIR = _WEB_PAGE.parent / "guide"
-_GUIDE_FILE_RE = re.compile(r"^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\.(jpg|jpeg|png|webp)$")
+_GUIDE_FILE_RE = re.compile(r"^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\.(jpg|jpeg|png|webp|pdf)$")
 
 
 _GUIDE_KEY_RE = re.compile(r"^[a-z0-9_]+$")
@@ -249,21 +249,27 @@ def web_guide_examples(key: str):
 
 
 _GUIDE_MAX_BYTES = 8 * 1024 * 1024
-_GUIDE_EXT = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+_GUIDE_MAX_PDF_BYTES = 15 * 1024 * 1024
+_GUIDE_EXT = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "application/pdf": ".pdf"}
 
 
 @app.post("/web/guide-examples/{key}")
 async def web_guide_example_add(key: str, request: Request, file: UploadFile = File(...)):
-    """ADMIN: add one example photo to web/guide/vd/<key>/ (a new name each time, so browsers never show an old copy)."""
+    """ADMIN: add one example (photo or PDF) to web/guide/vd/<key>/ (a new name each time, so browsers never show an old copy)."""
     _web_admin(request)
     if not _GUIDE_KEY_RE.match(key):
         raise HTTPException(status_code=400, detail={"ok": False, "error": "Loại file không hợp lệ"})
     data = await file.read()
     ext = _GUIDE_EXT.get(str(file.content_type or "").lower())
+    if not ext and str(file.filename or "").lower().endswith(".pdf"):
+        ext = ".pdf"   # some browsers send PDFs as application/octet-stream
     if not ext:
-        raise HTTPException(status_code=400, detail={"ok": False, "error": "Chỉ nhận ảnh .jpg, .png, .webp"})
-    if not data or len(data) > _GUIDE_MAX_BYTES:
-        raise HTTPException(status_code=400, detail={"ok": False, "error": "Ảnh rỗng hoặc lớn hơn 8 MB"})
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Chỉ nhận ảnh .jpg, .png, .webp hoặc file .pdf"})
+    limit = _GUIDE_MAX_PDF_BYTES if ext == ".pdf" else _GUIDE_MAX_BYTES
+    if not data or len(data) > limit:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": f"File rỗng hoặc lớn hơn {limit // 1048576} MB"})
+    if ext == ".pdf" and not data.startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "File không phải PDF"})
     folder = _GUIDE_DIR / "vd" / key
     folder.mkdir(parents=True, exist_ok=True)
     name = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}{ext}"
@@ -288,8 +294,10 @@ def web_guide_image(path: str):
     file = _GUIDE_DIR / path
     if not _GUIDE_FILE_RE.match(path) or not file.is_file():
         raise HTTPException(status_code=404, detail={"ok": False, "error": "Không có ảnh"})
-    media = "image/jpeg" if file.suffix in (".jpg", ".jpeg") else f"image/{file.suffix[1:]}"
-    return Response(file.read_bytes(), media_type=media, headers={"Cache-Control": "public, max-age=3600"})
+    suffix = file.suffix.lower()
+    media = "application/pdf" if suffix == ".pdf" else "image/jpeg" if suffix in (".jpg", ".jpeg") else f"image/{suffix[1:]}"
+    return Response(file.read_bytes(), media_type=media, headers={"Cache-Control": "public, max-age=3600",
+                                                                  "Content-Disposition": f'inline; filename="{file.name}"'})
 
 
 _BRAND_DIR = _WEB_PAGE.parent / "brand"

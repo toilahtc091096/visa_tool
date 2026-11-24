@@ -21,7 +21,7 @@ Mỗi file trong bảng hướng dẫn (M, F, X1, X2, Q1, Q2, S2, người thân
 Bấm vào mở popup hiện các ảnh mẫu của loại file đó.
 
 **Thêm / xoá ảnh (tài khoản ADMIN):** đăng nhập /web bằng ADMIN → mở "Hướng dẫn file" → bấm "🖼 Ảnh ví dụ"
-của file cần làm → **＋ Thêm ảnh** (chọn 1 hoặc nhiều ảnh .jpg/.png/.webp, ≤ 8 MB từ máy) hoặc **Xoá** dưới từng ảnh.
+của file cần làm → **＋ Thêm ảnh / PDF** (chọn 1 hoặc nhiều file từ máy: ảnh .jpg/.png/.webp ≤ 8 MB, hoặc .pdf ≤ 15 MB) hoặc **Xoá** dưới từng ảnh.
 Nhân viên khác chỉ xem.
 
 - Ảnh lưu trên VPS ở `web/guide/vd/<loại>/` (không nằm trong git, `git pull` không đụng tới). Sao lưu thư mục này nếu cài lại VPS.

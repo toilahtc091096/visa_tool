@@ -208,6 +208,9 @@
            border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
   .exbody { padding: 16px 20px 20px; overflow: auto; }
   .exgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
+  .expdf { display: block; position: relative; height: 300px; background: #fff; }
+  .expdf iframe { width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
+  .expdf span { position: absolute; right: 8px; bottom: 8px; padding: 3px 10px; border-radius: 6px; background: var(--accent); color: var(--accent-text); font-size: 13px; font-weight: 600; }
   .exgrid figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
   .exgrid img { display: block; width: 100%; height: auto; cursor: zoom-in; }
   .exgrid figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -1111,18 +1114,21 @@ async function loadExamples() {
     if (r.ok) { const d = await r.json(); files = d.files || []; base = d.base || 'vd'; isDefault = !!d.default; }
   } catch (_) { /* no list: shown as empty */ }
   if ($('exDlg').classList.contains('hidden') || !exCur || exCur.key !== key) return;
-  const admin = isAdmin ? `<div class="exadmin"><button type="button" id="exAdd">＋ Thêm ảnh</button>
-      <span class="hint">ADMIN: chọn 1 hoặc nhiều ảnh (.jpg, .png, .webp, tối đa 8 MB) từ máy. Chỉ dùng ảnh mẫu hoặc đã che thông tin.</span>
-      <input type="file" id="exFile" accept="image/jpeg,image/png,image/webp" multiple hidden></div>` : '';
+  const admin = isAdmin ? `<div class="exadmin"><button type="button" id="exAdd">＋ Thêm ảnh / PDF</button>
+      <span class="hint">ADMIN: chọn 1 hoặc nhiều file từ máy: ảnh .jpg, .png, .webp (tối đa 8 MB) hoặc .pdf (tối đa 15 MB). Chỉ dùng file mẫu hoặc đã che thông tin.</span>
+      <input type="file" id="exFile" accept="image/jpeg,image/png,image/webp,application/pdf,.pdf" multiple hidden></div>` : '';
   $('exBody').innerHTML = `<p class="hint">${esc(exCur.what)}</p>${admin}` + (files.length
     ? `${isDefault && isAdmin ? '<p class="hint">Đang hiện <b>ảnh mẫu có sẵn</b>. Thêm ảnh thật thì người dùng sẽ thấy ảnh thật thay cho ảnh mẫu (ảnh mẫu không xoá được).</p>' : ''}
-       <p class="hint">Làm file của mình giống các ảnh dưới đây: đủ giấy, rõ chữ, không mất góc. Bấm vào ảnh để xem cỡ lớn.</p>
+       <p class="hint">Làm file của mình giống các ảnh dưới đây: đủ giấy, rõ chữ, không mất góc. Bấm vào ảnh / PDF để xem cỡ lớn.</p>
        <div class="exgrid">${files.map((f, i) => {
          const url = `/web/guide/${base}/${encodeURIComponent(key)}/${encodeURIComponent(f)}`;
-         return `<figure><a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="Ví dụ ${i + 1}" loading="lazy"></a>
+         const view = /\.pdf$/i.test(f)
+           ? `<a class="expdf" href="${url}" target="_blank" rel="noopener" title="Mở PDF"><iframe src="${url}#toolbar=0&navpanes=0&view=FitH" loading="lazy" tabindex="-1" title="PDF ví dụ ${i + 1}"></iframe><span>📄 Mở PDF</span></a>`
+           : `<a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="Ví dụ ${i + 1}" loading="lazy"></a>`;
+         return `<figure>${view}
            <figcaption>${isDefault ? 'Mẫu' : 'Ví dụ'} ${i + 1}${isAdmin && !isDefault ? `<button type="button" class="secondary exdel" data-f="${esc(f)}">Xoá</button>` : ''}</figcaption></figure>`;
        }).join('')}</div>`
-    : `<div class="exempty">Chưa có ảnh ví dụ cho <b>${esc(exCur.name)}.jpg</b>.${isAdmin ? '<br>Bấm <b>＋ Thêm ảnh</b> ở trên để tải ảnh từ máy lên.' : ''}</div>`);
+    : `<div class="exempty">Chưa có ảnh ví dụ cho <b>${esc(exCur.name)}.jpg</b>.${isAdmin ? '<br>Bấm <b>＋ Thêm ảnh / PDF</b> ở trên để tải file từ máy lên.' : ''}</div>`);
 }
 $('exBody').addEventListener('click', async (e) => {
   if (e.target.id === 'exAdd') { $('exFile').click(); return; }
