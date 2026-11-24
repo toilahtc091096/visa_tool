@@ -221,6 +221,11 @@
   .gbasic { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px dashed var(--line); }
   .gbasic:first-child { border-top: 0; }
   .gbasic b { display: block; }
+  .gopts { display: flex; flex-wrap: wrap; gap: 14px 22px; margin: 12px 0 4px; padding: 12px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { margin: 0; padding: 7px 14px; border-radius: 0; background: transparent; color: var(--text); font-size: 14px; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button.on { background: var(--accent); color: var(--accent-text); }
 </style>
 </head>
 <body>
@@ -658,6 +663,7 @@ function mockDoc(kind) {
   if (kind === 'visa') return paper(`<rect x="10" y="12" width="140" height="92" rx="5" fill="var(--ok-bg)" stroke="var(--ok)"/>
     <rect x="18" y="24" width="34" height="44" rx="3" fill="var(--track)"/>${svgLines(60, 26, 5, 80)}
     <text x="80" y="96" font-size="10" text-anchor="middle" fill="var(--ok)" font-weight="700">VISA</text>`, 116);
+  if (kind === 'blank') return paper(`<text x="80" y="20" font-size="9" text-anchor="middle" fill="var(--muted)">VISAS / THỊ THỰC</text><rect x="12" y="28" width="136" height="92" rx="3" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/><text x="150" y="128" font-size="8" text-anchor="end" fill="var(--muted)">12</text>`, 134);
   return paper(`<text x="80" y="24" font-size="10" font-weight="700" text-anchor="middle" fill="var(--text)">CỘNG HOÀ XHCN VIỆT NAM</text>
     ${svgLines(16, 40, 9, 128, 13)}<circle cx="122" cy="172" r="14" fill="none" stroke="var(--err)" stroke-width="2"/>`, 200);
 }
@@ -665,6 +671,9 @@ function mockDoc(kind) {
 const gimg = (img, svg, name, hint) =>
   `<figure class="gimg" ${img ? `data-img="${esc(img)}"` : ''}>${svg}<figcaption>${esc(name)}${hint ? `<span class="hint">${esc(hint)}</span>` : ''}</figcaption></figure>`;
 
+// Tên file: chỉ chữ không dấu, số, "_" hoặc "-" (a-z A-Z 0-9). File cơ bản đặt tên gì cũng được;
+// file có tiền tố (cv_, duoi18_, tt_…) thì phải đúng tiền tố vì hệ thống nhận diện theo tên.
+const NORTH_HOUSES = ['HAI', 'PHONG'];   // miền Bắc: thêm trang trắng hộ chiếu
 // [tên file, là ai so với người xin visa, người trong hình minh hoạ]
 const FAMILY_FILES = [
   ['tt_cha', 'Bố (cha) của người xin visa', 0],
@@ -673,68 +682,96 @@ const FAMILY_FILES = [
   ['con_1', 'Con thứ nhất (con lớn nhất)', 4],
   ['con_2', 'Con thứ hai; con thứ ba là con_3…', 5],
 ];
-// [tên file, hình minh hoạ, giấy tờ, ghi chú]
+// [ví dụ tên, hình minh hoạ, giấy tờ, ghi chú, bắt buộc?(house) ]
 const BASIC_L = [
-  ['ho_chieu', 'passport', 'Trang thông tin hộ chiếu', 'Chụp/scan thẳng, đủ 4 góc, rõ dòng mã ở chân trang, không loá.'],
-  ['anh_the', 'photo', 'Ảnh thẻ 4x6 nền trắng', 'Ảnh mới, nhìn thẳng, không đeo kính. Để riêng 1 file.'],
-  ['ct07', 'doc', 'Xác nhận cư trú CT07 / xác nhận việc làm', 'Nhiều trang thì đặt ct07_1, ct07_2… theo thứ tự trang.'],
-  ['visa_cu_1', 'visa', 'Visa Trung Quốc cũ (nếu có)', 'Mỗi visa 1 file: visa_cu_1, visa_cu_2…'],
+  ['hochieu', 'passport', 'Trang thông tin hộ chiếu', 'Chụp/scan thẳng, đủ 4 góc, rõ dòng mã ở chân trang, không loá.', () => true],
+  ['anhthe', 'photo', 'Ảnh thẻ 4x6 nền trắng', 'Ảnh mới, nhìn thẳng, không đeo kính.', () => true],
+  ['trangtrang_1', 'blank', 'Trang trắng hộ chiếu (2 trang)', 'Chỉ nhà HAI, PHONG (miền Bắc). Nhà khác không cần.', (h) => NORTH_HOUSES.includes(h)],
+  ['ct07_1', 'doc', 'Xác nhận cư trú CT07 / xác nhận việc làm', 'Nếu có. Nhiều trang thì đánh số theo thứ tự trang.', () => false],
+  ['visacu_1', 'visa', 'Visa Trung Quốc cũ', 'Nếu có. Mỗi visa 1 file.', () => false],
 ];
+const U18_FILES = [
+  ['duoi18_ks', 'Giấy khai sinh của người xin visa'],
+  ['duoi18_dc1', 'Thông tin người đi cùng thứ 1 (vd bố)'],
+  ['duoi18_dc2', 'Thông tin người đi cùng thứ 2 (vd mẹ)'],
+  ['duoi18_pay', 'Thông tin người sẽ thanh toán chuyến đi'],
+];
+const nameRule = '<p class="hint">Tên file: chỉ chữ không dấu, số, <code>_</code> hoặc <code>-</code> (vd <code>hochieu.jpg</code>, <code>ct07_1.png</code>). Không dấu cách, không dấu tiếng Việt.</p>';
+const fileTable = (rows, head = 'Là gì') => `<div class="tbl-wrap"><table class="data"><tr><th>Tên file</th><th>${head}</th></tr>
+  ${rows.map(([n, what]) => `<tr><td><span class="fname">${esc(n)}.jpg</span></td><td>${what}</td></tr>`).join('')}</table></div>`;
 
+// opt = { kind: 'canhan' | 'giadinh', order: 'dau' | 'sau', u18: bool }, house = Nhà đang chọn
 const GUIDES = {
   L: {
     title: 'Visa L (du lịch) — chuẩn bị file',
     intro: 'Mỗi hồ sơ là 1 thư mục trên máy, đặt tên kiểu "L30 - NGUYEN VAN A". Kéo cả thư mục vào ô gần cuối form. Đuôi file giữ nguyên (.jpg, .png, .pdf).',
+    options: true,
     sections: [
-      { title: '1. Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: () => `
-        <p>Sau khi chuẩn bị xong, thư mục hồ sơ có dạng:</p>
-        <div class="gtree">L30 - NGUYEN VAN A/
-├── ho_chieu.jpg
-├── anh_the.jpg
-├── ct07_1.jpg
-├── ct07_2.jpg
-├── visa_cu_1.jpg      <span class="hint">nếu có</span>
-├── tt_cha.jpg         <span class="hint">cắt từ hộ khẩu, nếu có</span>
-├── tt_me.jpg
-├── vo_chong.jpg
-├── con_1.jpg
-└── con_2.jpg</div>
-        <p class="hint">Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>` },
-      { title: '2. File cơ bản', hint: 'bắt buộc', html: () => BASIC_L.map(([name, kind, what, note]) => `
-        <div class="gbasic">${gimg(`L/${name}.jpg`, mockDoc(kind), name + '.jpg')}
-          <div><b>${esc(what)}</b><span class="fname">${esc(name)}.jpg</span><p>${esc(note)}</p></div></div>`).join('') },
-      { title: '3. Hộ khẩu / giấy tờ có nhiều người → cắt từng người', hint: 'nếu có', html: () => `
+      { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
+        const lines = ['hochieu.jpg', 'anhthe.jpg'];
+        if (NORTH_HOUSES.includes(h)) lines.push('trangtrang_1.jpg', 'trangtrang_2.jpg');
+        lines.push('ct07_1.jpg            <span class="hint">nếu có</span>', 'visacu_1.jpg          <span class="hint">nếu có</span>');
+        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">người đi cùng 1</span>', 'cv_2.jpg              <span class="hint">người đi cùng 2</span>');
+        if (o.u18) lines.push(...U18_FILES.map(([n]) => n + '.jpg'));
+        const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
+        return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}), thư mục hồ sơ có dạng:</p>
+          <div class="gtree">L30 - NGUYEN VAN A/\n${tree}</div>
+          <p class="hint">Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>`;
+      } },
+      { id: 'basic', title: 'File cơ bản', hint: 'hộ chiếu + ảnh thẻ bắt buộc', html: (o, h) => nameRule + BASIC_L.map(([name, kind, what, note, need]) => `
+        <div class="gbasic">${gimg(`L/${name}.jpg`, mockDoc(kind), name + '.jpg', 'tên ví dụ')}
+          <div><b>${esc(what)} <span class="st ${need(h) ? 'approved' : ''}">${need(h) ? 'bắt buộc' : 'nếu có'}</span></b><p>${esc(note)}</p></div></div>`).join('') },
+      { id: 'family', title: 'Gia đình: file người đi cùng (cv_)', hint: 'đi theo gia đình', when: (o) => o.kind === 'giadinh', html: (o) => `
+        <p>Mỗi người đi cùng 1 file, tên <b>bắt buộc</b> bắt đầu bằng <code>cv_</code> rồi đánh số: <code>cv_1</code>, <code>cv_2</code>…</p>
+        <p>Ví dụ đi cùng bố mẹ: thêm <code>cv_1</code> (bố) và <code>cv_2</code> (mẹ).</p>
+        ${fileTable([['cv_1', 'Người đi cùng thứ 1 (vd bố)'], ['cv_2', 'Người đi cùng thứ 2 (vd mẹ)'], ['cv_3', 'Người thứ 3… (nếu có)']])}
+        <p class="hint">Bạn đang chọn: <b>${o.order === 'dau' ? 'người đầu' : 'người sau'}</b> trong gia đình. Hiện người đầu và người sau chuẩn bị giống nhau.</p>` },
+      { id: 'u18', title: 'Người xin visa dưới 18 tuổi', hint: 'bắt buộc nếu dưới 18', when: (o) => o.u18, html: () => `
+        ${fileTable(U18_FILES.map(([n, w]) => [n, esc(w)]))}
+        <div class="msg err" style="margin-top:12px">Chỉ đi cùng <b>1</b> người: thay 1 trong 2 file <code>duoi18_dc</code> bằng <b>giấy uỷ quyền của người còn lại</b>.<br>
+          Vd đi cùng bố: <code>duoi18_dc1</code> = thông tin bố, <code>duoi18_dc2</code> = giấy uỷ quyền của mẹ.</div>` },
+      { id: 'hokhau', title: 'Hộ khẩu / giấy tờ có nhiều người → cắt từng người', hint: 'nếu có', html: () => `
         <p>Ảnh hộ khẩu hay xác nhận cư trú thường có <b>nhiều người trên 1 trang</b>. Cắt ra <b>mỗi người thân 1 file</b>, đặt tên theo quan hệ <b>với người xin visa</b> (không phải với chủ hộ).</p>
         <ul><li>Cắt đủ khung của người đó: ảnh (nếu có), họ tên, ngày sinh, quan hệ.</li>
             <li>Phần của chính người xin visa: không cần cắt riêng.</li>
             <li>Cắt xong thì bỏ ảnh gốc ra khỏi thư mục (tránh tải trùng).</li></ul>
         <div class="gflow">
-          <div><div class="gcap">Ảnh cũ (gốc)</div>${gimg('L/ho_khau_goc.jpg', mockHokhau(), 'ho_khau.jpg', 'bỏ ra khỏi thư mục sau khi cắt')}</div>
+          <div><div class="gcap">Ảnh cũ (gốc)</div>${gimg('L/ho_khau_goc.jpg', mockHokhau(), 'hokhau.jpg', 'bỏ ra khỏi thư mục sau khi cắt')}</div>
           <div class="garrow" aria-hidden="true">➜</div>
           <div><div class="gcap">Ảnh mới (đã cắt + đổi tên)</div><div class="gout">
             ${FAMILY_FILES.map(([n, what, i]) => gimg(`L/${n}.jpg`, mockPiece(i), n + '.jpg', what)).join('')}
           </div></div>
-        </div>` },
-      { title: '4. Bảng tên file người thân', hint: 'tra nhanh', html: () => `
-        <div class="tbl-wrap"><table class="data"><tr><th>Tên file mới</th><th>Là ai (so với người xin visa)</th></tr>
-          ${FAMILY_FILES.map(([n, what]) => `<tr><td><span class="fname">${n}.jpg</span></td><td>${esc(what)}</td></tr>`).join('')}
-        </table></div>
-        <p class="hint">Con đánh số theo tuổi: con_1 lớn nhất. Một người có 2 ảnh (2 mặt / 2 trang) thì thêm số: tt_cha_1, tt_cha_2.</p>` },
-      { title: '5. Lỗi hay gặp', hint: 'kiểm tra trước khi Gửi', html: () => `
-        <ul><li>Tên file có dấu cách hoặc dấu tiếng Việt (<code>tt cha.jpg</code>, <code>bố.jpg</code>) → dùng đúng tên trong bảng.</li>
+        </div>
+        ${fileTable(FAMILY_FILES.map(([n, w]) => [n, esc(w)]), 'Là ai (so với người xin visa)')}
+        <p class="hint">Con đánh số theo tuổi: con_1 lớn nhất. Một người có 2 ảnh thì thêm số: tt_cha_1, tt_cha_2.</p>` },
+      { id: 'err', title: 'Lỗi hay gặp', hint: 'kiểm tra trước khi Gửi', html: () => `
+        <ul><li>Tên file có dấu cách hoặc dấu tiếng Việt (<code>ho chieu.jpg</code>, <code>bố.jpg</code>) → đổi sang không dấu, không cách.</li>
+            <li>File người đi cùng / dưới 18 sai tiền tố (<code>cv1.jpg</code>, <code>ks.jpg</code>) → phải đúng <code>cv_1</code>, <code>duoi18_ks</code>…</li>
             <li>Ảnh nghiêng, mất góc, loá đèn → chụp lại.</li>
-            <li>Để cả ảnh gốc hộ khẩu lẫn ảnh đã cắt → xoá ảnh gốc.</li>
-            <li>Đặt tên theo quan hệ với chủ hộ (vd là "con" của chủ hộ nhưng là bố người xin visa) → đặt theo người xin visa.</li></ul>` },
+            <li>Để cả ảnh gốc hộ khẩu lẫn ảnh đã cắt → xoá ảnh gốc.</li></ul>` },
     ],
   },
 };
 
-function openGuide() {
-  const v = $('visa').value, g = GUIDES[v];
+let guideOpt = { kind: 'canhan', order: 'dau', u18: false };
+const seg = (key, items) => `<div class="seg" role="group">${items.map(([v, label]) =>
+  `<button type="button" data-k="${key}" data-v="${v}" class="${String(guideOpt[key]) === v ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+function guideOptions() {
+  return `<div class="gopts">
+    <div><div class="gcap">Hồ sơ</div>${seg('kind', [['canhan', 'Cá nhân'], ['giadinh', 'Gia đình']])}</div>
+    ${guideOpt.kind === 'giadinh' ? `<div><div class="gcap">Trong gia đình là</div>${seg('order', [['dau', 'Người đầu'], ['sau', 'Người sau']])}</div>` : ''}
+    <div><div class="gcap">Tuổi người xin visa</div>${seg('u18', [['false', 'Từ 18 tuổi'], ['true', 'Dưới 18 tuổi']])}</div>
+  </div>`;
+}
+function renderGuide() {
+  const v = $('visa').value, g = GUIDES[v], house = $('house').value;
+  const wasOpen = new Set([...$('guideBody').querySelectorAll('details[open]')].map((d) => d.dataset.id));
+  const first = !$('guideBody').childElementCount;
   $('guideTitle').textContent = g ? g.title : `Visa ${v} — chuẩn bị file`;
   $('guideBody').innerHTML = g
-    ? `<p class="guide-intro">${esc(g.intro)}</p>` + g.sections.map((s) =>
-        `<details${s.open ? ' open' : ''}><summary>${esc(s.title)}${s.hint ? `<span class="hint">${esc(s.hint)}</span>` : ''}</summary><div class="guide-sec">${s.html()}</div></details>`).join('')
+    ? `<p class="guide-intro">${esc(g.intro)}</p>` + (g.options ? guideOptions() : '') + g.sections
+        .filter((s) => !s.when || s.when(guideOpt, house))
+        .map((s, i) => `<details data-id="${s.id}"${(first ? s.open : wasOpen.has(s.id) || s.open) ? ' open' : ''}><summary>${i + 1}. ${esc(s.title)}${s.hint ? `<span class="hint">${esc(s.hint)}</span>` : ''}</summary><div class="guide-sec">${s.html(guideOpt, house)}</div></details>`).join('')
     : `<p class="guide-intro">Chưa có hướng dẫn cho loại ${esc(v)}. Hiện mới có: ${Object.keys(GUIDES).join(', ')}.</p>`;
   $('guideAll').classList.toggle('hidden', !g);
   $('guideAll').textContent = 'Mở hết';
@@ -745,6 +782,20 @@ function openGuide() {
     im.onload = () => f.firstElementChild.replaceWith(im);
     im.src = '/web/guide/' + f.dataset.img;
   });
+}
+$('guideBody').addEventListener('click', (e) => {
+  const b = e.target.closest('.seg button');
+  if (!b) return;
+  guideOpt[b.dataset.k] = b.dataset.k === 'u18' ? b.dataset.v === 'true' : b.dataset.v;
+  renderGuide();
+  // a section that just appeared (Gia đình / Dưới 18) opens by itself
+  const id = { kind: 'family', u18: 'u18' }[b.dataset.k];
+  const d = id && $('guideBody').querySelector(`details[data-id="${id}"]`);
+  if (d) d.open = true;
+});
+function openGuide() {
+  $('guideBody').innerHTML = '';
+  renderGuide();
   $('guide').classList.remove('hidden');
   $('guideClose').focus();
 }

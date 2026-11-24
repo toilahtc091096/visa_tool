@@ -9,8 +9,8 @@ Loại L (`web/guide/L/`):
 
 | File | Hiện ở |
 |---|---|
-| `ho_chieu.jpg`, `anh_the.jpg`, `ct07.jpg`, `visa_cu_1.jpg` | mục 2 – File cơ bản |
-| `ho_khau_goc.jpg` | mục 3 – ảnh cũ (trang hộ khẩu nhiều người) |
-| `tt_cha.jpg`, `tt_me.jpg`, `vo_chong.jpg`, `con_1.jpg`, `con_2.jpg` | mục 3 – ảnh mới sau khi cắt |
+| `hochieu.jpg`, `anhthe.jpg`, `trangtrang_1.jpg`, `ct07_1.jpg`, `visacu_1.jpg` | mục File cơ bản |
+| `ho_khau_goc.jpg` | mục Hộ khẩu – ảnh cũ (trang hộ khẩu nhiều người) |
+| `tt_cha.jpg`, `tt_me.jpg`, `vo_chong.jpg`, `con_1.jpg`, `con_2.jpg` | mục Hộ khẩu – ảnh mới sau khi cắt |
 
 Nội dung chữ của hướng dẫn nằm trong `web/index.html`, hằng `GUIDES` (thêm loại khác: thêm khoá `M`, `Q1`…).
