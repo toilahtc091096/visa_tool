@@ -17,7 +17,7 @@ Nội dung chữ của hướng dẫn nằm trong `web/index.html`, hằng `GUID
 
 ## Ảnh ví dụ theo loại file (nút "🖼 Ảnh ví dụ")
 
-Mỗi file trong bảng hướng dẫn (M, F, X1, X2, Q1, Q2, S2, người thân, dưới 18, cv_) có nút **Ảnh ví dụ**.
+Mỗi file trong bảng hướng dẫn (M, F, X1, X2, Q1, Q2, S2, người thân, dưới 18, cv_) có nút **Ảnh ví dụ**; mỗi dòng trong cây thư mục (mục 1) có nút **🖼 Xem**. File cơ bản trong cây dùng loại `hochieu`, `anhthe`, `trangtrang`, `ct07`, `visacu`.
 Bấm vào mở popup hiện các ảnh mẫu của loại file đó.
 
 **Thêm / xoá ảnh (tài khoản ADMIN):** đăng nhập /web bằng ADMIN → mở "Hướng dẫn file" → bấm "🖼 Ảnh ví dụ"

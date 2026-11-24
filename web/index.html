@@ -193,6 +193,7 @@
            color: var(--text); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
   @media (max-width: 1100px) { .guide { width: 92vw; } }
   .exbtn { display: block; margin: 4px 0 0; padding: 2px 8px; font-size: 12px; font-weight: 600; border-radius: 6px; white-space: nowrap; vertical-align: middle; }
+  .extree { display: inline-block !important; margin: 0 10px 0 0 !important; padding: 0 6px !important; font: 600 11px/1.5 system-ui, sans-serif !important; vertical-align: 1px; }
   #exDlg { z-index: 60; }
   .exbox { width: min(900px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: var(--card);
            border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); animation: dlg-pop .18s ease-out; }
@@ -717,7 +718,7 @@ const BASIC_L = [
 ];
 // short meaning shown next to the file in the folder trees
 const U18_SHORT = { duoi18_ks: 'giấy khai sinh', duoi18_dc1: 'người đi cùng 1 (vd bố)', duoi18_dc2: 'người đi cùng 2 (vd mẹ)', duoi18_pay: 'người trả tiền chuyến đi' };
-const u18Tree = () => U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + `<span class="hint">${U18_SHORT[n]} (dưới 18) — đúng tên</span>`);
+const u18Tree = () => U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + `<span class="hint">${U18_SHORT[n]} (dưới 18) — đổi về đúng tên như hướng dẫn</span>`);
 const U18_FILES = [
   ['duoi18_ks', 'Giấy khai sinh của người xin visa'],
   ['duoi18_dc1', 'Thông tin người đi cùng thứ 1 (vd bố)'],
@@ -725,11 +726,28 @@ const U18_FILES = [
   ['duoi18_pay', 'Thông tin người sẽ thanh toán chuyến đi'],
 ];
 const nameRule = '<p><b>Giữ tên gốc của file</b>, không cần đổi tên — AI tự đọc ra đó là giấy gì. Chỉ cần tên là chữ không dấu, số, <code>_</code> hoặc <code>-</code> (vd <code>IMG_2041.jpg</code>, <code>scan-01.png</code>). Tên có dấu cách / dấu tiếng Việt thì đổi lại cho không dấu.</p>';
+// Folder tree lines -> text with ├── / └── and a "Xem" example button after the file name column.
+// The example of a file without a fixed name (basic files) is picked by the sample name used in the tree.
+const TREE_EX = { IMG_2041: 'hochieu', IMG_2042: 'anhthe', scan_01: 'trangtrang', scan_02: 'trangtrang', ct07: 'ct07', visa2023: 'visacu' };
+function treeLines(lines) {
+  return lines.map((l, i) => {
+    const m = l.match(/^(\S+?)(\.[a-z0-9]+)(\s*)(<span class="hint">)(.*)$/i);
+    let line = l;
+    if (m) {
+      const stem = m[1];
+      const key = TREE_EX[stem] || exKey(stem.replace(/_goc$/, ''));
+      const what = m[5].replace(/<[^>]+>/g, '').split(' — ')[0];
+      const btn = `<button type="button" class="secondary exbtn extree" title="Xem ảnh ví dụ" data-ex="${esc(key)}" data-name="${esc(stem)}" data-what="${esc(what)}">🖼 Xem</button>`;
+      line = (m[1] + m[2]).padEnd(22) + btn + m[4] + m[5];
+    }
+    return (i === lines.length - 1 ? '└── ' : '├── ') + line;
+  }).join('\n');
+}
 // two kinds of names, shown at the top of the guide
 const nameKinds = `<div class="tbl-wrap" style="margin-top:10px"><table class="data">
   <tr><th>Loại file</th><th>Tên file</th></tr>
-  <tr><td>File cơ bản: hộ chiếu, ảnh thẻ, trang trắng, CT07, visa cũ</td><td><b>Giữ tên gốc</b> (chỉ a-z A-Z 0-9 _ -). AI tự nhận ra.</td></tr>
-  <tr><td>Người thân cắt từ hộ khẩu, người đi cùng, giấy tờ dưới 18</td><td><b>Đặt đúng tên</b>: <code>tt_cha</code>, <code>tt_me</code>, <code>vo_chong</code>, <code>con_1</code>, <code>cv_1</code>, <code>duoi18_ks</code>…</td></tr>
+  <tr><td>File cơ bản: hộ chiếu, ảnh thẻ, trang trắng, CT07, visa cũ</td><td><b>Không cần đổi tên</b> — chỉ cần tên tiếng Anh, không dấu (a-z A-Z 0-9 _ -). AI tự nhận ra.</td></tr>
+  <tr><td>Người thân cắt từ hộ khẩu, người đi cùng, giấy tờ dưới 18</td><td><b>Đổi về đúng tên như hướng dẫn</b>: <code>tt_cha</code>, <code>tt_me</code>, <code>vo_chong</code>, <code>con_1</code>, <code>cv_1</code>, <code>duoi18_ks</code>…</td></tr>
 </table></div>`;
 // Ảnh ví dụ: web/guide/vd/<key>/ (admin thả ảnh vào, server liệt kê). key = tên file bỏ số cuối,
 // trừ các file mà mỗi số là 1 giấy khác nhau (mặt trước / mặt sau).
@@ -749,19 +767,19 @@ const GUIDES = {
     options: true,
     sections: [
       { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
-        const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
-        if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
-        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'visa2023.jpg          <span class="hint">visa cũ, nếu có — tên gốc</span>',
-                   'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đúng tên</span>', 'tt_me.jpg             <span class="hint">mẹ — cắt từ hộ khẩu, nếu có — đúng tên</span>');
-        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">hộ chiếu người đi cùng 1 — đúng tên</span>', 'cv_2.jpg              <span class="hint">hộ chiếu người đi cùng 2 — đúng tên</span>');
+        const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — không cần đổi tên (tên tiếng Anh, không dấu)</span>'];
+        if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'scan_02.jpg           <span class="hint">trang trắng — không cần đổi tên (tên tiếng Anh, không dấu)</span>');
+        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'visa2023.jpg          <span class="hint">visa cũ, nếu có — không cần đổi tên (tên tiếng Anh, không dấu)</span>',
+                   'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đổi về đúng tên như hướng dẫn</span>', 'tt_me.jpg             <span class="hint">mẹ — cắt từ hộ khẩu, nếu có — đổi về đúng tên như hướng dẫn</span>');
+        if (o.kind === 'giadinh') lines.push('cv_1.jpg              <span class="hint">hộ chiếu người đi cùng 1 — đổi về đúng tên như hướng dẫn</span>', 'cv_2.jpg              <span class="hint">hộ chiếu người đi cùng 2 — đổi về đúng tên như hướng dẫn</span>');
         if (o.u18) lines.push(...u18Tree());
-        const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
+        const tree = treeLines(lines);
         return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}), thư mục hồ sơ có dạng:</p>
           <div class="gtree">L30 - NGUYEN VAN A/\n${tree}</div>
           <p class="hint">Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>${nameKinds}`;
       } },
       { id: 'basic', title: 'File cơ bản', hint: 'hộ chiếu + ảnh thẻ bắt buộc', html: (o, h) => nameRule + BASIC_L.map(([name, kind, what, note, need]) => `
-        <div class="gbasic">${gimg(`L/${name}.jpg`, mockDoc(kind), what, 'giữ tên gốc')}
+        <div class="gbasic">${gimg(`L/${name}.jpg`, mockDoc(kind), what, 'không cần đổi tên')}
           <div><b>${esc(what)} <span class="st ${need(h) ? 'approved' : ''}">${need(h) ? 'bắt buộc' : 'nếu có'}</span></b><p>${esc(note)}</p></div></div>`).join('') },
       { id: 'family', title: 'Gia đình: file người đi cùng (cv_)', hint: 'đi theo gia đình', when: (o) => o.kind === 'giadinh', html: (o) => `
         <p>Mỗi người đi cùng 1 file, tên <b>bắt buộc</b> bắt đầu bằng <code>cv_</code> rồi đánh số: <code>cv_1</code>, <code>cv_2</code>…</p>
@@ -803,7 +821,7 @@ const M_FILES = [
   ['qdct', 'Quyết định cử đi công tác', 'giám đốc công ty VN cử nhân viên sang TQ theo thư mời', 'luôn cần'],
 ];
 // Người đi cùng: hộ chiếu, tên bắt đầu bằng cv_ (n8n WF-04: companion_passport). M, F, X.
-const CV_TREE = 'cv_1.jpg              <span class="hint">hộ chiếu người đi cùng 1, nếu có — đúng tên</span>';
+const CV_TREE = 'cv_1.jpg              <span class="hint">hộ chiếu người đi cùng 1, nếu có — đổi về đúng tên như hướng dẫn</span>';
 const companionSection = { id: 'cv', title: 'Người đi cùng (cv_)', hint: 'nếu có · đặt đúng tên', html: () => `
   <p>Mỗi người đi cùng 1 file <b>trang thông tin hộ chiếu</b>, tên <b>bắt buộc</b> bắt đầu bằng <code>cv_</code> rồi đánh số: <code>cv_1</code>, <code>cv_2</code>…</p>
   ${fileTable([['cv_1', 'Hộ chiếu người đi cùng thứ 1'], ['cv_2', 'Hộ chiếu người đi cùng thứ 2'], ['cv_3', 'Người thứ 3… (nếu có)']])}
@@ -828,16 +846,16 @@ GUIDES.M = {
   </div>`,
   sections: [
     { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
-      const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
-      if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
-      lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đúng tên</span>', CV_TREE);
+      const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — không cần đổi tên (tên tiếng Anh, không dấu)</span>'];
+      if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'scan_02.jpg           <span class="hint">trang trắng — không cần đổi tên (tên tiếng Anh, không dấu)</span>');
+      lines.push('ct07.pdf              <span class="hint">CT07, nếu có — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đổi về đúng tên như hướng dẫn</span>', CV_TREE);
       if (!isNext(o)) {
-        lines.push('thumoi.jpg            <span class="hint">thư mời của công ty TQ — đúng tên</span>', 'dktq.jpg              <span class="hint">đăng ký kinh doanh công ty TQ — đúng tên</span>',
-                   'dkvn.jpg              <span class="hint">đăng ký kinh doanh công ty VN — đúng tên</span>');
-        lines.push(o.owner ? 'qdct.jpg              <span class="hint">BẢN SAO của thumoi.jpg — đúng tên</span>'
-                           : 'qdct.jpg              <span class="hint">quyết định cử đi công tác — đúng tên</span>');
+        lines.push('thumoi.jpg            <span class="hint">thư mời của công ty TQ — đổi về đúng tên như hướng dẫn</span>', 'dktq.jpg              <span class="hint">đăng ký kinh doanh công ty TQ — đổi về đúng tên như hướng dẫn</span>',
+                   'dkvn.jpg              <span class="hint">đăng ký kinh doanh công ty VN — đổi về đúng tên như hướng dẫn</span>');
+        lines.push(o.owner ? 'qdct.jpg              <span class="hint">BẢN SAO của thumoi.jpg — đổi về đúng tên như hướng dẫn</span>'
+                           : 'qdct.jpg              <span class="hint">quyết định cử đi công tác — đổi về đúng tên như hướng dẫn</span>');
       }
-      const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
+      const tree = treeLines(lines);
       return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}, ${isNext(o) ? '<b>người sau trong đoàn</b>' : o.owner ? '<b>chủ doanh nghiệp</b>' : 'nhân viên'}), thư mục hồ sơ có dạng:</p>
         ${isNext(o) ? '<p class="hint">Người sau: không có 4 file công ty — lấy từ người đầu bằng "Áp dụng M" (mục bên dưới).</p>' : ''}
         <div class="gtree">M - NGUYEN VAN A/\n${tree}</div>
@@ -893,14 +911,14 @@ function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors
     options: group || u18 || sign ? () => `<div class="gopts">${group ? orderSeg() : ''}${u18 ? u18Seg() : ''}${sign ? signSeg() : ''}</div>` : undefined,
     sections: [
       { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
-        const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
-        if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
-        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đúng tên</span>');
+        const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — không cần đổi tên (tên tiếng Anh, không dấu)</span>'];
+        if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'scan_02.jpg           <span class="hint">trang trắng — không cần đổi tên (tên tiếng Anh, không dấu)</span>');
+        lines.push('ct07.pdf              <span class="hint">CT07, nếu có — không cần đổi tên (tên tiếng Anh, không dấu)</span>', 'tt_cha.jpg            <span class="hint">bố — cắt từ hộ khẩu, nếu có — đổi về đúng tên như hướng dẫn</span>');
         if (companions) lines.push(CV_TREE);
         if (u18 && o.u18) lines.push(...u18Tree());
         // short label in the tree: the part before "(" or ":"
-        if (!next(o)) docs.forEach(([n, what, , , , short]) => lines.push(`${(sigName(n, o) + '.jpg').padEnd(22)}<span class="hint">${esc((short || what.split(/[(:]/)[0].trim()).replace(/^./, (c) => c.toLowerCase()))} — đúng tên</span>`));
-        const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
+        if (!next(o)) docs.forEach(([n, what, , , , short]) => lines.push(`${(sigName(n, o) + '.jpg').padEnd(22)}<span class="hint">${esc((short || what.split(/[(:]/)[0].trim()).replace(/^./, (c) => c.toLowerCase()))} — đổi về đúng tên như hướng dẫn</span>`));
+        const tree = treeLines(lines);
         return `<p>Nhà ${esc(h)}${next(o) ? ', <b>người sau trong đoàn</b>' : ''}, thư mục hồ sơ có dạng:</p>
           ${next(o) ? `<p class="hint">Người sau: không có giấy tờ riêng của ${esc(code)} — lấy từ người đầu bằng "Áp dụng ${esc(group.code)}" (mục bên dưới).</p>` : ''}
           <div class="gtree">${esc(code)} - NGUYEN VAN A/\n${tree}</div>
