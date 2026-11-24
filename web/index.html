@@ -761,7 +761,64 @@ const GUIDES = {
   },
 };
 
-let guideOpt = { kind: 'canhan', order: 'dau', u18: false };
+// M: company files. [tên file, giấy gì, của ai / từ đâu, cần khi nào]
+const M_FILES = [
+  ['thumoi', 'Thư mời của công ty Trung Quốc', 'công ty TQ mời người VN sang', 'luôn cần'],
+  ['dktq', 'Đăng ký kinh doanh của công ty Trung Quốc', 'công ty TQ (bên mời)', 'luôn cần'],
+  ['dkvn', 'Đăng ký kinh doanh của công ty Việt Nam', 'công ty VN của người đi', 'luôn cần'],
+  ['qdct', 'Quyết định cử đi công tác', 'giám đốc công ty VN cử nhân viên sang TQ theo thư mời', 'luôn cần'],
+];
+GUIDES.M = {
+  title: 'Visa M (thương mại) — chuẩn bị file',
+  intro: 'Công ty Trung Quốc mời người Việt Nam sang làm việc. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "M - NGUYEN VAN A". Ngoài file cơ bản của người đi (như visa L) còn 4 file của 2 công ty.',
+  options: () => `<div class="gopts">
+    <div><div class="gcap">Người được mời là</div>${seg('owner', [['false', 'Nhân viên'], ['true', 'Chủ doanh nghiệp']])}</div>
+  </div>`,
+  sections: [
+    { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
+      const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
+      if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
+      lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">cắt từ hộ khẩu, nếu có — đúng tên</span>',
+                 'thumoi.jpg            <span class="hint">thư mời TQ — đúng tên</span>', 'dktq.jpg              <span class="hint">ĐKKD công ty TQ — đúng tên</span>',
+                 'dkvn.jpg              <span class="hint">ĐKKD công ty VN — đúng tên</span>');
+      lines.push(o.owner ? 'qdct.jpg              <span class="hint">BẢN SAO của thumoi.jpg — đúng tên</span>'
+                         : 'qdct.jpg              <span class="hint">quyết định công tác — đúng tên</span>');
+      const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
+      return `<p>Theo lựa chọn ở trên (nhà ${esc(h)}, ${o.owner ? '<b>chủ doanh nghiệp</b>' : 'nhân viên'}), thư mục hồ sơ có dạng:</p>
+        <div class="gtree">M - NGUYEN VAN A/\n${tree}</div>
+        <p class="hint">Giấy nhiều trang: thêm số, vd <code>dktq_1</code>, <code>dktq_2</code>. Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>`;
+    } },
+    { id: 'company', title: 'Giấy tờ của 2 công ty', hint: 'đặt đúng tên', open: true, html: (o) => `
+      <p>4 file này <b>phải đặt đúng tên</b> (hệ thống dựa vào tên để biết là giấy gì):</p>
+      <div class="tbl-wrap"><table class="data"><tr><th>Tên file</th><th>Giấy gì</th><th>Của ai / từ đâu</th><th>Cần khi nào</th></tr>
+        ${M_FILES.map(([n, what, who, when]) => {
+          const copy = o.owner && n === 'qdct';
+          return `<tr><td><span class="fname">${n}.jpg</span></td><td>${copy ? 'Bản sao của <code>thumoi</code>' : esc(what)}</td>
+            <td>${copy ? 'chủ doanh nghiệp không có quyết định công tác' : esc(who)}</td>
+            <td><span class="st approved">${copy ? 'chép từ thumoi' : esc(when)}</span></td></tr>`;
+        }).join('')}
+      </table></div>
+      <ul><li>2 file của bên Trung Quốc: <code>thumoi</code>, <code>dktq</code>. 2 file của bên Việt Nam: <code>dkvn</code>, <code>qdct</code>.</li>
+          <li>Hệ thống đọc tên, địa chỉ, điện thoại công ty TQ và ngày đi / về từ <b>quyết định công tác</b> (<code>qdct</code>); đọc công ty VN và người đại diện từ <code>dkvn</code>. <code>thumoi</code>, <code>dktq</code> chỉ được tải lên, không đọc nội dung.</li></ul>` },
+    { id: 'owner', title: 'Người được mời là chủ doanh nghiệp', hint: 'không có qdct · 2 việc phải tự làm', when: (o) => o.owner, open: true, html: () => `
+      <p>Chủ doanh nghiệp không tự ra quyết định cử chính mình đi, nên <b>không có quyết định công tác</b>. Làm 2 việc sau:</p>
+      <ol><li><b>Trước khi tải thư mục lên:</b> chép file <code>thumoi</code> thành thêm 1 file tên <code>qdct</code> (cùng nội dung, vd <code>thumoi.jpg</code> → thêm <code>qdct.jpg</code>; nhiều trang thì chép cả: <code>qdct_1</code>, <code>qdct_2</code>…).
+            Hệ thống đọc công ty Trung Quốc và ngày đi / về từ file <code>qdct</code>, nên phải có file này.</li>
+          <li><b>Sau khi chạy xong (curl / Chạy):</b> vào hồ sơ trên trang visa, mục tải giấy tờ, ô <b>"Quyết định công tác"</b>: xoá file đang có (là thư mời) và tải lên file <b>đăng ký kinh doanh VN</b> (<code>dkvn</code>) để chứng minh người đi là chủ doanh nghiệp.</li></ol>
+      <p class="hint">Tên người đi phải trùng tên <b>người đại diện</b> trên <code>dkvn</code>.</p>` },
+    { ...GUIDES.L.sections.find((x) => x.id === 'basic') },
+    { ...GUIDES.L.sections.find((x) => x.id === 'hokhau') },
+    { id: 'err', title: 'Lỗi hay gặp', hint: 'kiểm tra trước khi Gửi', html: (o) => `
+      <ul><li>4 file công ty đặt sai tên (<code>dang ky kinh doanh.jpg</code>, <code>thu moi TQ.pdf</code>) → phải đúng <code>dkvn</code>, <code>dktq</code>, <code>thumoi</code>, <code>qdct</code>.</li>
+          <li>Lẫn 2 bản đăng ký: <code>dktq</code> là công ty <b>Trung Quốc</b> (bên mời), <code>dkvn</code> là công ty <b>Việt Nam</b> (bên đi).</li>
+          ${o.owner ? '<li>Chủ doanh nghiệp mà quên chép <code>thumoi</code> thành <code>qdct</code> → hồ sơ thiếu công ty TQ và ngày đi.</li><li>Chạy xong quên thay ô "Quyết định công tác" bằng <code>dkvn</code> trên trang visa.</li>'
+                    : '<li>Thiếu <code>qdct</code> → hồ sơ thiếu công ty TQ và ngày đi.</li>'}
+          <li>Tên file có dấu cách hoặc dấu tiếng Việt → đổi sang không dấu, không cách.</li>
+          <li>Ảnh nghiêng, mất góc, loá đèn → chụp lại.</li></ul>` },
+  ],
+};
+
+let guideOpt = { kind: 'canhan', order: 'dau', u18: false, owner: false };
 const seg = (key, items) => `<div class="seg" role="group">${items.map(([v, label]) =>
   `<button type="button" data-k="${key}" data-v="${v}" class="${String(guideOpt[key]) === v ? 'on' : ''}">${label}</button>`).join('')}</div>`;
 function guideOptions() {
@@ -777,7 +834,7 @@ function renderGuide() {
   const first = !$('guideBody').childElementCount;
   $('guideTitle').textContent = g ? g.title : `Visa ${v} — chuẩn bị file`;
   $('guideBody').innerHTML = g
-    ? `<p class="guide-intro">${esc(g.intro)}</p>` + (g.options ? guideOptions() : '') + g.sections
+    ? `<p class="guide-intro">${esc(g.intro)}</p>` + (g.options ? (typeof g.options === 'function' ? g.options() : guideOptions()) : '') + g.sections
         .filter((s) => !s.when || s.when(guideOpt, house))
         .map((s, i) => `<details data-id="${s.id}"${(first ? s.open : wasOpen.has(s.id) || s.open) ? ' open' : ''}><summary>${i + 1}. ${esc(s.title)}${s.hint ? `<span class="hint">${esc(s.hint)}</span>` : ''}</summary><div class="guide-sec">${s.html(guideOpt, house)}</div></details>`).join('')
     : `<p class="guide-intro">Chưa có hướng dẫn cho loại ${esc(v)}. Hiện mới có: ${Object.keys(GUIDES).join(', ')}.</p>`;
@@ -794,10 +851,10 @@ function renderGuide() {
 $('guideBody').addEventListener('click', (e) => {
   const b = e.target.closest('.seg button');
   if (!b) return;
-  guideOpt[b.dataset.k] = b.dataset.k === 'u18' ? b.dataset.v === 'true' : b.dataset.v;
+  guideOpt[b.dataset.k] = ['u18', 'owner'].includes(b.dataset.k) ? b.dataset.v === 'true' : b.dataset.v;
   renderGuide();
   // a section that just appeared (Gia đình / Dưới 18) opens by itself
-  const id = { kind: 'family', u18: 'u18' }[b.dataset.k];
+  const id = { kind: 'family', u18: 'u18', owner: 'owner' }[b.dataset.k];
   const d = id && $('guideBody').querySelector(`details[data-id="${id}"]`);
   if (d) d.open = true;
 });
