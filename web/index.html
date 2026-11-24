@@ -848,17 +848,19 @@ GUIDES.M = {
 // file row: [tên ví dụ, giấy gì, của ai / từ đâu, cần khi nào, hệ thống làm gì]
 const READ = (what) => `<span class="st approved">đọc: ${esc(what)}</span>`;
 const UPLOAD_ONLY = '<span class="st">chỉ tải lên</span>';
-function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors = [], group = null, companions = false }) {
+function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors = [], group = null, companions = false, u18 = false }) {
   const next = (o) => !!group && isNext(o);
+  const u18Seg = () => `<div><div class="gcap">Tuổi người xin visa</div>${seg('u18', [['false', 'Từ 18 tuổi'], ['true', 'Dưới 18 tuổi']])}</div>`;
   return {
     title, intro,
-    options: group ? () => `<div class="gopts">${orderSeg()}</div>` : undefined,
+    options: group || u18 ? () => `<div class="gopts">${group ? orderSeg() : ''}${u18 ? u18Seg() : ''}</div>` : undefined,
     sections: [
       { id: 'tree', title: 'Thư mục hoàn chỉnh trông như thế nào', hint: 'xem nhanh', open: true, html: (o, h) => {
         const lines = ['IMG_2041.jpg          <span class="hint">hộ chiếu — tên gốc</span>', 'IMG_2042.jpg          <span class="hint">ảnh thẻ — tên gốc</span>'];
         if (NORTH_HOUSES.includes(h)) lines.push('scan_01.jpg           <span class="hint">trang trắng — tên gốc</span>', 'scan_02.jpg           <span class="hint">trang trắng — tên gốc</span>');
         lines.push('ct07.pdf              <span class="hint">CT07, nếu có — tên gốc</span>', 'tt_cha.jpg            <span class="hint">cắt từ hộ khẩu, nếu có — đúng tên</span>');
         if (companions) lines.push(CV_TREE);
+        if (u18 && o.u18) lines.push(...U18_FILES.map(([n]) => (n + '.jpg').padEnd(22) + '<span class="hint">dưới 18 — đúng tên</span>'));
         // short label in the tree: the part before "(" or ":"
         if (!next(o)) docs.forEach(([n, what]) => lines.push(`${(n + '.jpg').padEnd(22)}<span class="hint">${esc(what.split(/[(:]/)[0].trim())} — đúng tên</span>`));
         const tree = lines.map((l, i) => (i === lines.length - 1 ? '└── ' : '├── ') + l).join('\n');
@@ -876,6 +878,7 @@ function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors
         </table></div>${docsNote}` },
       ...extra,
       ...(companions ? [companionSection] : []),
+      ...(u18 ? [{ ...GUIDES.L.sections.find((x) => x.id === 'u18'), open: true }] : []),
       { ...GUIDES.L.sections.find((x) => x.id === 'basic') },
       { ...GUIDES.L.sections.find((x) => x.id === 'hokhau') },
       { id: 'err', title: 'Lỗi hay gặp', hint: 'kiểm tra trước khi Gửi', html: (o) => `
@@ -946,17 +949,17 @@ const qErrors = ['Giấy tờ người mời đặt tên <code>cccd.jpg</code>, 
 GUIDES.Q1 = typeGuide({
   code: 'Q1', title: 'Visa Q1 (đoàn tụ gia đình, trên 180 ngày) — chuẩn bị file',
   intro: 'Sang Trung Quốc đoàn tụ, ở lâu hơn 180 ngày với người thân là công dân Trung Quốc (hoặc người có thường trú TQ). Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "Q1 - NGUYEN VAN A".',
-  docs: qDocs(4), docsNote: qNote, extra: [qSign], errors: qErrors,
+  docs: qDocs(4), docsNote: qNote, extra: [qSign], errors: qErrors, u18: true,
 });
 GUIDES.Q2 = typeGuide({
   code: 'Q2', title: 'Visa Q2 (thăm thân ngắn hạn, tối đa 180 ngày) — chuẩn bị file',
   intro: 'Thăm người thân là công dân Trung Quốc (hoặc người có thường trú TQ), ở tối đa 180 ngày. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "Q2 - NGUYEN VAN A".',
-  docs: qDocs(3), docsNote: qNote, extra: [qSign], errors: qErrors,
+  docs: qDocs(3), docsNote: qNote, extra: [qSign], errors: qErrors, u18: true,
 });
 
 // S2: thăm người thân là người nước ngoài đang làm việc / học ở Trung Quốc
 GUIDES.S2 = typeGuide({
-  code: 'S2', title: 'Visa S2 (thăm người thân là người nước ngoài ở TQ) — chuẩn bị file',
+  code: 'S2', title: 'Visa S2 (thăm người thân là người nước ngoài ở TQ) — chuẩn bị file', u18: true,
   intro: 'Thăm người thân là người nước ngoài (vd người Việt) đang làm việc / học / sống ở Trung Quốc. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "S2 - NGUYEN VAN A".',
   docs: [
     ['smoi_1', 'Giấy tờ người mời: hộ chiếu (trang thông tin)', 'người mời (người đang ở TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ ở TQ')],
@@ -1630,7 +1633,7 @@ function loadCurl(text, message) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   toast(message);
 }
-$('curlText').addEventListener('input', () => { $('curlEdit').classList.add('hidden'); curlPort = ''; });
+$('curlText').addEventListener('input', () => { $('curlEdit').classList.add('hidden'); curlPort = ''; clearCaseImages(); });
 
 $('parseBtn').onclick = () => {
   clear($('curlMsg')); $('curlResult').classList.add('hidden');
@@ -1647,7 +1650,8 @@ $('parseBtn').onclick = () => {
     clear($('curlBodyErr')); $('curlBodyErr').classList.add('hidden');
     $('curlEdit').classList.remove('hidden');
     fillAuthorization(house, port);
-  } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); }
+    showCaseImages(house, String(body.passportNumber || '').trim());   // already on R2: no need to wait for Chạy
+  } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); clearCaseImages(); }
 };
 
 // Curl from n8n has "authorization": "" (the server uses the house's stored token): show that token in the JSON.
@@ -1783,7 +1787,6 @@ function renderTimings(timings, ok) {
 
 $('runBtn').onclick = async () => {
   const b = $('runBtn'); clear($('curlMsg')); $('curlResult').classList.add('hidden'); $('curlTimes').classList.add('hidden');
-  clearCaseImages();
   let body;
   try { body = readBody(); } catch (e) { show($('curlMsg'), e.message, false); return; }
   if (!curlPort) { show($('curlMsg'), 'Bấm "Đọc curl" trước', false); return; }
