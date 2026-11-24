@@ -14,3 +14,6 @@ n8n-flow
 resources/TM-S2 MAU.docx
 tests/n8n-baseline/
 tools/
+
+# example photos of the guide popup: added by ADMIN on the server, not in git
+web/guide/vd/

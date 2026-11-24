@@ -243,6 +243,40 @@ def web_guide_examples(key: str):
     return {"ok": True, "files": files}
 
 
+_GUIDE_MAX_BYTES = 8 * 1024 * 1024
+_GUIDE_EXT = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+
+
+@app.post("/web/guide-examples/{key}")
+async def web_guide_example_add(key: str, request: Request, file: UploadFile = File(...)):
+    """ADMIN: add one example photo to web/guide/vd/<key>/ (a new name each time, so browsers never show an old copy)."""
+    _web_admin(request)
+    if not _GUIDE_KEY_RE.match(key):
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Loại file không hợp lệ"})
+    data = await file.read()
+    ext = _GUIDE_EXT.get(str(file.content_type or "").lower())
+    if not ext:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Chỉ nhận ảnh .jpg, .png, .webp"})
+    if not data or len(data) > _GUIDE_MAX_BYTES:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Ảnh rỗng hoặc lớn hơn 8 MB"})
+    folder = _GUIDE_DIR / "vd" / key
+    folder.mkdir(parents=True, exist_ok=True)
+    name = f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}{ext}"
+    (folder / name).write_bytes(data)
+    return {"ok": True, "file": name}
+
+
+@app.delete("/web/guide-examples/{key}/{name}")
+def web_guide_example_delete(key: str, name: str, request: Request):
+    """ADMIN: delete one example photo."""
+    _web_admin(request)
+    file = _GUIDE_DIR / "vd" / key / name
+    if not _GUIDE_KEY_RE.match(key) or not _GUIDE_FILE_RE.match(name) or not file.is_file():
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không có ảnh"})
+    file.unlink()
+    return {"ok": True}
+
+
 @app.get("/web/guide/{path:path}")
 def web_guide_image(path: str):
     """Example photo of the 'Hướng dẫn file' popup (web/guide/<visa>/<name>). 404 = the page keeps its drawing."""

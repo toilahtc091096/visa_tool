@@ -200,7 +200,12 @@
   .exgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
   .exgrid figure { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
   .exgrid img { display: block; width: 100%; height: auto; cursor: zoom-in; }
-  .exgrid figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); }
+  .exgrid figcaption { padding: 6px 10px; font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .exgrid figcaption button { margin: 0; padding: 2px 10px; font-size: 13px; }
+  .exempty { margin-top: 12px; padding: 36px 16px; border: 2px dashed var(--line); border-radius: 12px; text-align: center; color: var(--muted); }
+  .exadmin { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+  .exadmin button { margin: 0; }
+  #dlg { z-index: 70; }
   .guide-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
   .guide-head h3 { margin: 0; font-size: 20px; }
   .guide-head .bar-actions button { margin: 0; padding: 6px 12px; font-size: 14px; }
@@ -1062,26 +1067,59 @@ function renderGuide() {
     im.src = '/web/guide/' + f.dataset.img;
   });
 }
+let exCur = null;   // { key, name, what } of the open popup
 async function openExamples(btn) {
-  const key = btn.dataset.ex;
-  $('exTitle').textContent = `Ảnh ví dụ — ${btn.dataset.name}.jpg`;
-  $('exBody').innerHTML = `<p class="hint">${esc(btn.dataset.what)}</p><p class="hint">Đang tải ảnh…</p>`;
+  exCur = { key: btn.dataset.ex, name: btn.dataset.name, what: btn.dataset.what };
+  $('exTitle').textContent = `Ảnh ví dụ — ${exCur.name}.jpg`;
+  $('exBody').innerHTML = `<p class="hint">${esc(exCur.what)}</p><p class="hint">Đang tải ảnh…</p>`;
   $('exDlg').classList.remove('hidden');
   $('exClose').focus();
+  await loadExamples();
+}
+async function loadExamples() {
+  const key = exCur.key;
   let files = [];
   try {
     const r = await fetch('/web/guide-examples/' + encodeURIComponent(key));
     if (r.ok) files = (await r.json()).files || [];
   } catch (_) { /* no list: shown as empty */ }
-  if ($('exDlg').classList.contains('hidden')) return;
-  $('exBody').innerHTML = `<p class="hint">${esc(btn.dataset.what)}</p>` + (files.length
+  if ($('exDlg').classList.contains('hidden') || !exCur || exCur.key !== key) return;
+  const admin = isAdmin ? `<div class="exadmin"><button type="button" id="exAdd">＋ Thêm ảnh</button>
+      <span class="hint">ADMIN: chọn 1 hoặc nhiều ảnh (.jpg, .png, .webp, tối đa 8 MB) từ máy. Chỉ dùng ảnh mẫu hoặc đã che thông tin.</span>
+      <input type="file" id="exFile" accept="image/jpeg,image/png,image/webp" multiple hidden></div>` : '';
+  $('exBody').innerHTML = `<p class="hint">${esc(exCur.what)}</p>${admin}` + (files.length
     ? `<p class="hint">Làm file của mình giống các ảnh dưới đây: đủ giấy, rõ chữ, không mất góc. Bấm vào ảnh để xem cỡ lớn.</p>
-       <div class="exgrid">${files.map((f) => {
+       <div class="exgrid">${files.map((f, i) => {
          const url = `/web/guide/vd/${encodeURIComponent(key)}/${encodeURIComponent(f)}`;
-         return `<figure><a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="${esc(f)}" loading="lazy"></a><figcaption>${esc(f)}</figcaption></figure>`;
+         return `<figure><a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="Ví dụ ${i + 1}" loading="lazy"></a>
+           <figcaption>Ví dụ ${i + 1}${isAdmin ? `<button type="button" class="secondary exdel" data-f="${esc(f)}">Xoá</button>` : ''}</figcaption></figure>`;
        }).join('')}</div>`
-    : '<p>Chưa có ảnh ví dụ cho loại file này.</p>');
+    : `<div class="exempty">Chưa có ảnh ví dụ cho <b>${esc(exCur.name)}.jpg</b>.${isAdmin ? '<br>Bấm <b>＋ Thêm ảnh</b> ở trên để tải ảnh từ máy lên.' : ''}</div>`);
 }
+$('exBody').addEventListener('click', async (e) => {
+  if (e.target.id === 'exAdd') { $('exFile').click(); return; }
+  const del = e.target.closest('.exdel');
+  if (!del) return;
+  if (!(await ask({ title: 'Xoá ảnh ví dụ?', message: 'Người làm sẽ không còn thấy ảnh này.', okText: 'Xoá', tone: 'danger' }))) return;
+  try {
+    const r = await fetch(`/web/guide-examples/${encodeURIComponent(exCur.key)}/${encodeURIComponent(del.dataset.f)}`, { method: 'DELETE', headers: { 'X-Api-Key': key } });
+    if (!r.ok) throw new Error(((await r.json().catch(() => ({}))).detail || {}).error || `Lỗi ${r.status}`);
+    toast('Đã xoá ảnh');
+  } catch (err) { toast('Không xoá được: ' + err.message); }
+  loadExamples();
+});
+$('exBody').addEventListener('change', async (e) => {
+  if (e.target.id !== 'exFile') return;
+  const files = [...e.target.files];
+  let ok = 0;
+  for (const f of files) {
+    const fd = new FormData(); fd.append('file', f);
+    try { await api('/web/guide-examples/' + encodeURIComponent(exCur.key), fd, true); ok++; }
+    catch (err) { toast(`${f.name}: ${err.message}`); }
+  }
+  if (ok) toast(`Đã thêm ${ok} ảnh`);
+  loadExamples();
+});
 function closeExamples() { $('exDlg').classList.add('hidden'); $('exBody').innerHTML = ''; }
 $('exClose').addEventListener('click', closeExamples);
 $('exDlg').addEventListener('click', (e) => { if (e.target === $('exDlg')) closeExamples(); });
@@ -1108,7 +1146,7 @@ $('guideBtn').onclick = openGuide;
 $('guideClose').onclick = closeGuide;
 $('guide').addEventListener('click', (e) => { if (e.target === $('guide')) closeGuide(); });
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
+  if (e.key !== 'Escape' || !$('dlg').classList.contains('hidden')) return;   // the confirm dialog handles its own Esc
   if (!$('exDlg').classList.contains('hidden')) closeExamples();   // child popup first
   else if (!$('guide').classList.contains('hidden')) closeGuide();
 });

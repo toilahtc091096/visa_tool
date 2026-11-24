@@ -18,13 +18,13 @@ Nội dung chữ của hướng dẫn nằm trong `web/index.html`, hằng `GUID
 ## Ảnh ví dụ theo loại file (nút "🖼 Ảnh ví dụ")
 
 Mỗi file trong bảng hướng dẫn (M, F, X1, X2, Q1, Q2, S2, người thân, dưới 18, cv_) có nút **Ảnh ví dụ**.
-Bấm vào mở popup hiện **mọi ảnh** trong thư mục `web/guide/vd/<loại>/` (xếp theo tên, nhận .jpg/.jpeg/.png/.webp).
+Bấm vào mở popup hiện các ảnh mẫu của loại file đó.
 
-- Thêm / đổi ảnh: thả hoặc đè ảnh vào đúng thư mục, không cần sửa code. Xoá ảnh thì popup bớt ảnh đó.
-- Hiện có ảnh tạm `1.jpg`, `2.jpg` ghi đường dẫn của chính nó: đè ảnh thật lên (hoặc xoá đi).
-- `<loại>` = tên file bỏ số cuối: `cv_1`, `cv_2` → `vd/cv/`; `con_1`, `con_2` → `vd/con_cai/` (Windows không cho thư mục tên `con`); `qcm_1` → `vd/qcm/`;
-  `qchuki_1` (cả `_goc`) → `vd/qchuki/`. Riêng `qmoi_1`, `qmoi_2`, `qmoi_3`, `smoi_1`, `smoi_2`, `smoi_3` mỗi số 1 thư mục (mặt trước / mặt sau / trang 3–5).
+**Thêm / xoá ảnh (tài khoản ADMIN):** đăng nhập /web bằng ADMIN → mở "Hướng dẫn file" → bấm "🖼 Ảnh ví dụ"
+của file cần làm → **＋ Thêm ảnh** (chọn 1 hoặc nhiều ảnh .jpg/.png/.webp, ≤ 8 MB từ máy) hoặc **Xoá** dưới từng ảnh.
+Nhân viên khác chỉ xem.
 
-Thư mục có sẵn: `cv`, `con_cai`, `tt_cha`, `tt_me`, `vo_chong`, `duoi18_ks`, `duoi18_dc1`, `duoi18_dc2`, `duoi18_pay`,
-`thumoi`, `dktq`, `dkvn`, `qdct`, `fthumoi`, `fqddh`, `xnh`, `xjw`, `qmoi_1`, `qmoi_2`, `qmoi_3`, `qthumoi`, `qcm`, `qchuki`, `qbaolanh`, `qkhac`,
-`smoi_1`, `smoi_2`, `smoi_3`, `scm`, `sthumoi`, `smoi_ruot`, `schuki`, `skhac`.
+- Ảnh lưu trên VPS ở `web/guide/vd/<loại>/` (không nằm trong git, `git pull` không đụng tới). Sao lưu thư mục này nếu cài lại VPS.
+- `<loại>` = tên file bỏ số cuối: `cv_1`, `cv_2` → `cv`; `qcm_1` → `qcm`; `qchuki_1` (cả `_goc`) → `qchuki`;
+  `con_1`, `con_2` → `con_cai` (Windows không cho thư mục tên `con`).
+  Riêng `qmoi_1`, `qmoi_2`, `qmoi_3`, `smoi_1`, `smoi_2`, `smoi_3` mỗi số 1 loại (mặt trước / mặt sau / trang 3–5).
