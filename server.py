@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import os
 import threading
 import time
@@ -223,6 +224,20 @@ def _web_user(request: Request) -> dict[str, Any]:
 @app.get("/web")
 def web_page():
     return HTMLResponse(_WEB_PAGE.read_text(encoding="utf-8"))
+
+
+_GUIDE_DIR = _WEB_PAGE.parent / "guide"
+_GUIDE_FILE_RE = re.compile(r"^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*\.(jpg|jpeg|png|webp)$")
+
+
+@app.get("/web/guide/{path:path}")
+def web_guide_image(path: str):
+    """Example photo of the 'Hướng dẫn file' popup (web/guide/<visa>/<name>). 404 = the page keeps its drawing."""
+    file = _GUIDE_DIR / path
+    if not _GUIDE_FILE_RE.match(path) or not file.is_file():
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không có ảnh"})
+    media = "image/jpeg" if file.suffix in (".jpg", ".jpeg") else f"image/{file.suffix[1:]}"
+    return Response(file.read_bytes(), media_type=media, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.post("/web/login")
