@@ -23,8 +23,8 @@ from constants import (
     L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH,
     L_30_HOTEL_INFO,
     NATIONALITY_MAP,
-    Q2_GENERATED_BACKUP_SUFFIX,
-    Q2_OWN_THU_MOI_PREFIX,
+    Q_GENERATED_BACKUP_SUFFIX,
+    Q_OWN_THU_MOI_PREFIX,
     S2_GENERATED_THU_MOI_NAME,
     S2_THU_MOI_OUTPUT_PATH,
     SEX_MAP,
@@ -323,11 +323,11 @@ class InvitationLetter(DocumentStep):
             raise
 
 
-class Q2InvitationLetter(InvitationLetter):
-    """Q2 (both regions): like InvitationLetter. When the applicant sent their own letter
+class QInvitationLetter(InvitationLetter):
+    """Q1 / Q2 (both regions): like InvitationLetter. When the applicant sent their own letter
     (qthumoi_* files, put in the same folder by n8n), the one made from the
     template is renamed <name>_backup.pdf and pushed to R2 next to it, to use
-    later if needed; the qthumoi letter is the one uploaded (UPLOAD_CONFIG["Q2"], UPLOAD_CONFIG_SOUTH_Q2)."""
+    later if needed; the qthumoi letter is the one uploaded (UPLOAD_CONFIG Q1 / Q2, UPLOAD_CONFIG_SOUTH_Q1 / _Q2)."""
 
     async def render(self, ctx) -> None:
         passport = str(ctx.input_passportNumber or "").strip()
@@ -344,12 +344,12 @@ class Q2InvitationLetter(InvitationLetter):
         own_letters = sorted(
             f.name
             for f in pdf_path.parent.iterdir()
-            if f.is_file() and f.name.lower().startswith(Q2_OWN_THU_MOI_PREFIX)
+            if f.is_file() and f.name.lower().startswith(Q_OWN_THU_MOI_PREFIX)
         )
         if not own_letters:
             log_event({"step": "generate invitation letter file", "ok": "ok", "file": pdf_path.name})
             return
-        backup = pdf_path.with_name(f"{pdf_path.stem}{Q2_GENERATED_BACKUP_SUFFIX}.pdf")
+        backup = pdf_path.with_name(f"{pdf_path.stem}{Q_GENERATED_BACKUP_SUFFIX}.pdf")
         backup.unlink(missing_ok=True)
         pdf_path.rename(backup)
         key = f"{passport}/{self.output_folder.replace(chr(92), '/')}/{backup.name}"

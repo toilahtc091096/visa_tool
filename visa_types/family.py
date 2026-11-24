@@ -22,7 +22,7 @@ from .base import VisaProfile, china_place_from_pinyin, register
 from .documents import (
     InvitationLetter,
     S2InvitationLetter,
-    Q2InvitationLetter,
+    QInvitationLetter,
     VisaCenterConfirmation,
 )
 
@@ -81,7 +81,8 @@ class Q1Visa(FamilyVisa):
 
     code = "Q1"
     cv_visa_type_number = "000"
-    documents = (VisaCenterConfirmation(), InvitationLetter(Q1_THU_MOI_OUTPUT_PATH))
+    # qthumoi_* from the applicant wins; the template letter becomes <name>_backup.pdf on R2.
+    documents = (VisaCenterConfirmation(), QInvitationLetter(Q1_THU_MOI_OUTPUT_PATH))
 
 
 def _relation_key(value: str) -> str:
@@ -114,7 +115,7 @@ class SouthQ1Visa(SouthInviteRelationZh, Q1Visa):
 
     documents = (
         VisaCenterConfirmation(),
-        InvitationLetter(Q1_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
+        QInvitationLetter(Q1_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
     )
 
 
@@ -126,7 +127,7 @@ class Q2Visa(FamilyVisa):
 
     code = "Q2"
     # qthumoi_* from the applicant wins; the template letter becomes <name>_backup.pdf on R2.
-    documents = (VisaCenterConfirmation(), Q2InvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
+    documents = (VisaCenterConfirmation(), QInvitationLetter(Q2_THU_MOI_OUTPUT_PATH))
 
 
 class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
@@ -138,7 +139,7 @@ class SouthQ2Visa(SouthInviteRelationZh, Q2Visa):
     leave_after_stay_days = True
     documents = (
         VisaCenterConfirmation(),
-        Q2InvitationLetter(Q2_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
+        QInvitationLetter(Q2_THU_MOI_OUTPUT_PATH, SOUTH_Q_TEMPLATE),
     )
 
 

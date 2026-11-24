@@ -985,9 +985,7 @@ const manyNote = (h, moi, cm, maxRel) => NORTH_HOUSES.includes(h)
 const qNote = (maxRel) => (o, h) => `<ul><li><b>Bắt buộc chọn "Quan hệ"</b> ở form (người mời là gì của người xin visa). Quan hệ này được in vào thư mời.</li>
     ${manyNote(h, 'qmoi', 'qcm', maxRel)}
     <li>Thư mời: bình thường không cần chuẩn bị — hệ thống tạo từ <code>qmoi</code> + quan hệ + chữ ký.</li>
-    <li><code>qthumoi_1</code> (<code>qthumoi_2</code>… nếu nhiều trang): thư mời <b>khách tự cung cấp</b>. ${maxRel === 3
-      ? 'Q2 (cả miền Bắc và miền Nam): có <code>qthumoi</code> thì hệ thống tải lên đúng thư này (gộp các trang thành 1 PDF theo số thứ tự); thư hệ thống tạo vẫn được làm và lưu dự phòng (tên <code>…_backup.pdf</code>). Không có thì dùng thư hệ thống tạo.'
-      : 'Q1: hệ thống <b>chưa dùng</b> file này — vẫn tải lên thư hệ thống tạo.'}</li></ul>`;
+    <li><code>qthumoi_1</code> (<code>qthumoi_2</code>… nếu nhiều trang): thư mời <b>khách tự cung cấp</b>. Q1, Q2 (cả miền Bắc và miền Nam): có <code>qthumoi</code> thì hệ thống tải lên đúng thư này (gộp các trang thành 1 PDF theo số thứ tự); thư hệ thống tạo vẫn được làm và lưu dự phòng (tên <code>…_backup.pdf</code>). Không có thì dùng thư hệ thống tạo.</li></ul>`;
 const signErrors = (p) => [`Chọn chữ ký gốc mà quên đuôi <code>_goc</code> (hoặc ngược lại) → hệ thống xử lý chữ ký sai kiểu. Đuôi phải đặt <b>cuối tên</b>: <code>${p}_1_goc</code>, không phải <code>${p}_goc_1</code>.`];
 const qErrors = [...signErrors('qchuki'),
                  'Thư mời khách đưa đặt tên <code>thumoi</code> (của visa M) hay <code>sthumoi</code> (của S2) → hồ sơ Q phải là <code>qthumoi_1</code>.',

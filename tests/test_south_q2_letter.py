@@ -1,4 +1,4 @@
-"""Q2 invitation letter (North and South): the applicant's qthumoi_* letter wins, the
+"""Q1 / Q2 invitation letter (North and South): the applicant's qthumoi_* letter wins, the
 template letter becomes <name>_backup.pdf on R2; South puts the letter into 3 COVA slots.
 
     python -m unittest tests.test_south_q2_letter
@@ -88,6 +88,16 @@ class SourceFilesTest(unittest.TestCase):
         self.assertEqual(self.resolve("THU_MOI", north), ["thu_moi_qthumoi.pdf"])
         self.assertEqual(self.merged, [["qthumoi_1.pdf"]])
 
+    def test_q1_both_regions_same_logic(self):
+        north, south = constants.UPLOAD_CONFIG["Q1"], constants.UPLOAD_CONFIG_SOUTH_Q1
+        (self.letters / "Q_Template_A_B.pdf").write_bytes(b"%PDF")
+        self.assertEqual(self.resolve("THU_MOI", north), ["Q_Template_A_B.pdf"])
+        self.assertEqual(self.resolve("THU_MOI", south), ["Q_Template_A_B.pdf"])
+        (self.letters / "Q_Template_A_B.pdf").rename(self.letters / "Q_Template_A_B_backup.pdf")
+        (self.letters / "qthumoi_1.jpg").write_bytes(b"x")
+        for cfg, key in ((north, "THU_MOI"), (south, "THU_MOI"), (south, "CCCD_NGUOI_MOI_THU_MOI")):
+            self.assertEqual(self.resolve(key, cfg), ["thu_moi_qthumoi.pdf"], key)
+
 
 class BackupLetterTest(unittest.TestCase):
     def run_render(self, own_files):
@@ -108,7 +118,7 @@ class BackupLetterTest(unittest.TestCase):
              mock.patch.object(documents, "ensure_data_folder_downloaded"), \
              mock.patch.object(documents, "api_upload_r2_object",
                                side_effect=lambda k, data, ct: uploads.append((k, data)) or {"ok": True}):
-            letter = documents.Q2InvitationLetter(constants.Q2_THU_MOI_OUTPUT_PATH, "Q_Template_MN.docx")
+            letter = documents.QInvitationLetter(constants.Q2_THU_MOI_OUTPUT_PATH, "Q_Template_MN.docx")
             asyncio.run(letter.render(SimpleNamespace(input_passportNumber="C123")))
         return sorted(f.name for f in folder.iterdir()), uploads
 
@@ -123,12 +133,14 @@ class BackupLetterTest(unittest.TestCase):
         self.assertEqual(uploads, [("C123/tham-than/thumoi/Q_Template_MN_LI_NGUYEN_backup.pdf", b"%PDF template")])
 
 
-class NorthQ2ProfileTest(unittest.TestCase):
-    def test_north_q2_uses_the_same_letter_step(self):
+class ProfileTest(unittest.TestCase):
+    def test_q1_q2_both_regions_use_the_same_letter_step(self):
         from visa_types import family
-        letters = [d for d in family.Q2Visa.documents if isinstance(d, documents.InvitationLetter)]
-        self.assertEqual([type(d) for d in letters], [documents.Q2InvitationLetter])
-        self.assertEqual(letters[0].template_name, "")   # North template (Q_Template.docx)
+        for cls, template in ((family.Q1Visa, ""), (family.Q2Visa, ""),
+                              (family.SouthQ1Visa, "Q_Template_MN.docx"), (family.SouthQ2Visa, "Q_Template_MN.docx")):
+            letters = [d for d in cls.documents if isinstance(d, documents.InvitationLetter)]
+            self.assertEqual([type(d) for d in letters], [documents.QInvitationLetter], cls.__name__)
+            self.assertEqual(letters[0].template_name, template, cls.__name__)
 
 
 if __name__ == "__main__":
