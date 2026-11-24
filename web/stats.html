@@ -12,6 +12,7 @@
     --series: #2a78d6; --series-hover: #1c5cab; --wash: #eef4fc;
     --h1: #2a78d6; --h2: #eb6834; --h3: #1baf7a; --h0: #a3a29b;
     --good: #006300; --bad: #d03b3b; --accent: #2a78d6;
+    --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #6250d6; --c8: #e34948;
   }
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) {
@@ -21,6 +22,7 @@
       --series: #3987e5; --series-hover: #6da7ec; --wash: #1d2a3a;
       --h1: #3987e5; --h2: #d95926; --h3: #199e70; --h0: #6b6a65;
       --good: #0ca30c; --bad: #e66767; --accent: #3987e5;
+      --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #0ca30c; --c7: #9085e9; --c8: #e66767;
     }
   }
   :root[data-theme="dark"] {
@@ -30,6 +32,7 @@
     --series: #3987e5; --series-hover: #6da7ec; --wash: #1d2a3a;
     --h1: #3987e5; --h2: #d95926; --h3: #199e70; --h0: #6b6a65;
     --good: #0ca30c; --bad: #e66767; --accent: #3987e5;
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #0ca30c; --c7: #9085e9; --c8: #e66767;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--page); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -99,6 +102,32 @@
   .tip .row { display: flex; justify-content: space-between; gap: 12px; color: var(--text-2); }
   .hidden { display: none !important; }
 
+  /* view tabs */
+  .tabs { display: flex; gap: 4px; margin: 0 0 12px; border-bottom: 1px solid var(--grid); }
+  .tabs button { padding: 8px 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--text-2);
+                 font: 600 14px/1.2 inherit; cursor: pointer; margin-bottom: -1px; }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+  .tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  /* donut: chart | list of parts (name, count, %) */
+  .donut { display: grid; grid-template-columns: 180px 1fr; gap: 16px; align-items: center; }
+  @media (max-width: 480px) { .donut { grid-template-columns: 1fr; justify-items: center; } }
+  .donut svg { width: 180px; height: 180px; display: block; overflow: visible; }
+  .donut .slice { cursor: pointer; stroke: var(--surface); stroke-width: 2; transition: filter .1s; }
+  .donut .slice.hl, .donut .slice:focus-visible { filter: brightness(.88); outline: none; }
+  .donut .slice.on { stroke: var(--text); }
+  .donut .ctr-v { fill: var(--text); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .donut .ctr-k { fill: var(--muted); font-size: 12px; }
+  .plist { display: flex; flex-direction: column; gap: 1px; min-width: 0; width: 100%; max-width: 460px; }
+  .prow { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto 48px; gap: 8px; align-items: center; padding: 3px 6px;
+          border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .prow:hover, .prow.hl, .prow:focus-visible { background: var(--wash); outline: none; }
+  .prow.on { background: var(--wash); box-shadow: inset 3px 0 0 var(--accent); }
+  .prow i { width: 12px; height: 12px; border-radius: 3px; }
+  .prow .pn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prow .pv, .prow .pp { font-variant-numeric: tabular-nums; text-align: right; color: var(--text-2); }
+  .prow .pp { color: var(--muted); }
+
   /* table */
   .tablewrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -141,7 +170,11 @@
     <div class="tiles" id="tiles"></div>
     <div class="legend" id="legend" aria-label="Màu theo nhà"></div>
 
-    <div class="grid">
+    <div class="tabs" role="tablist" aria-label="Kiểu biểu đồ">
+      <button role="tab" id="tabBars" data-view="bars" aria-selected="true" class="on">Biểu đồ cột</button>
+      <button role="tab" id="tabPie" data-view="pie" aria-selected="false">Biểu đồ tròn</button>
+    </div>
+    <div class="grid" id="viewBars" role="tabpanel" aria-labelledby="tabBars">
       <div class="card wide">
         <h2>Hồ sơ theo ngày</h2><div class="sub" id="daySub">Số hồ sơ tạo mới mỗi ngày (giờ Việt Nam)</div>
         <div class="colchart" id="byDay"></div>
@@ -151,6 +184,15 @@
       <div class="card"><h2>Theo trạng thái</h2><div class="sub">Bấm để lọc</div><div class="hbars" id="byStatus"></div></div>
       <div class="card"><h2>Theo nhân viên</h2><div class="sub">Người chạy hồ sơ lần đầu · bấm để lọc</div><div class="hbars" id="byStaff"></div></div>
       <div class="card"><h2>Theo nhà</h2><div class="sub">Bấm để lọc</div><div class="hbars" id="byHouse"></div></div>
+    </div>
+    <div class="grid hidden" id="viewPie" role="tabpanel" aria-labelledby="tabPie">
+      <div class="card"><h2>Tỉ lệ theo trạng thái</h2><div class="sub">Phần trăm trên tổng hồ sơ theo bộ lọc · bấm để lọc</div><div class="donut" id="pieStatus"></div></div>
+      <div class="card"><h2>Tỉ lệ theo loại visa</h2><div class="sub">Bấm để lọc</div><div class="donut" id="pieVisa"></div></div>
+      <div class="card"><h2>Tỉ lệ theo nhà</h2><div class="sub">Bấm để lọc</div><div class="donut" id="pieHouse"></div></div>
+      <div class="card"><h2>Tỉ lệ theo nhân viên</h2><div class="sub">Người chạy hồ sơ lần đầu · bấm để lọc</div><div class="donut" id="pieStaff"></div></div>
+      <div class="card wide"><h2>Tỉ lệ theo đại lý</h2><div class="sub">Bấm để lọc</div><div class="donut" id="pieAgency"></div></div>
+    </div>
+    <div class="grid" style="margin-top:16px">
       <div class="card wide">
         <h2>Hồ sơ</h2><div class="sub" id="tableSub"></div>
         <div class="f" style="max-width:320px;margin-bottom:8px"><input id="q" placeholder="Tìm số hộ chiếu, tên, mã hồ sơ…"></div>
@@ -351,6 +393,68 @@ function columns(el, data) {
   });
 }
 
+// ---------- donut (part-to-whole): <= 7 parts + "Khác"; color = slot in that order, houses keep the house colors ----------
+const PIE_MAX = 7;
+function donut(el, rows, { label, filterId, valueFor, colorFor }) {
+  const sum = rows.reduce((t, r) => t + r.n, 0);
+  if (!sum) { el.innerHTML = '<div class="empty">Không có dữ liệu</div>'; return; }
+  let list = rows.filter((r) => r.n > 0).slice(0, PIE_MAX);
+  const rest = rows.filter((r) => r.n > 0).slice(PIE_MAX);
+  if (rest.length) list.push({ key: '__other', n: rest.reduce((t, r) => t + r.n, 0), approved: rest.reduce((t, r) => t + r.approved, 0),
+    rejected: rest.reduce((t, r) => t + r.rejected, 0), other: rest.length,
+    houses: rest.reduce((acc, r) => { for (const [h, n] of Object.entries(r.houses || {})) acc[h] = (acc[h] || 0) + n; return acc; }, {}) });
+  const current = filterId ? $(filterId).value : '';
+  const parts = list.map((r, i) => ({ ...r,
+    name: r.key === '__other' ? `Khác (${r.other})` : label(r.key),
+    color: r.key === '__other' ? 'var(--h0)' : (colorFor ? colorFor(r.key, i) : `var(--c${i + 1})`),
+    pct: 100 * r.n / sum,
+    on: !!current && r.key !== '__other' && (valueFor ? valueFor(r.key) : r.key) === current }));
+  const R = 88, r0 = 56, C = 90;
+  const pt = (a, rad) => `${(C + rad * Math.sin(a)).toFixed(2)},${(C - rad * Math.cos(a)).toFixed(2)}`;
+  let a = 0, svg = `<svg viewBox="0 0 180 180" role="img" aria-label="${esc(parts.map((x) => `${x.name} ${x.pct.toFixed(1)}%`).join(', '))}">`;
+  parts.forEach((x, i) => {
+    const da = 2 * Math.PI * x.n / sum;
+    if (parts.length === 1) {
+      svg += `<path class="slice" data-i="${i}" tabindex="0" fill="${x.color}" fill-rule="evenodd" d="M${C},${C - R} A${R},${R} 0 1 1 ${C - 0.01},${C - R} Z M${C},${C - r0} A${r0},${r0} 0 1 0 ${C + 0.01},${C - r0} Z"/>`;
+    } else {
+      const big = da > Math.PI ? 1 : 0;
+      svg += `<path class="slice${x.on ? ' on' : ''}" data-i="${i}" tabindex="0" fill="${x.color}" d="M${pt(a, R)} A${R},${R} 0 ${big} 1 ${pt(a + da, R)} L${pt(a + da, r0)} A${r0},${r0} 0 ${big} 0 ${pt(a, r0)} Z"/>`;
+    }
+    a += da;
+  });
+  svg += `<text class="ctr-v" x="${C}" y="${C + 4}" text-anchor="middle">${fmt(sum)}</text><text class="ctr-k" x="${C}" y="${C + 22}" text-anchor="middle">hồ sơ</text></svg>`;
+  const listHtml = parts.map((x, i) => `<div class="prow${x.on ? ' on' : ''}" data-i="${i}" tabindex="0" role="button" aria-label="${esc(x.name)}: ${x.n} hồ sơ, ${x.pct.toFixed(1)}%">
+      <i style="background:${x.color}"></i><span class="pn" title="${esc(x.name)}">${esc(x.name)}</span><span class="pv">${fmt(x.n)}</span><span class="pp">${x.pct.toFixed(1)}%</span></div>`).join('');
+  el.innerHTML = svg + `<div class="plist">${listHtml}</div>`;
+  const marks = (i) => el.querySelectorAll(`[data-i="${i}"]`);
+  el.querySelectorAll('[data-i]').forEach((m) => {
+    const i = Number(m.dataset.i), x = parts[i];
+    const tipRows = [['hồ sơ', fmt(x.n)], ['Tỉ lệ', `${x.pct.toFixed(1)}%`], ['Đạt', fmt(x.approved)], ['Từ chối / huỷ', fmt(x.rejected)], ...houseRows(x.houses)];
+    const on = (e) => { marks(i).forEach((k) => k.classList.add('hl')); showTip(e, x.name, tipRows); };
+    const off = () => { marks(i).forEach((k) => k.classList.remove('hl')); hideTip(); };
+    m.addEventListener('pointermove', on);
+    m.addEventListener('pointerleave', off);
+    m.addEventListener('focus', () => { const b = m.getBoundingClientRect(); on({ clientX: b.left + b.width / 2, clientY: b.top, target: m }); });
+    m.addEventListener('blur', off);
+    if (filterId && x.key !== '__other') {
+      const pick = () => { const v = valueFor ? valueFor(x.key) : x.key; $(filterId).value = $(filterId).value === v ? '' : v; hideTip(); reload(); };
+      m.addEventListener('click', pick);
+      m.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    } else { m.style.cursor = 'default'; }
+  });
+}
+
+// ---------- view tabs (remembered per browser) ----------
+let view = 'bars';
+function setView(v) {
+  view = v === 'pie' ? 'pie' : 'bars';
+  $('viewBars').classList.toggle('hidden', view !== 'bars');
+  $('viewPie').classList.toggle('hidden', view !== 'pie');
+  document.querySelectorAll('.tabs button').forEach((b) => { const on = b.dataset.view === view; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  try { localStorage.setItem('visa_stats_view', view); } catch (e) {}
+  if (view === 'bars' && lastDays) columns($('byDay'), lastDays);   // its width is 0 while hidden
+}
+
 // ---------- tiles ----------
 function tiles(t) {
   const decided = t.approved + t.rejected;
@@ -397,12 +501,18 @@ async function reload() {
     tiles(c.totals);
     legend(c.houses || []);
     lastDays = c.by_day;
-    columns($('byDay'), c.by_day);
+    if (view === 'bars') columns($('byDay'), c.by_day);
     hbars($('byAgency'), c.by_agency, { label: (k) => k === OPTS.unknown_agency ? NONE_LABEL.agency : (agencyName(k)), filterId: 'agency', max: 12 });
     hbars($('byVisa'), c.by_visa, { label: (k) => k || '(trống)', filterId: 'visa' });
     hbars($('byStatus'), c.by_status, { label: (k) => STATUS_VI[k] || k, filterId: 'status' });
     hbars($('byStaff'), c.by_staff, { label: (k) => k === OPTS.unknown_staff ? NONE_LABEL.staff : k, filterId: 'staff' });
     hbars($('byHouse'), c.by_house, { label: (k) => k || '(trống)', filterId: 'house' });
+    const agencyLabel = (k) => k === OPTS.unknown_agency ? NONE_LABEL.agency : agencyName(k);
+    donut($('pieStatus'), c.by_status, { label: (k) => STATUS_VI[k] || k, filterId: 'status' });
+    donut($('pieVisa'), c.by_visa, { label: (k) => k || '(trống)', filterId: 'visa' });
+    donut($('pieHouse'), c.by_house, { label: (k) => k || '(trống)', filterId: 'house', colorFor: (k) => houseColor(k) });
+    donut($('pieStaff'), c.by_staff, { label: (k) => k === OPTS.unknown_staff ? NONE_LABEL.staff : k, filterId: 'staff' });
+    donut($('pieAgency'), c.by_agency, { label: agencyLabel, filterId: 'agency' });
     $('msg').classList.add('hidden');
   } catch (e) {
     message(esc(e.message));
@@ -431,6 +541,8 @@ async function init() {
     message(esc(e.message)); return;
   }
   $('app').classList.remove('hidden');
+  document.querySelectorAll('.tabs button').forEach((b) => { b.onclick = () => setView(b.dataset.view); });
+  try { setView(localStorage.getItem('visa_stats_view') || 'bars'); } catch (e) { setView('bars'); }
   if (!loadFilters()) setRange('30'); else markPreset('');
   document.querySelectorAll('#presets button').forEach((b) => { b.onclick = () => { setRange(b.dataset.range); reload(); }; });
   FILTERS.forEach((id) => $(id).addEventListener('change', () => { if (id === 'from' || id === 'to') markPreset(''); reload(); }));
@@ -438,7 +550,7 @@ async function init() {
   $('q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => { offset = 0; loadRows().catch((e) => message(esc(e.message))); }, 350); });
   $('prev').onclick = () => { offset = Math.max(0, offset - LIMIT); loadRows(); };
   $('next').onclick = () => { offset += LIMIT; loadRows(); };
-  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (lastDays) columns($('byDay'), lastDays); }, 200); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (lastDays && view === 'bars') columns($('byDay'), lastDays); }, 200); });
   reload();
 }
 init();
