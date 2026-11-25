@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hướng dẫn chuẩn bị hồ sơ visa</title>
+<link rel="icon" href="/web/brand/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/web/brand/favicon.svg">
+<link rel="apple-touch-icon" href="/web/brand/apple-touch-icon.png">
+<meta name="theme-color" content="#102A43">
+<link rel="stylesheet" href="/web/guide.css">
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #667085; --line: #d9dde5;
+    --accent: #1f6feb; --accent-text: #fff; --ok-bg: #e8f6ee; --ok: #116b3a; --err-bg: #fdecec; --err: #a4161a;
+    --track: #e6e9ef; --warn-bg: #fff4e0; --warn: #9a5b00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171c; --card: #1d2129; --text: #e6e8ec; --muted: #9aa3b2; --line: #333a46;
+            --accent: #4c8dff; --ok-bg: #12301f; --ok: #7fd6a2; --err-bg: #3a1618; --err: #ff9a9a; --track: #2a303b;
+            --warn-bg: #3a2c12; --warn: #f5c56b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; }
+  .brand { margin: 0 0 18px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .brand img { width: 40px; height: 40px; flex: none; display: block; }
+  .brand h1 { font-size: 24px; margin: 0; }
+  .brand .hint { margin-left: auto; }
+  button { padding: 10px 18px; border: 0; border-radius: 7px; background: var(--accent); color: var(--accent-text); font: inherit; font-weight: 600; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+  .hint { color: var(--muted); font-size: 14px; font-weight: 400; }
+  .hidden { display: none !important; }
+  .msg { margin-top: 14px; padding: 10px 12px; border-radius: 7px; }
+  .msg.err { background: var(--err-bg); color: var(--err); }
+  .st { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--track); color: var(--muted); }
+  .st.approved { background: var(--ok-bg); color: var(--ok); }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.data th, table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.data th { color: var(--muted); font-weight: 600; font-size: 13px; background: var(--bg); }
+  .dlg-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+                  padding: 16px; background: rgba(15, 18, 25, .55); animation: dlg-fade .15s ease-out; }
+  @keyframes dlg-fade { from { opacity: 0; } }
+  @keyframes dlg-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+
+  /* pickers: visa type + house, stay on top while scrolling */
+  .pick { position: sticky; top: 0; z-index: 5; background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+          padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 12px 26px; align-items: flex-end; box-shadow: 0 6px 18px rgba(0, 0, 0, .06); }
+  .pick .seg button { padding: 7px 13px; }
+  .pick-actions { margin-left: auto; display: flex; gap: 8px; }
+  .pick-actions button { padding: 7px 12px; font-size: 14px; }
+  .guide.guide-page { width: auto; max-height: none; display: block; box-shadow: none; animation: none; margin-top: 16px; }
+  .guide-page .guide-head { border-bottom: 0; padding-bottom: 0; }
+  .guide-page .guide-head h2 { margin: 0; font-size: 22px; }
+  .guide-page .guide-body { overflow: visible; }
+  .exall-item { padding: 12px 0; border-top: 1px dashed var(--line); }
+  .exall-item:first-child { border-top: 0; }
+  .exall-item h4 { margin: 0; font-size: 16px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .exall-item .exgrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .exall-item .exempty { padding: 14px; margin-top: 8px; font-size: 14px; }
+  @media print {
+    .pick, .pick-actions, .exbtn { display: none !important; }
+    body { background: #fff; }
+    .guide details { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/web" title="Về trang khai hồ sơ"><img src="/web/brand/favicon.svg" alt=""><h1>Hướng dẫn chuẩn bị hồ sơ visa</h1><span class="hint">← trang khai hồ sơ</span></a>
+
+  <div class="pick">
+    <div><div class="gcap">Loại visa</div><div id="pickVisa"></div></div>
+    <div><div class="gcap">Nhà</div><div id="pickHouse"></div></div>
+    <div class="pick-actions">
+      <button class="secondary" id="copyLink" type="button" title="Chép link trang này, giữ các lựa chọn đang chọn">🔗 Chép link</button>
+      <button class="secondary" id="openAll" type="button">Mở hết</button>
+    </div>
+  </div>
+
+  <div class="guide guide-page">
+    <div class="guide-head"><h2 id="title"></h2></div>
+    <div class="guide-body" id="body"></div>
+  </div>
+</main>
+
+<div id="exDlg" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="exTitle">
+  <div class="exbox">
+    <div class="guide-head">
+      <h3 id="exTitle"></h3>
+      <div class="bar-actions"><button class="secondary" id="exClose" type="button">✕ Đóng</button></div>
+    </div>
+    <div class="exbody" id="exBody"></div>
+  </div>
+</div>
+
+<script src="/web/guide.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+const HOUSES = __HOUSES__;   // filled in by the server
+const VISAS = Object.keys(GUIDES);
+const q = new URLSearchParams(location.search);
+let visa = VISAS.includes(q.get('visa')) ? q.get('visa') : VISAS[0];
+let house = HOUSES.includes(q.get('house')) ? q.get('house') : HOUSES[0];
+Object.keys(guideOpt).forEach((k) => {
+  if (!q.has(k)) return;
+  guideOpt[k] = GUIDE_BOOL.includes(k) ? q.get(k) === 'true' : q.get(k);
+});
+
+function pickers() {
+  const chips = (k, items, cur) => `<div class="seg" role="group">${items.map((v) =>
+    `<button type="button" data-pick="${k}" data-v="${esc(v)}" class="${v === cur ? 'on' : ''}" title="${esc(k === 'visa' ? GUIDES[v].title : 'Nhà ' + v)}">${esc(v)}</button>`).join('')}</div>`;
+  $('pickVisa').innerHTML = chips('visa', VISAS, visa);
+  $('pickHouse').innerHTML = chips('house', HOUSES, house);
+}
+
+// Page only: last section = every example of the files in this guide, loaded when opened.
+function examplesSection() {
+  const seen = new Map();
+  $('body').querySelectorAll('.exbtn').forEach((b) => {
+    if (!seen.has(b.dataset.ex)) seen.set(b.dataset.ex, { name: b.dataset.name, what: b.dataset.what });
+  });
+  if (!seen.size) return;
+  const n = $('body').querySelectorAll('details').length + 1;
+  const d = document.createElement('details');
+  d.dataset.id = 'examples';
+  d.innerHTML = `<summary>${n}. Ảnh ví dụ của từng file<span class="hint">${seen.size} loại file</span></summary>
+    <div class="guide-sec">${[...seen].map(([key, x]) => `<div class="exall-item" data-key="${esc(key)}">
+      <h4><span class="fname">${esc(x.name)}.jpg</span><span class="hint">${esc(x.what)}</span></h4><div class="exall-files hint">Đang tải…</div></div>`).join('')}</div>`;
+  let loaded = false;
+  d.addEventListener('toggle', () => {
+    if (!d.open || loaded) return;
+    loaded = true;
+    d.querySelectorAll('.exall-item').forEach(async (it) => {
+      const ex = await guideExamples(it.dataset.key);
+      it.querySelector('.exall-files').outerHTML = ex.files.length
+        ? guideExGrid(it.dataset.key, ex)
+        : '<div class="exempty">Chưa có ảnh ví dụ.</div>';
+    });
+  });
+  $('body').appendChild(d);
+}
+
+function render() {
+  const keepExamples = $('body').querySelector('details[data-id="examples"]')?.open;
+  const g = guideFill($('body'), visa, house);
+  $('title').textContent = g ? g.title : `Visa ${visa} — chuẩn bị file`;
+  document.title = (g ? g.title : 'Hướng dẫn') + ' · Hướng dẫn chuẩn bị hồ sơ visa';
+  examplesSection();
+  if (keepExamples) $('body').querySelector('details[data-id="examples"]')?.setAttribute('open', '');
+  $('openAll').textContent = 'Mở hết';
+  pickers();
+  history.replaceState(null, '', guidePageUrl(visa, house));
+}
+
+document.querySelector('.pick').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-pick]');
+  if (!b) return;
+  if (b.dataset.pick === 'visa') { visa = b.dataset.v; $('body').innerHTML = ''; }   // other type: start with its default open sections
+  else house = b.dataset.v;
+  render();
+});
+$('body').addEventListener('click', (e) => {
+  const ex = e.target.closest('.exbtn');
+  if (ex) { e.preventDefault(); openExamples(ex); return; }
+  const b = e.target.closest('.seg button');
+  if (b) guidePick(b, $('body'), render);
+});
+$('openAll').onclick = () => { $('openAll').textContent = guideToggleAll($('body')); };
+$('copyLink').onclick = async () => {
+  try { await navigator.clipboard.writeText(location.href); $('copyLink').textContent = '✓ Đã chép link'; }
+  catch (_) { prompt('Chép link này:', location.href); }
+  setTimeout(() => { $('copyLink').textContent = '🔗 Chép link'; }, 2000);
+};
+
+// example photos of one file (view only; ADMIN adds / deletes them from the popup in /web)
+async function openExamples(btn) {
+  const key = btn.dataset.ex;
+  $('exTitle').textContent = `Ảnh ví dụ — ${btn.dataset.name}.jpg`;
+  $('exBody').innerHTML = `<p class="hint">${esc(btn.dataset.what)}</p><p class="hint">Đang tải ảnh…</p>`;
+  $('exDlg').classList.remove('hidden');
+  $('exClose').focus();
+  const ex = await guideExamples(key);
+  if ($('exDlg').classList.contains('hidden')) return;
+  $('exBody').innerHTML = `<p class="hint">${esc(btn.dataset.what)}</p>` + (ex.files.length
+    ? `<p class="hint">Làm file của mình giống các ảnh dưới đây: đủ giấy, rõ chữ, không mất góc. Bấm vào ảnh / PDF để xem cỡ lớn.</p>${guideExGrid(key, ex)}`
+    : `<div class="exempty">Chưa có ảnh ví dụ cho <b>${esc(btn.dataset.name)}.jpg</b>.</div>`);
+}
+function closeExamples() { $('exDlg').classList.add('hidden'); $('exBody').innerHTML = ''; }
+$('exClose').onclick = closeExamples;
+$('exDlg').addEventListener('click', (e) => { if (e.target === $('exDlg')) closeExamples(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('exDlg').classList.contains('hidden')) closeExamples(); });
+
+render();
+</script>
+</body>
+</html>

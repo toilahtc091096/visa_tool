@@ -50,6 +50,7 @@ from services.web_portal import build_start_payload, start_case
 from services.web_portal import history_entry as web_history_entry
 from database.crud import web_curl
 from services.web_portal import form_options as web_form_options
+from services.web_portal import HOUSES as WEB_HOUSES
 from services.web_portal import rerun_prepare as web_rerun_prepare
 from services.web_portal import folder_stat as web_folder_stat_call
 from services.web_portal import make_step as web_make_step
@@ -224,6 +225,27 @@ def _web_user(request: Request) -> dict[str, Any]:
 @app.get("/web")
 def web_page():
     return HTMLResponse(_WEB_PAGE.read_text(encoding="utf-8"))
+
+
+_GUIDE_PAGE = _WEB_PAGE.parent / "guide.html"
+# Guide content + styles shared by the popup in /web and the page /web/huong-dan.
+_GUIDE_ASSETS = {"guide.js": "text/javascript; charset=utf-8", "guide.css": "text/css; charset=utf-8"}
+
+
+@app.get("/web/huong-dan")
+def web_guide_page():
+    """'Hướng dẫn chuẩn bị hồ sơ' as its own page (public, like /web: nothing secret in it).
+    Query visa / house / options pick what is shown (the popup's "Trang riêng" link fills them)."""
+    html = _GUIDE_PAGE.read_text(encoding="utf-8").replace("__HOUSES__", json.dumps(list(WEB_HOUSES)))
+    return HTMLResponse(html)
+
+
+@app.get("/web/guide.js")
+@app.get("/web/guide.css")
+def web_guide_asset(request: Request):
+    name = request.url.path.rsplit("/", 1)[-1]
+    return Response((_WEB_PAGE.parent / name).read_bytes(), media_type=_GUIDE_ASSETS[name],
+                    headers={"Cache-Control": "no-cache"})
 
 
 _GUIDE_DIR = _WEB_PAGE.parent / "guide"
