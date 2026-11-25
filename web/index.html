@@ -1683,7 +1683,10 @@ $('runBtn').onclick = async () => {
     show($('curlMsg'), lines.join('\n'), r.ok);
     if (tokenIssue) openTokenCard(r.house);
     renderTimings(res.timings, r.ok);
-    showCaseImages(r.house, String(body.passportNumber || '').trim(), body.old_issueDate, body.visa_type);
+    // images were loaded at "Đọc curl": only reload when the run is for another house / passport
+    const runPassport = String(body.passportNumber || '').trim();
+    if (!caseImgCur || caseImgCur.house !== r.house || caseImgCur.passport !== runPassport)
+      showCaseImages(r.house, runPassport, body.old_issueDate, body.visa_type);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
     if (r.ok) loadHistory();
