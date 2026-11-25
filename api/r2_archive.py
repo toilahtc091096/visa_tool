@@ -226,6 +226,8 @@ PORTRAIT_KEY = "anh_chan_dung/portrait.png"  # n8n WF-08 (edited portrait)
 CT07_FOLDER = "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/"
 # Old Chinese visas (n8n WF-09): file_<issue date>_<n>.png (older cases file_<n>.png) on the current passport,
 # visa_cu_<issue date>_<n>.png on an old passport.
+# Inviter's papers of Q1 / Q2 / S2 (qmoi_* / smoi_*, n8n WF-04I keeps the file name).
+INVITER_DOC_FOLDER = "tham-than/cccd/"
 OLD_VISA_FOLDERS = (
     "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/",
     "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_ho_chieu_cu/",
@@ -239,8 +241,8 @@ def api_find_case_images(passport_number: str) -> dict[str, Any]:
     (utils/upload_file.get_passport_file_path): passport.png, else an image in
     passport/, else the first image right in the folder (by name).
     portrait: anh_chan_dung/portrait.png. "" when missing.
-    ct07: images / PDFs in CT07_FOLDER; old_visas: images in OLD_VISA_FOLDERS
-    (lists, by name).
+    ct07: images / PDFs in CT07_FOLDER; old_visas: images in OLD_VISA_FOLDERS;
+    inviter_docs: images / PDFs in INVITER_DOC_FOLDER (lists, by name).
     """
     missing = _missing_r2_env_vars()
     if missing:
@@ -270,5 +272,7 @@ def api_find_case_images(passport_number: str) -> dict[str, Any]:
         "ct07": [folder + r for r in rel
                  if r.startswith(CT07_FOLDER) and r.lower().endswith(_IMAGE_EXT + (".pdf",))],
         "old_visas": [folder + r for r in images if r.startswith(OLD_VISA_FOLDERS)],
+        "inviter_docs": [folder + r for r in rel
+                         if r.startswith(INVITER_DOC_FOLDER) and r.lower().endswith(_IMAGE_EXT + (".pdf",))],
         "files": len(keys),
     }

@@ -98,6 +98,17 @@ class PickOldVisaTest(unittest.TestCase):
         self.assertEqual(wp.pick_old_visas(new + cur, "2020-01-01"), cur)        # no match: the undated ones
 
 
+class PickInviterDocTest(unittest.TestCase):
+    def test_pick(self):
+        f = "P/tham-than/cccd/"
+        self.assertEqual(wp.pick_inviter_doc([f + "qmoi_10.jpg", f + "qmoi_1.jpg", f + "qmoi_2.jpg"]), [f + "qmoi_1.jpg"])
+        self.assertEqual(wp.pick_inviter_doc([f + "QMOI_1_p1.png", f + "QMOI_1_p2.png", f + "qmoi_2.png"]),
+                         [f + "QMOI_1_p1.png", f + "QMOI_1_p2.png"])             # split pages: all of them
+        self.assertEqual(wp.pick_inviter_doc([f + "smoi_ruot_5.png", f + "smoi_1.pdf"]), [f + "smoi_1.pdf"])
+        self.assertEqual(wp.pick_inviter_doc([f + "qmoi_3.jpg", f + "qmoi_2.jpg"]), [f + "qmoi_3.jpg"])
+        self.assertEqual(wp.pick_inviter_doc([f + "smoi_ruot_5.png"]), [])
+
+
 class StackedCaseImageTest(unittest.TestCase):
     """CT07 (a PDF, maybe several pages) / several old visas -> one JPEG."""
 

@@ -278,7 +278,8 @@ def upload_file(house_name: str, source_prefix: str, relative_path: str, content
 # the edited portrait saved by n8n WF-08, the CT07 (one PDF made by WF-07B) and
 # the old Chinese visas (WF-09). CT07 / visa: several files (or PDF pages) are
 # shown as one image, stacked.
-CASE_IMAGES = {"passport": "Ảnh hộ chiếu", "portrait": "Ảnh chân dung", "ct07": "CT07", "visa": "Visa cũ"}
+CASE_IMAGES = {"passport": "Ảnh hộ chiếu", "portrait": "Ảnh chân dung", "ct07": "CT07", "visa": "Visa cũ",
+               "moi": "qmoi_1"}
 _PASSPORT_FOLDER_RE = re.compile(r"^[A-Za-z0-9_-]{3,40}$")
 _STACK_WIDTH = 1400       # px, width of a stacked image
 _STACK_MAX_PAGES = 8
@@ -302,6 +303,20 @@ def pick_old_visas(keys: list[str], issue_date: str = "") -> list[str]:
             return same
     undated = [k for k, m in dated if not m]
     return undated or list(keys)
+
+
+_INVITER_DOC_RE = re.compile(r"^[qs]moi_0*1(?!\d)")
+
+
+def pick_inviter_doc(keys: list[str]) -> list[str]:
+    """Q1 / Q2 / S2: the inviter's first paper, qmoi_1 (S2: smoi_1; every page
+    when it was split), else the first qmoi_ / smoi_ file. Not smoi_ruot_ etc."""
+    names = [(k, k.rsplit("/", 1)[-1].lower()) for k in keys]
+    first = [k for k, n in names if _INVITER_DOC_RE.match(n)]
+    if first:
+        return first
+    any_moi = [k for k, n in names if re.match(r"^[qs]moi_\d", n)]
+    return any_moi[:1]
 
 
 def _stack_pages(files: list[tuple[str, bytes]]) -> bytes:
@@ -358,6 +373,8 @@ def case_image(house_name: str, passport_number: str, kind: str,
         keys = list(found.get("ct07") or [])
     elif kind == "visa":
         keys = pick_old_visas(list(found.get("old_visas") or []), issue_date)
+    elif kind == "moi":
+        keys = pick_inviter_doc(list(found.get("inviter_docs") or []))
     else:
         keys = [str(found.get(kind) or "")] if found.get(kind) else []
     if not keys:
