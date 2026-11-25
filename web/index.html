@@ -42,6 +42,7 @@
   button:disabled { opacity: .55; cursor: wait; }
   .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--muted); }
   .bar button { margin: 0; padding: 6px 12px; }
+  .bar .btn-link { font-size: inherit; }
   .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
   .tabs button { margin: 0; padding: 12px 20px; background: transparent; color: var(--text); border: 1px solid var(--line); }
   .tabs button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
@@ -218,6 +219,7 @@
   <section id="app" class="hidden">
     <div class="bar"><span id="who"></span>
       <span class="bar-actions">
+        <a class="btn-link" id="guideTop" href="/web/huong-dan" target="_blank" rel="noopener" title="Hướng dẫn chuẩn bị file cho từng loại visa (tab mới)">📘 Hướng dẫn</a>
         <button class="secondary" id="tokenBtn" type="button" title="Đăng nhập trang bio của nhà để lấy token mới">🔑 Lấy token</button>
         <button class="secondary" id="logout">Đăng xuất</button>
       </span>
@@ -681,6 +683,8 @@ function openGuide() {
 }
 function closeGuide() { $('guide').classList.add('hidden'); $('guideBtn').focus(); }
 $('guideBtn').onclick = openGuide;
+// top bar link: open the guide page on the visa / house chosen in the form
+$('guideTop').addEventListener('click', () => { $('guideTop').href = guidePageUrl($('visa').value, $('house').value); });
 $('guideClose').onclick = closeGuide;
 $('guide').addEventListener('click', (e) => { if (e.target === $('guide')) closeGuide(); });
 document.addEventListener('keydown', (e) => {
