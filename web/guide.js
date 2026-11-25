@@ -197,7 +197,8 @@ const inviteSteps = (p, maxRel, inviterDocs) => ({ id: 'steps', title: 'Thứ t�
     `<b>${p}moi_ — giấy tờ người mời</b>: ${inviterDocs}.<br>
      ${north ? `<b>Nhà ${esc(h)} (miền Bắc)</b>: chỉ <code>${p}moi_1</code>, <code>${p}moi_2</code> (2 giấy quan trọng nhất). Giấy người mời còn lại → <code>${p}khac_</code>.`
              : `<b>Nhà ${esc(h)} (miền Nam)</b>: <code>${p}moi_1</code> → <code>${p}moi_n</code>, đánh số đúng thứ tự trang.`}`,
-    `<b>${p}cm_ — giấy quan hệ</b> giữa người mời và người được mời (giấy nào là giấy chính: xem mục "Giấy chứng minh quan hệ"). Giấy quan hệ để ở <code>${p}cm_</code>, <b>không</b> cho vào <code>${p}khac_</code>.
+    `<b>${p}cm_ — chỉ giấy quan hệ chính giữa 2 người</b>: người mời ↔ người được mời (vd con mời mẹ: giấy khai sinh của con).
+     Giấy quan hệ của 1 trong 2 người <b>với người khác</b> (vd đăng ký kết hôn của mẹ với bố) → <code>${p}khac_</code>. Xem thêm mục "Giấy chứng minh quan hệ".
      ${north ? `<br>Miền Bắc chỉ tải ${maxRel} file <code>${p}cm_</code> đầu tiên — giấy quan trọng nhất để số nhỏ.` : ''}`,
     `<b>Chữ ký</b>: ${sig(p + 'chuki')}.${p === 'q' ? `<br>Cần người bảo lãnh (ký thay người mời): ${sig('qbaolanh')}.` : ''}`,
     `<b>${p}khac_ — còn lại</b>: mọi giấy tờ khác${north ? ` (gồm giấy người mời từ tờ thứ 3)` : ''}.<br>
@@ -368,7 +369,7 @@ const signNote = (o, ex) => o.goc
   : `<li><b>Vẽ lại nét</b> (đã chọn ở trên): tên file bình thường, vd <code>${ex}_1</code>. Hệ thống làm nền trắng và <b>vẽ lại nét</b> cho đều. Dùng khi ảnh chữ ký mờ, nhoè, chụp nghiêng.</li>`;
 // qcm_ / scm_ = the MAIN proof of the relation, which depends on who invites whom; the other relation papers go to qkhac_ / skhac_.
 const relSection = (cm, khac) => ({ id: 'rel', title: `Giấy chứng minh quan hệ (${cm}_) theo quan hệ người mời`, hint: `${cm}_ hay ${khac}_`, open: true, html: () => `
-  <p><code>${cm}_</code> chỉ chứa <b>giấy chứng minh đúng quan hệ</b> chọn ở ô "Quan hệ" của form. Giấy quan hệ khác (không phải giấy chính của quan hệ đó) đặt <code>${khac}_</code>.</p>
+  <p><code>${cm}_</code> chỉ chứa <b>giấy chứng minh đúng quan hệ</b> chọn ở ô "Quan hệ" của form. Chỉ giấy quan hệ <b>trực tiếp giữa người mời và người được mời</b>; giấy quan hệ của 1 trong 2 người với người khác đặt <code>${khac}_</code>.</p>
   <div class="tbl-wrap"><table class="data"><tr><th>Quan hệ (ví dụ)</th><th><code>${cm}_1</code>, <code>${cm}_2</code>… là</th><th><code>${khac}_1</code>, <code>${khac}_2</code>… là</th></tr>
     <tr><td><b>Vợ mời chồng</b> / chồng mời vợ</td>
         <td><b>Giấy đăng ký kết hôn</b>: bản Trung Quốc và bản Việt Nam. Bản có đóng dấu thì đưa kèm vào luôn (vd <code>${cm}_1</code> = ĐKKH TQ, <code>${cm}_2</code> = ĐKKH VN, <code>${cm}_3</code> = bản có đóng dấu).</td>
