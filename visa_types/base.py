@@ -258,31 +258,69 @@ class ChinaPlace:
     postcode: str = ""
 
 
-def china_place_from_pinyin(travel) -> ChinaPlace:
-    """The inviter's (Q, S2), company's (M) or school's (F, X1, X2) place, from
-    inviterProvincePinyin / inviterCityPinyin / inviterDistrictPinyin (both
-    regions). A level the pinyin does not resolve stays empty and the miss is
-    logged."""
+def china_place_from_pinyin(travel, address: str | None = None) -> ChinaPlace:
+    """The inviter's (Q, S2), company's (M) or school's (F, X1, X2) place as
+    COVA codes (both regions).
+
+    The Chinese ``address`` (default: travel.inviterAddress) wins: its
+    province / city / county (utils.china_location.resolve_from_address) are
+    used, and the pinyin fields are rewritten to those places' COVA names. The
+    pinyin (inviterProvincePinyin / inviterCityPinyin / inviterDistrictPinyin,
+    guessed by the AI that read the ID card) is used only for what the address
+    does not give. A pinyin that does not match the address is logged as a
+    warning. When the county comes from the ID card because the address
+    misses a character of its name (广西宁县 -> 宁明县), travel.inviterAddress is
+    fixed too (only when ``address`` is the inviter's address)."""
     from utils import log_event
-    from utils.china_location import resolve_china_location
+    from utils.china_location import resolve_china_location, resolve_from_address
 
     names = (
         travel.inviterProvincePinyin,
         travel.inviterCityPinyin,
         travel.inviterDistrictPinyin,
     )
-    if not any(str(n or "").strip() for n in names):
-        log_event({"step": "china_location", "warning": "no location pinyin"})
-        return ChinaPlace()
     id_card = str(getattr(travel, "inviterIdCard", "") or "").strip()
-    place = resolve_china_location(*names, id_card=id_card)
-    event: dict[str, Any] = {"step": "china_location", "pinyin": list(names), "resolved": place}
-    if "city_code" not in place:
-        # City / district are sent empty: check them by hand.
-        event["warning"] = "city not found from pinyin"
-    elif "county_code" in place and len(id_card) >= 6 and id_card[:6] != place["county_code"]:
-        # Only a note: the inviter may live away from the ID's county.
-        event["note"] = f"ID card county {id_card[:6]} != {place['county_code']}"
+    inviter_address = address is None
+    if inviter_address:
+        address = str(getattr(travel, "inviterAddress", "") or "")
+    by_address = resolve_from_address(address, id_card=id_card) if address else {}
+    by_pinyin = resolve_china_location(*names, id_card=id_card) if any(str(n or "").strip() for n in names) else {}
+    if not by_address and not by_pinyin:
+        log_event({"step": "china_location", "warning": "no location pinyin / address"})
+        return ChinaPlace()
+    event: dict[str, Any] = {"step": "china_location", "pinyin": list(names), "address": address,
+                             "by_address": by_address, "by_pinyin": by_pinyin}
+
+    if "city_code" in by_address:
+        place = {k: by_address[k] for k in ("province_code", "city_code", "county_code", "postcode") if k in by_address}
+        if "county_code" not in place and by_pinyin.get("city_code") == place["city_code"] and "county_code" in by_pinyin:
+            place["county_code"] = by_pinyin["county_code"]          # address names no county: the pinyin's, same city
+            if by_pinyin.get("postcode"):
+                place["postcode"] = by_pinyin["postcode"]
+        mismatch = [level for level in ("province_code", "city_code", "county_code")
+                    if by_pinyin.get(level) and by_address.get(level) and by_pinyin[level] != by_address[level]]
+        if mismatch or (by_pinyin and "city_code" not in by_pinyin):
+            event["warning"] = "pinyin does not match the address: the address is used"
+            event["mismatch"] = mismatch
+        # the curl's pinyin becomes the COVA names of the places used
+        travel.inviterProvincePinyin = by_address.get("province", travel.inviterProvincePinyin)
+        travel.inviterCityPinyin = by_address.get("city", travel.inviterCityPinyin)
+        if "county" in by_address:
+            travel.inviterDistrictPinyin = by_address["county"]
+        if by_address.get("fixed_address") and inviter_address:
+            event["warning_address"] = f"address misses characters: {address} -> {by_address['fixed_address']}"
+            travel.inviterAddress = by_address["fixed_address"]
+    else:
+        place = by_pinyin
+        if "city_code" not in place:
+            # City / district are sent empty: check them by hand.
+            event["warning"] = "city not found from pinyin or address"
+        elif by_address.get("province_code") and by_address["province_code"] != place.get("province_code"):
+            event["warning"] = "pinyin province does not match the address"
+        elif "county_code" in place and len(id_card) >= 6 and id_card[:6] != place["county_code"]:
+            # Only a note: the inviter may live away from the ID's county.
+            event["note"] = f"ID card county {id_card[:6]} != {place['county_code']}"
+    event["resolved"] = place
     log_event(event)
     return ChinaPlace(
         province=place.get("province_code", ""),

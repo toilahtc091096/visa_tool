@@ -129,3 +129,109 @@ def resolve_china_location(
     if cnty.get("postcode"):
         found["postcode"] = cnty["postcode"]
     return found
+
+
+# ---------------------------------------------------------------------------
+# From the Chinese address (the source of truth). The province / city / district
+# pinyin come from an AI reading the ID card and can be a guess that does not
+# match the address (广西宁明县明江镇… came with Bose / Tiandong Xian).
+# ---------------------------------------------------------------------------
+
+_PROVINCE_CN_SUFFIXES = ("壮族自治区", "回族自治区", "维吾尔自治区", "特别行政区", "自治区", "省", "市")
+_CITY_CN_SUFFIXES = ("自治州", "地区", "盟", "市")
+_COUNTY_CN_SUFFIXES = "县区市旗"
+
+
+def _cn_short(name: str, suffixes: tuple[str, ...]) -> str:
+    for suffix in suffixes:
+        if name.endswith(suffix) and len(name) - len(suffix) >= 2:
+            return name[: -len(suffix)]
+    return name
+
+
+def _is_subsequence(short: str, long: str) -> bool:
+    it = iter(long)
+    return all(ch in it for ch in short)
+
+
+def resolve_from_address(address: str, id_card: str = "") -> dict[str, str]:
+    """COVA codes + pinyin names of the place written in a Chinese address.
+
+    Province: the one the address starts with (full or short name: 广西 /
+    广西壮族自治区), else the ID card's (first 2 digits). County: a county of
+    that province whose full name is in the address (the earliest one; one
+    under the city found wins). City: the county's city, else a city named in
+    the address. No county in the address: the ID card's county (first 6
+    digits) when it is in that province and city. When the address has a
+    county-like word that is not a real county but whose characters are all in
+    the ID card's county name (宁县 for 宁明县: a character missed by OCR),
+    "fixed_address" is the address with that word replaced.
+
+    Returns the levels found: province_code, city_code, county_code, postcode,
+    province / city / county (COVA pinyin), source ("address" / "id_card" for
+    the county) and maybe fixed_address."""
+    data = _load()
+    text = "".join(str(address or "").split())
+    id_card = str(id_card or "").strip().upper()
+    found: dict[str, str] = {}
+    if not text:
+        return found
+    provinces = [r for r in data["provinces"] if r["key"] == name_key(r["name"])]  # no alias rows
+    prov = next((r for r in provinces
+                 if text.startswith(r["cn"]) or text.startswith(_cn_short(r["cn"], _PROVINCE_CN_SUFFIXES))), None)
+    if not prov and len(id_card) >= 2:
+        prov = next((r for r in provinces if r["id"][:2] == id_card[:2]), None)
+    if not prov:
+        return found
+    found.update(province_code=prov["code"], province=prov["name"])
+    cities = [r for r in data["cities"] if r["parent_id"] == prov["id"] and r["key"] == name_key(r["name"])]
+    city_ids = {r["id"] for r in cities}
+    counties = [r for r in data["counties"] if r["parent_id"] in city_ids and r["key"] == name_key(r["name"])]
+
+    def first_pos(names: list[str]) -> int:
+        pos = [text.find(n) for n in names if n and text.find(n) >= 0]
+        return min(pos) if pos else -1
+
+    city_hits = sorted(((first_pos([r["cn"], _cn_short(r["cn"], _CITY_CN_SUFFIXES)]), r) for r in cities),
+                       key=lambda x: x[0])
+    city_hits = [(p, r) for p, r in city_hits if p >= 0]
+    city = city_hits[0][1] if city_hits else None
+    county_hits = [(text.find(r["cn"]), r) for r in counties if text.find(r["cn"]) >= 0]
+    if city:
+        under = [(p, r) for p, r in county_hits if r["parent_id"] == city["id"]]
+        county_hits = under or county_hits
+    county_hits.sort(key=lambda x: (x[0], -len(x[1]["cn"])))
+    county = county_hits[0][1] if county_hits else None
+    if county and len({r["id"] for p, r in county_hits if p == county_hits[0][0]}) > 1:
+        same = [r for p, r in county_hits if p == county_hits[0][0] and r["code"] == id_card[:6]]
+        county = same[0] if same else None   # same name, same place in the text: only the ID card can tell
+    source = "address"
+    if not county and len(id_card) >= 6:
+        by_id = next((r for r in counties if r["code"] == id_card[:6]), None)
+        if by_id and (not city or by_id["parent_id"] == city["id"]):
+            county, source = by_id, "id_card"
+            # a county-like word right after the province / city that misses characters
+            start = 0
+            for name in (prov["cn"], _cn_short(prov["cn"], _PROVINCE_CN_SUFFIXES)):
+                if text.startswith(name):
+                    start = len(name)
+                    break
+            if city:
+                end = text.find(city["cn"], start)
+                if end >= 0:
+                    start = end + len(city["cn"])
+            m = next((i for i in range(start + 1, min(len(text), start + 8)) if text[i] in _COUNTY_CN_SUFFIXES), -1)
+            word = text[start:m + 1] if m > start else ""
+            if word and word != by_id["cn"] and word[-1] == by_id["cn"][-1] and _is_subsequence(word, by_id["cn"]):
+                raw = str(address)
+                found["fixed_address"] = raw.replace(word, by_id["cn"], 1) if word in raw else text.replace(word, by_id["cn"], 1)
+    if county and not city:
+        city = next(r for r in cities if r["id"] == county["parent_id"])
+    if not city:
+        return found
+    found.update(city_code=city["code"], city=city["name"])
+    if county:
+        found.update(county_code=county["code"], county=county["name"], source=source)
+        if county.get("postcode"):
+            found["postcode"] = county["postcode"]
+    return found

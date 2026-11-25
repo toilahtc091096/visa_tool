@@ -60,7 +60,7 @@ class StudyVisa(VisaProfile):
             leaveVehicleType="",
             is_private=travel.is_private,
         )
-        place = china_place_from_pinyin(travel)
+        place = china_place_from_pinyin(travel, address=travel.school_address or "")
         _apply_f_single_stay_overrides(
             travel_json,
             inviteSchoolName=travel.inviteSchoolName,

@@ -46,7 +46,7 @@ class BusinessVisa(VisaProfile):
             leaveVehicleType="",
             is_private=travel.is_private,
         )
-        place = china_place_from_pinyin(travel)
+        place = china_place_from_pinyin(travel, address=travel.company_address or "")
         _apply_m90_single_stay_overrides(
             travel_json,
             inviteCompanyName=travel.inviteCompanyName,

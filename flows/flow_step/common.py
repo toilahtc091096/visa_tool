@@ -95,6 +95,7 @@ def build_flow_context(**kwargs):
     ctx.inviterDistrictPinyin = kwargs.get("inviterDistrictPinyin", "")
     ctx.inviterAddress = kwargs.get("inviterAddress", "")
     ctx.inviterRelation = kwargs.get("inviterRelation", "")
+    _inviter_place_from_address(ctx)
     ctx.inviterName = kwargs.get(
         "inviterName",
         join_person_name(
@@ -189,3 +190,22 @@ async def check_api_result(ctx, ok: bool, meta: dict) -> bool:
         status_code=meta.get("status_code"),
         response=response,
     )
+
+
+def _inviter_place_from_address(ctx) -> None:
+    """Q1 / Q2 / S2: the inviter's pinyin place follows the Chinese address
+    (and an address missing a character of its county is fixed from the ID
+    card) before anything uses them: COVA form, invitation letter, logs.
+    See visa_types.base.china_place_from_pinyin."""
+    if not str(getattr(ctx, "inviterAddress", "") or "").strip():
+        return
+    if not str(getattr(ctx, "visa_type", "") or "").strip().upper().startswith(("Q", "S")):
+        return
+    from visa_types.base import china_place_from_pinyin
+
+    try:
+        china_place_from_pinyin(ctx)
+    except Exception as exc:  # never stop a run for this: the old pinyin stays
+        from utils import log_event
+
+        log_event({"step": "china_location", "warning": f"address check failed: {exc}"})
