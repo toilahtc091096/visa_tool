@@ -58,6 +58,7 @@ from constants import (
     EMERGENCY_CONTACT_NAME,
     EMERGENCY_CONTACT_PHONE,
     EMERGENCY_CONTACT_RELATION,
+    INVITER_RELATION_FIANCE,
     INVITER_RELATION_ZH_SOUTH,
     VIETNAMESE_COMPANY_NAMES,
     cityzen_status,
@@ -194,6 +195,19 @@ def build_person_profile(
     return PersonInfoProfile.from_dict(person_json)
 
 
+S2_MARRIAGE_SUB_VALUE = "SPM"
+S2_MARRIAGE_PERSONAL_MATTERS = "登记结婚"
+
+
+def south_s2_marriage(visa_type: str, inviter_relation: Any) -> bool:
+    """South only: S2 whose inviter is the fiance (inviterRelation "CHONG SAP
+    CUOI", constants.INVITER_RELATION_FIANCE) - the trip is to get married."""
+    if REGION != REGION_SOUTH or str(visa_type or "").strip().upper() != "S2":
+        return False
+    key = " ".join(_normalize_ascii_upper(str(inviter_relation or "")).replace("Đ", "D").lower().split())
+    return key in INVITER_RELATION_FIANCE
+
+
 def build_apply_info_profile(
     applyid: str,
     first_letter_visa_type: str,
@@ -207,6 +221,12 @@ def build_apply_info_profile(
     inviter_id_card: str = "",
     inviter_relation: str = "",
 ) -> ApplyInfoProfile:
+    personal_matters = ""
+    if south_s2_marriage(first_letter_visa_type, inviter_relation):
+        # South S2 to get married (inviter = fiance): "B. other private matters"
+        # (SPM, 710021), personal matter 登记结婚; the rest as for any S2.
+        type_of_visa_sub_value = S2_MARRIAGE_SUB_VALUE
+        personal_matters = S2_MARRIAGE_PERSONAL_MATTERS
     visa_sub = VISA_TYPE_VALUE.get(first_letter_visa_type, {}).get(
         type_of_visa_sub_value, {}
     )
@@ -234,7 +254,7 @@ def build_apply_info_profile(
             "name": join_person_name(inviter_family_name, inviter_given_name),
             "newPredecessorFlag": False,
             "otherSpecify": "",
-            "personalMatters": "",
+            "personalMatters": personal_matters,
             "predecessorName": "",
             "relation": form_inviter_relation(inviter_relation),
             "residencePermit": str(inviter_id_card or "").strip(),

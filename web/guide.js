@@ -421,6 +421,26 @@ GUIDES.Q2 = typeGuide({
 });
 
 // S2: thăm người thân là người nước ngoài đang làm việc / học ở Trung Quốc
+// S2 to get married (inviter "Chồng sắp cưới"). South: SaveApplyInfo is S2 "B" (710021) + 登记结婚
+// (flows/flow_payloads.south_s2_marriage); North: the form stays as the curl says.
+const s2MarriageSection = {
+  id: 's2marry', title: 'Sang Trung Quốc để kết hôn (Chồng sắp cưới)', hint: 'quan hệ CHONG SAP CUOI', open: true,
+  html: (o, h) => {
+    const north = NORTH_HOUSES.includes(h);
+    return `<p>Chọn quan hệ <b>"Chồng sắp cưới"</b> ở form (người mời là chồng sắp cưới, người xin visa sang để đăng ký kết hôn).</p>
+    <p><b>Thư mời</b> (cả 2 miền): hệ thống tự tick <b>未婚妻（夫）</b> và mục đích <b>登记结婚</b> (đăng ký kết hôn) thay cho 探亲.</p>
+    <p><b>Form COVA — mục loại visa (SaveApplyInfo)</b>:</p>
+    <div class="tbl-wrap"><table class="data"><tr><th></th><th>Miền Nam (TAI)</th><th>Miền Bắc (HAI, PHONG)</th></tr>
+      <tr><td>Loại visa S2</td><td><b>tự đổi</b> sang mục <b>B</b> — 因其他私人事务 (việc riêng khác), <code>type_of_visa_sub_value</code> = <code>SPM</code></td><td rowspan="3">giữ như cũ: theo <code>type_of_visa_sub_value</code> trong curl, không tự đổi</td></tr>
+      <tr><td>Việc riêng (personalMatters)</td><td><b>登记结婚</b></td></tr>
+      <tr><td>Quan hệ</td><td><b>未婚夫</b> (tự dịch)</td></tr>
+    </table></div>
+    <p class="hint">${north
+      ? 'Nhà đang chọn là miền Bắc: form COVA không tự đổi. Cần mục B thì kiểm tra tay trên COVA sau khi chạy.'
+      : 'Nhà đang chọn là miền Nam: không cần sửa curl, hệ thống tự đổi khi quan hệ là "Chồng sắp cưới". Các mục khác của form giữ như cũ.'}</p>`;
+  },
+};
+
 GUIDES.S2 = typeGuide({
   code: 'S2', title: 'Visa S2 (thăm người thân là người nước ngoài ở TQ) — chuẩn bị file', u18: true,
   intro: 'Thăm người thân là người nước ngoài (vd người Việt) đang làm việc / học / sống ở Trung Quốc. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "S2 - NGUYEN VAN A".',
@@ -440,7 +460,7 @@ GUIDES.S2 = typeGuide({
       <li><code>smoi_ruot</code>: dùng khi giấy <code>smoi</code> là của người khác (vd chị lấy chồng TQ mời em: <code>smoi</code> = giấy của chồng, <code>smoi_ruot</code> = giấy của chị). Địa chỉ vẫn lấy từ <code>smoi</code>, giới tính + ngày sinh người mời lấy từ <code>smoi_ruot</code>.</li>
 </ul>`,
   steps: inviteSteps('s', 3, 'hộ chiếu, giấy cư trú / giấy phép ở Trung Quốc… của người đang ở Trung Quốc mời sang (giấy <code>smoi</code> là của người khác thì thêm <code>smoi_ruot_1</code> — xem bảng)'),
-  extra: [relSection('scm', 'skhac'), { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'schuki_ · _goc', open: true, html: (o) => `
+  extra: [relSection('scm', 'skhac'), s2MarriageSection, { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'schuki_ · _goc', open: true, html: (o) => `
     <p>Khi hệ thống tự tạo thư mời (không có <code>sthumoi</code>), chữ ký <code>${sigName('schuki_1', o)}</code> được đưa vào thư mời:</p>
     <ul>${signNote(o, 'schuki')}</ul>` }],
   sign: true,
