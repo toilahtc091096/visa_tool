@@ -222,6 +222,14 @@ def api_restore_r2_folder(
 
 _IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff")
 PORTRAIT_KEY = "anh_chan_dung/portrait.png"  # n8n WF-08 (edited portrait)
+# CT07 / residence paper: n8n WF-07B merges the photos into one PDF here.
+CT07_FOLDER = "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/"
+# Old Chinese visas (n8n WF-09): file_<n>.png on the current passport,
+# visa_cu_<issue date>_<n>.png on an old passport.
+OLD_VISA_FOLDERS = (
+    "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/",
+    "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_ho_chieu_cu/",
+)
 
 
 def api_find_case_images(passport_number: str) -> dict[str, Any]:
@@ -231,6 +239,8 @@ def api_find_case_images(passport_number: str) -> dict[str, Any]:
     (utils/upload_file.get_passport_file_path): passport.png, else an image in
     passport/, else the first image right in the folder (by name).
     portrait: anh_chan_dung/portrait.png. "" when missing.
+    ct07: images / PDFs in CT07_FOLDER; old_visas: images in OLD_VISA_FOLDERS
+    (lists, by name).
     """
     missing = _missing_r2_env_vars()
     if missing:
@@ -257,5 +267,8 @@ def api_find_case_images(passport_number: str) -> dict[str, Any]:
         "folder": folder,
         "passport": folder + passport_rel if passport_rel else "",
         "portrait": folder + PORTRAIT_KEY if PORTRAIT_KEY in rel else "",
+        "ct07": [folder + r for r in rel
+                 if r.startswith(CT07_FOLDER) and r.lower().endswith(_IMAGE_EXT + (".pdf",))],
+        "old_visas": [folder + r for r in images if r.startswith(OLD_VISA_FOLDERS)],
         "files": len(keys),
     }

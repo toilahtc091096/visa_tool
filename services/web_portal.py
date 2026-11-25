@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import re
+from io import BytesIO
 import secrets
 import string
 from typing import Any
@@ -261,13 +262,73 @@ def upload_file(house_name: str, source_prefix: str, relative_path: str, content
 
 # Images of a case on R2, in the passport folder (= passport number). The house
 # instance finds the keys (/r2/case-images): the passport image as /run picks it,
-# the edited portrait saved by n8n WF-08.
-CASE_IMAGES = {"passport": "Ảnh hộ chiếu", "portrait": "Ảnh chân dung"}
+# the edited portrait saved by n8n WF-08, the CT07 (one PDF made by WF-07B) and
+# the old Chinese visas (WF-09). CT07 / visa: several files (or PDF pages) are
+# shown as one image, stacked.
+CASE_IMAGES = {"passport": "Ảnh hộ chiếu", "portrait": "Ảnh chân dung", "ct07": "CT07", "visa": "Visa cũ"}
 _PASSPORT_FOLDER_RE = re.compile(r"^[A-Za-z0-9_-]{3,40}$")
+_STACK_WIDTH = 1400       # px, width of a stacked image
+_STACK_MAX_PAGES = 8
 
 
-def case_image(house_name: str, passport_number: str, kind: str) -> tuple[int, bytes, str, str]:
-    """(status, content, content_type, file name) of one case image from the house's bucket."""
+def pick_old_visas(keys: list[str], issue_date: str = "") -> list[str]:
+    """The old visa image(s) the curl's old_* fields were read from.
+
+    WF-09 keeps the visa with the latest issue date. Its file name only carries
+    the date on an old passport (visa_cu_<date>_n); file_<n> (current passport)
+    has none. So: visa_cu_<issue_date> when there is one, else the file_<n>
+    visas (one of them is it), else every old visa."""
+    date = re.sub(r"[^0-9-]", "", str(issue_date or ""))
+    names = [(k, k.rsplit("/", 1)[-1].lower()) for k in keys]
+    if date:
+        same = [k for k, n in names if n.startswith(f"visa_cu_{date}_")]
+        if same:
+            return same
+    current = [k for k, n in names if not n.startswith("visa_cu_")]
+    return current or list(keys)
+
+
+def _stack_pages(files: list[tuple[str, bytes]]) -> bytes:
+    """One JPEG: every image / PDF page, top to bottom, same width."""
+    import fitz
+    from PIL import Image
+
+    pages: list[Image.Image] = []
+    for name, data in files:
+        if name.lower().endswith(".pdf") or data[:4] == b"%PDF":
+            with fitz.open(stream=data, filetype="pdf") as doc:
+                for page in doc:
+                    if len(pages) >= _STACK_MAX_PAGES:
+                        break
+                    zoom = _STACK_WIDTH / max(page.rect.width, 1)
+                    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+                    pages.append(Image.frombytes("RGB", (pix.width, pix.height), pix.samples))
+        else:
+            try:
+                pages.append(Image.open(BytesIO(data)).convert("RGB"))
+            except Exception:
+                continue
+        if len(pages) >= _STACK_MAX_PAGES:
+            break
+    if not pages:
+        raise RuntimeError("Không đọc được file ảnh / PDF")
+    scaled = [p.resize((_STACK_WIDTH, max(1, round(p.height * _STACK_WIDTH / p.width)))) for p in pages]
+    gap = 16
+    out = Image.new("RGB", (_STACK_WIDTH, sum(p.height for p in scaled) + gap * (len(scaled) - 1)), (200, 200, 200))
+    y = 0
+    for p in scaled:
+        out.paste(p, (0, y))
+        y += p.height + gap
+    buf = BytesIO()
+    out.save(buf, "JPEG", quality=88)
+    return buf.getvalue()
+
+
+def case_image(house_name: str, passport_number: str, kind: str,
+               issue_date: str = "") -> tuple[int, bytes, str, str]:
+    """(status, content, content_type, file name) of one case image from the house's bucket.
+
+    ``issue_date``: the curl's old_issueDate, to pick the old visa (kind "visa")."""
     house = house_config(house_name)
     folder = str(passport_number or "").strip().upper()
     if not _PASSPORT_FOLDER_RE.match(folder):
@@ -277,13 +338,27 @@ def case_image(house_name: str, passport_number: str, kind: str) -> tuple[int, b
     found = _json_or_error(requests.get(_local(house, "/r2/case-images"), params={"passport": folder}, timeout=60))
     if not found.get("ok"):
         raise RuntimeError(found.get("message") or found.get("error") or "Không liệt kê được thư mục R2")
-    key = str(found.get(kind) or "")
-    if not key:
+    if kind == "ct07":
+        keys = list(found.get("ct07") or [])
+    elif kind == "visa":
+        keys = pick_old_visas(list(found.get("old_visas") or []), issue_date)
+    else:
+        keys = [str(found.get(kind) or "")] if found.get(kind) else []
+    if not keys:
         return 404, b"", "", ""
-    resp = requests.get(_local(house, "/r2/images/get"), params={"key": key}, timeout=60)
-    ext = key.rsplit(".", 1)[-1].lower() if "." in key.rsplit("/", 1)[-1] else "png"
-    name = f"{folder}_{kind}.{ext}"
-    return resp.status_code, resp.content, resp.headers.get("content-type", "application/octet-stream"), name
+    if len(keys) == 1 and not keys[0].lower().endswith(".pdf"):
+        key = keys[0]
+        resp = requests.get(_local(house, "/r2/images/get"), params={"key": key}, timeout=60)
+        ext = key.rsplit(".", 1)[-1].lower() if "." in key.rsplit("/", 1)[-1] else "png"
+        name = f"{folder}_{kind}.{ext}"
+        return resp.status_code, resp.content, resp.headers.get("content-type", "application/octet-stream"), name
+    files = []
+    for key in keys[:_STACK_MAX_PAGES]:
+        resp = requests.get(_local(house, "/r2/images/get"), params={"key": key}, timeout=60)
+        if resp.status_code >= 400:
+            return resp.status_code, b"", "", ""
+        files.append((key, resp.content))
+    return 200, _stack_pages(files), "image/jpeg", f"{folder}_{kind}.jpg"
 
 
 CASE_IMAGE_MAX_BYTES = 15 * 1024 * 1024

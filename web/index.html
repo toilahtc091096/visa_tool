@@ -186,9 +186,11 @@
   .curl-imgs { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
   .curl-imgs .img-box { height: 220px; }
   .curl-imgs #img-passport .img-box { height: 300px; }
+  .curl-imgs .img-opt .img-box { height: 170px; }
+  .curl-imgs { max-height: calc(100vh - 24px); overflow-y: auto; }
   @media (max-width: 1300px) {
     .curl-check, .curl-check:has(> #curlImages.hidden) { grid-template-columns: minmax(0, 1fr); }
-    .curl-imgs { position: static; order: -1; display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .curl-imgs { position: static; order: -1; display: grid; grid-template-columns: 1fr 1fr; align-items: start; max-height: none; overflow: visible; }
     .curl-imgs > label { grid-column: 1 / -1; }
   }
   @media (max-width: 560px) { .curl-imgs { grid-template-columns: 1fr; } }
@@ -393,6 +395,14 @@
             <figure class="img-card" id="img-portrait">
               <div class="img-box"><span class="img-empty">Đang tải…</span></div>
               <figcaption><span>Ảnh chân dung</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
+            </figure>
+            <figure class="img-card img-opt" id="img-visa" title="Visa Trung Quốc cũ mà curl lấy thông tin (visa_trung_quoc_cu / visa_cu_<ngày cấp>)">
+              <div class="img-box"><span class="img-empty">Đang tải…</span></div>
+              <figcaption><span>Visa cũ</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
+            </figure>
+            <figure class="img-card img-opt" id="img-ct07" title="CT07 / giấy cư trú; nhiều trang thì gộp thành 1 ảnh">
+              <div class="img-box"><span class="img-empty">Đang tải…</span></div>
+              <figcaption><span>CT07</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
             </figure>
           </div>
         </div>
@@ -1363,7 +1373,7 @@ $('parseBtn').onclick = () => {
     clear($('curlBodyErr')); $('curlBodyErr').classList.add('hidden');
     $('curlEdit').classList.remove('hidden');
     fillAuthorization(house, port);
-    showCaseImages(house, String(body.passportNumber || '').trim());   // already on R2: no need to wait for Chạy
+    showCaseImages(house, String(body.passportNumber || '').trim(), body.old_issueDate);   // already on R2: no need to wait for Chạy
   } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); clearCaseImages(); }
 };
 
@@ -1477,7 +1487,7 @@ $('curlBody').addEventListener('input', () => {
 });
 $('fmtBtn').onclick = () => { try { $('curlBody').value = groupedJson(readBody()); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
 
-// ---------- case images (R2: <passport>/passport.png, <passport>/anh_chan_dung/portrait.png) ----------
+// ---------- case images (R2: passport image, edited portrait, old visa, CT07 - see web_portal.case_image) ----------
 const imageUrls = [];
 let caseImgCur = null;   // { house, passport } of the images shown
 function clearCaseImages() {
@@ -1486,18 +1496,24 @@ function clearCaseImages() {
   closeImgView();   // its blob URL was just revoked
   $('curlImages').classList.add('hidden');
 }
-async function showCaseImages(house, passport) {
+// date: the curl's old_issueDate, to show the old visa the curl was filled from
+async function showCaseImages(house, passport, date) {
   clearCaseImages();
   if (!house || !passport) return;
-  caseImgCur = { house, passport };
+  date = String(date || '').trim();
+  caseImgCur = { house, passport, date };
   $('curlImagesInfo').textContent = `· nhà ${house} · hộ chiếu ${passport}`;
   $('curlImages').classList.remove('hidden');
-  await Promise.all(['passport', 'portrait'].map(async (kind) => {
+  await Promise.all(['passport', 'portrait', 'visa', 'ct07'].map(async (kind) => {
     const card = $('img-' + kind), box = card.querySelector('.img-box'), dl = card.querySelector('.img-dl');
     box.innerHTML = '<span class="img-empty">Đang tải…</span>'; dl.classList.add('hidden');
+    card.classList.remove('hidden');
     try {
       const q = new URLSearchParams({ house, passport, kind });
+      if (kind === 'visa' && date) q.set('date', date);
       const res = await fetch('/web/case-image?' + q, { headers: { 'X-Api-Key': key } });
+      // no old visa / no CT07 is normal: hide the card instead of an error box
+      if (res.status === 404 && card.classList.contains('img-opt')) { card.classList.add('hidden'); return; }
       if (!res.ok) {
         let msg = `Lỗi ${res.status}`;
         try { const d = await res.json(); msg = (d.detail || d).error || msg; } catch (e) {}
@@ -1596,7 +1612,7 @@ $('imgReplaceFile').addEventListener('change', async () => {
     fd.append('house', house); fd.append('passport', passport); fd.append('kind', 'passport'); fd.append('file', file);
     const r = await api('/web/case-image', fd, true);
     toast(`Đã ${r.replaced ? 'ghi đè' : 'tải lên'} ảnh hộ chiếu ${passport} (${r.key})`);
-    if (caseImgCur && caseImgCur.passport === passport) await showCaseImages(house, passport);
+    if (caseImgCur && caseImgCur.passport === passport) await showCaseImages(house, passport, caseImgCur.date);
   } catch (e) { toast('Không thay được ảnh: ' + e.message); }
   b.disabled = false; b.textContent = '⟳ Thay ảnh';
 });
@@ -1656,7 +1672,7 @@ $('runBtn').onclick = async () => {
     show($('curlMsg'), lines.join('\n'), r.ok);
     if (tokenIssue) openTokenCard(r.house);
     renderTimings(res.timings, r.ok);
-    showCaseImages(r.house, String(body.passportNumber || '').trim());
+    showCaseImages(r.house, String(body.passportNumber || '').trim(), body.old_issueDate);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
     if (r.ok) loadHistory();

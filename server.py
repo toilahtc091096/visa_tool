@@ -681,12 +681,14 @@ def web_bio_check(request: Request, house: str = Query("")):
 
 
 @app.get("/web/case-image")
-def web_case_image(request: Request, house: str = Query(""), passport: str = Query(""),
-                   kind: str = Query(""), download: bool = Query(False)):
-    # Passport image / edited portrait of a case, from the house's bucket (curl tab: shown as soon as the curl is read).
+async def web_case_image(request: Request, house: str = Query(""), passport: str = Query(""),
+                   kind: str = Query(""), date: str = Query(""), download: bool = Query(False)):
+    # Passport image / edited portrait / CT07 / old visa of a case, from the house's bucket
+    # (curl tab: shown as soon as the curl is read). date: the curl's old_issueDate (kind=visa).
     _web_user(request)
     try:
-        status, content, content_type, name = web_portal.case_image(house, passport, kind)
+        status, content, content_type, name = await asyncio.to_thread(
+            web_portal.case_image, house, passport, kind, date)
     except WebFormError as exc:
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     except Exception as exc:

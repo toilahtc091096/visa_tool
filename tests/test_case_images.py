@@ -34,6 +34,17 @@ class FindCaseImagesTest(unittest.TestCase):
         self.assertEqual(self._find(base)["passport"], "")
         r = self._find(base + ["E01234567/passport.png", "E01234567/anh_chan_dung/portrait.png"])
         self.assertEqual(r["portrait"], "E01234567/anh_chan_dung/portrait.png")
+        self.assertEqual((r["ct07"], r["old_visas"]), ([], []))
+
+    def test_ct07_and_old_visas(self):
+        ct = "E01234567/lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/"
+        v = "E01234567/lich_su_xuat_canh/da_tung_di_nuoc_ngoai/"
+        r = self._find(["E01234567/passport.png", ct + "residence.pdf", ct + "note.txt",
+                        v + "visa_trung_quoc_cu/file_1.png", v + "visa_trung_quoc_ho_chieu_cu/visa_cu_2019-03-07_5.png",
+                        v + "giay_cu_tru_trung_quoc/file_9.png", v + "visa_cac_nuoc_khac_anh_ho_chieu/file_2.png"])
+        self.assertEqual(r["ct07"], [ct + "residence.pdf"])
+        self.assertEqual(r["old_visas"], [v + "visa_trung_quoc_cu/file_1.png",
+                                          v + "visa_trung_quoc_ho_chieu_cu/visa_cu_2019-03-07_5.png"])
 
     def test_bad_passport(self):
         with mock.patch.object(r2_archive, "_missing_r2_env_vars", return_value=[]):
@@ -72,6 +83,59 @@ def _jpeg_bytes() -> bytes:
     ok, buf = cv2.imencode(".jpg", np.full((40, 60, 3), 200, dtype=np.uint8))
     assert ok
     return buf.tobytes()
+
+
+class PickOldVisaTest(unittest.TestCase):
+    def test_pick(self):
+        cur = ["a/visa_trung_quoc_cu/file_1.png", "a/visa_trung_quoc_cu/file_2.png"]
+        old = ["a/visa_trung_quoc_ho_chieu_cu/visa_cu_2019-03-07_5.png", "a/visa_trung_quoc_ho_chieu_cu/visa_cu_2015-01-02_7.png"]
+        self.assertEqual(wp.pick_old_visas(cur + old, "2019-03-07"), [old[0]])   # date in the name = the one read
+        self.assertEqual(wp.pick_old_visas(cur + old, "2024-05-06"), cur)        # read from a current-passport visa
+        self.assertEqual(wp.pick_old_visas(old, ""), old)
+        self.assertEqual(wp.pick_old_visas([], "2019-03-07"), [])
+
+
+class StackedCaseImageTest(unittest.TestCase):
+    """CT07 (a PDF, maybe several pages) / several old visas -> one JPEG."""
+
+    def _pdf(self, pages):
+        import fitz
+        doc = fitz.open()
+        for _ in range(pages):
+            doc.new_page(width=300, height=400).insert_text((40, 60), "CT07")
+        return doc.tobytes()
+
+    def _get(self, found, files):
+        def get(url, params=None, timeout=None):
+            if url.endswith("/r2/case-images"):
+                return mock.Mock(status_code=200, json=mock.Mock(return_value={"ok": True, **found}))
+            return mock.Mock(status_code=200, content=files[params["key"]], headers={"content-type": "x"})
+        return get
+
+    def test_ct07_pdf_pages_stacked(self):
+        from PIL import Image
+        from io import BytesIO
+        found = {"passport": "", "portrait": "", "ct07": ["P/ct.pdf"], "old_visas": []}
+        with mock.patch.object(wp.requests, "get", side_effect=self._get(found, {"P/ct.pdf": self._pdf(2)})):
+            status, content, ctype, name = wp.case_image("TAI", "E01234567", "ct07")
+        self.assertEqual((status, ctype, name), (200, "image/jpeg", "E01234567_ct07.jpg"))
+        img = Image.open(BytesIO(content))
+        self.assertEqual(img.width, wp._STACK_WIDTH)
+        self.assertGreater(img.height, 2 * wp._STACK_WIDTH)   # two portrait pages, one above the other
+
+    def test_visa_single_and_several(self):
+        one = {"passport": "", "portrait": "", "ct07": [], "old_visas": ["P/visa_cu_2019-03-07_1.png", "P/file_2.png"]}
+        files = {"P/visa_cu_2019-03-07_1.png": _jpeg_bytes(), "P/file_2.png": _jpeg_bytes()}
+        with mock.patch.object(wp.requests, "get", side_effect=self._get(one, files)) as get:
+            status, content, _, name = wp.case_image("TAI", "E01234567", "visa", "2019-03-07")
+        self.assertEqual((status, content, name), (200, files["P/visa_cu_2019-03-07_1.png"], "E01234567_visa.png"))
+        self.assertEqual(get.call_args.kwargs["params"], {"key": "P/visa_cu_2019-03-07_1.png"})
+        two = {**one, "old_visas": ["P/file_2.png", "P/file_3.png"]}
+        files["P/file_3.png"] = _jpeg_bytes()
+        with mock.patch.object(wp.requests, "get", side_effect=self._get(two, files)):
+            self.assertEqual(wp.case_image("TAI", "E01234567", "visa")[2], "image/jpeg")
+        with mock.patch.object(wp.requests, "get", side_effect=self._get({**one, "old_visas": []}, files)):
+            self.assertEqual(wp.case_image("TAI", "E01234567", "visa")[0], 404)
 
 
 class ReplaceCaseImageTest(unittest.TestCase):
@@ -135,6 +199,10 @@ class CaseImageEndpointTest(unittest.TestCase):
             self.assertNotIn("content-disposition", r.headers)
             r = self.client.get(url + "&download=1", headers={"X-Api-Key": "bao-key"})
             self.assertIn('filename="E01234567_passport.png"', r.headers["content-disposition"])
+        with mock.patch.object(self.server.web_portal, "case_image", return_value=(200, b"J", "image/jpeg", "x.jpg")) as ci:
+            self.client.get("/web/case-image?house=HAI&passport=E01234567&kind=visa&date=2019-03-07",
+                            headers={"X-Api-Key": "bao-key"})
+        self.assertEqual(ci.call_args.args, ("HAI", "E01234567", "visa", "2019-03-07"))
 
     def test_missing_and_bad_input(self):
         with mock.patch.object(self.server.web_portal, "case_image", return_value=(404, b"", "", "")):
