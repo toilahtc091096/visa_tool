@@ -1301,7 +1301,7 @@ $('parseBtn').onclick = () => {
     curlPort = port;
     setHistHouse(house);
     $('curlHouseInfo').textContent = `Nhà ${house} (cổng ${port})`;
-    $('curlBody').value = JSON.stringify(body, null, 2);
+    $('curlBody').value = groupedJson(body);
     $('curlBodyInfo').textContent = `${Object.keys(body).length} trường` + (body.passportNumber ? ` · hộ chiếu ${body.passportNumber}` : '');
     $('curlBody').classList.remove('bad');
     clear($('curlBodyErr')); $('curlBodyErr').classList.add('hidden');
@@ -1322,7 +1322,7 @@ async function fillAuthorization(house, port) {
     body = JSON.parse($('curlBody').value);
     if (String(body.authorization || '').trim()) return; // edited meanwhile
     body.authorization = token;
-    $('curlBody').value = JSON.stringify(body, null, 2);
+    $('curlBody').value = groupedJson(body);
     $('curlBodyInfo').textContent += ` · authorization: token hiện tại của nhà ${house}`;
   } catch (e) { /* not fatal: the server uses the stored token anyway */ }
 }
@@ -1359,6 +1359,47 @@ function duplicateKeys(text) {
   return dupes.sort((a, b) => a.lines[0] - b.lines[0]);
 }
 
+// ---------- curl JSON grouped by topic ----------
+// The history keeps the body as JSONB, and Postgres reorders the keys (short names first),
+// so related fields end up far apart. Every JSON shown in the curl tab goes through
+// groupedJson(): fields of one topic together, a blank line between topics (still valid JSON),
+// unknown fields last in their original order. Key order does not matter to /run.
+const CURL_GROUPS = [
+  ['Visa', ['visa_type', 'visa_duration', 'type_of_visa_sub_value', 'entries_type', 'apply_visa_validity', 'service_type', 'passport_type_code']],
+  ['Người xin visa', ['passportNumber', 'id_card_number', 'guest_name', 'phone', 'email', 'payMobile', 'payName', 'province_city_code', 'ct08_province_city_code']],
+  ['Chuyến đi', ['arrivalDate', 'departureDate', 'fixed_arrived', 'fixed_departure', 'ticket_names']],
+  ['Công việc / học vấn', ['position', 'duty', 'work_from', 'work_to', 'employer_name', 'employer_address', 'employer_phone',
+                          'supervisor_name', 'supervisor_mobile', 'name_of_institute', 'diploma_degree', 'major']],
+  ['Công ty mời (M)', ['company_passport', 'inviteCompanyName', 'company_address', 'companyPhone', 'inviteCompanyPhone', 'inviteZipCode',
+                       'companyNameVi', 'companyAddressUpperNoAccent', 'managerName']],
+  ['Trường mời (F, X)', ['school_passport', 'inviteSchoolName', 'school_address']],
+  ['Người mời (Q, S)', ['inviterFamilyName', 'inviterGivenName', 'inviterName', 'inviterSex', 'inviterBirth', 'inviterIdCard', 'inviterPhone',
+                        'inviterRelation', 'inviterAddress', 'inviterProvincePinyin', 'inviterCityPinyin', 'inviterDistrictPinyin',
+                        'guarantorRelation', 'guarantorNote']],
+  ['Bố mẹ', ['fatherFamilyName', 'fatherGivenName', 'fatherNationality', 'fatherBirthDate',
+             'motherFamilyName', 'motherGivenName', 'motherNationality', 'motherBirthDate']],
+  ['Vợ / chồng', ['haveSpouseFlag', 'spouseFamilyName', 'spouseFirstName', 'spouseNationalityCountry', 'spouseBirthday',
+                  'spouseBirthCountry', 'spouseBirthCity', 'spouseBirthCounty', 'spouseAddress']],
+  ['Con', ['haveChildFlag', 'children', 'childFamilyName', 'childGivenName', 'childNationality', 'childBirthDate']],
+  ['Liên hệ khẩn cấp', ['emergencyFamilyName', 'emergencyGivenName', 'emergencyRelationship', 'emergencyPhone']],
+  ['Visa cũ / lịch sử', ['haveChinaVisaFlag', 'arrivedChinaFlag', 'old_visaType', 'old_visaNumber', 'old_issueDate', 'old_issuePlace',
+                         'haveOtherVisaFlag', 'old_otherVisas', 'old_otherCountries', 'collectFingerprintFlag']],
+  ['Cư trú ở TQ', ['chinaResidenceLicenseFlag', 'residenceLicenseNumber', 'residence_issueDate', 'residence_issuePlace']],
+  ['Đi cùng / đoàn', ['family_passport', 'passengers', 'addition_adults', 'addition_child']],
+  ['Hệ thống', ['first_applyid', 'is_vip', 'is_private', 'is_update_info', 'upload_config_keys', 'register_date', 'staff', 'tmp_secret', 'token', 'authorization']],
+];
+function groupedJson(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return JSON.stringify(body, null, 2);
+  const keys = Object.keys(body);
+  if (!keys.length) return '{}';
+  const used = new Set();
+  const blocks = CURL_GROUPS.map(([, ks]) => ks.filter((k) => k in body && !used.has(k) && used.add(k))).filter((b) => b.length);
+  const rest = keys.filter((k) => !used.has(k));
+  if (rest.length) blocks.push(rest);
+  const line = (k) => `  ${JSON.stringify(k)}: ${JSON.stringify(body[k], null, 2).replace(/\n/g, '\n  ')}`;
+  return '{\n' + blocks.map((b) => b.map(line).join(',\n')).join(',\n\n') + '\n}';
+}
+
 function readBody() {
   const box = $('curlBody');
   let body;
@@ -1378,7 +1419,7 @@ $('curlBody').addEventListener('input', () => {
   try { readBody(); clear($('curlBodyErr')); $('curlBodyErr').classList.add('hidden'); }
   catch (e) { show($('curlBodyErr'), e.message, false); $('curlBodyErr').classList.remove('hidden'); }
 });
-$('fmtBtn').onclick = () => { try { $('curlBody').value = JSON.stringify(readBody(), null, 2); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
+$('fmtBtn').onclick = () => { try { $('curlBody').value = groupedJson(readBody()); clear($('curlMsg')); } catch (e) { show($('curlMsg'), e.message, false); } };
 
 // ---------- case images (R2: <passport>/passport.png, <passport>/anh_chan_dung/portrait.png) ----------
 const imageUrls = [];
@@ -1540,7 +1581,7 @@ async function loadHistory() {
 // authorization: the house's token; staff: who the record counts for -> not shown / copied.
 const HIST_HIDDEN = new Set(['authorization', 'staff']);
 function histJson(body) {
-  return JSON.stringify(Object.fromEntries(Object.entries(body || {}).filter(([k]) => !HIST_HIDDEN.has(k))), null, 2);
+  return groupedJson(Object.fromEntries(Object.entries(body || {}).filter(([k]) => !HIST_HIDDEN.has(k))));
 }
 function renderHistory() {
   if (!histItems.length) { $('histList').innerHTML = '<div class="hint">Chưa có curl nào chạy thành công.</div>'; return; }
@@ -1638,7 +1679,7 @@ async function applyFrom(it, cfg) {
   });
   if (!ok) return;
   Object.assign(body, take);
-  $('curlBody').value = JSON.stringify(body, null, 2);
+  $('curlBody').value = groupedJson(body);
   $('curlBody').dispatchEvent(new Event('input'));
   toast(`Đã áp dụng ${changed.length} trường ${cfg.label} từ ${src.passportNumber || 'lịch sử'}`);
 }
