@@ -53,5 +53,23 @@ class Q2BoxTest(unittest.TestCase):
         self.assertEqual(context["q1"], CHECKED)
 
 
+class StepRelationBoxTest(unittest.TestCase):
+    """Step-parents / step-children tick 子女 / 父母 (no box of their own)."""
+
+    REL = ("spouse", "parents", "children", "siblings", "relative")
+
+    def boxes(self, relation: str) -> list[str]:
+        context = build_thumoi_context({"visa_type": "Q1", "inviterRelation": relation})
+        return [b for b in self.REL if context[b] == CHECKED]
+
+    def test_step_relations(self) -> None:
+        # inviter's relation -> the applicant is the other side
+        for relation in ("CHA DUONG", "ME KE", "BO", "ME"):
+            self.assertEqual(self.boxes(relation), ["children"], relation)
+        for relation in ("CON TRAI RIENG", "CON GAI RIENG", "CON TRAI"):
+            self.assertEqual(self.boxes(relation), ["parents"], relation)
+        self.assertEqual(self.boxes("HO HANG"), ["relative"])
+
+
 if __name__ == "__main__":
     unittest.main()

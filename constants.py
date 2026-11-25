@@ -2003,8 +2003,11 @@ EMERGENCY_RELATION_MOTHER = "ME"
 INVITER_RELATION_SPOUSE = frozenset(
     {"spouse", "husband", "wife", "vo chong", "vợ chồng", "vo", "chong"}
 )
+# Step-parents / step-children have no box of their own on the letter: they tick
+# the parents / children boxes (2026-11-25).
 INVITER_RELATION_PARENTS = frozenset(
-    {"parents", "father", "mother", "bo me", "ba me", "cha me", "bo", "ba", "cha", "me"}
+    {"parents", "father", "mother", "bo me", "ba me", "cha me", "bo", "ba", "cha", "me",
+     "cha duong", "bo duong", "me ke", "me duong", "di ghe", "stepfather", "stepmother"}
 )
 INVITER_RELATION_SIBLINGS = frozenset(
     {
@@ -2023,7 +2026,9 @@ INVITER_RELATION_SIBLINGS = frozenset(
     }
 )
 INVITER_RELATION_CHILDREN = frozenset(
-    {"children", "child", "son", "daughter", "con", "con cai", "con trai", "con gai"}
+    {"children", "child", "son", "daughter", "con", "con cai", "con trai", "con gai",
+     "con rieng", "con trai rieng", "con gai rieng", "con vo", "con chong",
+     "con rieng cua vo", "con rieng cua chong", "stepson", "stepdaughter", "stepchild"}
 )
 INVITER_RELATION_SPOUSE_PARENTS = frozenset(
     {
