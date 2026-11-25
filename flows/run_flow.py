@@ -275,12 +275,14 @@ async def run_flow(
         ctx.timings["total"] = round(time.perf_counter() - started_at, 2)
         log_event({"step": "timing", "phase": "total", "seconds": ctx.timings["total"]})
 
+    warnings = {"warnings": ctx.warnings} if ctx.warnings else {}
     if ctx.error:
-        return {"ok": False, **ctx.error, "timings": ctx.timings}
+        return {"ok": False, **ctx.error, **warnings, "timings": ctx.timings}
     return {
         "ok": True,
         "first_applyid": ctx.first_applyid,
         "record_id": getattr(ctx, "record_id", None),
+        **warnings,
         "timings": ctx.timings,
     }
 

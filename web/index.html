@@ -49,6 +49,7 @@
   .msg { margin-top: 14px; padding: 10px 12px; border-radius: 7px; white-space: pre-wrap; }
   .msg.ok { background: var(--ok-bg); color: var(--ok); }
   .msg.err { background: var(--err-bg); color: var(--err); }
+  .msg.warn { background: var(--warn-bg); color: var(--warn); }
   .hidden { display: none !important; }  /* wins over classes that set display (dialog, grids) */
   .progress { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; margin-top: 8px; }
   .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
@@ -1678,10 +1679,15 @@ $('runBtn').onclick = async () => {
       if (res.step) lines.push(`Bước: ${res.step}`);
       if (res.error || res.message) lines.push(`Lỗi: ${res.error || res.message}${res.status_code ? ` (mã ${res.status_code})` : ''}`);
     }
+    // problems that did not stop the run (e.g. the token could not read the drafts -> no old information)
+    const warns = Array.isArray(res.warnings) ? res.warnings : [];
+    for (const w of warns) lines.push(`⚠ ${w.step ? `[${w.step}] ` : ''}${w.message || w}`);
     const tokenIssue = !r.ok && TOKEN_ERR.test(JSON.stringify(res).slice(0, 4000));
     if (tokenIssue) lines.push(`Có thể token nhà ${r.house} đã hết hạn → bấm "🔑 Lấy token" (đã mở sẵn ở trên), lấy xong bấm Chạy lại.`);
+    else if (warns.length) lines.push(`Muốn chắc chắn: bấm "🔑 Lấy token" nhà ${r.house} (đã mở sẵn ở trên), lấy xong bấm Chạy lại. Không thì kiểm tra thông tin trên web visa là đủ.`);
     show($('curlMsg'), lines.join('\n'), r.ok);
-    if (tokenIssue) openTokenCard(r.house);
+    if (r.ok && warns.length) $('curlMsg').className = 'msg warn';
+    if (tokenIssue || warns.length) openTokenCard(r.house);
     renderTimings(res.timings, r.ok);
     // images were loaded at "Đọc curl": only reload when the run is for another house / passport
     const runPassport = String(body.passportNumber || '').trim();

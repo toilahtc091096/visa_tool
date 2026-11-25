@@ -1,5 +1,5 @@
-"""Step get_draft: an expired token must stop the run with a clear message
-(before: COVA's Response.Error was dropped, the run made a new profile and lost the old information)."""
+"""Step get_draft: when the token cannot read the drafts / old information the run goes on
+but returns a warning (before: COVA's Response.Error was dropped silently)."""
 import asyncio
 import sys
 import unittest
@@ -52,55 +52,58 @@ class DraftTokenTest(unittest.TestCase):
         self.assertNotIn("_no_data", meta["response"]["Response"])
         self.assertEqual(meta["response"]["Response"]["Data"]["list"][0]["applyid"], "A1")
 
-    def _flow(self, handler):
+    def _flow(self, handler, first_applyid="APPLY-1"):
         ctx = _Ctx()
+        ctx.warnings = []
+        ctx.first_applyid = first_applyid
 
         async def go():
             async with _client(handler) as c:
-                with mock.patch("utils.notify", new=mock.AsyncMock()):
+                with mock.patch("utils.notify", new=mock.AsyncMock()),                      mock.patch.object(step, "full_name_from_ocr", return_value="NGUYEN VAN A"),                      mock.patch.object(step, "vietnamese_name_from_ocr", return_value="Nguyen Van A"):
                     return await step.load_draft_and_prepare_person(ctx, c)
         return _run(go()), ctx
 
-    def test_flow_stops_on_expired_token(self):
-        calls = []
+    @staticmethod
+    def _draft(draft_resp, info_resp=None):
+        info_resp = info_resp or httpx.Response(200, json={"Response": {"Data": {"applyid": "APPLY-1"}}})
 
         def handler(r):
-            calls.append(r.url.path)
-            return httpx.Response(200, json=EXPIRED)
+            return draft_resp if r.url.path.endswith("/GetDraftList") else info_resp
+        return handler
+
+    def test_expired_token_warns_and_goes_on(self):
+        ok, ctx = self._flow(self._draft(httpx.Response(200, json=EXPIRED)))
+        self.assertTrue(ok, ctx.error)
+        self.assertEqual(len(ctx.warnings), 1)
+        w = ctx.warnings[0]
+        self.assertEqual(w["step"], "get_draft")
+        self.assertIn("token", w["message"])
+        self.assertIn("TokenExpired", w["message"])
+        self.assertEqual(ctx.first_applyid, "APPLY-1")
+
+    def test_http_401_warns(self):
+        ok, ctx = self._flow(self._draft(httpx.Response(401, json={"message": "Unauthorized"})))
+        self.assertTrue(ok, ctx.error)
+        self.assertIn("HTTP 401", ctx.warnings[0]["message"])
+
+    def test_no_data_warns(self):
+        ok, ctx = self._flow(self._draft(httpx.Response(200, json={"Response": {"RequestId": "R"}})))
+        self.assertTrue(ok, ctx.error)
+        self.assertIn("không trả về Data", ctx.warnings[0]["message"])
+
+    def test_old_info_unreadable_warns(self):
+        handler = self._draft(httpx.Response(200, json={"Response": {"Data": {"list": []}}}),
+                              httpx.Response(200, json=EXPIRED))
         ok, ctx = self._flow(handler)
-        self.assertFalse(ok)
-        self.assertEqual(ctx.error["step"], "get_draft")
-        self.assertIn("token", ctx.error["error"])
-        self.assertIn("TokenExpired", ctx.error["error"])
-        self.assertFalse(any(p.endswith("/SavePersonInfo") for p in calls), "must not create a new profile")
+        self.assertTrue(ok, ctx.error)
+        self.assertEqual(ctx.warnings[0]["step"], "get_current_draft_personal_information")
+        self.assertIn("APPLY-1", ctx.warnings[0]["message"])
+        self.assertEqual(ctx.data_obj, {})
 
-    def test_flow_stops_on_http_401(self):
-        ok, ctx = self._flow(lambda r: httpx.Response(401, json={"message": "Unauthorized"}))
-        self.assertFalse(ok)
-        self.assertIn("HTTP 401", ctx.error["error"])
-
-    def test_flow_stops_when_no_data(self):
-        ok, ctx = self._flow(lambda r: httpx.Response(200, json={"Response": {"RequestId": "R"}}))
-        self.assertFalse(ok)
-        self.assertIn("không trả về Data", ctx.error["error"])
-
-    def test_flow_stops_when_old_info_unreadable(self):
-        def handler(r):
-            if r.url.path.endswith("/GetDraftList"):
-                return httpx.Response(200, json={"Response": {"Data": {"list": []}}})
-            return httpx.Response(200, json=EXPIRED)  # GetPersonInfo
-        ctx = _Ctx()
-        ctx.first_applyid = "APPLY-1"
-        with mock.patch.object(step, "full_name_from_ocr", return_value="NGUYEN VAN A"), \
-             mock.patch.object(step, "vietnamese_name_from_ocr", return_value="Nguyễn Văn A"):
-            async def go():
-                async with _client(handler) as c:
-                    with mock.patch("utils.notify", new=mock.AsyncMock()):
-                        return await step.load_draft_and_prepare_person(ctx, c)
-            ok = _run(go())
-        self.assertFalse(ok)
-        self.assertEqual(ctx.error["step"], "get_current_draft_personal_information")
-        self.assertIn("APPLY-1", ctx.error["error"])
+    def test_all_fine_no_warning(self):
+        ok, ctx = self._flow(self._draft(httpx.Response(200, json={"Response": {"Data": {"list": []}}})))
+        self.assertTrue(ok, ctx.error)
+        self.assertEqual(ctx.warnings, [])
 
 
 if __name__ == "__main__":

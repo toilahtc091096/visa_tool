@@ -139,6 +139,7 @@ def build_flow_context(**kwargs):
     ctx.vietnamese_name = ""
     ctx.full_name = ""
     ctx.error = None
+    ctx.warnings = []  # problems that did not stop the run, returned as "warnings"
     ctx.timings = {}
     return ctx
 

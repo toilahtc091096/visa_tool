@@ -4,7 +4,16 @@ from models import GetDraftListBody, GetDraftListResult, has_name, person_info_r
 from utils import log_event
 from .common import check_api_result, extract_api_error, fail_step, get_in
 
-TOKEN_HINT = "Có thể token đã hết hạn: lấy token mới rồi chạy lại."
+TOKEN_HINT = (
+    "Hồ sơ vẫn chạy tiếp: lên web kiểm tra lại thông tin. "
+    "Muốn chắc chắn thì lấy token mới rồi chạy lại (token có thể đã hết hạn)."
+)
+
+
+def _warn(ctx, message: str, **extra) -> None:
+    """A problem that does not stop the run: logged and returned in the result (``warnings``)."""
+    ctx.warnings.append({"step": ctx.step, "message": message})
+    log_event({"step": ctx.step, "ok": False, "warning": message, **extra})
 
 
 def _api_problem(ok: bool, meta: dict) -> str:
@@ -29,17 +38,16 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
     if not problem and get_in(meta1, "response", "Response", "_no_data"):
         problem = "COVA không trả về Data"
     if problem:
-        # Without the draft list the run would not find the old profile: it would make
-        # a new one and lose the old information. Stop and say why.
-        return await fail_step(
+        # Without the draft list the old profile is not found: the run goes on as a new
+        # profile (no old information). The user decides whether to rerun with a new token.
+        _warn(
             ctx,
-            f"Không lấy được danh sách hồ sơ nháp (GetDraftList) nên không lấy được thông tin cũ. "
+            f"Không lấy được hồ sơ nháp (GetDraftList) nên không lấy được thông tin cũ. "
             f"{TOKEN_HINT} Chi tiết: {problem}",
             status_code=meta1.get("status_code"),
-            response=meta1.get("response"),
         )
 
-    resp1 = meta1.get("response", {})
+    resp1 = meta1.get("response") or {}
     result = GetDraftListResult.from_dict(resp1)
     ctx.full_name = full_name_from_ocr(ctx.ocr_data)
     ctx.vietnamese_name = vietnamese_name_from_ocr(ctx.ocr_data)
@@ -91,17 +99,17 @@ async def load_draft_and_prepare_person(ctx, client) -> bool:
     )
     problem = _api_problem(ok, meta)
     if problem:
-        # The later steps would fill the form without the old information.
-        return await fail_step(
+        # The later steps fill the form without the old information.
+        _warn(
             ctx,
             f"Không đọc được thông tin cũ của hồ sơ nháp applyid={ctx.first_applyid} (GetPersonInfo). "
             f"{TOKEN_HINT} Chi tiết: {problem}",
             status_code=meta.get("status_code"),
-            response=meta.get("response"),
         )
-    parsed = person_info_result_from_dict(meta.get("response") or {})
-    if parsed.Response is not None and parsed.Response.Data is not None:
-        ctx.data_obj = parsed.Response.Data
+    elif ok:
+        parsed = person_info_result_from_dict(meta.get("response") or {})
+        if parsed.Response is not None and parsed.Response.Data is not None:
+            ctx.data_obj = parsed.Response.Data
 
     return True
  
