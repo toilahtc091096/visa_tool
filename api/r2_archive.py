@@ -224,7 +224,7 @@ _IMAGE_EXT = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff")
 PORTRAIT_KEY = "anh_chan_dung/portrait.png"  # n8n WF-08 (edited portrait)
 # CT07 / residence paper: n8n WF-07B merges the photos into one PDF here.
 CT07_FOLDER = "lich_su_xuat_canh/chua_tung_di_ho_chieu_trang/giay_cu_tru/"
-# Old Chinese visas (n8n WF-09): file_<n>.png on the current passport,
+# Old Chinese visas (n8n WF-09): file_<issue date>_<n>.png (older cases file_<n>.png) on the current passport,
 # visa_cu_<issue date>_<n>.png on an old passport.
 OLD_VISA_FOLDERS = (
     "lich_su_xuat_canh/da_tung_di_nuoc_ngoai/visa_trung_quoc_cu/",

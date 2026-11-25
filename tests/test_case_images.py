@@ -93,6 +93,9 @@ class PickOldVisaTest(unittest.TestCase):
         self.assertEqual(wp.pick_old_visas(cur + old, "2024-05-06"), cur)        # read from a current-passport visa
         self.assertEqual(wp.pick_old_visas(old, ""), old)
         self.assertEqual(wp.pick_old_visas([], "2019-03-07"), [])
+        new = ["a/visa_trung_quoc_cu/file_2024-05-06_11.png", "a/visa_trung_quoc_cu/file_2018-01-01_12.png"]
+        self.assertEqual(wp.pick_old_visas(new + old, "2024-05-06"), [new[0]])    # file_<date>_n (WF-09 since 2026-11-25)
+        self.assertEqual(wp.pick_old_visas(new + cur, "2020-01-01"), cur)        # no match: the undated ones
 
 
 class StackedCaseImageTest(unittest.TestCase):

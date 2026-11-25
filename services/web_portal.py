@@ -271,21 +271,24 @@ _STACK_WIDTH = 1400       # px, width of a stacked image
 _STACK_MAX_PAGES = 8
 
 
+_DATED_VISA_RE = re.compile(r"^(?:visa_cu|file)_(\d{4}-\d{2}-\d{2})_")
+
+
 def pick_old_visas(keys: list[str], issue_date: str = "") -> list[str]:
     """The old visa image(s) the curl's old_* fields were read from.
 
-    WF-09 keeps the visa with the latest issue date. Its file name only carries
-    the date on an old passport (visa_cu_<date>_n); file_<n> (current passport)
-    has none. So: visa_cu_<issue_date> when there is one, else the file_<n>
-    visas (one of them is it), else every old visa."""
+    WF-09 keeps the visa with the latest issue date and puts that date in the
+    file name: visa_cu_<date>_n (old passport), file_<date>_n (current passport,
+    since 2026-11-25; older cases have file_<n>, no date). So: the visas of
+    issue_date, else the undated ones (one of them is it), else every old visa."""
     date = re.sub(r"[^0-9-]", "", str(issue_date or ""))
-    names = [(k, k.rsplit("/", 1)[-1].lower()) for k in keys]
+    dated = [(k, _DATED_VISA_RE.match(k.rsplit("/", 1)[-1].lower())) for k in keys]
     if date:
-        same = [k for k, n in names if n.startswith(f"visa_cu_{date}_")]
+        same = [k for k, m in dated if m and m.group(1) == date]
         if same:
             return same
-    current = [k for k, n in names if not n.startswith("visa_cu_")]
-    return current or list(keys)
+    undated = [k for k, m in dated if not m]
+    return undated or list(keys)
 
 
 def _stack_pages(files: list[tuple[str, bytes]]) -> bytes:
