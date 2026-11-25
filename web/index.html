@@ -192,6 +192,21 @@
     .curl-imgs > label { grid-column: 1 / -1; }
   }
   @media (max-width: 560px) { .curl-imgs { grid-template-columns: 1fr; } }
+  .imgview { position: fixed; top: 12px; right: 12px; bottom: 12px; width: min(52vw, 1000px); z-index: 40; display: flex; flex-direction: column;
+             background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: -12px 0 40px rgba(0, 0, 0, .25);
+             animation: iv-in .16s ease-out; }
+  @keyframes iv-in { from { opacity: 0; transform: translateX(24px); } }
+  @media (max-width: 900px) { .imgview { left: 12px; width: auto; } }
+  .iv-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .iv-head h3 { margin: 0; font-size: 16px; }
+  .iv-tools { display: flex; gap: 6px; align-items: center; }
+  .iv-tools button { margin: 0; padding: 5px 11px; font-size: 14px; }
+  .iv-tools #ivZoom { min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+  .iv-body { flex: 1; min-height: 0; overflow: auto; background: var(--track); display: flex; padding: 8px; cursor: grab; }
+  .iv-body.drag { cursor: grabbing; user-select: none; }
+  .iv-wrap { position: relative; flex: none; margin: auto; }   /* auto margins: centred, yet fully scrollable when bigger */
+  .iv-wrap img { position: absolute; left: 50%; top: 50%; max-width: none; transform-origin: center; }
+  .iv-hint { padding: 6px 14px; font-size: 12px; }
   .img-acts { display: flex; gap: 6px; align-items: center; }
   .img-replace { margin: 0; padding: 5px 10px; font-size: 14px; }
   .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -500,6 +515,22 @@
     </div>
     <div class="exbody" id="exBody"></div>
   </div>
+</div>
+<!-- big image viewer, right half of the screen, no backdrop: the curl JSON on the left stays usable -->
+<div id="imgView" class="imgview hidden" role="dialog" aria-labelledby="ivTitle">
+  <div class="iv-head">
+    <h3 id="ivTitle"></h3>
+    <div class="iv-tools">
+      <button class="secondary" id="ivOut" type="button" title="Thu nhỏ (phím -)">−</button>
+      <span id="ivZoom" class="hint"></span>
+      <button class="secondary" id="ivIn" type="button" title="Phóng to (phím +)">+</button>
+      <button class="secondary" id="ivFit" type="button" title="Vừa khung (phím 0)">Vừa khung</button>
+      <button class="secondary" id="ivRot" type="button" title="Xoay 90° (phím R)">⟳ Xoay</button>
+      <button class="secondary" id="ivClose" type="button" title="Đóng (Esc)">✕</button>
+    </div>
+  </div>
+  <div class="iv-body" id="ivBody"><div id="ivWrap" class="iv-wrap"><img id="ivImg" alt=""></div></div>
+  <div class="hint iv-hint">Ctrl + lăn chuột để phóng to / thu nhỏ · kéo để di chuyển ảnh · JSON bên trái vẫn sửa được</div>
 </div>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="dlg" class="dlg-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
@@ -1452,6 +1483,7 @@ let caseImgCur = null;   // { house, passport } of the images shown
 function clearCaseImages() {
   imageUrls.splice(0).forEach((u) => URL.revokeObjectURL(u));
   caseImgCur = null;
+  closeImgView();   // its blob URL was just revoked
   $('curlImages').classList.add('hidden');
 }
 async function showCaseImages(house, passport) {
@@ -1477,12 +1509,72 @@ async function showCaseImages(house, passport) {
       imageUrls.push(url);
       const img = document.createElement('img');
       img.src = url; img.alt = card.querySelector('figcaption span').textContent;
-      img.title = 'Bấm để xem ảnh lớn'; img.onclick = () => window.open(url, '_blank');
+      img.title = 'Bấm để xem ảnh lớn (khung bên phải)';
+      img.onclick = () => openImgView(url, `${card.querySelector('figcaption span').textContent} · ${passport}`);
       box.innerHTML = ''; box.appendChild(img);
       dl.href = url; dl.download = `${passport}_${kind}.${ext}`; dl.classList.remove('hidden');
     } catch (e) { box.innerHTML = `<span class="img-empty">${esc(e.message)}</span>`; }
   }));
 }
+// ---------- big image viewer (right half, no backdrop: compare with the JSON on the left) ----------
+const iv = { scale: 1, rot: 0, fit: true };
+function ivLayout() {
+  const img = $('ivImg'), body = $('ivBody');
+  const w = img.naturalWidth, h = img.naturalHeight;
+  if (!w || !h) return;
+  const side = iv.rot % 180 !== 0;                       // 90° / 270°: width and height swap
+  const bw = side ? h : w, bh = side ? w : h;
+  if (iv.fit) iv.scale = Math.min((body.clientWidth - 16) / bw, (body.clientHeight - 16) / bh);
+  iv.scale = Math.min(8, Math.max(0.05, iv.scale));
+  img.style.width = `${w * iv.scale}px`; img.style.height = `${h * iv.scale}px`;
+  img.style.transform = `translate(-50%, -50%) rotate(${iv.rot}deg)`;
+  $('ivWrap').style.width = `${bw * iv.scale}px`; $('ivWrap').style.height = `${bh * iv.scale}px`;
+  $('ivZoom').textContent = `${Math.round(iv.scale * 100)}%`;
+}
+function ivZoom(factor) {
+  const body = $('ivBody');
+  // keep the point in the middle of the view in the middle after zooming
+  const cx = (body.scrollLeft + body.clientWidth / 2) / Math.max(1, body.scrollWidth);
+  const cy = (body.scrollTop + body.clientHeight / 2) / Math.max(1, body.scrollHeight);
+  iv.fit = false; iv.scale *= factor; ivLayout();
+  body.scrollLeft = cx * body.scrollWidth - body.clientWidth / 2;
+  body.scrollTop = cy * body.scrollHeight - body.clientHeight / 2;
+}
+function openImgView(url, title) {
+  Object.assign(iv, { scale: 1, rot: 0, fit: true });
+  $('ivTitle').textContent = title;
+  $('ivImg').onload = ivLayout;
+  $('ivImg').src = url;
+  $('imgView').classList.remove('hidden');
+  ivLayout();
+}
+function closeImgView() { $('imgView').classList.add('hidden'); $('ivImg').removeAttribute('src'); }
+$('ivIn').onclick = () => ivZoom(1.25);
+$('ivOut').onclick = () => ivZoom(0.8);
+$('ivFit').onclick = () => { iv.fit = true; ivLayout(); };
+$('ivRot').onclick = () => { iv.rot = (iv.rot + 90) % 360; ivLayout(); };
+$('ivClose').onclick = closeImgView;
+window.addEventListener('resize', () => { if (!$('imgView').classList.contains('hidden') && iv.fit) ivLayout(); });
+$('ivBody').addEventListener('wheel', (e) => { if (!e.ctrlKey) return; e.preventDefault(); ivZoom(e.deltaY < 0 ? 1.15 : 1 / 1.15); }, { passive: false });
+// drag to move a zoomed image
+$('ivBody').addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  const body = $('ivBody'), x = e.clientX, y = e.clientY, sl = body.scrollLeft, st = body.scrollTop;
+  e.preventDefault(); body.classList.add('drag');
+  const move = (m) => { body.scrollLeft = sl - (m.clientX - x); body.scrollTop = st - (m.clientY - y); };
+  const up = () => { body.classList.remove('drag'); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+});
+document.addEventListener('keydown', (e) => {
+  if ($('imgView').classList.contains('hidden') || !$('dlg').classList.contains('hidden')) return;
+  if (e.key === 'Escape') { closeImgView(); return; }
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;   // typing in the JSON
+  if (e.key === '+' || e.key === '=') ivZoom(1.25);
+  else if (e.key === '-') ivZoom(0.8);
+  else if (e.key === '0') { iv.fit = true; ivLayout(); }
+  else if (e.key === 'r' || e.key === 'R') { iv.rot = (iv.rot + 90) % 360; ivLayout(); }
+});
+
 // "Thay ảnh": overwrite a wrong passport image on R2 (same file, same format); the next Chạy reads it again.
 $('imgReplace').onclick = () => { if (caseImgCur) $('imgReplaceFile').click(); };
 $('imgReplaceFile').addEventListener('change', async () => {
