@@ -66,6 +66,49 @@ class CaseImageTest(unittest.TestCase):
                 wp.case_image(house, passport, kind)
 
 
+def _jpeg_bytes() -> bytes:
+    import cv2
+    import numpy as np
+    ok, buf = cv2.imencode(".jpg", np.full((40, 60, 3), 200, dtype=np.uint8))
+    assert ok
+    return buf.tobytes()
+
+
+class ReplaceCaseImageTest(unittest.TestCase):
+    """'Thay ảnh': overwrite the passport image the page shows (= the one /run sends to OCR)."""
+
+    def _run(self, found_passport, content):
+        get = mock.Mock(return_value=mock.Mock(status_code=200, json=mock.Mock(
+            return_value={"ok": True, "passport": found_passport, "portrait": ""})))
+        post = mock.Mock(return_value=mock.Mock(status_code=200, json=mock.Mock(return_value={"ok": True})))
+        with mock.patch.object(wp.requests, "get", get), mock.patch.object(wp.requests, "post", post):
+            result = wp.replace_case_image("tai", " e01234567 ", "passport", content)
+        return result, post
+
+    def test_overwrites_same_key_in_same_format(self):
+        result, post = self._run("E01234567/passport.png", _jpeg_bytes())   # a JPEG over a .png file
+        self.assertEqual(result, {"ok": True, "key": "E01234567/passport.png", "size": result["size"], "replaced": True})
+        self.assertEqual(post.call_args.args[0], "http://127.0.0.1:30000/r2/images")
+        self.assertEqual(post.call_args.kwargs["data"], {"mode": "upload", "key": "E01234567/passport.png", "content_type": "image/png"})
+        sent = post.call_args.kwargs["files"]["file"][1]
+        self.assertTrue(sent.startswith(b"\x89PNG"))   # re-encoded to PNG, not JPEG bytes under a .png name
+
+    def test_jpg_key_stays_jpg_and_new_case_gets_passport_png(self):
+        _, post = self._run("E01234567/file_job-1-doc-0001.jpg", _jpeg_bytes())
+        self.assertEqual(post.call_args.kwargs["data"]["key"], "E01234567/file_job-1-doc-0001.jpg")
+        self.assertTrue(post.call_args.kwargs["files"]["file"][1].startswith(b"\xff\xd8"))
+        result, post = self._run("", _jpeg_bytes())   # no passport image yet
+        self.assertEqual((result["key"], result["replaced"]), ("E01234567/passport.png", False))
+
+    def test_rejects_bad_input(self):
+        for passport, kind, content in [("../x", "passport", b"x"), ("E01234567", "portrait", b"x"),
+                                        ("E01234567", "passport", b"")]:
+            with self.assertRaises(wp.FormError, msg=(passport, kind)):
+                wp.replace_case_image("HAI", passport, kind, content)
+        with self.assertRaises(wp.FormError):   # not an image
+            self._run("E01234567/passport.png", b"not an image")
+
+
 class CaseImageEndpointTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -100,6 +143,19 @@ class CaseImageEndpointTest(unittest.TestCase):
         self.assertIn("Chưa có ảnh", r.json()["detail"]["error"])
         r = self.client.get("/web/case-image?house=HAI&passport=../etc&kind=passport", headers={"X-Api-Key": "bao-key"})
         self.assertEqual(r.status_code, 400)
+
+    def test_replace_endpoint(self):
+        files = {"file": ("p.jpg", b"JPG", "image/jpeg")}
+        data = {"house": "HAI", "passport": "E01234567", "kind": "passport"}
+        self.assertEqual(self.client.post("/web/case-image", data=data, files=files).status_code, 401)
+        with mock.patch.object(self.server.web_portal, "replace_case_image",
+                               return_value={"ok": True, "key": "E01234567/passport.png", "size": 3, "replaced": True}) as rep:
+            r = self.client.post("/web/case-image", data=data, files=files, headers={"X-Api-Key": "bao-key"})
+        self.assertEqual((r.status_code, r.json()["key"]), (200, "E01234567/passport.png"))
+        self.assertEqual(rep.call_args.args, ("HAI", "E01234567", "passport", b"JPG"))
+        with mock.patch.object(self.server.web_portal, "replace_case_image", side_effect=wp.FormError("Chưa chọn ảnh")):
+            r = self.client.post("/web/case-image", data=data, files=files, headers={"X-Api-Key": "bao-key"})
+        self.assertEqual((r.status_code, r.json()["detail"]["error"]), (400, "Chưa chọn ảnh"))
 
     def test_house_endpoint_needs_key_from_outside(self):
         self.assertEqual(self.client.get("/r2/case-images?passport=E01234567").status_code, 401)

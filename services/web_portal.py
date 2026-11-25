@@ -286,6 +286,64 @@ def case_image(house_name: str, passport_number: str, kind: str) -> tuple[int, b
     return resp.status_code, resp.content, resp.headers.get("content-type", "application/octet-stream"), name
 
 
+CASE_IMAGE_MAX_BYTES = 15 * 1024 * 1024
+_IMAGE_CONTENT_TYPES = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp",
+                        "bmp": "image/bmp", "tif": "image/tiff", "tiff": "image/tiff"}
+
+
+def _reencode_image(content: bytes, ext: str) -> bytes:
+    """The uploaded photo re-encoded to the format of the file it replaces (the key keeps its
+    extension, so OCR / COVA never get a PNG name holding JPEG bytes). FormError when not an image."""
+    import cv2
+    import numpy as np
+
+    img = cv2.imdecode(np.frombuffer(content, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if img is None:
+        raise FormError("File tải lên không phải ảnh (chỉ nhận .jpg, .png, .webp…)")
+    target = "jpg" if ext in ("jpg", "jpeg") else ext if ext in _IMAGE_CONTENT_TYPES else "png"
+    params = [int(cv2.IMWRITE_JPEG_QUALITY), 95] if target == "jpg" else []
+    ok, buf = cv2.imencode("." + target, img, params)
+    if not ok:
+        raise FormError(f"Không chuyển được ảnh sang .{target}")
+    return buf.tobytes()
+
+
+def replace_case_image(house_name: str, passport_number: str, kind: str, content: bytes) -> dict[str, Any]:
+    """Overwrite the passport image of a case (when the one on R2 is wrong).
+
+    Writes over the exact key /web/case-image shows (= the image /run sends to OCR), in the same
+    format; nothing there yet -> <PASSPORT>/passport.png. The next Chạy downloads the folder again
+    and reads the new image. The old file is not kept."""
+    house = house_config(house_name)
+    folder = str(passport_number or "").strip().upper()
+    if not _PASSPORT_FOLDER_RE.match(folder):
+        raise FormError(f"Số hộ chiếu không hợp lệ: {passport_number or '(trống)'}")
+    if kind != "passport":
+        raise FormError("Chỉ thay được ảnh hộ chiếu")
+    if not content:
+        raise FormError("Chưa chọn ảnh")
+    if len(content) > CASE_IMAGE_MAX_BYTES:
+        raise FormError(f"Ảnh lớn hơn {CASE_IMAGE_MAX_BYTES // 1048576} MB")
+    found = _json_or_error(requests.get(_local(house, "/r2/case-images"), params={"passport": folder}, timeout=60))
+    if not found.get("ok"):
+        raise RuntimeError(found.get("message") or found.get("error") or "Không liệt kê được thư mục R2")
+    key = str(found.get("passport") or "") or f"{folder}/passport.png"
+    name = key.rsplit("/", 1)[-1]
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else "png"
+    data = _reencode_image(content, ext)
+    content_type = _IMAGE_CONTENT_TYPES.get(ext, "image/png")
+    resp = requests.post(
+        _local(house, "/r2/images"),
+        data={"mode": "upload", "key": key, "content_type": content_type},
+        files={"file": (name, data, content_type)},
+        timeout=180,
+    )
+    result = _json_or_error(resp)
+    if not result.get("ok"):
+        raise RuntimeError(result.get("message") or result.get("error") or "Tải ảnh lên R2 không được")
+    return {"ok": True, "key": key, "size": len(data), "replaced": bool(found.get("passport"))}
+
+
 def bio_credentials(house_name: str) -> dict[str, Any]:
     """Bio login URL + account of the house (from the house instance's own .env)."""
     house = house_config(house_name)

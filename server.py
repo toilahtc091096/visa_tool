@@ -683,7 +683,7 @@ def web_bio_check(request: Request, house: str = Query("")):
 @app.get("/web/case-image")
 def web_case_image(request: Request, house: str = Query(""), passport: str = Query(""),
                    kind: str = Query(""), download: bool = Query(False)):
-    # Passport image / edited portrait of a case, from the house's bucket (curl tab, after Chạy).
+    # Passport image / edited portrait of a case, from the house's bucket (curl tab: shown as soon as the curl is read).
     _web_user(request)
     try:
         status, content, content_type, name = web_portal.case_image(house, passport, kind)
@@ -699,6 +699,20 @@ def web_case_image(request: Request, house: str = Query(""), passport: str = Que
     if download:
         headers["Content-Disposition"] = f'attachment; filename="{name}"'
     return Response(content=content, media_type=content_type, headers=headers)
+
+
+@app.post("/web/case-image")
+async def web_case_image_replace(request: Request, house: str = Form(""), passport: str = Form(""),
+                                 kind: str = Form("passport"), file: UploadFile = File(...)):
+    # Overwrite a wrong passport image on R2 (curl tab, "Thay ảnh"); the next Chạy reads the new one.
+    _web_user(request)
+    content = await file.read()
+    try:
+        return await asyncio.to_thread(web_portal.replace_case_image, house, passport, kind, content)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không ghi được lên R2: {exc}"})
 
 
 @app.get("/web/visa-token.user.js")

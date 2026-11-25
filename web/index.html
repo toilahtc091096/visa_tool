@@ -95,6 +95,7 @@
            padding: 12px 18px; border-radius: 8px; background: var(--text); color: var(--bg); font-weight: 600;
            box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 20; }
   main.wide { max-width: 1240px; }
+  main.wide.curl { max-width: 1480px; }   /* curl tab: JSON + case images + history side by side */
   .curl-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; }
   .curl-main { min-width: 0; }
   .curl-side { border-left: 1px solid var(--line); padding-left: 24px; min-width: 0; }
@@ -179,6 +180,20 @@
   @media (max-width: 420px) { .dlg-actions { flex-direction: column-reverse; } .dlg-actions button { width: 100%; } }
   @keyframes dlg-fade { from { opacity: 0; } }
   @keyframes dlg-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+  /* curl tab: JSON beside the case images (passport stays in view while scrolling the JSON) */
+  .curl-check { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; }
+  .curl-check:has(> #curlImages.hidden) { grid-template-columns: minmax(0, 1fr); }
+  .curl-imgs { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .curl-imgs .img-box { height: 220px; }
+  .curl-imgs #img-passport .img-box { height: 300px; }
+  @media (max-width: 1300px) {
+    .curl-check, .curl-check:has(> #curlImages.hidden) { grid-template-columns: minmax(0, 1fr); }
+    .curl-imgs { position: static; order: -1; display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+    .curl-imgs > label { grid-column: 1 / -1; }
+  }
+  @media (max-width: 560px) { .curl-imgs { grid-template-columns: 1fr; } }
+  .img-acts { display: flex; gap: 6px; align-items: center; }
+  .img-replace { margin: 0; padding: 5px 10px; font-size: 14px; }
   .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 560px) { .img-grid { grid-template-columns: 1fr; } }
   .img-card { margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
@@ -337,31 +352,40 @@
       </div>
       <div id="curlEdit" class="hidden">
         <div id="curlHouseInfo" class="hint" style="margin-top:12px"></div>
-        <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
-        <textarea id="curlBody" rows="16" spellcheck="false" class="mono"></textarea>
-        <div id="curlBodyErr" class="hidden"></div>
-        <div style="display:flex; gap:8px">
-          <button id="fmtBtn" class="secondary">Định dạng lại</button>
-          <button id="runBtn">Chạy</button>
+        <!-- JSON on the left, the case images on the right: check the curl against the passport before Chạy -->
+        <div class="curl-check">
+          <div class="curl-json">
+            <label for="curlBody">JSON gửi lên /run <span class="hint" id="curlBodyInfo"></span></label>
+            <textarea id="curlBody" rows="22" spellcheck="false" class="mono"></textarea>
+            <div id="curlBodyErr" class="hidden"></div>
+            <div style="display:flex; gap:8px">
+              <button id="fmtBtn" class="secondary">Định dạng lại</button>
+              <button id="runBtn">Chạy</button>
+            </div>
+          </div>
+          <div id="curlImages" class="curl-imgs hidden">
+            <label>Ảnh hồ sơ <span class="hint" id="curlImagesInfo"></span></label>
+            <figure class="img-card" id="img-passport">
+              <div class="img-box"><span class="img-empty">Đang tải…</span></div>
+              <figcaption><span>Ảnh hộ chiếu</span>
+                <span class="img-acts">
+                  <button type="button" class="secondary img-replace" id="imgReplace" title="Ảnh sai? Chọn ảnh đúng từ máy để ghi đè lên ảnh hộ chiếu trên R2">⟳ Thay ảnh</button>
+                  <a class="img-dl hidden" href="#">⬇ Tải về</a>
+                </span>
+              </figcaption>
+              <input type="file" id="imgReplaceFile" accept="image/*" hidden>
+            </figure>
+            <figure class="img-card" id="img-portrait">
+              <div class="img-box"><span class="img-empty">Đang tải…</span></div>
+              <figcaption><span>Ảnh chân dung</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
+            </figure>
+          </div>
         </div>
       </div>
       <div id="curlMsg"></div>
       <div id="curlTimes" class="hidden">
         <h2>Thời gian từng bước</h2>
         <div class="tbl-wrap"><table class="data" id="curlTimesTbl"></table></div>
-      </div>
-      <div id="curlImages" class="hidden">
-        <h2>Ảnh hồ sơ <span class="hint" id="curlImagesInfo"></span></h2>
-        <div class="img-grid">
-          <figure class="img-card" id="img-passport">
-            <div class="img-box"><span class="img-empty">Đang tải…</span></div>
-            <figcaption><span>Ảnh hộ chiếu</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
-          </figure>
-          <figure class="img-card" id="img-portrait">
-            <div class="img-box"><span class="img-empty">Đang tải…</span></div>
-            <figcaption><span>Ảnh chân dung</span><a class="img-dl hidden" href="#">⬇ Tải về</a></figcaption>
-          </figure>
-        </div>
       </div>
       <pre id="curlResult" class="result hidden"></pre>
       </div>
@@ -1112,6 +1136,7 @@ Object.keys(TABS).forEach((tab) => {
     });
     $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
     document.querySelector('main').classList.toggle('wide', tab === 'tabAdmin' || tab === 'tabCurl');
+    document.querySelector('main').classList.toggle('curl', tab === 'tabCurl');
     if (tab === 'tabAdmin' && !adminLoaded) adminLoad();
   };
 });
@@ -1423,13 +1448,16 @@ $('fmtBtn').onclick = () => { try { $('curlBody').value = groupedJson(readBody()
 
 // ---------- case images (R2: <passport>/passport.png, <passport>/anh_chan_dung/portrait.png) ----------
 const imageUrls = [];
+let caseImgCur = null;   // { house, passport } of the images shown
 function clearCaseImages() {
   imageUrls.splice(0).forEach((u) => URL.revokeObjectURL(u));
+  caseImgCur = null;
   $('curlImages').classList.add('hidden');
 }
 async function showCaseImages(house, passport) {
   clearCaseImages();
   if (!house || !passport) return;
+  caseImgCur = { house, passport };
   $('curlImagesInfo').textContent = `· nhà ${house} · hộ chiếu ${passport}`;
   $('curlImages').classList.remove('hidden');
   await Promise.all(['passport', 'portrait'].map(async (kind) => {
@@ -1455,6 +1483,31 @@ async function showCaseImages(house, passport) {
     } catch (e) { box.innerHTML = `<span class="img-empty">${esc(e.message)}</span>`; }
   }));
 }
+// "Thay ảnh": overwrite a wrong passport image on R2 (same file, same format); the next Chạy reads it again.
+$('imgReplace').onclick = () => { if (caseImgCur) $('imgReplaceFile').click(); };
+$('imgReplaceFile').addEventListener('change', async () => {
+  const input = $('imgReplaceFile'), file = input.files[0];
+  input.value = '';
+  if (!file || !caseImgCur) return;
+  const { house, passport } = caseImgCur;
+  const ok = await ask({
+    tone: 'warn', title: 'Ghi đè ảnh hộ chiếu?',
+    message: 'Ảnh hộ chiếu hiện tại trên R2 sẽ bị thay bằng ảnh bạn chọn (không lấy lại được ảnh cũ). '
+      + 'Lần bấm Chạy tiếp theo, hệ thống đọc lại hộ chiếu từ ảnh mới.',
+    details: [['Nhà', house], ['Hộ chiếu', passport], ['Ảnh mới', `${file.name} · ${mb(file.size)}`]],
+    okText: 'Ghi đè', cancelText: 'Huỷ',
+  });
+  if (!ok) return;
+  const b = $('imgReplace'); b.disabled = true; b.textContent = 'Đang tải lên…';
+  try {
+    const fd = new FormData();
+    fd.append('house', house); fd.append('passport', passport); fd.append('kind', 'passport'); fd.append('file', file);
+    const r = await api('/web/case-image', fd, true);
+    toast(`Đã ${r.replaced ? 'ghi đè' : 'tải lên'} ảnh hộ chiếu ${passport} (${r.key})`);
+    if (caseImgCur && caseImgCur.passport === passport) await showCaseImages(house, passport);
+  } catch (e) { toast('Không thay được ảnh: ' + e.message); }
+  b.disabled = false; b.textContent = '⟳ Thay ảnh';
+});
 
 // Phases of /run (flows/run_flow.py, result.timings), in run order.
 const PHASE_LABEL = {
