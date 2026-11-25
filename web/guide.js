@@ -336,6 +336,19 @@ GUIDES.X2 = typeGuide({
 const signNote = (o, ex) => o.goc
   ? `<li><b>Chữ ký gốc</b> (đã chọn ở trên): tên file chữ ký có đuôi <code>_goc</code>, vd <code>${ex}_1_goc</code>. Hệ thống <b>giữ nguyên nét</b>, chỉ làm nền trắng và chỉnh cỡ. Dùng khi ảnh chữ ký rõ, nét đẹp.</li>`
   : `<li><b>Vẽ lại nét</b> (đã chọn ở trên): tên file bình thường, vd <code>${ex}_1</code>. Hệ thống làm nền trắng và <b>vẽ lại nét</b> cho đều. Dùng khi ảnh chữ ký mờ, nhoè, chụp nghiêng.</li>`;
+// qcm_ / scm_ = the MAIN proof of the relation, which depends on who invites whom; the other relation papers go to qkhac_ / skhac_.
+const relSection = (cm, khac) => ({ id: 'rel', title: `Giấy chứng minh quan hệ (${cm}_) theo quan hệ người mời`, hint: `${cm}_ hay ${khac}_`, open: true, html: () => `
+  <p><code>${cm}_</code> chỉ chứa <b>giấy chứng minh đúng quan hệ</b> chọn ở ô "Quan hệ" của form. Giấy quan hệ khác (không phải giấy chính của quan hệ đó) đặt <code>${khac}_</code>.</p>
+  <div class="tbl-wrap"><table class="data"><tr><th>Quan hệ (ví dụ)</th><th><code>${cm}_1</code>, <code>${cm}_2</code>… là</th><th><code>${khac}_1</code>, <code>${khac}_2</code>… là</th></tr>
+    <tr><td><b>Vợ mời chồng</b> / chồng mời vợ</td>
+        <td><b>Giấy đăng ký kết hôn</b>: bản Trung Quốc và bản Việt Nam. Bản có đóng dấu thì đưa kèm vào luôn (vd <code>${cm}_1</code> = ĐKKH TQ, <code>${cm}_2</code> = ĐKKH VN, <code>${cm}_3</code> = bản có đóng dấu).</td>
+        <td>Giấy tờ khác, nếu có</td></tr>
+    <tr><td><b>Con mời mẹ</b> / con mời bố</td>
+        <td><b>Giấy khai sinh</b> (của người con, có tên bố / mẹ)</td>
+        <td>Giấy đăng ký kết hôn (của bố mẹ) và giấy tờ khác — lúc này ĐKKH <b>không</b> để ở <code>${cm}_</code></td></tr>
+    <tr><td>Quan hệ khác</td><td>Giấy chứng minh đúng quan hệ đó</td><td>Các giấy quan hệ còn lại → <code>${khac}_</code></td></tr>
+  </table></div>
+  <p class="hint">Cùng một giấy (vd ĐKKH) có thể là <code>${cm}_</code> ở hồ sơ này nhưng là <code>${khac}_</code> ở hồ sơ khác — xem quan hệ người mời trước khi đặt tên.</p>` });
 const qSign = { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'qchuki_ · qbaolanh_ · _goc', open: true, html: (o) => `
   <p>Thư mời do <b>hệ thống tự tạo</b> từ giấy tờ người mời + quan hệ chọn ở form. Chữ ký đưa vào thư mời:</p>
   <ul>${signNote(o, 'qchuki')}
@@ -345,11 +358,11 @@ const qDocs = (maxRel) => [
   ['qmoi_1', 'Giấy tờ người mời: CCCD / hộ khẩu / hộ chiếu Trung Quốc (mặt trước)', 'người mời (công dân TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ, tỉnh / thành / quận'), 'giấy tờ người mời — mặt trước'],
   ['qmoi_2', 'Giấy tờ người mời (mặt sau / trang 2)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — mặt sau / trang 2'],
   ['qmoi_3', 'Giấy tờ người mời: trang 3, 4, 5 (qmoi_3 … qmoi_5)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — trang 3 (thêm qmoi_4, qmoi_5 nếu có)'],
-  ['qcm_1', `Giấy chứng minh quan hệ (giấy kết hôn, khai sinh, hộ khẩu…): qcm_1 … qcm_5`, 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY, 'giấy chứng minh quan hệ (thêm qcm_2 … qcm_5 nếu có)'],
+  ['qcm_1', `Giấy chứng minh quan hệ — giấy chính theo quan hệ người mời (xem mục bên dưới): qcm_1 … qcm_5`, 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY, 'giấy chứng minh quan hệ (thêm qcm_2 … qcm_5 nếu có)'],
   ['qthumoi_1', 'Thư mời khách cung cấp (người mời đã viết, ký sẵn)', 'người mời / khách', 'nếu có', `<span class="st approved">thay thư hệ thống tạo</span>`, 'thư mời khách cung cấp, nếu có'],
   ['qchuki_1', 'Chữ ký người mời (cho thư mời)', 'người mời', 'nên có', READ('làm nền trắng, đưa vào thư mời'), 'chữ ký người mời (cho thư mời)'],
   ['qbaolanh_1', 'Chữ ký người bảo lãnh (ký thay người mời)', 'người bảo lãnh', 'nếu có', READ('đưa vào thư mời mẫu bảo lãnh'), 'chữ ký người bảo lãnh (ký thay người mời)'],
-  ['qkhac_1', 'Giấy tờ khác hỗ trợ hồ sơ', '—', 'nếu có', UPLOAD_ONLY],
+  ['qkhac_1', 'Giấy tờ khác hỗ trợ hồ sơ, gồm giấy quan hệ không phải giấy chính (vd ĐKKH khi con mời mẹ)', '—', 'nếu có', UPLOAD_ONLY, 'giấy tờ khác + giấy quan hệ phụ, nếu có'],
 ];
 // maxRel: North upload slots for qcm_ (Q1: 4, Q2: 3). South merges every file into 1 PDF.
 const manyNote = (h, moi, cm, maxRel) => NORTH_HOUSES.includes(h)
@@ -360,7 +373,7 @@ const qNote = (maxRel) => (o, h) => `<ul><li><b>Bắt buộc chọn "Quan hệ"<
     <li>Thư mời: bình thường không cần chuẩn bị — hệ thống tạo từ <code>qmoi</code> + quan hệ + chữ ký.</li>
     <li><code>qthumoi_1</code> (<code>qthumoi_2</code>… nếu nhiều trang): thư mời <b>khách tự cung cấp</b>. Q1, Q2 (cả miền Bắc và miền Nam): có <code>qthumoi</code> thì hệ thống tải lên đúng thư này (gộp các trang thành 1 PDF theo số thứ tự); thư hệ thống tạo vẫn được làm và lưu dự phòng (tên <code>…_backup.pdf</code>). Không có thì dùng thư hệ thống tạo.</li></ul>`;
 const signErrors = (p) => [`Chọn chữ ký gốc mà quên đuôi <code>_goc</code> (hoặc ngược lại) → hệ thống xử lý chữ ký sai kiểu. Đuôi phải đặt <b>cuối tên</b>: <code>${p}_1_goc</code>, không phải <code>${p}_goc_1</code>.`];
-const qErrors = [...signErrors('qchuki'),
+const qErrors = [...signErrors('qchuki'), 'Con mời mẹ mà để giấy đăng ký kết hôn ở <code>qcm_</code> → <code>qcm_</code> phải là giấy khai sinh, ĐKKH chuyển sang <code>qkhac_</code>.',
                  'Thư mời khách đưa đặt tên <code>thumoi</code> (của visa M) hay <code>sthumoi</code> (của S2) → hồ sơ Q phải là <code>qthumoi_1</code>.',
                  'Đánh số nhảy cóc hoặc sai thứ tự (<code>qmoi_1</code>, <code>qmoi_3</code>, thiếu <code>qmoi_2</code>) → trang bị xếp sai thứ tự.', 'Giấy tờ người mời đặt tên <code>cccd.jpg</code>, <code>nguoi moi.jpg</code> → phải là <code>qmoi_1</code>, <code>qmoi_2</code>.',
                  'Dùng tiền tố của visa S (<code>smoi_</code>, <code>scm_</code>) cho hồ sơ Q → hệ thống xếp nhầm loại.',
@@ -368,12 +381,12 @@ const qErrors = [...signErrors('qchuki'),
 GUIDES.Q1 = typeGuide({
   code: 'Q1', title: 'Visa Q1 (đoàn tụ gia đình, trên 180 ngày) — chuẩn bị file',
   intro: 'Sang Trung Quốc đoàn tụ, ở lâu hơn 180 ngày với người thân là công dân Trung Quốc (hoặc người có thường trú TQ). Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "Q1 - NGUYEN VAN A".',
-  docs: qDocs(4), docsNote: qNote(4), extra: [qSign], errors: qErrors, u18: true, sign: true,
+  docs: qDocs(4), docsNote: qNote(4), extra: [relSection('qcm', 'qkhac'), qSign], errors: qErrors, u18: true, sign: true,
 });
 GUIDES.Q2 = typeGuide({
   code: 'Q2', title: 'Visa Q2 (thăm thân ngắn hạn, tối đa 180 ngày) — chuẩn bị file',
   intro: 'Thăm người thân là công dân Trung Quốc (hoặc người có thường trú TQ), ở tối đa 180 ngày. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "Q2 - NGUYEN VAN A".',
-  docs: qDocs(3), docsNote: qNote(3), extra: [qSign], errors: qErrors, u18: true, sign: true,
+  docs: qDocs(3), docsNote: qNote(3), extra: [relSection('qcm', 'qkhac'), qSign], errors: qErrors, u18: true, sign: true,
 });
 
 // S2: thăm người thân là người nước ngoài đang làm việc / học ở Trung Quốc
@@ -384,22 +397,22 @@ GUIDES.S2 = typeGuide({
     ['smoi_1', 'Giấy tờ người mời: hộ chiếu (trang thông tin)', 'người mời (người đang ở TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ ở TQ'), 'hộ chiếu người mời'],
     ['smoi_2', 'Giấy tờ người mời: giấy cư trú / giấy phép ở TQ', 'người mời', 'bắt buộc', READ('như trên'), 'giấy cư trú ở TQ của người mời'],
     ['smoi_3', 'Giấy tờ người mời: trang 3, 4, 5 (smoi_3 … smoi_5)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — trang 3 (thêm smoi_4, smoi_5 nếu có)'],
-    ['scm_1', 'Giấy chứng minh quan hệ (giấy kết hôn, khai sinh…): scm_1 … scm_5', 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY, 'giấy chứng minh quan hệ (thêm scm_2 … scm_5 nếu có)'],
+    ['scm_1', 'Giấy chứng minh quan hệ — giấy chính theo quan hệ người mời (xem mục bên dưới): scm_1 … scm_5', 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY, 'giấy chứng minh quan hệ (thêm scm_2 … scm_5 nếu có)'],
     ['sthumoi_1', 'Thư mời khách cung cấp (người mời đã viết, ký sẵn)', 'người mời / khách', 'nếu có', `<span class="st approved">thay thư hệ thống tạo</span>`, 'thư mời khách cung cấp, nếu có'],
     ['smoi_ruot_1', 'Giấy tờ của chính người mời khi giấy smoi_ là của người khác', 'người mời', 'nếu có', READ('giới tính, ngày sinh người mời (cho thư mời)'), 'giấy tờ của chính người mời (khi smoi_ là của người khác)'],
     ['schuki_1', 'Chữ ký (cho thư mời)', '—', 'nên có', READ('làm nền trắng, đưa vào thư mời'), 'chữ ký (cho thư mời)'],
-    ['skhac_1', 'Giấy tờ khác hỗ trợ hồ sơ', '—', 'nếu có', UPLOAD_ONLY],
+    ['skhac_1', 'Giấy tờ khác hỗ trợ hồ sơ, gồm giấy quan hệ không phải giấy chính (vd ĐKKH khi con mời mẹ)', '—', 'nếu có', UPLOAD_ONLY, 'giấy tờ khác + giấy quan hệ phụ, nếu có'],
   ],
   docsNote: (o, h) => `<ul><li><b>Bắt buộc chọn "Quan hệ"</b> ở form; với S2, "Chồng / Vợ sắp cưới" nằm đầu danh sách.</li>
       ${manyNote(h, 'smoi', 'scm', 3)}
       <li>Thư mời: <code>sthumoi_1</code> là thư <b>khách tự cung cấp</b> — có thì hệ thống tải lên đúng thư đó (cả 2 miền); không có thì hệ thống tự tạo từ mẫu.</li>
       <li><code>smoi_ruot</code>: dùng khi giấy <code>smoi</code> là của người khác (vd chị lấy chồng TQ mời em: <code>smoi</code> = giấy của chồng, <code>smoi_ruot</code> = giấy của chị). Địa chỉ vẫn lấy từ <code>smoi</code>, giới tính + ngày sinh người mời lấy từ <code>smoi_ruot</code>.</li>
 </ul>`,
-  extra: [{ id: 'sign', title: 'Chữ ký trên thư mời', hint: 'schuki_ · _goc', open: true, html: (o) => `
+  extra: [relSection('scm', 'skhac'), { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'schuki_ · _goc', open: true, html: (o) => `
     <p>Khi hệ thống tự tạo thư mời (không có <code>sthumoi</code>), chữ ký <code>${sigName('schuki_1', o)}</code> được đưa vào thư mời:</p>
     <ul>${signNote(o, 'schuki')}</ul>` }],
   sign: true,
-  errors: [...signErrors('schuki'), 'Dùng tiền tố của visa Q (<code>qmoi_</code>, <code>qcm_</code>) cho hồ sơ S2 → hệ thống xếp nhầm loại.',
+  errors: [...signErrors('schuki'), 'Con mời mẹ mà để giấy đăng ký kết hôn ở <code>scm_</code> → <code>scm_</code> phải là giấy khai sinh, ĐKKH chuyển sang <code>skhac_</code>.', 'Dùng tiền tố của visa Q (<code>qmoi_</code>, <code>qcm_</code>) cho hồ sơ S2 → hệ thống xếp nhầm loại.',
            'Đặt <code>smoi_ruot</code> thành <code>smoiruot</code> hay <code>smoi_1_ruot</code> → phải bắt đầu đúng <code>smoi_ruot_</code>.',
            'Thư mời đặt tên <code>thumoi</code> (của visa M) hay <code>qthumoi</code> (của Q) → hồ sơ S2 phải là <code>sthumoi_1</code>.',
            'Đánh số nhảy cóc hoặc sai thứ tự (<code>smoi_1</code>, <code>smoi_3</code>, thiếu <code>smoi_2</code>) → trang bị xếp sai thứ tự.'],
