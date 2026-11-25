@@ -30,10 +30,19 @@ async def api_get_draft(
 
         ok = resp.status_code in (200, 201)
         result = GetDraftListResult.from_dict(data) if ok else None
+        response = asdict(result) if result is not None else data
+        if result is not None and isinstance(data, dict):
+            raw = data.get("Response")
+            # keep what the parsed result drops: COVA's business error (HTTP 200 +
+            # Response.Error, e.g. an expired token) and whether Data came back at all
+            if isinstance(raw, dict) and raw.get("Error"):
+                response["Response"]["Error"] = raw["Error"]
+            if not isinstance(raw, dict) or not isinstance(raw.get("Data"), dict):
+                response["Response"]["_no_data"] = True
 
         return ok, {
             "status_code": resp.status_code,
-            "response": asdict(result) if result is not None else data,
+            "response": response,
             "request": {
                 "url": url,
                 "headers": {"Authorization": "Bearer ***", "X-Tmp-Secret": "***"},
