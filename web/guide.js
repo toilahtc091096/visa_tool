@@ -187,6 +187,30 @@ const groupSection = ({ code, files, what, key, owner }) => ({
       <li>Tab <b>Chạy curl</b>: <b>Đọc curl</b> của người sau → ở <b>Lịch sử curl</b> tìm hồ sơ người đầu (gõ số hộ chiếu) → bấm <b>"Áp dụng ${code}"</b> → xem lại các trường được ghi → <b>Chạy</b>.</li></ol>
   <p class="hint">"Áp dụng ${code}" chép ${what} của người đầu, và ghi số hộ chiếu người đầu vào <code>${key}</code> để hệ thống dùng lại giấy tờ ${owner} của người đầu.</p>` });
 
+// ---------- "Thứ tự làm file" (section 2 of every type except L) ----------
+const stepsWrap = (intro, items) => `<p>${intro}</p><ol class="gsteps">${items.map((x) => `<li>${x}</li>`).join('')}</ol>`;
+// Q1, Q2, S2: invitation papers in this order: moi -> cm -> chuki -> khac (p = 'q' or 's').
+const inviteSteps = (p, maxRel, inviterDocs) => ({ id: 'steps', title: 'Thứ tự làm file', hint: `${p}moi → ${p}cm → ${p}chuki → ${p}khac`, open: true, html: (o, h) => {
+  const north = NORTH_HOUSES.includes(h);
+  const sig = (n) => `<code>${n}_1_goc</code> nếu là chữ ký gốc, không thì <code>${n}_1</code>`;
+  return stepsWrap(`Sau khi có file cơ bản, làm giấy tờ phía người mời <b>theo đúng thứ tự dưới đây</b> — làm lần lượt thì không sót, không đặt nhầm tên:`, [
+    `<b>${p}moi_ — giấy tờ người mời</b>: ${inviterDocs}.<br>
+     ${north ? `<b>Nhà ${esc(h)} (miền Bắc)</b>: chỉ <code>${p}moi_1</code>, <code>${p}moi_2</code> (2 giấy quan trọng nhất). Giấy người mời còn lại → <code>${p}khac_</code>.`
+             : `<b>Nhà ${esc(h)} (miền Nam)</b>: <code>${p}moi_1</code> → <code>${p}moi_n</code>, đánh số đúng thứ tự trang.`}`,
+    `<b>${p}cm_ — giấy quan hệ</b> giữa người mời và người được mời (giấy nào là giấy chính: xem mục "Giấy chứng minh quan hệ"). Giấy quan hệ để ở <code>${p}cm_</code>, <b>không</b> cho vào <code>${p}khac_</code>.
+     ${north ? `<br>Miền Bắc chỉ tải ${maxRel} file <code>${p}cm_</code> đầu tiên — giấy quan trọng nhất để số nhỏ.` : ''}`,
+    `<b>Chữ ký</b>: ${sig(p + 'chuki')}.${p === 'q' ? `<br>Cần người bảo lãnh (ký thay người mời): ${sig('qbaolanh')}.` : ''}`,
+    `<b>${p}khac_ — còn lại</b>: mọi giấy tờ khác${north ? ` (gồm giấy người mời từ tờ thứ 3)` : ''}.<br>
+     <span class="hint">Thư mời khách đưa sẵn (đã viết, ký) → <code>${p}thumoi_1</code>, không phải <code>${p}khac_</code>.</span>`,
+  ]);
+} });
+// M, F, X: basic files first, then only the papers special to the type.
+const specialSteps = (special, when) => ({ id: 'steps', title: 'Thứ tự làm file', hint: 'file cơ bản → file đặc thù', open: true, when, html: (o, h) => stepsWrap('Làm theo thứ tự:', [
+  `<b>File cơ bản</b> (hộ chiếu, ảnh thẻ${NORTH_HOUSES.includes(h) ? ', 2 trang trắng' : ''}, CT07, visa cũ): <b>giữ tên gốc</b>, chỉ cần không dấu.`,
+  `<b>Xác định các file đặc thù</b> của loại visa này và <b>đặt đúng tên</b>: ${typeof special === 'function' ? special(o, h) : special}`,
+  `<b>Người đi cùng / người thân</b> (nếu có): <code>cv_1</code>, <code>cv_2</code>…; hộ khẩu cắt ra <code>tt_cha</code>, <code>tt_me</code>…`,
+]) });
+
 GUIDES.M = {
   title: 'Visa M (thương mại) — chuẩn bị file',
   intro: 'Công ty Trung Quốc mời người Việt Nam sang làm việc. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "M - NGUYEN VAN A". Ngoài file cơ bản của người đi (như visa L) còn 4 file của 2 công ty.',
@@ -211,6 +235,9 @@ GUIDES.M = {
         <div class="gtree">M - NGUYEN VAN A/\n${tree}</div>
         <p class="hint">Giấy nhiều trang: thêm số, vd <code>dktq_1</code>, <code>dktq_2</code>. Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>`;
     } },
+    specialSteps((o) => `<code>thumoi</code>, <code>dktq</code> (bên Trung Quốc), <code>dkvn</code>, <code>qdct</code> (bên Việt Nam).${o.owner
+      ? '<br><b>Chủ doanh nghiệp</b>: không có quyết định công tác → chép <code>thumoi</code> thành <code>qdct</code> (xem mục "Người được mời là chủ doanh nghiệp").'
+      : '<br><span class="hint">Mời giám đốc / chủ doanh nghiệp: chọn "Chủ doanh nghiệp" ở trên để xem cách làm.</span>'}`, (o) => !isNext(o)),
     groupSection({ code: 'M', files: '4 file công ty (<code>thumoi</code>, <code>dktq</code>, <code>dkvn</code>, <code>qdct</code>)',
       what: 'thông tin công ty Trung Quốc / Việt Nam và ngày đi / về', key: 'company_passport', owner: 'công ty' }),
     { id: 'company', title: 'Giấy tờ của 2 công ty', hint: 'đặt đúng tên', open: true, when: (o) => !isNext(o), html: (o) => `
@@ -252,7 +279,7 @@ const isSign = (n) => /^(qchuki|qbaolanh|qbl|schuki)_/.test(n);
 const sigName = (n, o) => (o.goc && isSign(n) ? n + '_goc' : n);
 const READ = (what) => `<span class="st approved">đọc: ${esc(what)}</span>`;
 const UPLOAD_ONLY = '<span class="st">chỉ tải lên</span>';
-function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors = [], group = null, companions = false, u18 = false, sign = false }) {
+function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors = [], group = null, companions = false, u18 = false, sign = false, steps = null }) {
   const next = (o) => !!group && isNext(o);
   const u18Seg = () => `<div><div class="gcap">Tuổi người xin visa</div>${seg('u18', [['false', 'Từ 18 tuổi'], ['true', 'Dưới 18 tuổi']])}</div>`;
   const signSeg = () => `<div><div class="gcap">Chữ ký người mời</div>${seg('goc', [['false', 'Vẽ lại nét'], ['true', 'Chữ ký gốc (_goc)']])}</div>`;
@@ -267,13 +294,15 @@ function typeGuide({ code, title, intro, docs, docsNote = '', extra = [], errors
         if (companions) lines.push(CV_TREE);
         if (u18 && o.u18) lines.push(...u18Tree());
         // short label in the tree: the part before "(" or ":"
-        if (!next(o)) docs.forEach(([n, what, , , , short]) => lines.push(`${(sigName(n, o) + '.jpg').padEnd(22)}<span class="hint">${esc((short || what.split(/[(:]/)[0].trim()).replace(/^./, (c) => c.toLowerCase()))} — đổi về đúng tên như hướng dẫn</span>`));
+        // North: inviter papers from the 3rd one go to qkhac_ / skhac_, so no qmoi_3 / smoi_3 line
+        if (!next(o)) docs.filter(([n]) => !(NORTH_HOUSES.includes(h) && /^[qs]moi_3$/.test(n))).forEach(([n, what, , , , short]) => lines.push(`${(sigName(n, o) + '.jpg').padEnd(22)}<span class="hint">${esc((short || what.split(/[(:]/)[0].trim()).replace(/^./, (c) => c.toLowerCase()))} — đổi về đúng tên như hướng dẫn</span>`));
         const tree = treeLines(lines);
         return `<p>Nhà ${esc(h)}${next(o) ? ', <b>người sau trong đoàn</b>' : ''}, thư mục hồ sơ có dạng:</p>
           ${next(o) ? `<p class="hint">Người sau: không có giấy tờ riêng của ${esc(code)} — lấy từ người đầu bằng "Áp dụng ${esc(group.code)}" (mục bên dưới).</p>` : ''}
           <div class="gtree">${esc(code)} - NGUYEN VAN A/\n${tree}</div>
           <p class="hint">Giấy nhiều trang / nhiều tờ: tăng số cuối (<code>_1</code>, <code>_2</code>…). Không có giấy tờ nào thì bỏ qua, không tạo file trống.</p>`;
       } },
+      ...(steps ? [steps.id ? steps : specialSteps(steps, (o) => !next(o))] : []),
       ...(group ? [groupSection(group)] : []),
       { id: 'docs', title: `Giấy tờ riêng của visa ${code}`, hint: 'tên phải bắt đầu đúng tiền tố', open: true, when: (o) => !next(o), html: (o, h) => `
         <p>Các file này <b>phải bắt đầu bằng đúng tiền tố</b> trong bảng (hệ thống dựa vào tiền tố để biết là giấy gì), sau đó là số thứ tự.</p>
@@ -306,7 +335,7 @@ GUIDES.F = typeGuide({
       <li>Cả đoàn cùng 1 trường: chỉ người đầu cần 2 file này — chọn "Người sau" ở trên để xem cách làm cho người sau.</li></ul>`,
   group: { code: 'F', files: '2 file trường (<code>fthumoi</code>, <code>fqddh</code>)',
            what: 'thông tin trường mời, ngày học và học vấn', key: 'school_passport', owner: 'trường' },
-  companions: true,
+  companions: true, steps: '<code>fthumoi_</code> (thư mời của trường Trung Quốc), <code>fqddh_</code> (quyết định cử đi học của trường Việt Nam).',
   errors: ['Đặt thư mời tên <code>thumoi</code> (của visa M / Q) thay vì <code>fthumoi</code> → hệ thống không nhận là giấy của trường.',
            'Đảo 2 loại: <code>fthumoi</code> = trường Trung Quốc, <code>fqddh</code> = trường Việt Nam.'],
 });
@@ -317,17 +346,18 @@ const xDocs = [
 ];
 const xNote = (code) => `<ul><li>Hệ thống ưu tiên thông tin trên <code>xnh</code>, thiếu mới lấy từ <code>xjw</code>.</li>
     <li>${code === 'X1' ? 'X1: thời gian học <b>trên 180 ngày</b>.' : 'X2: thời gian học <b>tối đa 180 ngày</b>.'} Giấy tờ ghi thời gian không khớp loại visa thì hệ thống cảnh báo (vd X2 mà học 1 năm → phải là X1).</li></ul>`;
+const xSteps = '<code>xnh_</code> (giấy báo nhập học), <code>xjw_</code> (mẫu JW201 / JW202) — cả 2 của trường Trung Quốc.';
 GUIDES.X1 = typeGuide({
   code: 'X1', title: 'Visa X1 (du học dài hạn, trên 180 ngày) — chuẩn bị file',
   intro: 'Du học tại Trung Quốc trên 180 ngày. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "X1 - NGUYEN VAN A". Ngoài file cơ bản (như visa L) còn 2 giấy của trường.',
-  docs: xDocs, docsNote: xNote('X1'), companions: true,
+  docs: xDocs, docsNote: xNote('X1'), companions: true, steps: xSteps,
   errors: ['Thiếu tiền tố (<code>giay bao nhap hoc.jpg</code>, <code>JW202.pdf</code>) → phải là <code>xnh_1</code>, <code>xjw_1</code>.',
            'Thời gian học ≤ 180 ngày mà chọn X1 → đổi sang X2.'],
 });
 GUIDES.X2 = typeGuide({
   code: 'X2', title: 'Visa X2 (du học ngắn hạn, tối đa 180 ngày) — chuẩn bị file',
   intro: 'Du học tại Trung Quốc tối đa 180 ngày. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "X2 - NGUYEN VAN A". Ngoài file cơ bản (như visa L) còn 2 giấy của trường.',
-  docs: xDocs, docsNote: xNote('X2'), companions: true,
+  docs: xDocs, docsNote: xNote('X2'), companions: true, steps: xSteps,
   errors: ['Thiếu tiền tố (<code>giay bao nhap hoc.jpg</code>, <code>JW202.pdf</code>) → phải là <code>xnh_1</code>, <code>xjw_1</code>.',
            'Thời gian học trên 180 ngày mà chọn X2 → đổi sang X1.'],
 });
@@ -357,7 +387,7 @@ const qSign = { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'qchuki_ 
 const qDocs = (maxRel) => [
   ['qmoi_1', 'Giấy tờ người mời: CCCD / hộ khẩu / hộ chiếu Trung Quốc (mặt trước)', 'người mời (công dân TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ, tỉnh / thành / quận'), 'giấy tờ người mời — mặt trước'],
   ['qmoi_2', 'Giấy tờ người mời (mặt sau / trang 2)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — mặt sau / trang 2'],
-  ['qmoi_3', 'Giấy tờ người mời: trang 3, 4, 5 (qmoi_3 … qmoi_5)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — trang 3 (thêm qmoi_4, qmoi_5 nếu có)'],
+  ['qmoi_3', 'Giấy tờ người mời: trang 3, 4, 5 (qmoi_3 … qmoi_5) — chỉ miền Nam; miền Bắc đặt qkhac_', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — trang 3 (thêm qmoi_4, qmoi_5 nếu có)'],
   ['qcm_1', `Giấy chứng minh quan hệ — giấy chính theo quan hệ người mời (xem mục bên dưới): qcm_1 … qcm_5`, 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY, 'giấy chứng minh quan hệ (thêm qcm_2 … qcm_5 nếu có)'],
   ['qthumoi_1', 'Thư mời khách cung cấp (người mời đã viết, ký sẵn)', 'người mời / khách', 'nếu có', `<span class="st approved">thay thư hệ thống tạo</span>`, 'thư mời khách cung cấp, nếu có'],
   ['qchuki_1', 'Chữ ký người mời (cho thư mời)', 'người mời', 'nên có', READ('làm nền trắng, đưa vào thư mời'), 'chữ ký người mời (cho thư mời)'],
@@ -366,7 +396,7 @@ const qDocs = (maxRel) => [
 ];
 // maxRel: North upload slots for qcm_ (Q1: 4, Q2: 3). South merges every file into 1 PDF.
 const manyNote = (h, moi, cm, maxRel) => NORTH_HOUSES.includes(h)
-  ? `<li>Nhiều trang: <code>${moi}_1</code> … <code>${moi}_5</code>, <code>${cm}_1</code> … <code>${cm}_5</code>. <b>Nhà ${esc(h)} (miền Bắc)</b>: hệ thống chỉ tải lên <b>2 file giấy tờ người mời</b> và <b>${maxRel} file quan hệ</b> đầu tiên (theo số thứ tự) — để giấy quan trọng nhất ở số nhỏ; nếu giấy dài hơn thì ghép nhiều trang vào 1 file (vd 1 PDF).</li>`
+  ? `<li>Nhiều trang: <code>${moi}_1</code> … <code>${moi}_5</code>, <code>${cm}_1</code> … <code>${cm}_5</code>. <b>Nhà ${esc(h)} (miền Bắc)</b>: chỉ dùng <code>${moi}_1</code>, <code>${moi}_2</code> — giấy người mời còn lại đặt <code>${moi.replace('moi', 'khac')}_</code>; chỉ tải lên <b>${maxRel} file quan hệ</b> đầu tiên (theo số thứ tự) — để giấy quan trọng nhất ở số nhỏ.</li>`
   : `<li>Nhiều trang: <code>${moi}_1</code> … <code>${moi}_5</code>, <code>${cm}_1</code> … <code>${cm}_5</code>. <b>Nhà ${esc(h)} (miền Nam)</b>: hệ thống gộp tất cả file cùng loại thành 1 PDF theo số thứ tự, nên đánh số đúng thứ tự trang.</li>`;
 const qNote = (maxRel) => (o, h) => `<ul><li><b>Bắt buộc chọn "Quan hệ"</b> ở form (người mời là gì của người xin visa). Quan hệ này được in vào thư mời.</li>
     ${manyNote(h, 'qmoi', 'qcm', maxRel)}
@@ -381,12 +411,12 @@ const qErrors = [...signErrors('qchuki'), 'Con mời mẹ mà để giấy đăn
 GUIDES.Q1 = typeGuide({
   code: 'Q1', title: 'Visa Q1 (đoàn tụ gia đình, trên 180 ngày) — chuẩn bị file',
   intro: 'Sang Trung Quốc đoàn tụ, ở lâu hơn 180 ngày với người thân là công dân Trung Quốc (hoặc người có thường trú TQ). Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "Q1 - NGUYEN VAN A".',
-  docs: qDocs(4), docsNote: qNote(4), extra: [relSection('qcm', 'qkhac'), qSign], errors: qErrors, u18: true, sign: true,
+  docs: qDocs(4), docsNote: qNote(4), steps: inviteSteps('q', 4, 'CCCD, visa nhập cảnh Việt Nam, dấu nhập cảnh Việt Nam… của người Trung Quốc đang mời'), extra: [relSection('qcm', 'qkhac'), qSign], errors: qErrors, u18: true, sign: true,
 });
 GUIDES.Q2 = typeGuide({
   code: 'Q2', title: 'Visa Q2 (thăm thân ngắn hạn, tối đa 180 ngày) — chuẩn bị file',
   intro: 'Thăm người thân là công dân Trung Quốc (hoặc người có thường trú TQ), ở tối đa 180 ngày. Mỗi hồ sơ là 1 thư mục, đặt tên kiểu "Q2 - NGUYEN VAN A".',
-  docs: qDocs(3), docsNote: qNote(3), extra: [relSection('qcm', 'qkhac'), qSign], errors: qErrors, u18: true, sign: true,
+  docs: qDocs(3), docsNote: qNote(3), steps: inviteSteps('q', 3, 'CCCD, visa nhập cảnh Việt Nam, dấu nhập cảnh Việt Nam… của người Trung Quốc đang mời'), extra: [relSection('qcm', 'qkhac'), qSign], errors: qErrors, u18: true, sign: true,
 });
 
 // S2: thăm người thân là người nước ngoài đang làm việc / học ở Trung Quốc
@@ -396,7 +426,7 @@ GUIDES.S2 = typeGuide({
   docs: [
     ['smoi_1', 'Giấy tờ người mời: hộ chiếu (trang thông tin)', 'người mời (người đang ở TQ)', 'bắt buộc', READ('họ tên, số giấy tờ, địa chỉ ở TQ'), 'hộ chiếu người mời'],
     ['smoi_2', 'Giấy tờ người mời: giấy cư trú / giấy phép ở TQ', 'người mời', 'bắt buộc', READ('như trên'), 'giấy cư trú ở TQ của người mời'],
-    ['smoi_3', 'Giấy tờ người mời: trang 3, 4, 5 (smoi_3 … smoi_5)', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — trang 3 (thêm smoi_4, smoi_5 nếu có)'],
+    ['smoi_3', 'Giấy tờ người mời: trang 3, 4, 5 (smoi_3 … smoi_5) — chỉ miền Nam; miền Bắc đặt skhac_', 'người mời', 'nếu có', READ('như trên'), 'giấy tờ người mời — trang 3 (thêm smoi_4, smoi_5 nếu có)'],
     ['scm_1', 'Giấy chứng minh quan hệ — giấy chính theo quan hệ người mời (xem mục bên dưới): scm_1 … scm_5', 'người xin visa ↔ người mời', 'bắt buộc', UPLOAD_ONLY, 'giấy chứng minh quan hệ (thêm scm_2 … scm_5 nếu có)'],
     ['sthumoi_1', 'Thư mời khách cung cấp (người mời đã viết, ký sẵn)', 'người mời / khách', 'nếu có', `<span class="st approved">thay thư hệ thống tạo</span>`, 'thư mời khách cung cấp, nếu có'],
     ['smoi_ruot_1', 'Giấy tờ của chính người mời khi giấy smoi_ là của người khác', 'người mời', 'nếu có', READ('giới tính, ngày sinh người mời (cho thư mời)'), 'giấy tờ của chính người mời (khi smoi_ là của người khác)'],
@@ -408,6 +438,7 @@ GUIDES.S2 = typeGuide({
       <li>Thư mời: <code>sthumoi_1</code> là thư <b>khách tự cung cấp</b> — có thì hệ thống tải lên đúng thư đó (cả 2 miền); không có thì hệ thống tự tạo từ mẫu.</li>
       <li><code>smoi_ruot</code>: dùng khi giấy <code>smoi</code> là của người khác (vd chị lấy chồng TQ mời em: <code>smoi</code> = giấy của chồng, <code>smoi_ruot</code> = giấy của chị). Địa chỉ vẫn lấy từ <code>smoi</code>, giới tính + ngày sinh người mời lấy từ <code>smoi_ruot</code>.</li>
 </ul>`,
+  steps: inviteSteps('s', 3, 'hộ chiếu, giấy cư trú / giấy phép ở Trung Quốc… của người đang ở Trung Quốc mời sang (giấy <code>smoi</code> là của người khác thì thêm <code>smoi_ruot_1</code> — xem bảng)'),
   extra: [relSection('scm', 'skhac'), { id: 'sign', title: 'Chữ ký trên thư mời', hint: 'schuki_ · _goc', open: true, html: (o) => `
     <p>Khi hệ thống tự tạo thư mời (không có <code>sthumoi</code>), chữ ký <code>${sigName('schuki_1', o)}</code> được đưa vào thư mời:</p>
     <ul>${signNote(o, 'schuki')}</ul>` }],
