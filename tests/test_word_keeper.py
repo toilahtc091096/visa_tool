@@ -9,6 +9,7 @@ from generate_file.docx_to_pdf import WordKeeper
 class FakeWord:
     def __init__(self):
         self.quit_called = False
+        self.open_docs = 0
 
 
 class FakeKeeper(WordKeeper):
@@ -19,6 +20,8 @@ class FakeKeeper(WordKeeper):
         super().__init__(**{"idle_seconds": 60, "max_conversions": 50, "timeout_seconds": 5, **kw})
         self.opened, self.exported, self.quits = 0, [], 0
         self.fail_next = False
+        self.close_fails_next = False
+        self.words = []
         self.hang = threading.Event()
         self.hang_next = False
 
@@ -30,8 +33,10 @@ class FakeKeeper(WordKeeper):
         self.opened += 1
         return FakeWord()
 
-    def _alive(self, word):
-        return not word.quit_called
+    def _ready(self, word):
+        if word.quit_called:
+            return "dead"
+        return "leftover_document" if word.open_docs else ""
 
     def _export(self, word, source, target):
         if self.hang_next:
@@ -41,7 +46,11 @@ class FakeKeeper(WordKeeper):
         if self.fail_next:
             self.fail_next = False
             raise RuntimeError("com_error: call was rejected by callee")
+        if self.close_fails_next:          # Close() failed: the document stays open in Word
+            self.close_fails_next = False
+            word.open_docs += 1
         self.exported.append(source.name)
+        self.words.append(word)
 
     def _quit(self, word):
         word.quit_called = True
@@ -95,6 +104,17 @@ class WordKeeperTest(unittest.TestCase):
             self.k.convert(Path("b.docx"), Path("b.pdf"))
         self.k.convert(Path("c.docx"), Path("c.pdf"))
         self.assertEqual((self.k.opened, self.k.quits), (2, 1))
+
+    def test_document_left_open_never_reaches_the_next_file(self):
+        # Word's Documents.Open on a path already open returns the open (old) copy:
+        # a Word with a leftover document is replaced before the next file.
+        self.k = FakeKeeper()
+        self.k.close_fails_next = True
+        self.k.convert(Path("hotel.docx"), Path("hotel.pdf"))
+        self.k.convert(Path("hotel.docx"), Path("hotel.pdf"))   # next run, same path
+        self.assertEqual(self.k.opened, 2)
+        self.assertIsNot(self.k.words[0], self.k.words[1])
+        self.assertEqual(self.k.words[1].open_docs, 0)
 
     def test_recycle_after_max_conversions(self):
         self.k = FakeKeeper(max_conversions=2)

@@ -209,12 +209,16 @@ class WordKeeper:
         self._pid = next(iter(new)) if len(new) == 1 else None
         return word
 
-    def _alive(self, word: Any) -> bool:
+    def _ready(self, word: Any) -> str:
+        """Empty when Word can take the next file; else why it must be restarted.
+
+        A document still open (its Close failed) must not stay: Word's Documents.Open
+        on the same path returns that open copy, i.e. the previous run's content.
+        """
         try:
-            word.Documents.Count
-            return True
+            return "" if word.Documents.Count == 0 else "leftover_document"
         except Exception:
-            return False
+            return "dead"
 
     def _export(self, word: Any, source: Path, target: Path) -> None:
         document = word.Documents.Open(str(source), ConfirmConversions=False, ReadOnly=True, AddToRecentFiles=False)
@@ -280,8 +284,10 @@ class WordKeeper:
                     return
                 source, target, done, box = job
                 try:
-                    if word is not None and (count >= self.max_conversions or not self._alive(word)):
-                        close("recycle" if count >= self.max_conversions else "dead")
+                    if word is not None:
+                        why = "recycle" if count >= self.max_conversions else self._ready(word)
+                        if why:
+                            close(why)
                     if word is None:
                         word = self._open_word()
                         self.is_open = True
