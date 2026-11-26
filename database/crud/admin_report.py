@@ -129,6 +129,7 @@ def list_records(filters: dict[str, Any], limit: int = 50, offset: int = 0) -> d
         SELECT vr.id, vr.created_at, vr.updated_at, vr.house, vr.staff_code, vr.job_id,
                vr.full_name, vr.passport_number, vr.visa_type, vr.status,
                vr.application_code, vr.first_applyid, vr.is_vip, a.code AS agency_code,
+               COALESCE(vr.payload->'sync'->'matched_row'->>'rejectReason', '') AS reject_reason,
                COUNT(*) OVER () AS total_count
         FROM visa_registrations vr
         LEFT JOIN agencies a ON a.id = vr.agency_id
@@ -187,7 +188,7 @@ _VISA_GROUP = (
     "CASE WHEN UPPER(vr.visa_type) ~ '^(Q1|Q2|X1|X2|S2)' THEN UPPER(SUBSTRING(vr.visa_type FROM 1 FOR 2)) "
     "WHEN vr.visa_type = '' THEN '' ELSE UPPER(SUBSTRING(vr.visa_type FROM 1 FOR 1)) END"
 )
-IN_PROGRESS = ("submitted", "pending_review", "under_review")
+IN_PROGRESS = ("submitted", "pending_review", "under_review", "needs_fix")
 
 
 def _merge_houses(rows: list[dict[str, Any]], extra: tuple[str, ...] = ()) -> list[dict[str, Any]]:

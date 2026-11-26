@@ -80,6 +80,7 @@ VISA_STATUS_VI = {
     "初审中": "Đang thẩm định",
     "审核通过": "Đã duyệt",
     "审核未通过": "Bị từ chối",
+    "驳回待修改": "Hồ sơ đợi sửa",
     "已撤销": "Đã rút hồ sơ",
     "已取消": "Đã hủy",
     "not_found": "Chưa thấy hồ sơ trên hệ thống",

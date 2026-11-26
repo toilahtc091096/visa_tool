@@ -224,7 +224,7 @@ const fmt = (n) => Number(n || 0).toLocaleString('vi-VN');
 let key = '';
 try { key = localStorage.getItem('visa_web_key') || ''; } catch (e) {}
 
-const STATUS_VI = { draft: 'Nháp', submitted: 'Đã nộp', pending_review: 'Chờ duyệt', under_review: 'Đang duyệt',
+const STATUS_VI = { draft: 'Nháp', submitted: 'Đã nộp', pending_review: 'Chờ duyệt', under_review: 'Đang duyệt', needs_fix: 'Hồ sơ đợi sửa',
   approved: 'Đạt', rejected: 'Từ chối', cancelled: 'Huỷ', unknown: 'Không rõ' };
 let OPTS = { unknown_staff: '_none', unknown_agency: '_none', agencies: [] };
 const NONE_LABEL = { staff: '(chưa ghi)', agency: '(chưa gán)' };

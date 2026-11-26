@@ -26,6 +26,8 @@ DEFAULT_SYNC_STATUSES = [
     "under_review",
     "pending_review",
     "submitted",
+    "needs_fix",
+    "unknown",
     "approved",
     "rejected",
     "cancelled",
@@ -68,6 +70,7 @@ def _map_apply_status_to_internal(apply_status: str) -> str:
         "待提交": "draft",
         "待审核": "pending_review",
         "已提交": "submitted",
+        "驳回待修改": "needs_fix",  # sent back: fix the form and resubmit
     }
     if text in mapping:
         return mapping[text]

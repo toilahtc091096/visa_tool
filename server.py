@@ -491,7 +491,7 @@ def _admin_filters(request: Request) -> dict[str, str]:
 def web_admin_options(request: Request):
     _web_admin(request)
     return {"ok": True, "staff": admin_report.list_staff_codes(), "houses": list(HOUSE_NAMES),
-            "statuses": ["draft", "under_review", "pending_review", "submitted", "approved", "rejected", "cancelled"],
+            "statuses": ["draft", "under_review", "pending_review", "submitted", "needs_fix", "approved", "rejected", "cancelled", "unknown"],
             "unknown_staff": admin_report.UNKNOWN_STAFF,
             "agencies": admin_report.list_agencies(), "unknown_agency": admin_report.UNKNOWN_AGENCY}
 
