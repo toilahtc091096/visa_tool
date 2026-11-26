@@ -1624,7 +1624,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         # qthumoi_* (merged) when the applicant sent one, else the template letter.
         "THU_MOI": _q_letter(Q1_THU_MOI_OUTPUT_PATH, 1),
         "CCCD_NGUOI_MOI": _files(Q1_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
-        "CHUNG_MINH_QUAN_HE": _files(Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 4),
+        # _1.._4 by file count: 4+ -> _1.._4; 1-3 -> _2 _3 _4, repeating files
+        # when fewer than 3 (flows/flow_step/step_07_upload_files._qcm_slot_files).
+        "CHUNG_MINH_QUAN_HE": {"folder": Q1_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, "qcm_slots": True},
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
             _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 4),

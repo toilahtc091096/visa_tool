@@ -32,6 +32,22 @@ def _named_slot_files(folder: str, names: list[str]) -> list[Path | None]:
     return slots
 
 
+def _qcm_slot_files(folder: str) -> list[Path | None]:
+    """North Q1 relationship proof (4 slots), from the number of files (by name):
+    4+ -> _1.._4; 3 -> _2 _3 _4 (_1 empty); 2 -> _2 _3 _4 with the first file
+    again in _4; 1 -> the same file in _2 _3 _4. None keeps _1 empty."""
+    files = sorted(get_files(folder, 1000), key=lambda f: f.name.lower())
+    if len(files) >= 4:
+        return files[:4]
+    if len(files) == 3:
+        return [None, *files]
+    if len(files) == 2:
+        return [None, files[0], files[1], files[0]]
+    if len(files) == 1:
+        return [None, files[0], files[0], files[0]]
+    return []
+
+
 def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
     if isinstance(cfg, list):
         return [f for source in cfg for f in _source_files(source, data_passport_number)]
@@ -47,6 +63,8 @@ def _source_files(cfg: dict | list, data_passport_number: str) -> list[Path]:
         return [merged] if merged else []
     if "named_slots" in cfg:
         return _named_slot_files(cfg["folder"], cfg["named_slots"])
+    if cfg.get("qcm_slots"):
+        return _qcm_slot_files(cfg["folder"])
     if cfg.get("passport_image"):
         path = get_passport_file_path(PASSPORT_FILE_FOLDER, prefix=data_passport_number)
         return [Path(path)] if path else []
