@@ -1574,9 +1574,12 @@ def build_travel_info_profile(
     )
     travel_json = profile.build_travel_json(travel)
 
-    if profile.always_self_paid:
+    has_payer = payMobile != "" and payName != ""
+    # Q1 / Q2 / S2 (always_self_paid): "self", except a child under 18 whose
+    # payer (parent, read by WF-04E) is in the curl - both regions.
+    if profile.always_self_paid and not (is_under_18 and has_payer):
         travel_json.setdefault("payForTravel", TRAVEL_PAY_FOR_SELF)
-    elif payMobile != "" and payName != "":
+    elif has_payer:
         travel_json.update(
             {
                 "payForTravel": TRAVEL_PAY_FOR_OTHER,
