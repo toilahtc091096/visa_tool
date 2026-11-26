@@ -1159,6 +1159,7 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
             "CHUNG_MINH_QUAN_HE": MAT_Q1_RELATIONSHIP_PROOF.slots(1, 2, 3, 4),
             # _1: visa center confirmation, then up to 4 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_Q1_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5),
+            "UNDER_18": MAT_UNDER_18_DOCUMENTS.slots(1, 2, 3, 4, 5),
         },
     },
     "Q2": {
@@ -1171,6 +1172,7 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
             # _1: visa center confirmation, then up to 4 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_Q2_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5),
             "HUKOU_OR_EMPLOYMENT_LETTER": MAT_Q_RESIDENCE_CERTIFICATE.slots(4),
+            "UNDER_18": MAT_UNDER_18_DOCUMENTS.slots(1, 2, 3, 4, 5),
         },
     },
     "F": {
@@ -1353,6 +1355,8 @@ UPLOAD_FILE_CODE_SOUTH: UploadCodes = {
             "THU_MOI_3": MAT_SOUTH_Q2_INVITATION_LETTER.slots(3),
             # _1: visa center confirmation, then up to 5 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_SOUTH_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5, 6),
+            # Under 18: every file of the under-18 folder (as North Q1 / Q2).
+            "UNDER_18": MAT_UNDER_18_DOCUMENTS.slots(1, 2, 3, 4, 5),
         },
     },
     "S2": {
@@ -1625,6 +1629,8 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
             _files(Q1_TAI_LIEU_KHAC_OUTPUT_PATH, 4),
         ],
+        # Every file of the under-18 folder (none excluded, unlike North L / M).
+        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
     },
     "Q2": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
@@ -1640,6 +1646,8 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
             _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 4),
         ],
+        # Every file of the under-18 folder (none excluded, unlike North L / M).
+        "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
     },
     "F": {
         "HUKOU_OR_EMPLOYMENT_LETTER": _files(L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH, 1),
@@ -1789,6 +1797,7 @@ UPLOAD_CONFIG_SOUTH_Q2: dict[str, object] = {
         _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 5),
     ],
+    "UNDER_18": _files(L_15_UNDER_18_DOCUMENTS_OUTPUT_PATH, 5),
 }
 # South S2, same idea: started from the North S2 table.
 UPLOAD_CONFIG_SOUTH_S2: dict[str, object] = {
