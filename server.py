@@ -58,6 +58,8 @@ from services.web_portal import step_status as web_step_status
 from services.web_portal import upload_file as web_upload_file
 from services.web_portal import house_by_port as web_house_by_port
 from services.web_portal import run_case as web_run_case
+from services.web_portal import run_progress as web_run_progress
+from utils import run_progress
 from services import web_portal
 from services import bio_token
 from database.crud.web_job import add_web_job_step, create_web_job, get_job_staff, get_web_job
@@ -399,7 +401,8 @@ def web_run(request: Request, payload: dict[str, Any] = Body(...)):
         if isinstance(body, dict) and not str(body.get("staff", "") or "").strip():
             body = {**body, "staff": user["staff_code"]}
         started = time.time()
-        result = web_run_case(house, body)
+        run_id = run_progress.valid_run_id(payload.get("run_id"))
+        result = web_run_case(house, body, run_id) if run_id else web_run_case(house, body)
     except WebFormError as exc:
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     except Exception as exc:
@@ -416,6 +419,29 @@ def web_run(request: Request, payload: dict[str, Any] = Body(...)):
     log_event({"event": "web_run", "user": user["username"], "house": result["house"], "status": result["status_code"],
                "passport": body.get("passportNumber", ""), "seconds": seconds})
     return result
+
+
+@app.get("/web/run-progress")
+def web_run_progress_view(request: Request, port: str = "", run_id: str = ""):
+    # The page polls this while /web/run is going: the steps done so far and the one running.
+    _web_user(request)
+    rid = run_progress.valid_run_id(run_id)
+    if not rid:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "run_id không hợp lệ"})
+    try:
+        return web_run_progress(web_house_by_port(port), rid)
+    except WebFormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không hỏi được tiến độ: {exc}"})
+
+
+@app.get("/run/progress/{run_id}")
+def run_progress_view(run_id: str):
+    snap = run_progress.snapshot(run_progress.valid_run_id(run_id))
+    if snap is None:
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "not_found"})
+    return {"ok": True, **snap}
 
 
 HISTORY_PAGE_SIZE = 10
@@ -773,6 +799,20 @@ def r2_folders_stat(payload: dict[str, Any] = Body(...)):
 
 @app.post("/run")
 def run(payload: dict[str, Any] = Body(...)):
+    run_id = run_progress.valid_run_id(payload.pop("run_id", ""))
+    run_progress.begin(run_id)
+    token = run_progress.current_run_id.set(run_id)   # read by _timed in flows/run_flow.py
+    ok = False
+    try:
+        response = _run_case(payload)
+        ok = response.status_code < 400
+        return response
+    finally:
+        run_progress.finish(run_id, ok)
+        run_progress.current_run_id.reset(token)
+
+
+def _run_case(payload: dict[str, Any]):
     payload = _authorization_for_run(payload)
     case = build_case(payload)
     location_pinyin = _location_pinyin(case)

@@ -484,18 +484,30 @@ def house_by_port(port: Any) -> str:
     raise FormError(f"Cổng {port} không thuộc nhà nào (chỉ nhận {', '.join(c['api_port'] for c in HOUSES.values())})")
 
 
-def run_case(house_name: str, body: Any) -> dict[str, Any]:
+def run_case(house_name: str, body: Any, run_id: str = "") -> dict[str, Any]:
     """Run the (edited) curl body on /run of the house's instance - like sending it from Postman.
-    Only the port of the pasted curl is used; the host is always 127.0.0.1."""
+    Only the port of the pasted curl is used; the host is always 127.0.0.1.
+    `run_id` (from the page) lets the page follow the steps: run_progress()."""
     house = house_config(house_name)
     if not isinstance(body, dict) or not body:
         raise FormError("Nội dung JSON của curl rỗng hoặc không phải object")
+    if run_id:
+        body = {**body, "run_id": run_id}
     resp = requests.post(_local(house, "/run"), json=body, timeout=1800)
     try:
         data = resp.json()
     except ValueError:
         data = {"raw": resp.text[:5000]}
     return {"ok": resp.status_code < 400, "status_code": resp.status_code, "house": house["house"], "response": data}
+
+
+def run_progress(house_name: str, run_id: str) -> dict[str, Any]:
+    """Steps of a /run started with `run_id`, from the instance running it."""
+    house = house_config(house_name)
+    resp = requests.get(_local(house, f"/run/progress/{run_id}"), timeout=10)
+    if resp.status_code == 404:
+        return {"ok": True, "found": False}
+    return {"ok": True, "found": True, **_json_or_error(resp)}
 
 
 _NAME_KEYS = ("full_name", "fullName", "fullname", "name_en")

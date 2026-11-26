@@ -232,6 +232,15 @@
   .card-head button:hover .spin-icon { transform: rotate(180deg); }
   .tbar { height: 8px; min-width: 2px; background: var(--accent); border-radius: 4px; }
   table.data tr.fail td { background: var(--err-bg); color: var(--err); font-weight: 600; }
+  table.data tr.cur td { background: var(--info-bg); font-weight: 600; }
+  table.data tr.wait td { color: var(--muted); }
+  table.data td.mark { width: 22px; text-align: center; color: var(--muted); }
+  table.data tr.cur td.mark { color: var(--accent); }
+  table.data tr.okrow td.mark { color: var(--ok); }
+  .substep { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .tbar.run { background: repeating-linear-gradient(45deg, var(--accent) 0 8px, color-mix(in srgb, var(--accent) 60%, transparent) 8px 16px);
+              background-size: 22px 22px; animation: tbar-move 1s linear infinite; }
+  @keyframes tbar-move { to { background-position: 22px 0; } }
   table.data td.barcell { width: 45%; }
   .search { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
   @media (max-width: 560px) { .search { grid-template-columns: 1fr; } }
@@ -420,7 +429,7 @@
       </div>
       <div id="curlMsg"></div>
       <div id="curlTimes" class="hidden">
-        <h2>Thời gian từng bước</h2>
+        <h2 id="curlTimesTitle">Thời gian từng bước</h2>
         <div class="tbl-wrap"><table class="data" id="curlTimesTbl"></table></div>
       </div>
       <pre id="curlResult" class="result hidden"></pre>
@@ -1641,10 +1650,73 @@ const PHASE_LABEL = {
   travel_docs: 'Lịch trình + tạo giấy tờ', upload_files: 'Tải file lên', total: 'Tổng',
 };
 
+const PHASE_ORDER = ['validate', 'token_ocr', 'draft_person', 'person_apply', 'family_work_education', 'travel_docs', 'upload_files'];
+// ctx.step inside a phase (flows/flow_step/*): what the phase is doing right now
+const STEP_LABEL = {
+  'validate': 'kiểm tra dữ liệu', 'check token': 'kiểm tra token', 'get ocr': 'đọc hộ chiếu', 'get_draft': 'tìm bản nháp',
+  'get_current_draft_personal_information': 'đọc thông tin bản nháp', 'get_old_list': 'tìm hồ sơ cũ',
+  'save_personal_information_first': 'lưu thông tin cá nhân', 'save_personal_information': 'lưu thông tin cá nhân',
+  'save_type_of_visa': 'lưu loại visa', 'save_family_info': 'lưu gia đình', 'save_work_info': 'lưu công việc',
+  'save_education_info': 'lưu học vấn', 'save_travel_info': 'lưu lịch trình', 'save_previous_travel_info': 'lưu chuyến đi trước',
+  'save_other_info': 'lưu thông tin khác', 'generate_documents': 'tạo giấy tờ (PDF)', 'save_signature': 'lưu chữ ký',
+  'Step 9 Upload File': 'tải file lên', 'save_visa_registration_to_db': 'lưu vào DB',
+};
+
+// Live table while /run is going: ✔ done phases with their time, ▶ the running one (and its step), the rest greyed.
+// p = GET /web/run-progress; `extra` = seconds since that answer (the clock keeps going between polls).
+function renderLive(p, extra) {
+  const box = $('curlTimes');
+  const done = Object.fromEntries(p.done || []);
+  const elapsed = Number(p.elapsed || 0) + extra;
+  const secs = (s) => `${Number(s || 0).toFixed(1)} s`;
+  const phases = [...PHASE_ORDER, ...Object.keys(done).filter((k) => !PHASE_ORDER.includes(k))];
+  const rows = phases.map((k) => {
+    const label = esc(PHASE_LABEL[k] || k) + ` <span class="hint mono">${esc(k)}</span>`;
+    if (k in done) {
+      const pct = elapsed > 0 ? Math.min(100, (100 * done[k]) / elapsed) : 0;
+      return `<tr class="okrow"><td class="mark">✔</td><td>${label}</td><td class="num">${secs(done[k])}</td>`
+        + `<td class="num">${pct.toFixed(0)}%</td><td class="barcell"><div class="tbar" style="width:${pct.toFixed(1)}%"></div></td></tr>`;
+    }
+    if (k === p.phase) {
+      const s = Number(p.phase_elapsed || 0) + extra;
+      const pct = elapsed > 0 ? Math.min(100, (100 * s) / elapsed) : 0;
+      const sub = STEP_LABEL[p.step] || p.step;
+      return `<tr class="cur"><td class="mark">▶</td><td>${label}${sub ? ` <span class="substep">· đang ${esc(sub)}…</span>` : ''}</td>`
+        + `<td class="num">${secs(s)}</td><td class="num">${pct.toFixed(0)}%</td>`
+        + `<td class="barcell"><div class="tbar run" style="width:${Math.max(pct, 3).toFixed(1)}%"></div></td></tr>`;
+    }
+    return `<tr class="wait"><td class="mark">·</td><td>${label}</td><td class="num"></td><td class="num"></td><td></td></tr>`;
+  });
+  $('curlTimesTbl').innerHTML = '<tr><th></th><th>Bước</th><th class="num">Thời gian</th><th class="num">%</th><th></th></tr>'
+    + rows.join('') + `<tr class="total"><td></td><td>Đã chạy</td><td class="num">${secs(elapsed)}</td><td></td><td></td></tr>`;
+  $('curlTimesTitle').textContent = 'Đang chạy — từng bước';
+  box.classList.remove('hidden');
+}
+
+// Poll /web/run-progress every second until stop(); errors are ignored (the run itself decides the result).
+function watchRun(port, runId) {
+  let last = null, at = 0, busy = false, stopped = false;
+  const draw = () => { if (!stopped && last && last.found) renderLive(last, (Date.now() - at) / 1000); };
+  const poll = async () => {
+    if (busy || stopped) return;
+    busy = true;
+    try {
+      const p = await api('/web/run-progress?' + new URLSearchParams({ port, run_id: runId }), undefined, false, true);
+      if (!stopped && p.found && p.status === 'running') { last = p; at = Date.now(); draw(); }
+    } catch (e) { /* keep the last picture */ }
+    busy = false;
+  };
+  const t1 = setInterval(poll, 1000), t2 = setInterval(draw, 250);
+  poll();
+  return () => { stopped = true; clearInterval(t1); clearInterval(t2); };
+}
+const newRunId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+
 // timings = {phase: seconds}; a failed run stops in its last phase (before "total").
 function renderTimings(timings, ok) {
   const box = $('curlTimes');
   const phases = Object.entries(timings || {}).filter(([k]) => k !== 'total');
+  $('curlTimesTitle').textContent = 'Thời gian từng bước';
   if (!phases.length) { box.classList.add('hidden'); return; }
   const total = Number(timings.total ?? phases.reduce((a, [, s]) => a + Number(s || 0), 0));
   const failed = ok ? '' : phases[phases.length - 1][0];
@@ -1676,8 +1748,11 @@ $('runBtn').onclick = async () => {
   b.disabled = true;
   const t0 = Date.now();
   const tick = setInterval(() => { b.textContent = `Đang chạy… ${mmss((Date.now() - t0) / 1000)}`; }, 500);
+  const runId = newRunId();
+  const stopWatchRun = watchRun(curlPort, runId);
   try {
-    const r = await api('/web/run', { port: curlPort, body }, false, true);
+    const r = await api('/web/run', { port: curlPort, body, run_id: runId }, false, true);
+    stopWatchRun();
     const res = r.response || {};
     const lines = [`${r.ok ? 'Xong' : 'Lỗi'} (HTTP ${r.status_code}) sau ${mmss((Date.now() - t0) / 1000)}`];
     if (!r.ok) {
@@ -1701,7 +1776,7 @@ $('runBtn').onclick = async () => {
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
     if (r.ok) loadHistory();
-  } catch (e) { show($('curlMsg'), e.message, false); }
+  } catch (e) { stopWatchRun(); $('curlTimes').classList.add('hidden'); show($('curlMsg'), e.message, false); }
   clearInterval(tick); b.disabled = false; b.textContent = 'Chạy';
 };
 

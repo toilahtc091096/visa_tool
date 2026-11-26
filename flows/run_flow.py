@@ -16,6 +16,7 @@ from flows.flow_step import (
     validate_initial_inputs,
 )
 from utils import cleanup_data_folder, load_login_payload, log_event, log_exception
+from utils import run_progress
 
 
 def _normalize_name_list(value) -> list[str]:
@@ -290,10 +291,12 @@ async def run_flow(
 async def _timed(ctx, phase: str, awaitable):
     """Await ``awaitable`` and record how long it took in ``ctx.timings``."""
     started_at = time.perf_counter()
+    run_progress.phase_start(phase, ctx)
     try:
         return await awaitable
     finally:
         ctx.timings[phase] = round(time.perf_counter() - started_at, 2)
+        run_progress.phase_end(phase, ctx.timings[phase])
         log_event({"step": "timing", "phase": phase, "seconds": ctx.timings[phase]})
 
 
