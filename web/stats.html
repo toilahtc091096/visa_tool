@@ -54,13 +54,22 @@
   .hint { color: var(--text-2); font-size: 13px; }
 
   /* filters: one row above everything they scope */
-  .filters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; padding: 14px; background: var(--surface);
+  .filters { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; background: var(--surface);
              border: 1px solid var(--ring); border-radius: 12px; margin-bottom: 16px; }
-  .f { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+  .frow { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; }
+  .fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px 12px; align-items: end;
+           padding-top: 12px; border-top: 1px solid var(--grid); }
+  .fgrid .f.span2 { grid-column: span 2; }
+  @media (max-width: 520px) { .fgrid .f.span2 { grid-column: auto; } }
+  .f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .frow .f.date { width: 160px; }
   .f label { font-size: 12px; color: var(--text-2); font-weight: 600; }
-  select, input { padding: 8px 10px; border: 1px solid var(--axis); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; }
+  select, input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--axis); border-radius: 7px; background: var(--surface);
+                  color: var(--text); font: inherit; font-size: 14px; }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+  .fgrid .btn.ghost { justify-self: start; height: 38px; }
   .presets { display: flex; gap: 4px; flex-wrap: wrap; }
-  .presets button, .btn { padding: 8px 12px; border: 1px solid var(--axis); border-radius: 7px; background: var(--surface);
+  .presets button, .btn { height: 38px; padding: 0 12px; border: 1px solid var(--axis); border-radius: 7px; background: var(--surface);
                           color: var(--text); font: inherit; cursor: pointer; }
   .presets button.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   .btn.ghost { border-color: transparent; color: var(--accent); }
@@ -141,12 +150,28 @@
   /* table */
   .tablewrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
-  th { color: var(--text-2); font-weight: 600; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; vertical-align: middle; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em;
+       background: var(--page); border-bottom-color: var(--axis); }
+  tbody tr:hover td { background: var(--wash); }
   td.num { font-variant-numeric: tabular-nums; }
+  td.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+  td.name { font-weight: 600; }
+  td.reason { white-space: normal; min-width: 180px; max-width: 320px; color: var(--bad); font-size: 12.5px; }
+  td.dim { color: var(--muted); }
+  .vip { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 11px; font-weight: 700;
+         color: var(--c4); background: color-mix(in srgb, var(--c4) 14%, transparent); }
   .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; }
   .msg { padding: 12px 14px; border-radius: 8px; background: var(--wash); margin-bottom: 14px; }
-  .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--ring); }
+  .chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+          color: var(--text-2); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+  .chip.approved { color: var(--good); background: color-mix(in srgb, var(--good) 13%, transparent); }
+  .chip.rejected, .chip.cancelled { color: var(--bad); background: color-mix(in srgb, var(--bad) 13%, transparent); }
+  .chip.needs_fix { color: var(--c4); background: color-mix(in srgb, var(--c4) 15%, transparent); }
+  .chip.under_review, .chip.pending_review, .chip.submitted { color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
+  .chip.unknown { background: transparent; color: var(--muted); border: 1px dashed var(--axis); }
+  .tile .info { color: var(--accent); }
+  .tile .warn { color: var(--c4); }
 </style>
 </head>
 <body>
@@ -159,22 +184,26 @@
 
   <section id="app" class="hidden">
     <div class="filters" role="search">
-      <div class="f">
-        <label>Khoảng ngày</label>
-        <div class="presets" id="presets">
-          <button data-range="7">7 ngày</button><button data-range="30">30 ngày</button><button data-range="90">90 ngày</button>
-          <button data-range="month">Tháng này</button><button data-range="all">Tất cả</button>
+      <div class="frow">
+        <div class="f">
+          <label>Khoảng ngày</label>
+          <div class="presets" id="presets">
+            <button data-range="7">7 ngày</button><button data-range="30">30 ngày</button><button data-range="90">90 ngày</button>
+            <button data-range="month">Tháng này</button><button data-range="all">Tất cả</button>
+          </div>
         </div>
+        <div class="f date"><label for="from">Từ ngày</label><input type="date" id="from"></div>
+        <div class="f date"><label for="to">Đến ngày</label><input type="date" id="to"></div>
       </div>
-      <div class="f"><label for="from">Từ ngày</label><input type="date" id="from"></div>
-      <div class="f"><label for="to">Đến ngày</label><input type="date" id="to"></div>
-      <div class="f"><label for="house">Nhà</label><select id="house"></select></div>
-      <div class="f"><label for="agency">Đại lý</label><select id="agency"></select></div>
-      <div class="f"><label for="staff">Nhân viên</label><select id="staff"></select></div>
-      <div class="f"><label for="visa">Loại visa</label><select id="visa"></select></div>
-      <div class="f"><label for="status">Trạng thái</label><select id="status"></select></div>
-      <div class="f"><label for="vip">VIP</label><select id="vip"><option value="">Tất cả</option><option value="1">Chỉ VIP</option><option value="0">Không VIP</option></select></div>
-      <button class="btn ghost" id="reset">Xoá lọc</button>
+      <div class="fgrid">
+        <div class="f"><label for="house">Nhà</label><select id="house"></select></div>
+        <div class="f span2"><label for="agency">Đại lý</label><select id="agency"></select></div>
+        <div class="f"><label for="staff">Nhân viên</label><select id="staff"></select></div>
+        <div class="f"><label for="visa">Loại visa</label><select id="visa"></select></div>
+        <div class="f"><label for="status">Trạng thái</label><select id="status"></select></div>
+        <div class="f"><label for="vip">VIP</label><select id="vip"><option value="">Tất cả</option><option value="1">Chỉ VIP</option><option value="0">Không VIP</option></select></div>
+        <button class="btn ghost" id="reset">Xoá lọc</button>
+      </div>
     </div>
 
     <div class="tiles" id="tiles"></div>
@@ -207,7 +236,7 @@
         <h2>Hồ sơ</h2><div class="sub" id="tableSub"></div>
         <div class="f" style="max-width:320px;margin-bottom:8px"><input id="q" placeholder="Tìm số hộ chiếu, tên, mã hồ sơ…"></div>
         <div class="tablewrap"><table>
-          <thead><tr><th>Ngày tạo</th><th>Họ tên</th><th>Hộ chiếu</th><th>Visa</th><th>Trạng thái</th><th>Đại lý</th><th>Nhà</th><th>Nhân viên</th><th>VIP</th></tr></thead>
+          <thead><tr><th>Ngày tạo</th><th>Họ tên</th><th>Hộ chiếu</th><th>Visa</th><th>Trạng thái</th><th>Lý do</th><th>Đại lý</th><th>Nhà</th><th>Nhân viên</th><th>VIP</th></tr></thead>
           <tbody id="rows"></tbody>
         </table></div>
         <div class="pager"><span class="hint" id="pageInfo"></span><button class="btn" id="prev">‹ Trước</button><button class="btn" id="next">Sau ›</button></div>
@@ -226,6 +255,9 @@ try { key = localStorage.getItem('visa_web_key') || ''; } catch (e) {}
 
 const STATUS_VI = { draft: 'Nháp', submitted: 'Đã nộp', pending_review: 'Chờ duyệt', under_review: 'Đang duyệt', needs_fix: 'Hồ sơ đợi sửa',
   approved: 'Đạt', rejected: 'Từ chối', cancelled: 'Huỷ', unknown: 'Không rõ' };
+// Same meaning as the table chips: green done, red refused, amber needs fixing, blues in progress, grey draft
+const STATUS_COLOR = { approved: 'var(--good)', rejected: 'var(--bad)', cancelled: 'var(--c5)', needs_fix: 'var(--c4)',
+  under_review: 'var(--c1)', pending_review: 'var(--c7)', submitted: 'var(--c3)', draft: 'var(--h0)', unknown: 'var(--axis)' };
 let OPTS = { unknown_staff: '_none', unknown_agency: '_none', agencies: [] };
 const NONE_LABEL = { staff: '(chưa ghi)', agency: '(chưa gán)' };
 // Màu đi theo nhà, cố định (lọc bớt nhà thì nhà còn lại vẫn giữ màu cũ)
@@ -474,9 +506,9 @@ function tiles(t) {
     ['Đạt', fmt(t.approved), 'good', ''],
     ['Tỉ lệ đạt', rate, '', decided ? `trên ${fmt(decided)} hồ sơ đã có kết quả` : 'chưa có kết quả'],
     ['Từ chối / huỷ', fmt(t.rejected), 'bad', ''],
-    ['Đang xử lý', fmt(t.in_progress), '', 'đã nộp, chờ / đang duyệt'],
+    ['Đang xử lý', fmt(t.in_progress), 'info', 'đã nộp, chờ / đang duyệt, đợi sửa'],
     ['Nháp', fmt(t.draft), '', ''],
-    ['VIP', fmt(t.vip), '', ''],
+    ['VIP', fmt(t.vip), 'warn', ''],
   ];
   $('tiles').innerHTML = items.map(([k, v, cls, s]) =>
     `<div class="tile"><div class="k">${esc(k)}</div><div class="v ${cls}">${esc(v)}</div>${s ? `<div class="s">${esc(s)}</div>` : ''}</div>`).join('');
@@ -484,16 +516,21 @@ function tiles(t) {
 
 // ---------- table ----------
 const LIMIT = 50;
+const two = (n) => String(n).padStart(2, '0');
+// created_at comes as ISO with offset: show it in the browser's time (Vietnam), dd/mm/yyyy hh:mm
+const when = (iso) => { if (!iso) return ''; const t = new Date(iso); if (isNaN(t)) return iso;
+  return `${two(t.getDate())}/${two(t.getMonth() + 1)}/${t.getFullYear()} ${two(t.getHours())}:${two(t.getMinutes())}`; };
 let offset = 0, total = 0, qTimer = null;
 async function loadRows() {
   const d = await api('/web/admin/records?' + query({ q: $('q').value.trim(), limit: LIMIT, offset }));
   total = d.total;
   $('rows').innerHTML = d.items.map((r) => `<tr>
-      <td class="num">${esc((r.created_at || '').slice(0, 16).replace('T', ' '))}</td><td>${esc(r.full_name)}</td>
-      <td class="num">${esc(r.passport_number)}</td><td>${esc(r.visa_type)}</td>
-      <td><span class="chip">${esc(STATUS_VI[r.status] || r.status)}</span></td><td>${esc(r.agency_code || '—')}</td>
-      <td>${esc(r.house)}</td><td>${esc(r.staff_code || '—')}</td><td>${r.is_vip ? 'VIP' : ''}</td></tr>`).join('')
-    || '<tr><td colspan="9" class="muted">Không có hồ sơ</td></tr>';
+      <td class="num">${esc(when(r.created_at))}</td><td class="name">${esc(r.full_name)}</td>
+      <td class="mono">${esc(r.passport_number)}</td><td>${esc(r.visa_type)}</td>
+      <td><span class="chip ${esc(r.status)}">${esc(STATUS_VI[r.status] || r.status)}</span></td>
+      <td class="reason">${esc(r.reject_reason)}</td><td${r.agency_code ? '' : ' class="dim"'}>${esc(r.agency_code || '—')}</td>
+      <td>${esc(r.house)}</td><td${r.staff_code ? '' : ' class="dim"'}>${esc(r.staff_code || '—')}</td><td>${r.is_vip ? '<span class="vip">VIP</span>' : ''}</td></tr>`).join('')
+    || '<tr><td colspan="10" class="muted">Không có hồ sơ</td></tr>';
   $('tableSub').textContent = `${fmt(total)} hồ sơ theo bộ lọc, mới nhất trước`;
   $('pageInfo').textContent = total ? `${offset + 1}–${Math.min(offset + LIMIT, total)} / ${fmt(total)}` : '';
   $('prev').disabled = offset === 0; $('next').disabled = offset + LIMIT >= total;
@@ -518,7 +555,7 @@ async function reload() {
     hbars($('byStaff'), c.by_staff, { label: (k) => k === OPTS.unknown_staff ? NONE_LABEL.staff : k, filterId: 'staff' });
     hbars($('byHouse'), c.by_house, { label: (k) => k || '(trống)', filterId: 'house' });
     const agencyLabel = (k) => k === OPTS.unknown_agency ? NONE_LABEL.agency : agencyName(k);
-    donut($('pieStatus'), c.by_status, { label: (k) => STATUS_VI[k] || k, filterId: 'status' });
+    donut($('pieStatus'), c.by_status, { label: (k) => STATUS_VI[k] || k, filterId: 'status', colorFor: (k, i) => STATUS_COLOR[k] || `var(--c${i + 1})` });
     donut($('pieVisa'), c.by_visa, { label: (k) => k || '(trống)', filterId: 'visa' });
     donut($('pieHouse'), c.by_house, { label: (k) => k || '(trống)', filterId: 'house', colorFor: (k) => houseColor(k) });
     donut($('pieStaff'), c.by_staff, { label: (k) => k === OPTS.unknown_staff ? NONE_LABEL.staff : k, filterId: 'staff' });
