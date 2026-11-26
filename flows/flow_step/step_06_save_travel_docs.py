@@ -1,5 +1,7 @@
+import asyncio
 import mimetypes
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
 
@@ -124,22 +126,25 @@ def _cleanup_common_docs_local(*, local_root: Path) -> int:
     return deleted_count
 
 
+R2_PARALLEL = 6   # the shared R2 client keeps up to 16 connections
+
+
 def _upload_common_docs_to_r2(*, local_root: Path, prefix: str) -> list[dict]:
-    results: list[dict] = []
-    for folder in COMMON_DOC_FOLDERS:
-        folder_path = local_root / Path(folder)
-        if not folder_path.is_dir():
-            continue
-        for file_path in sorted(folder_path.rglob("*")):
-            if file_path.is_file():
-                results.append(
-                    _upload_file_preserve_local(
-                        file_path,
-                        local_root=local_root,
-                        prefix=prefix,
-                    )
-                )
-    return results
+    files = [
+        file_path
+        for folder in COMMON_DOC_FOLDERS
+        if (local_root / Path(folder)).is_dir()
+        for file_path in sorted((local_root / Path(folder)).rglob("*"))
+        if file_path.is_file()
+    ]
+    # Each file is its own object: sent together, results kept in file order.
+    with ThreadPoolExecutor(max_workers=R2_PARALLEL) as pool:
+        return list(
+            pool.map(
+                lambda path: _upload_file_preserve_local(path, local_root=local_root, prefix=prefix),
+                files,
+            )
+        )
 
 
 def _delete_common_docs_from_r2(*, prefix: str) -> int:
@@ -151,20 +156,19 @@ def _delete_common_docs_from_r2(*, prefix: str) -> int:
         )
         return 0
 
-    deleted_count = 0
-    for folder in COMMON_DOC_FOLDERS:
+    def delete_one(folder: str) -> int:
         folder_prefix = f"{normalized_prefix.rstrip('/')}/{folder}"
-        print(
-            f"[R2][COMMON_DOCS] deleting folder_prefix={folder_prefix}",
-            flush=True,
-        )
         folder_deleted = delete_r2_folder(folder_prefix)
-        deleted_count += folder_deleted
         print(
             f"[R2][COMMON_DOCS] deleted folder_prefix={folder_prefix} "
             f"count={folder_deleted}",
             flush=True,
         )
+        return folder_deleted
+
+    # Different prefixes: deleted together; all done before the upload starts.
+    with ThreadPoolExecutor(max_workers=len(COMMON_DOC_FOLDERS) or 1) as pool:
+        deleted_count = sum(pool.map(delete_one, COMMON_DOC_FOLDERS))
     print(
         f"[R2][COMMON_DOCS] delete finished prefix={normalized_prefix} "
         f"total_deleted={deleted_count}",
@@ -348,16 +352,6 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
     )
     # Arrival / leave dates sent to the form, for the S2 invitation letter.
     ctx.travel_info = body_save_travel_info
-    ok7, meta7 = await api_save_travel_info(
-        client,
-        ctx.token,
-        ctx.tmp_secret,
-        body_save_travel_info,
-    )
-    if not await check_api_result(ctx, ok7, meta7):
-        return False
-
-    ctx.step = "save_previous_travel_info"
     body_save_previous_travel_info = build_previous_travel_info_profile(
         ctx.first_applyid,
         ctx.arrivedChinaFlag,
@@ -375,38 +369,44 @@ async def save_travel_and_generate_docs(ctx, client) -> bool:
         ctx.residence_issueDate,
         ctx.residence_issuePlace,
     )
-    ok8, meta8 = await api_save_previous_travel_info(
-        client,
-        ctx.token,
-        ctx.tmp_secret,
-        body_save_previous_travel_info,
+    calls = (
+        ("save_travel_info", api_save_travel_info, body_save_travel_info),
+        ("save_previous_travel_info", api_save_previous_travel_info, body_save_previous_travel_info),
+        ("save_other_info", api_save_other_info, build_other_info(ctx.first_applyid)),
+        ("save_signature", api_save_signature_info, build_signature_body(ctx.first_applyid)),
     )
-    if not await check_api_result(ctx, ok8, meta8):
-        return False
 
-    ctx.step = "save_other_info"
-    body_other_info = build_other_info(ctx.first_applyid)
-    ok8, meta8 = await api_save_other_info(
-        client,
-        ctx.token,
-        ctx.tmp_secret,
-        body_other_info,
-    )
-    if not await check_api_result(ctx, ok8, meta8):
-        return False
-
-    ctx.step = "save_signature"
-    body_signature_info = build_signature_body(ctx.first_applyid)
-    ok8, meta8 = await api_save_signature_info(
-        client,
-        ctx.token,
-        ctx.tmp_secret,
-        body_signature_info,
-    )
-    if not await check_api_result(ctx, ok8, meta8):
-        return False
+    # The documents do not depend on these 4 COVA calls (dates, hotel, flights and
+    # travel_info are set above), so they are rendered in a thread meanwhile. The
+    # call bodies are all built before it starts: rendering changes ctx fields
+    # (guest_name, ticket_names).
+    docs = asyncio.ensure_future(asyncio.to_thread(_render_documents_blocking, ctx, passport_root))
+    try:
+        for step, api, body in calls:
+            ctx.step = step
+            ok, meta = await api(client, ctx.token, ctx.tmp_secret, body)
+            if not await check_api_result(ctx, ok, meta):
+                # Stop as before, but only once the thread is done: run_flow then
+                # deletes the case folder it writes into.
+                await _wait_quietly(docs)
+                return False
+    except BaseException:
+        await _wait_quietly(docs)
+        raise
 
     ctx.step = "generate_documents"
-    await _generate_documents(ctx, passport_root)
+    await docs
     await _sync_common_docs_to_r2(ctx, passport_root)
     return True
+
+
+def _render_documents_blocking(ctx, passport_root: Path) -> None:
+    """Thread body: the renders are coroutines but do blocking work (Word, R2)."""
+    asyncio.run(_generate_documents(ctx, passport_root))
+
+
+async def _wait_quietly(task) -> None:
+    try:
+        await task
+    except BaseException as exc:  # noqa: BLE001 - the API error is the one reported
+        print(f"[DOCS] rendering stopped too: {type(exc).__name__}: {exc}", flush=True)
