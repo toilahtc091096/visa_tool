@@ -1168,7 +1168,8 @@ UPLOAD_FILE_CODE_NORTH: UploadCodes = {
             "PREV_CHINESE_VISA": MAT_PREV_CHINESE_VISA.slots(1),
             "THU_MOI": MAT_Q2_INVITATION_LETTER.slots(1),
             "CCCD_NGUOI_MOI": MAT_Q2_INVITER_ID.slots(1, 2),
-            "CHUNG_MINH_QUAN_HE": MAT_Q2_RELATIONSHIP_PROOF.slots(1, 2, 3),
+            # _1 optional, _2 _3 _4 required: filled by file count (qcm_slots).
+            "CHUNG_MINH_QUAN_HE": MAT_Q2_RELATIONSHIP_PROOF.slots(1, 2, 3, 4),
             # _1: visa center confirmation, then up to 4 files of tham-than\khac.
             "OTHER_MATERIALS": MAT_Q2_OTHER_DOCUMENTS.slots(1, 2, 3, 4, 5),
             "HUKOU_OR_EMPLOYMENT_LETTER": MAT_Q_RESIDENCE_CERTIFICATE.slots(4),
@@ -1643,7 +1644,8 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         # qthumoi_* (merged) when the applicant sent one, else the template letter (as South).
         "THU_MOI": _q_letter(Q2_THU_MOI_OUTPUT_PATH, 1),
         "CCCD_NGUOI_MOI": _files(Q2_CCCD_NGUOI_MOI_OUTPUT_PATH, 2),
-        "CHUNG_MINH_QUAN_HE": _files(Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, 3),
+        # Same rule as Q1: _1 optional, _2 _3 _4 always filled (see Q1).
+        "CHUNG_MINH_QUAN_HE": {"folder": Q2_CHUNG_MINH_QUAN_HE_OUTPUT_PATH, "qcm_slots": True},
         "OTHER_MATERIALS": [
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
             _files(Q2_TAI_LIEU_KHAC_OUTPUT_PATH, 4),

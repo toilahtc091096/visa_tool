@@ -33,7 +33,8 @@ def _named_slot_files(folder: str, names: list[str]) -> list[Path | None]:
 
 
 def _qcm_slot_files(folder: str) -> list[Path | None]:
-    """North Q1 relationship proof (4 slots), from the number of files (by name):
+    """North Q1 / Q2 relationship proof (4 slots: _1 optional, _2 _3 _4 required
+    on COVA), from the number of files (by name):
     4+ -> _1.._4; 3 -> _2 _3 _4 (_1 empty); 2 -> _2 _3 _4 with the first file
     again in _4; 1 -> the same file in _2 _3 _4. None keeps _1 empty."""
     files = sorted(get_files(folder, 1000), key=lambda f: f.name.lower())

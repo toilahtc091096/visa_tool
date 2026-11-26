@@ -33,7 +33,11 @@ class QcmSlotsTest(unittest.TestCase):
         from constants import REGION, REGION_NORTH, UPLOAD_CONFIG
         if REGION != REGION_NORTH:
             self.skipTest("North table")
-        self.assertTrue(UPLOAD_CONFIG["Q1"]["CHUNG_MINH_QUAN_HE"]["qcm_slots"])
+        from constants import UPLOAD_FILE_CODE_NORTH
+        for visa in ("Q1", "Q2"):
+            self.assertTrue(UPLOAD_CONFIG[visa]["CHUNG_MINH_QUAN_HE"]["qcm_slots"])
+            codes = [s["materialCode"] for s in UPLOAD_FILE_CODE_NORTH[visa]["COMMON"]["CHUNG_MINH_QUAN_HE"]]
+            self.assertEqual([c.split("_")[1] for c in codes], ["1", "2", "3", "4"])
 
 
 if __name__ == "__main__":
