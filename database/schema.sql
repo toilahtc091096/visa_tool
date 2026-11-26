@@ -91,6 +91,24 @@ BEGIN
     END IF;
 END $$;
 
+-- full_name in Vietnamese order (family name first). Runs once: the column
+-- is the marker; rows saved before it ("VAN AN NGUYEN", given + family) get
+-- the last word moved to the front ("NGUYEN VAN AN").
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'visa_registrations' AND column_name = 'name_vn_order'
+    ) THEN
+        ALTER TABLE visa_registrations
+            ADD COLUMN name_vn_order BOOLEAN NOT NULL DEFAULT TRUE;
+        UPDATE visa_registrations
+            SET full_name = regexp_replace(btrim(full_name), '^(.+)\s+(\S+)$', '\2 \1')
+            WHERE btrim(full_name) ~ '\s';
+    END IF;
+END $$;
+
 -- VIP registration (is_vip = 1 in the /run curl, from source_prefix "... - vip").
 ALTER TABLE visa_registrations
     ADD COLUMN IF NOT EXISTS is_vip BOOLEAN NOT NULL DEFAULT FALSE;

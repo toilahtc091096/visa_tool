@@ -5,17 +5,21 @@ from utils import log_event
 
 def save_draft_visa_registration(ctx) -> int | None:
     first_applyid = (getattr(ctx, "first_applyid", "") or "").strip()
-    full_name = (getattr(ctx, "full_name", "") or "").strip()
+    # Stored in Vietnamese order (family name first). ctx.full_name stays
+    # given + family: it is what COVA shows and is matched against.
+    full_name = (getattr(ctx, "vietnamese_name", "") or "").strip()
     if not full_name and getattr(ctx, "ocr_data", None):
         ocr = ctx.ocr_data.Response.Data
         full_name = " ".join(
             part
             for part in [
-                getattr(ocr, "passportFirstName", "") or "",
                 getattr(ocr, "passportFamilyName", "") or "",
+                getattr(ocr, "passportFirstName", "") or "",
             ]
             if part.strip()
         ).strip()
+    if not full_name:
+        full_name = (getattr(ctx, "full_name", "") or "").strip()
 
     passport_number = ""
     gender = ""
