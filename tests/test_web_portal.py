@@ -332,10 +332,22 @@ class EndpointTest(unittest.TestCase):
                          ("bao", "TAI", "30000", "E1", "NGUYEN VAN A", "Q2180"))
         self.assertEqual(e["body"]["authorization"], "")  # token never stored
         self.assertEqual(e["body"]["staff"], "BAO")
-        bad = {"ok": False, "status_code": 500, "house": "TAI", "response": {"error": "x"}}
+        self.assertTrue(e["ok"])
+        bad = {"ok": False, "status_code": 500, "house": "TAI",
+               "response": {"step": "save_family_info", "error": "x", "timings": {"validate": 0.5, "total": 3}}}
         with mock.patch.object(self.server, "web_run_case", return_value=bad):
-            self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
-        self.assertEqual(len(self.saved), 1)  # failed runs are not kept
+            r = self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertNotIn("history_id", r.json())
+        f = self.saved[1]  # failed runs are kept for ADMIN, with the error and the timings
+        self.assertFalse(f["ok"])
+        self.assertEqual(f["error"], "Bước: save_family_info · Lỗi: x · HTTP 500")
+        self.assertEqual(f["timings"], {"validate": 0.5, "total": 3.0})
+        self.assertEqual(f["body"]["authorization"], "")
+        with mock.patch.object(self.server, "web_run_case", side_effect=RuntimeError("refused")):
+            r = self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
+        self.assertEqual(r.status_code, 502)
+        self.assertFalse(self.saved[2]["ok"])
+        self.assertIn("refused", self.saved[2]["error"])
         with mock.patch.object(self.server.web_curl, "save_curl", side_effect=RuntimeError("db down")),              mock.patch.object(self.server, "web_run_case", return_value=ok):
             r = self.client.post("/web/run", json={"port": "30000", "body": body}, headers={"X-Api-Key": "user-key"})
         self.assertEqual(r.status_code, 200)  # history failure never breaks the run
@@ -355,6 +367,22 @@ class EndpointTest(unittest.TestCase):
                 self.assertEqual(lc.call_args.args, (None, "", 10, 0, ""))
                 self.client.get("/web/curl-history?mine=1", headers={"X-Api-Key": "admin-key"})
                 self.assertEqual(lc.call_args.args, ("boss", "", 10, 0, ""))
+
+    def test_failed_curls_admin_only(self):
+        admin = {"id": 9, "username": "boss", "staff_code": "ADMIN", "api_key": "admin-key"}
+        users = {"user-key": {"id": 1, "username": "bao", "staff_code": "BAO", "api_key": "user-key"}, "admin-key": admin}
+        with mock.patch.object(self.server, "get_web_user_by_api_key", side_effect=users.get), \
+             mock.patch.object(self.server.web_curl, "list_curls", return_value=([], 0)) as lc, \
+             mock.patch.object(self.server.web_curl, "delete_failed", side_effect=lambda i: i == 5) as dl:
+            self.assertEqual(self.client.get("/web/curl-failed", headers={"X-Api-Key": "user-key"}).status_code, 403)
+            self.assertEqual(self.client.delete("/web/curl-failed/5", headers={"X-Api-Key": "user-key"}).status_code, 403)
+            dl.assert_not_called()
+            r = self.client.get("/web/curl-failed?page=2&q=E1&house=HAI", headers={"X-Api-Key": "admin-key"})
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(lc.call_args.args, (None, "E1", 10, 10, "HAI"))  # every user
+            self.assertEqual(lc.call_args.kwargs, {"ok": False})
+            self.assertEqual(self.client.delete("/web/curl-failed/5", headers={"X-Api-Key": "admin-key"}).status_code, 200)
+            self.assertEqual(self.client.delete("/web/curl-failed/6", headers={"X-Api-Key": "admin-key"}).status_code, 404)
 
 
 if __name__ == "__main__":

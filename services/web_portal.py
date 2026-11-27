@@ -3,6 +3,7 @@ that WF-01 node 2 used to build by hand, start n8n, and prepare a re-run."""
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from io import BytesIO
@@ -527,14 +528,35 @@ def _find_name(data: Any, depth: int = 0) -> str:
     return ""
 
 
+def _run_error(result: dict[str, Any]) -> str:
+    """One line for a failed run: step, error and code, as the page shows them."""
+    res = result.get("response") if isinstance(result.get("response"), dict) else {}
+    parts = []
+    if res.get("step"):
+        parts.append(f"Bước: {res['step']}")
+    err = res.get("error") or res.get("message") or result.get("error") or ""
+    if not err and not res:
+        err = str(result.get("response") or "")
+    if err:
+        parts.append(f"Lỗi: {err if isinstance(err, str) else json.dumps(err, ensure_ascii=False)}")
+    parts.append(f"HTTP {result.get('status_code', '')}".strip())
+    return " · ".join(p for p in parts if p)[:4000]
+
+
 def history_entry(user: dict[str, Any], result: dict[str, Any], port: Any, body: dict[str, Any], seconds: float) -> dict[str, Any]:
-    """What the curl history keeps of a successful run. The token is dropped: reusing the curl
+    """What the curl history keeps of a run (ok or failed). The token is dropped: reusing the curl
     later takes the house's current token (authorization "")."""
     house = house_config(result["house"])
     clean = {**body}
     if "authorization" in clean:
         clean["authorization"] = ""
+    res = result.get("response") if isinstance(result.get("response"), dict) else {}
+    timings = res.get("timings") if isinstance(res.get("timings"), dict) else {}
+    ok = bool(result.get("ok"))
     return {
+        "ok": ok,
+        "error": "" if ok else _run_error(result),
+        "timings": {str(k): round(float(v or 0), 2) for k, v in timings.items() if isinstance(v, (int, float))},
         "username": user["username"],
         "staff_code": user.get("staff_code", ""),
         "house": house["house"],

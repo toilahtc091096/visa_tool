@@ -185,3 +185,8 @@ CREATE TABLE IF NOT EXISTS web_curl_history (
 );
 CREATE INDEX IF NOT EXISTS idx_web_curl_history_created ON web_curl_history (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_web_curl_history_user_created ON web_curl_history (username, created_at DESC);
+-- Failed runs are kept too (ok = FALSE, error = what /run said) for ADMIN to look at / run again;
+-- timings = seconds of each /run phase (result.timings).
+ALTER TABLE web_curl_history ADD COLUMN IF NOT EXISTS ok BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE web_curl_history ADD COLUMN IF NOT EXISTS error TEXT NOT NULL DEFAULT '';
+ALTER TABLE web_curl_history ADD COLUMN IF NOT EXISTS timings JSONB NOT NULL DEFAULT '{}'::jsonb;

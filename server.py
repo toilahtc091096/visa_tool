@@ -394,6 +394,20 @@ def web_rerun(request: Request, payload: dict[str, Any] = Body(...)):
 def web_run(request: Request, payload: dict[str, Any] = Body(...)):
     # Paste a curl from Telegram on the page, edit the JSON, run it (Postman-like).
     user = _web_user(request)
+    house, body, started = "", None, time.time()
+
+    def keep(result: dict[str, Any]) -> int | None:
+        # Every run goes to web_curl_history (15 days): OK ones are the curl history to reuse,
+        # failed ones (ok FALSE) the "Curl lỗi" list of ADMIN. Saving never breaks the run.
+        if not isinstance(body, dict) or not house:
+            return None
+        try:
+            return web_curl.save_curl(web_history_entry(user, result, payload.get("port"), body,
+                                                        round(time.time() - started, 1)))
+        except Exception as exc:
+            log_exception(exc, {"event": "web_curl_save_failed", "user": user["username"]})
+            return None
+
     try:
         house = payload.get("house") or web_house_by_port(payload.get("port"))
         body = payload.get("body")
@@ -407,14 +421,12 @@ def web_run(request: Request, payload: dict[str, Any] = Body(...)):
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     except Exception as exc:
         log_exception(exc, {"event": "web_run_failed", "user": user["username"]})
+        keep({"ok": False, "house": house, "status_code": 502, "error": f"Không gọi được /run: {exc}"})
         raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không gọi được /run: {exc}"})
     seconds = round(time.time() - started, 1)
-    if result.get("ok") and isinstance(body, dict):
-        # Successful runs go to the curl history (15 days) so the curl can be reused from the page.
-        try:
-            result["history_id"] = web_curl.save_curl(web_history_entry(user, result, payload.get("port"), body, seconds))
-        except Exception as exc:
-            log_exception(exc, {"event": "web_curl_save_failed", "user": user["username"]})
+    history_id = keep(result)
+    if result.get("ok") and history_id is not None:
+        result["history_id"] = history_id
     body = payload.get("body") or {}
     log_event({"event": "web_run", "user": user["username"], "house": result["house"], "status": result["status_code"],
                "passport": body.get("passportNumber", ""), "seconds": seconds})
@@ -456,6 +468,25 @@ def web_curl_history(request: Request, q: str = "", mine: str = "", page: int = 
     items, total = web_curl.list_curls(who, q, HISTORY_PAGE_SIZE, (page - 1) * HISTORY_PAGE_SIZE, house)
     return {"ok": True, "keep_days": web_curl.KEEP_DAYS, "items": items, "total": total,
             "page": page, "page_size": HISTORY_PAGE_SIZE}
+
+
+@app.get("/web/curl-failed")
+def web_curl_failed(request: Request, q: str = "", page: int = 1, house: str = ""):
+    # Curls whose /run failed, of every user: ADMIN only (to run them again and see what went wrong).
+    _web_admin(request)
+    page = max(1, int(page or 1))
+    items, total = web_curl.list_curls(None, q, HISTORY_PAGE_SIZE, (page - 1) * HISTORY_PAGE_SIZE, house, ok=False)
+    return {"ok": True, "keep_days": web_curl.KEEP_DAYS, "items": items, "total": total,
+            "page": page, "page_size": HISTORY_PAGE_SIZE}
+
+
+@app.delete("/web/curl-failed/{row_id}")
+def web_curl_failed_delete(request: Request, row_id: int):
+    user = _web_admin(request)
+    if not web_curl.delete_failed(row_id):
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không còn curl lỗi này"})
+    log_event({"event": "web_curl_failed_delete", "user": user["username"], "id": row_id})
+    return {"ok": True}
 
 @app.post("/web/progress")
 def web_progress(request: Request, payload: dict[str, Any] = Body(...)):

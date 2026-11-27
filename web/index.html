@@ -101,6 +101,31 @@
   .curl-main { min-width: 0; }
   .curl-side { border-left: 1px solid var(--line); padding-left: 24px; min-width: 0; }
   @media (max-width: 980px) { .curl-layout { grid-template-columns: 1fr; } .curl-side { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 16px; } }
+  /* ADMIN: failed curls on the left -> 3 columns; narrower screens put that list above the editor */
+  main.wide.curl.with-fail { max-width: 1840px; }
+  .curl-layout.with-fail { grid-template-columns: 320px minmax(0, 1fr) 340px; }
+  .curl-fail { border-right: 1px solid var(--line); padding-right: 24px; min-width: 0; }
+  @media (max-width: 1400px) {
+    .curl-layout.with-fail { grid-template-columns: minmax(0, 1fr) 340px; }
+    .curl-layout.with-fail .curl-fail { grid-column: 1 / -1; border-right: 0; padding-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
+    .curl-layout.with-fail .curl-fail .side-list { max-height: 40vh; }
+  }
+  @media (max-width: 980px) { .curl-layout.with-fail { grid-template-columns: 1fr; } }
+  /* loading of a side list: ↻ turns, list faded and not clickable, pager disabled */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  button.reload .spin-icon { font-size: 16px; }
+  button.reload.loading .spin-icon { animation: spin .7s linear infinite; }
+  button.reload:disabled { cursor: progress; }
+  .side-list { transition: opacity .15s; }
+  .side-list.list-loading { opacity: .4; pointer-events: none; }
+  .pager .pg-spin { display: inline-block; margin-right: 6px; animation: spin .7s linear infinite; }
+  .fail-err { margin-top: 4px; color: var(--err); font-size: 13px; overflow: hidden; display: -webkit-box;
+              -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+  .hist.open .fail-err { display: block; -webkit-line-clamp: unset; line-clamp: unset; white-space: pre-wrap; }
+  .hist .tbl-wrap { margin-top: 8px; }
+  .hist table.data { font-size: 13px; }
+  .hist table.data td.barcell { width: 30%; }
+  .hist-secs { font-variant-numeric: tabular-nums; }
   .side-head { display: flex; justify-content: space-between; align-items: center; }
   .side-head h2 { margin: 0; font-size: 18px; }
   .side-head button { margin: 0; padding: 4px 10px; }
@@ -376,7 +401,19 @@
     </div>
 
     <div id="curlCard" class="card hidden">
-     <div class="curl-layout">
+     <div class="curl-layout" id="curlLayout">
+      <aside class="curl-fail hidden" id="failSide" aria-label="Curl chạy lỗi">
+        <div class="side-head"><h2>Curl lỗi</h2><button id="failReload" class="secondary reload" title="Tải lại"><span class="spin-icon">↻</span></button></div>
+        <div class="hint" id="failInfo"></div>
+        <div class="hist-filter">
+          <select id="failHouse" aria-label="Lọc theo nhà">
+            <option value="">Mọi nhà</option><option>HAI</option><option>PHONG</option><option>TAI</option>
+          </select>
+          <input id="failQ" placeholder="Hộ chiếu, tên, nhân viên…">
+        </div>
+        <div id="failList" class="side-list"></div>
+        <div class="pager hist-pager hidden" id="failPager"><button class="secondary" id="failPrev">‹ Trước</button><span id="failPage"></span><button class="secondary" id="failNext">Sau ›</button></div>
+      </aside>
       <div class="curl-main">
       <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Nhà lấy theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI). Hồ sơ khởi chạy từ trang này sẽ tự điền curl vào đây khi chạy xong.</p>
       <label for="curlText">Lệnh curl</label>
@@ -437,7 +474,7 @@
       <pre id="curlResult" class="result hidden"></pre>
       </div>
       <aside class="curl-side" aria-label="Lịch sử curl">
-        <div class="side-head"><h2>Lịch sử curl</h2><button id="histReload" class="secondary" title="Tải lại">↻</button></div>
+        <div class="side-head"><h2>Lịch sử curl</h2><button id="histReload" class="secondary reload" title="Tải lại"><span class="spin-icon">↻</span></button></div>
         <div class="hint" id="histInfo"></div>
         <div class="hist-filter">
           <select id="histHouse" aria-label="Lọc theo nhà" title="Lọc theo nhà (mặc định: nhà của curl đang soạn)">
@@ -445,7 +482,7 @@
           </select>
           <input id="histQ" placeholder="Tìm hộ chiếu, tên, visa…">
         </div>
-        <div id="histList"></div>
+        <div id="histList" class="side-list"></div>
         <div class="pager hist-pager hidden" id="histPager"><button class="secondary" id="histPrev">‹ Trước</button><span id="histPage"></span><button class="secondary" id="histNext">Sau ›</button></div>
       </aside>
      </div>
@@ -1717,9 +1754,16 @@ const newRunId = () => 'r' + Date.now().toString(36) + Math.random().toString(36
 // timings = {phase: seconds}; a failed run stops in its last phase (before "total").
 function renderTimings(timings, ok) {
   const box = $('curlTimes');
-  const phases = Object.entries(timings || {}).filter(([k]) => k !== 'total');
   $('curlTimesTitle').textContent = 'Thời gian từng bước';
-  if (!phases.length) { box.classList.add('hidden'); return; }
+  const html = timingsTable(timings, ok);
+  if (!html) { box.classList.add('hidden'); return; }
+  $('curlTimesTbl').innerHTML = html;
+  box.classList.remove('hidden');
+}
+// Rows of the "time of each step" table ('' when there is nothing to show); also used in the history cards.
+function timingsTable(timings, ok) {
+  const phases = Object.entries(timings || {}).filter(([k]) => k !== 'total');
+  if (!phases.length) return '';
   const total = Number(timings.total ?? phases.reduce((a, [, s]) => a + Number(s || 0), 0));
   const failed = ok ? '' : phases[phases.length - 1][0];
   const secs = (s) => `${Number(s || 0).toFixed(2)} s`;
@@ -1729,10 +1773,9 @@ function renderTimings(timings, ok) {
       + ` <span class="hint mono">${esc(k)}</span></td><td class="num">${secs(s)}</td>`
       + `<td class="num">${pct.toFixed(0)}%</td><td class="barcell"><div class="tbar" style="width:${pct.toFixed(1)}%"></div></td></tr>`;
   };
-  $('curlTimesTbl').innerHTML = '<tr><th>Bước</th><th class="num">Thời gian</th><th class="num">%</th><th></th></tr>'
+  return '<tr><th>Bước</th><th class="num">Thời gian</th><th class="num">%</th><th></th></tr>'
     + phases.map((p) => row(p, p[0] === failed ? 'fail' : '')).join('')
     + `<tr class="total"><td>Tổng</td><td class="num">${secs(total)}</td><td class="num">100%</td><td></td></tr>`;
-  box.classList.remove('hidden');
 }
 
 $('runBtn').onclick = async () => {
@@ -1777,8 +1820,11 @@ $('runBtn').onclick = async () => {
       showCaseImages(r.house, runPassport, body.old_issueDate, body.visa_type);
     $('curlResult').textContent = JSON.stringify(r.response, null, 2);
     $('curlResult').classList.remove('hidden');
-    if (r.ok) loadHistory();
-  } catch (e) { stopWatchRun(); $('curlTimes').classList.add('hidden'); show($('curlMsg'), e.message, false); }
+    if (r.ok) loadHistory(); else if (isAdmin) loadFailed();
+  } catch (e) {
+    stopWatchRun(); $('curlTimes').classList.add('hidden'); show($('curlMsg'), e.message, false);
+    if (isAdmin) loadFailed();
+  }
   clearInterval(tick); b.disabled = false; b.textContent = 'Chạy';
 };
 
@@ -1825,22 +1871,56 @@ $('redoBtn').onclick = () => {
   toast('Đã lấy lại curl bị ghi đè');
 };
 
-let histItems = [], histTimer = null, histOpen = null, histPage = 1, histPages = 1;
+let histItems = [], histTimer = null, histOpen = null, histSteps = null;
 const histTime = (iso) => { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`; };
-async function loadHistory() {
-  try {
-    const d = await api('/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim(), page: histPage, house: $('histHouse').value }));
-    histItems = d.items || [];
-    histPages = Math.max(1, Math.ceil((d.total || 0) / (d.page_size || 10)));
-    if (!histItems.length && histPage > 1) { histPage = Math.min(histPage - 1, histPages); return loadHistory(); }
-    $('histInfo').textContent = `${d.total || 0} curl chạy thành công · giữ ${d.keep_days} ngày${isAdmin ? ' · mọi nhân viên' : ''}`;
-    $('histPager').classList.toggle('hidden', histPages <= 1);
-    $('histPage').textContent = `Trang ${histPage}/${histPages}`;
-    $('histPrev').disabled = histPage <= 1; $('histNext').disabled = histPage >= histPages;
-    renderHistory();
-  } catch (e) { $('histList').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+// One side list (history / failed curls) being loaded: ↻ turns and is disabled, the list fades,
+// the pager buttons are off and say "Đang tải…". A load asked while one is going runs once after it
+// (search typed meanwhile), so clicks in a row never start several requests.
+function sideList(p, url) {
+  const st = { page: 1, pages: 1, busy: false, again: false };
+  const busy = (on) => {
+    $(p + 'Reload').classList.toggle('loading', on); $(p + 'Reload').disabled = on;
+    $(p + 'List').classList.toggle('list-loading', on);
+    $(p + 'Prev').disabled = on || st.page <= 1; $(p + 'Next').disabled = on || st.page >= st.pages;
+    if (on) $(p + 'Page').innerHTML = '<span class="pg-spin">↻</span>Đang tải…';
+    else $(p + 'Page').textContent = `Trang ${st.page}/${st.pages}`;
+  };
+  st.load = async (onData) => {
+    if (st.busy) { st.again = true; return; }
+    st.busy = true; busy(true);
+    try {
+      for (;;) {
+        // at least 350 ms of the loading look, so a fast answer does not just flicker
+        const [d] = await Promise.all([api(url() + '&' + new URLSearchParams({ page: st.page })), sleep(350)]);
+        st.pages = Math.max(1, Math.ceil((d.total || 0) / (d.page_size || 10)));
+        if (!(d.items || []).length && st.page > 1) { st.page = Math.min(st.page - 1, st.pages); continue; }
+        $(p + 'Pager').classList.toggle('hidden', st.pages <= 1);
+        onData(d);
+        break;
+      }
+    } catch (e) { $(p + 'List').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+    st.busy = false; busy(false);
+    if (st.again) { st.again = false; st.load(onData); }
+  };
+  st.go = (delta, onData) => {
+    const to = st.page + delta;
+    if (st.busy || to < 1 || to > st.pages) return false;
+    st.page = to; st.load(onData); return true;
+  };
+  return st;
 }
+
+const histList = sideList('hist', () => '/web/curl-history?' + new URLSearchParams({ q: $('histQ').value.trim(), house: $('histHouse').value }));
+function onHistory(d) {
+  histItems = d.items || [];
+  $('histInfo').textContent = `${d.total || 0} curl chạy thành công · giữ ${d.keep_days} ngày${isAdmin ? ' · mọi nhân viên' : ''}`;
+  renderHistory();
+}
+function loadHistory() { return histList.load(onHistory); }
+const secsText = (s) => (Number(s) > 0 ? `${Number(s).toFixed(1)} s` : '');
 // authorization: the house's token; staff: who the record counts for -> not shown / copied.
 const HIST_HIDDEN = new Set(['authorization', 'staff']);
 function histJson(body) {
@@ -1850,17 +1930,21 @@ function renderHistory() {
   if (!histItems.length) { $('histList').innerHTML = '<div class="hint">Chưa có curl nào chạy thành công.</div>'; return; }
   $('histList').innerHTML = histItems.map((it) => {
     const open = histOpen === it.id;
+    const steps = histSteps === it.id;
+    const hasSteps = Object.keys(it.timings || {}).some((k) => k !== 'total');
     return `<div class="hist${open ? ' open' : ''}">
       <div class="hist-top"><b>${esc(it.passport_number || '(không có hộ chiếu)')}</b><span class="hint">${esc(histTime(it.created_at))}</span></div>
-      <div class="hint">${esc([it.visa_type, 'nhà ' + it.house, it.full_name, isAdmin ? it.staff_code : ''].filter(Boolean).join(' · '))}</div>
+      <div class="hint">${esc([it.visa_type, 'nhà ' + it.house, it.full_name, isAdmin ? it.staff_code : ''].filter(Boolean).join(' · '))}${secsText(it.seconds) ? ` · <span class="hist-secs" title="Tổng thời gian chạy /run">⏱ ${secsText(it.seconds)}</span>` : ''}</div>
       <div class="hist-act">
         <button data-act="use" data-id="${it.id}">Dùng lại</button>
         <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Ẩn JSON' : 'Xem JSON'}</button>
+        ${hasSteps ? `<button class="secondary" data-act="steps" data-id="${it.id}" title="Thời gian từng bước của lần chạy này">${steps ? 'Ẩn giây' : '⏱ Từng bước'}</button>` : ''}
         <button class="secondary" data-act="zoom" data-id="${it.id}" title="Xem JSON trong cửa sổ lớn">⛶</button>
         <button class="secondary" data-act="curl" data-id="${it.id}" title="Sao chép cả lệnh curl">⧉ curl</button>
         ${isM(it) ? `<button class="secondary" data-act="applyM" data-id="${it.id}" title="Chép hộ chiếu (vào company_passport) và thông tin công ty / thư mời sang JSON bên trái">Áp dụng M</button>` : ''}
         ${isF(it) ? `<button class="secondary" data-act="applyF" data-id="${it.id}" title="Chép hộ chiếu (vào school_passport), thông tin trường mời và học vấn sang JSON bên trái">Áp dụng F</button>` : ''}
       </div>
+      ${steps ? `<div class="tbl-wrap"><table class="data">${timingsTable(it.timings, true)}</table></div>` : ''}
       ${open ? `<div class="hint hjson-hint">Bôi đen các dòng cần, Ctrl+C rồi dán vào JSON bên trái. Trường bị trùng sẽ báo lỗi.</div>
       <pre class="hjson">${esc(histJson(it.body))}</pre>` : ''}
     </div>`;
@@ -1874,6 +1958,7 @@ $('histList').addEventListener('click', async (e) => {
   if (!it) return;
   const act = b.dataset.act;
   if (act === 'toggle') { histOpen = histOpen === it.id ? null : it.id; renderHistory(); return; }
+  if (act === 'steps') { histSteps = histSteps === it.id ? null : it.id; renderHistory(); return; }
   if (act === 'zoom') { openJsonViewer(it); return; }
   if (act === 'applyM') { applyFrom(it, APPLY.M); return; }
   if (act === 'applyF') { applyFrom(it, APPLY.F); return; }
@@ -1892,16 +1977,91 @@ $('histList').addEventListener('click', async (e) => {
   }
   loadCurl(text, `Đã điền lại curl ${it.passport_number || ''}`.trim());
 });
-$('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(() => { histPage = 1; loadHistory(); }, 300); });
+$('histQ').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(() => { histList.page = 1; loadHistory(); }, 300); });
 // House filter: follows the house of the curl being edited; can be changed by hand.
 function setHistHouse(house) {
   if ($('histHouse').value === house) return;
-  $('histHouse').value = house; histPage = 1; histOpen = null;
+  $('histHouse').value = house; histList.page = 1; histOpen = histSteps = null;
   if (!$('curlCard').classList.contains('hidden')) loadHistory();
 }
-$('histHouse').addEventListener('change', () => { histPage = 1; histOpen = null; loadHistory(); });
-$('histPrev').onclick = () => { if (histPage > 1) { histPage--; histOpen = null; loadHistory(); } };
-$('histNext').onclick = () => { if (histPage < histPages) { histPage++; histOpen = null; loadHistory(); } };
+$('histHouse').addEventListener('change', () => { histList.page = 1; histOpen = histSteps = null; loadHistory(); });
+$('histPrev').onclick = () => { if (histList.go(-1, onHistory)) histOpen = histSteps = null; };
+$('histNext').onclick = () => { if (histList.go(1, onHistory)) histOpen = histSteps = null; };
+
+// ---------- failed curls (ADMIN, every user): runs whose /run failed, to run again and see why ----------
+let failItems = [], failTimer = null, failOpen = null;
+const failList = sideList('fail', () => '/web/curl-failed?' + new URLSearchParams({ q: $('failQ').value.trim(), house: $('failHouse').value }));
+function onFailed(d) {
+  failItems = d.items || [];
+  $('failInfo').textContent = `${d.total || 0} curl chạy lỗi · giữ ${d.keep_days} ngày · mọi nhân viên`;
+  renderFailed();
+}
+function loadFailed() { return isAdmin ? failList.load(onFailed) : undefined; }
+function renderFailed() {
+  if (!failItems.length) { $('failList').innerHTML = '<div class="hint">Không có curl nào chạy lỗi.</div>'; return; }
+  $('failList').innerHTML = failItems.map((it) => {
+    const open = failOpen === it.id;
+    const steps = timingsTable(it.timings, false);
+    return `<div class="hist${open ? ' open' : ''}">
+      <div class="hist-top"><b>${esc(it.passport_number || '(không có hộ chiếu)')}</b><span class="hint">${esc(histTime(it.created_at))}</span></div>
+      <div class="hint">${esc([it.staff_code || it.username, it.visa_type, 'nhà ' + it.house, it.full_name].filter(Boolean).join(' · '))}${secsText(it.seconds) ? ` · <span class="hist-secs">⏱ ${secsText(it.seconds)}</span>` : ''}</div>
+      <div class="fail-err" title="${esc(it.error)}">${esc(it.error || 'Lỗi không rõ')}</div>
+      <div class="hist-act">
+        <button data-act="use" data-id="${it.id}">Dùng lại</button>
+        <button class="secondary" data-act="toggle" data-id="${it.id}">${open ? 'Thu gọn' : 'Xem lỗi'}</button>
+        <button class="secondary" data-act="zoom" data-id="${it.id}" title="Xem JSON trong cửa sổ lớn">⛶</button>
+        <button class="secondary" data-act="del" data-id="${it.id}" title="Xoá khỏi danh sách curl lỗi">Xoá</button>
+      </div>
+      ${open && steps ? `<div class="tbl-wrap"><table class="data">${steps}</table></div>` : ''}
+      ${open ? `<pre class="hjson">${esc(histJson(it.body))}</pre>` : ''}
+    </div>`;
+  }).join('');
+}
+$('failList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  e.preventDefault();
+  const it = failItems.find((x) => String(x.id) === b.dataset.id);
+  if (!it) return;
+  const act = b.dataset.act;
+  if (act === 'toggle') { failOpen = failOpen === it.id ? null : it.id; renderFailed(); return; }
+  if (act === 'zoom') { openJsonViewer(it); return; }
+  const who = [it.passport_number, it.staff_code || it.username, it.visa_type, 'nhà ' + it.house].filter(Boolean).join(' · ');
+  if (act === 'del') {
+    if (!(await ask({ tone: 'danger', title: 'Xoá curl lỗi này?', message: 'Chỉ xoá khỏi danh sách curl lỗi, hồ sơ không bị đổi.',
+      details: [['Curl', who], ['Lúc chạy', histTime(it.created_at)], ['Lỗi', it.error || '—']], okText: 'Xoá', cancelText: 'Huỷ' }))) return;
+    b.disabled = true;
+    try {
+      const r = await fetch(`/web/curl-failed/${encodeURIComponent(it.id)}`, { method: 'DELETE', headers: { 'X-Api-Key': key } });
+      if (!r.ok && r.status !== 404) throw new Error(((await r.json().catch(() => ({}))).detail || {}).error || `Lỗi ${r.status}`);
+      toast('Đã xoá curl lỗi');
+      if (failOpen === it.id) failOpen = null;
+      loadFailed();
+    } catch (err) { b.disabled = false; toast('Không xoá được: ' + err.message); }
+    return;
+  }
+  // use: same as the history (the curl being edited is kept as a draft)
+  const text = buildCurl(it.port, it.body);
+  const cur = $('curlText').value.trim();
+  if (cur && cur !== text.trim() && !(await ask({
+    icon: '↻', tone: 'warn', title: 'Ghi đè curl đang có?',
+    message: 'Curl đang soạn sẽ được lưu nháp. Bấm "↶ Lấy lại curl bị ghi đè" để quay lại bản đó.',
+    details: [['Dùng lại', who], ['Lúc chạy', histTime(it.created_at)]], okText: 'Ghi đè', cancelText: 'Huỷ',
+  }))) return;
+  loadCurl(text, `Đã điền curl lỗi ${it.passport_number || ''} — sửa nếu cần rồi bấm Chạy`.trim());
+});
+$('failQ').addEventListener('input', () => { clearTimeout(failTimer); failTimer = setTimeout(() => { failList.page = 1; loadFailed(); }, 300); });
+$('failHouse').addEventListener('change', () => { failList.page = 1; failOpen = null; loadFailed(); });
+$('failPrev').onclick = () => { if (failList.go(-1, onFailed)) failOpen = null; };
+$('failNext').onclick = () => { if (failList.go(1, onFailed)) failOpen = null; };
+$('failReload').onclick = loadFailed;
+// the left column exists for ADMIN only (render() sets isAdmin after login)
+function showFailSide() {
+  $('failSide').classList.toggle('hidden', !isAdmin);
+  $('curlLayout').classList.toggle('with-fail', isAdmin);
+  const main = $('curlCard').closest('main');
+  if (main) main.classList.toggle('with-fail', isAdmin);
+}
 
 // "Áp dụng M" / "Áp dụng F": a record from the history gives its passport (as company_passport /
 // school_passport: /run reuses that case's company / school files) and its fields to the JSON
@@ -1963,7 +2123,7 @@ $('jvClose').onclick = closeJsonViewer;
 $('jv').addEventListener('mousedown', (e) => { if (e.target === $('jv')) closeJsonViewer(); });
 $('jvCopy').onclick = async () => { await copyText(jvText); toast('Đã sao chép JSON'); };
 $('histReload').onclick = loadHistory;
-$('tabCurl').addEventListener('click', loadHistory);
+$('tabCurl').addEventListener('click', () => { loadHistory(); showFailSide(); loadFailed(); });
 showRedo();
 
 // ---------- rerun ----------
