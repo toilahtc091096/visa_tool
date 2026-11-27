@@ -388,6 +388,21 @@ class EndpointTest(unittest.TestCase):
             self.assertEqual(self.client.get("/web/job/job-b/request-image", headers={"X-Api-Key": "user-key"}).status_code, 404)
             self.assertEqual(self.client.get("/web/job/job-a/request-image").status_code, 401)
 
+    def test_request_image_found_by_passport(self):
+        # WF-13 curls have no job_id: the image is found from the passport (job_id tried first when given)
+        by_job = {"job-a": ("image/png", b"A")}
+        by_passport = {"E1": ("image/jpeg", b"P", "job-p")}
+        with mock.patch.object(self.server.web_request_image, "get_request_image", side_effect=by_job.get), \
+             mock.patch.object(self.server.web_request_image, "find_request_image", side_effect=by_passport.get):
+            get = lambda q: self.client.get("/web/request-image?" + q, headers={"X-Api-Key": "user-key"})
+            r = get("passport=E1")
+            self.assertEqual((r.status_code, r.content, r.headers["x-job-id"]), (200, b"P", "job-p"))
+            r = get("job_id=job-a&passport=E1")
+            self.assertEqual((r.content, r.headers["x-job-id"]), (b"A", "job-a"))
+            self.assertEqual(get("job_id=job-x&passport=E1").content, b"P")   # job without image -> passport
+            self.assertEqual(get("passport=E9").status_code, 404)
+            self.assertEqual(self.client.get("/web/request-image?passport=E1").status_code, 401)
+
     def test_failed_curls_admin_only(self):
         admin = {"id": 9, "username": "boss", "staff_code": "ADMIN", "api_key": "admin-key"}
         users = {"user-key": {"id": 1, "username": "bao", "staff_code": "BAO", "api_key": "user-key"}, "admin-key": admin}

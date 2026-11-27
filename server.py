@@ -806,6 +806,22 @@ async def web_request_image_get(request: Request, job_id: str):
     return Response(content=found[1], media_type=found[0], headers={"Cache-Control": "no-store"})
 
 
+@app.get("/web/request-image")
+async def web_request_image_find(request: Request, passport: str = Query(""), job_id: str = Query("")):
+    # Curl tab: the request image of the curl being read. WF-13 curls carry no job_id, so the job is
+    # found from the passport in its stored curl; a job_id (if the curl has one) is tried first.
+    _web_user(request)
+    if job_id.strip():
+        found = await asyncio.to_thread(web_request_image.get_request_image, job_id.strip())
+        if found:
+            return Response(content=found[1], media_type=found[0],
+                            headers={"Cache-Control": "no-store", "X-Job-Id": job_id.strip()})
+    found = await asyncio.to_thread(web_request_image.find_request_image, passport)
+    if not found:
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Hồ sơ này không có ảnh yêu cầu"})
+    return Response(content=found[1], media_type=found[0], headers={"Cache-Control": "no-store", "X-Job-Id": found[2]})
+
+
 @app.get("/web/visa-token.user.js")
 def web_userscript(request: Request):
     base = str(request.base_url).rstrip("/")

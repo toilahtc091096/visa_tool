@@ -27,6 +27,31 @@ def save_request_image(job_id: str, username: str, content_type: str, data: byte
         conn.close()
 
 
+def find_request_image(passport: str) -> tuple[str, bytes, str] | None:
+    """Newest image of a job whose curl (web_jobs.curl, built by WF-13) is for this passport:
+    (content_type, bytes, job_id). The curl itself carries no job_id, its passportNumber links the two."""
+    passport = str(passport or "").strip().upper()
+    if not passport.isalnum():
+        return None
+    sql = f"""
+        SELECT i.content_type, i.data, i.job_id
+        FROM web_request_images i JOIN web_jobs j ON j.job_id = i.job_id
+        WHERE i.created_at >= NOW() - INTERVAL '{KEEP_DAYS} days'
+          AND j.curl ~* %s
+        ORDER BY i.created_at DESC
+        LIMIT 1
+    """
+    conn = get_connection()
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, (r'"passportNumber"\s*:\s*"' + passport + '"',))
+                row = cursor.fetchone()
+    finally:
+        conn.close()
+    return (row[0], bytes(row[1]), row[2]) if row else None
+
+
 def get_request_image(job_id: str) -> tuple[str, bytes] | None:
     """(content_type, bytes) of the job's image, None when there is none (or it is too old)."""
     sql = f"""

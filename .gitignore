@@ -20,3 +20,6 @@ web/guide/vd/
 
 # database dumps of scripts/backup_db.py (personal data)
 backups/
+
+# token file of each house (utils/token_store.py: token_<house>.json)
+resources/token_*.json
