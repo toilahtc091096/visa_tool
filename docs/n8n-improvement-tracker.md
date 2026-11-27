@@ -18,7 +18,9 @@ Trạng thái: `Chưa làm` · `Đang làm` · `Chờ test` · `Đạt` · `Khô
 
 ---
 
-## 0. Bàn giao: đọc mục này trước khi làm tiếp (cập nhật 2026-11-20, cuối ngày)
+## 0. Bàn giao: đọc mục này trước khi làm tiếp (cập nhật 2026-11-27)
+
+> **2026-11-27:** W1, W2, W3 đã đóng (đang dùng thật). Mới thêm H1 (sao lưu DB), H2 (WF-16 Health Check, `n8n-flow/patched-health/`), H3 (`scripts\deploy.ps1`), xem README. Việc còn mở: W4; pre-commit chạy test (để sau). Phần dưới là bàn giao cũ ngày 2026-11-20.
 
 ### Hệ thống đang chạy ra sao
 - **n8n** chạy trên **Railway**: `https://n8n-production-d4d9.up.railway.app` (n8n 2.25.7).
@@ -168,10 +170,13 @@ Tên thư mục chép đúng như nhận được, kể cả dấu cách. Nếu 
 | E3  | E   | Gom code lặp (`Apply Folder Context`, hàm tìm api_port, 3 nhánh School)               | n8n                    | Bỏ | 2026-11-20 |
 | E4  | E   | Tên file upload cố định cho 4 node rồi bật retry                                      | n8n WF-07B, 10, 11     | Đạt | 2026-11-20 |
 | E5  | E   | Tin báo lỗi ghi rõ workflow con và node gây lỗi (hiện chỉ ghi `Call PDF & Image Preprocessing'1`) | n8n WF01-GENERAL       | Đạt | 2026-11-20 |
-| W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Chờ triển khai |  |
-| W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Chờ test |  |
-| W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Chờ test |  |
+| W1  | W   | Trang web nhập liệu `/web` (đăng nhập, khởi chạy, chạy lại) | Python + n8n | Đạt | 2026-11-27 |
+| W2  | W   | Admin xem số bộ mỗi người làm, lọc theo ngày, người, nhà, loại visa; danh sách hồ sơ | Python + n8n WF01-GENERAL, WF-13 | Đạt | 2026-11-27 |
+| W3  | W   | Gộp 3 DB (mỗi nhà một DB) về 1 DB, mỗi dòng có mã nhà                                  | Python + Postgres | Đạt | 2026-11-27 |
 | W4  | W   | Khai nhiều thư mục liên tiếp (nối tiếp); curl có khi đang chạy curl khác thì vào hàng chờ riêng từng người (lưu DB, có nút xoá) | Python + trang `/web` | Chưa làm (đã chốt yêu cầu) |  |
+| H1  | H   | Sao lưu DB mỗi đêm (pg_dump → `backups\` + R2 `_db-backup/`, giữ 30 ngày) | Python + task VPS | Đã code, chờ cài task trên VPS |  |
+| H2  | H   | WF-16 Health Check: 7h, 13h, 19h gọi `/health` 3 nhà, lỗi thì báo bot của chủ | n8n (workflow mới) | Chờ import |  |
+| H3  | H   | `scripts\deploy.ps1`: git pull + khởi động lại 3 nhà + kiểm tra `/health` | PowerShell | Đã code |  |
 | F1  | F   | Kịch bản dựng VPS mới nhanh và đầy đủ                                                 | hạ tầng                | Bỏ qua (bạn chọn, 2026-11-20) |           |
 | G1  | —   | AI đọc cùng giấy tờ ra kết quả khác nhau (loại visa cũ, nơi cấp, ngày sinh chỉ có năm) | n8n WF-09, 04C (nghiệp vụ, cả 2 miền) | Đạt | 2026-11-20 |
 | G2  | —   | Giấy 停留 (MRZ `VTCHN`) bị nhận là visa cũ thay vì giấy cư trú                          | n8n WF-04, WF-09       | Đạt | 2026-11-20 |
