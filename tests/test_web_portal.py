@@ -368,6 +368,26 @@ class EndpointTest(unittest.TestCase):
                 self.client.get("/web/curl-history?mine=1", headers={"X-Api-Key": "admin-key"})
                 self.assertEqual(lc.call_args.args, ("boss", "", 10, 0, ""))
 
+    def test_request_image_of_a_job(self):
+        self.jobs["job-a"] = {"username": "bao", "staff": "BAO", "steps": [], "status": "running"}
+        self.jobs["job-b"] = {"username": "hang", "staff": "HANG", "steps": [], "status": "running"}
+        store = {}
+        with mock.patch.object(self.server.web_request_image, "save_request_image",
+                               side_effect=lambda j, u, t, d: store.__setitem__(j, (t, d))), \
+             mock.patch.object(self.server.web_request_image, "get_request_image", side_effect=store.get):
+            up = lambda job, data=b"img", ctype="image/png": self.client.post(
+                f"/web/job/{job}/request-image", files={"file": ("a.png", data, ctype)}, headers={"X-Api-Key": "user-key"})
+            self.assertEqual(up("job-a").status_code, 200)
+            self.assertEqual(store["job-a"], ("image/png", b"img"))
+            self.assertEqual(up("job-b").status_code, 404)        # someone else's job
+            self.assertEqual(up("job-x").status_code, 404)        # unknown job
+            self.assertEqual(up("job-a", ctype="application/pdf").status_code, 400)
+            self.assertEqual(up("job-a", data=b"x" * (5 * 1024 * 1024 + 1)).status_code, 400)
+            r = self.client.get("/web/job/job-a/request-image", headers={"X-Api-Key": "user-key"})
+            self.assertEqual((r.status_code, r.content, r.headers["content-type"]), (200, b"img", "image/png"))
+            self.assertEqual(self.client.get("/web/job/job-b/request-image", headers={"X-Api-Key": "user-key"}).status_code, 404)
+            self.assertEqual(self.client.get("/web/job/job-a/request-image").status_code, 401)
+
     def test_failed_curls_admin_only(self):
         admin = {"id": 9, "username": "boss", "staff_code": "ADMIN", "api_key": "admin-key"}
         users = {"user-key": {"id": 1, "username": "bao", "staff_code": "BAO", "api_key": "user-key"}, "admin-key": admin}

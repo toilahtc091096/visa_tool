@@ -101,6 +101,26 @@
   .curl-main { min-width: 0; }
   .curl-side { border-left: 1px solid var(--line); padding-left: 24px; min-width: 0; }
   @media (max-width: 980px) { .curl-layout { grid-template-columns: 1fr; } .curl-side { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 16px; } }
+  /* "Ảnh yêu cầu ban đầu": start form (paste / drop / pick) and curl tab (between Đọc curl and the JSON) */
+  .req-drop { padding: 14px; }
+  .req-preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .req-preview img { max-width: 100%; max-height: 260px; border-radius: 6px; border: 1px solid var(--line); }
+  .req-meta { display: flex; gap: 10px; align-items: center; }
+  .req-meta button { margin: 0; }
+  /* curl tab: fixed on the left, vertically centred; only while the curl tab is open (body.on-curl) */
+  .req-view { position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 15;
+              width: 280px; max-height: 92vh; display: flex; flex-direction: column; gap: 6px;
+              padding: 10px 12px; background: var(--card); color: var(--text); border: 1px solid var(--accent);
+              border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .22); }
+  .req-view-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .req-view-head button { margin: 0; padding: 2px 10px; }
+  .req-view img { display: block; width: 100%; min-height: 0; max-height: calc(92vh - 80px); object-fit: contain;
+                  border-radius: 6px; border: 1px solid var(--line); background: var(--bg); cursor: zoom-in; }
+  .req-view-tab { position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 15; margin: 0;
+                  padding: 12px 8px; border-radius: 0 10px 10px 0; writing-mode: vertical-rl; font-size: 14px; }
+  body:not(.on-curl) .req-view, body:not(.on-curl) .req-view-tab { display: none; }
+  /* wide screens: push the page right so the panel never covers it */
+  @media (min-width: 1200px) { body.on-curl.has-req { padding-left: 304px; } }
   /* ADMIN: failed curls on the left -> 3 columns; narrower screens put that list above the editor */
   main.wide.curl.with-fail { max-width: 1840px; }
   .curl-layout.with-fail { grid-template-columns: 320px minmax(0, 1fr) 340px; }
@@ -388,6 +408,20 @@
 
       <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">tự điền khi chọn thư mục; hoặc gõ tên thư mục đã có</span></label>
       <input id="prefix" placeholder="vd: L30 - NGUYEN VAN A">
+
+      <label>Ảnh yêu cầu ban đầu <span class="hint">không bắt buộc — ảnh chụp tin nhắn yêu cầu, hiện lại ở tab Chạy curl để người làm theo dõi</span></label>
+      <div id="reqDrop" class="drop req-drop" tabindex="0" role="button" aria-label="Dán, kéo thả hoặc bấm để chọn ảnh yêu cầu">
+        <div id="reqEmpty">
+          <div class="drop-icon" aria-hidden="true">🖼️</div>
+          <div class="drop-title">Dán ảnh (Ctrl+V) hoặc kéo thả vào đây</div>
+          <div class="hint">hoặc bấm để chọn ảnh</div>
+        </div>
+        <div id="reqPreview" class="req-preview hidden">
+          <img id="reqImg" alt="Ảnh yêu cầu ban đầu">
+          <div class="req-meta"><span id="reqInfo" class="hint"></span><button id="reqRemove" class="secondary mini" type="button">× Bỏ ảnh</button></div>
+        </div>
+      </div>
+      <input id="reqFile" type="file" accept="image/*" class="hidden">
       <button id="startBtn">Gửi</button>
       <div id="startMsg"></div>
     </div>
@@ -585,6 +619,17 @@
     <div class="exbody" id="exBody"></div>
   </div>
 </div>
+<!-- "Ảnh yêu cầu ban đầu" of the curl being read: outside the tab, fixed on the left, vertically centred,
+     so it stays in sight while scrolling the curl tab; "‹" folds it into a small tab -->
+<aside id="reqView" class="req-view hidden" aria-label="Ảnh yêu cầu ban đầu">
+  <div class="req-view-head">
+    <b>Ảnh yêu cầu ban đầu</b>
+    <button id="reqViewMin" class="secondary mini" type="button" title="Thu gọn">‹</button>
+  </div>
+  <div class="hint" id="reqViewInfo"></div>
+  <img id="reqViewImg" alt="Ảnh yêu cầu ban đầu" title="Bấm để xem ảnh lớn (khung bên phải)">
+</aside>
+<button id="reqViewTab" class="req-view-tab hidden" type="button" title="Mở ảnh yêu cầu ban đầu">🖼️ Ảnh yêu cầu</button>
 <!-- big image viewer, right half of the screen, no backdrop: the curl JSON on the left stays usable -->
 <div id="imgView" class="imgview hidden" role="dialog" aria-labelledby="ivTitle">
   <div class="iv-head">
@@ -716,7 +761,7 @@ function render(info) {
 
 function logout() {
   stopTokenPoll(); $('tokenCard').classList.add('hidden');
-  key = ''; ls.set('visa_web_key', ''); stopWatch();
+  key = ''; ls.set('visa_web_key', ''); stopWatch(); clearReqView();
   $('app').classList.add('hidden'); $('login').classList.remove('hidden');
 }
 
@@ -982,6 +1027,60 @@ async function uploadPicked() {
   uploadedTo = `${house}|${prefix}`;
 }
 
+// ---------- "Ảnh yêu cầu ban đầu" on the start form (optional) ----------
+// One image: picked, dropped or pasted (Ctrl+V anywhere on the start tab). Big photos are scaled
+// down to 2000 px JPEG before upload; it is sent right after /web/start, tied to the job.
+let reqBlob = null, reqUrl = '';
+function setReqImage(blob) {
+  if (reqUrl) URL.revokeObjectURL(reqUrl);
+  reqBlob = blob; reqUrl = blob ? URL.createObjectURL(blob) : '';
+  $('reqImg').src = reqUrl;
+  $('reqInfo').textContent = blob ? `${mb(blob.size)}` : '';
+  $('reqEmpty').classList.toggle('hidden', !!blob);
+  $('reqPreview').classList.toggle('hidden', !blob);
+  $('reqDrop').classList.toggle('has', !!blob);
+}
+async function shrinkImage(file) {
+  const MAX_SIDE = 2000;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+    if (scale === 1 && file.size <= 1.5 * 1024 * 1024) { bmp.close(); return file; }
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close();
+    const out = await new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
+    return out && out.size < file.size ? out : file;
+  } catch (e) { return file; }
+}
+async function takeReqFile(file) {
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) { toast('Ảnh yêu cầu: chỉ nhận JPG, PNG, WEBP, GIF'); return; }
+  const img = await shrinkImage(file);
+  if (img.size > 5 * 1024 * 1024) { toast('Ảnh yêu cầu lớn hơn 5 MB'); return; }
+  setReqImage(img);
+}
+$('reqDrop').addEventListener('click', (e) => { if (!e.target.closest('#reqRemove')) $('reqFile').click(); });
+$('reqDrop').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('reqFile').click(); } });
+$('reqFile').addEventListener('change', () => { takeReqFile($('reqFile').files[0]); $('reqFile').value = ''; });
+$('reqRemove').onclick = (e) => { e.stopPropagation(); setReqImage(null); };
+$('reqDrop').addEventListener('dragover', (e) => { e.preventDefault(); $('reqDrop').classList.add('over'); });
+$('reqDrop').addEventListener('dragleave', () => $('reqDrop').classList.remove('over'));
+$('reqDrop').addEventListener('drop', (e) => {
+  e.preventDefault(); $('reqDrop').classList.remove('over');
+  takeReqFile([...(e.dataTransfer.files || [])].find((f) => f.type.startsWith('image/')));
+});
+// Ctrl+V of an image anywhere on the start tab (text pastes into inputs work as usual)
+document.addEventListener('paste', (e) => {
+  if ($('startCard').classList.contains('hidden') || $('app').classList.contains('hidden')) return;
+  const item = [...(e.clipboardData?.items || [])].find((x) => x.kind === 'file' && x.type.startsWith('image/'));
+  if (!item) return;
+  e.preventDefault();
+  takeReqFile(item.getAsFile());
+  toast('Đã dán ảnh yêu cầu');
+});
+
 $('startBtn').onclick = async () => {
   const b = $('startBtn'); b.disabled = true; clear($('startMsg'));
   try {
@@ -998,9 +1097,20 @@ $('startBtn').onclick = async () => {
       relation: relationValue, source_prefix: $('prefix').value,
       inviter_phone: needPhone ? $('inviterPhone').value.trim() : '', phone: $('payMobile').value.trim(),
     });
+    // the request image goes with the job; if it fails the case still runs
+    let reqWarn = '';
+    if (reqBlob) {
+      b.textContent = 'Đang lưu ảnh yêu cầu…';
+      const fd = new FormData();
+      fd.append('file', reqBlob, reqBlob.name || `yeu-cau.${(reqBlob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`);
+      try { await api(`/web/job/${encodeURIComponent(r.job_id)}/request-image`, fd, true); }
+      catch (e) { reqWarn = `Hồ sơ đã gửi, nhưng chưa lưu được ảnh yêu cầu: ${e.message}`; }
+    }
     picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden'); $('drop').classList.remove('has');
     $('prefix').value = ''; pickRelation(null); $('inviterPhone').value = ''; $('payMobile').value = '';
+    setReqImage(null);
     watchJob(r.job_id);
+    if (reqWarn) show($('startMsg'), reqWarn, false);
   } catch (e) { show($('startMsg'), e.message, false); }
   b.disabled = false; b.textContent = 'Gửi';
 };
@@ -1118,6 +1228,7 @@ function resetStartForm() {
   pickRelation(null);
   onVisa();
   $('prefix').value = '';
+  setReqImage(null);
   clear($('startMsg'));
   // progress of the previous run (the run itself goes on; Quản trị still lists it)
   stopWatch(); ls.set('visa_web_job', ''); $('jobCard').classList.add('hidden');
@@ -1237,6 +1348,7 @@ Object.keys(TABS).forEach((tab) => {
     $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
     document.querySelector('main').classList.toggle('wide', tab === 'tabAdmin' || tab === 'tabCurl');
     document.querySelector('main').classList.toggle('curl', tab === 'tabCurl');
+    document.body.classList.toggle('on-curl', tab === 'tabCurl');   // the request image panel shows on the curl tab only
     if (tab === 'tabAdmin' && !adminLoaded) adminLoad();
   };
 });
@@ -1415,7 +1527,7 @@ function loadCurl(text, message) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   toast(message);
 }
-$('curlText').addEventListener('input', () => { $('curlEdit').classList.add('hidden'); curlPort = ''; clearCaseImages(); });
+$('curlText').addEventListener('input', () => { $('curlEdit').classList.add('hidden'); curlPort = ''; clearCaseImages(); clearReqView(); });
 
 $('parseBtn').onclick = () => {
   clear($('curlMsg')); $('curlResult').classList.add('hidden');
@@ -1433,6 +1545,7 @@ $('parseBtn').onclick = () => {
     $('curlEdit').classList.remove('hidden');
     fillAuthorization(house, port);
     showCaseImages(house, String(body.passportNumber || '').trim(), body.old_issueDate, body.visa_type);   // already on R2: no need to wait for Chạy
+    showReqView(String(body.job_id || '').trim(), String(body.passportNumber || '').trim());
   } catch (e) { show($('curlMsg'), e.message, false); $('curlEdit').classList.add('hidden'); clearCaseImages(); }
 };
 
@@ -1597,6 +1710,45 @@ async function showCaseImages(house, passport, date, visa) {
     } catch (e) { box.innerHTML = `<span class="img-empty">${esc(e.message)}</span>`; }
   }));
 }
+// ---------- "Ảnh yêu cầu ban đầu" of the curl's job (curls built by n8n carry job_id) ----------
+let reqViewUrl = '', reqViewFor = '';
+let reqViewMin = ls.get('visa_web_req_min') === '1';   // folded into the small tab (kept across reloads)
+function syncReqView() {
+  const has = !!reqViewUrl;
+  $('reqView').classList.toggle('hidden', !has || reqViewMin);
+  $('reqViewTab').classList.toggle('hidden', !has || !reqViewMin);
+  document.body.classList.toggle('has-req', has && !reqViewMin);
+}
+function setReqViewMin(min) { reqViewMin = min; ls.set('visa_web_req_min', min ? '1' : ''); syncReqView(); }
+$('reqViewMin').onclick = () => setReqViewMin(true);
+$('reqViewTab').onclick = () => setReqViewMin(false);
+function clearReqView() {
+  if (reqViewUrl) {
+    if ($('ivImg').getAttribute('src') === reqViewUrl) closeImgView();
+    URL.revokeObjectURL(reqViewUrl);
+  }
+  reqViewUrl = ''; reqViewFor = '';
+  $('reqViewImg').removeAttribute('src');
+  syncReqView();
+}
+async function showReqView(jobId, passport) {
+  if (jobId && jobId === reqViewFor && reqViewUrl) return;   // same job: keep it
+  clearReqView();
+  if (!jobId) return;
+  reqViewFor = jobId;
+  try {
+    const res = await fetch(`/web/job/${encodeURIComponent(jobId)}/request-image`, { headers: { 'X-Api-Key': key } });
+    if (!res.ok || reqViewFor !== jobId) return;   // 404 = no image for this job (it is optional)
+    const url = URL.createObjectURL(await res.blob());
+    if (reqViewFor !== jobId) { URL.revokeObjectURL(url); return; }   // another curl was read meanwhile
+    reqViewUrl = url;
+    $('reqViewImg').src = url;
+    $('reqViewInfo').textContent = [passport ? 'hộ chiếu ' + passport : '', jobId].filter(Boolean).join(' · ');
+    syncReqView();
+  } catch (e) { /* optional image: nothing to show */ }
+}
+$('reqViewImg').onclick = () => { if (reqViewUrl) openImgView(reqViewUrl, `Ảnh yêu cầu ban đầu · ${reqViewFor}`); };
+
 // ---------- big image viewer (right half, no backdrop: compare with the JSON on the left) ----------
 const iv = { scale: 1, rot: 0, fit: true };
 function ivLayout() {

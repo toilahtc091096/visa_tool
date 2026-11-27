@@ -49,6 +49,7 @@ from services.web_portal import FormError as WebFormError
 from services.web_portal import build_start_payload, start_case
 from services.web_portal import history_entry as web_history_entry
 from database.crud import web_curl
+from database.crud import web_request_image
 from services.web_portal import form_options as web_form_options
 from services.web_portal import HOUSES as WEB_HOUSES
 from services.web_portal import rerun_prepare as web_rerun_prepare
@@ -772,6 +773,36 @@ async def web_case_image_replace(request: Request, house: str = Form(""), passpo
         raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
     except Exception as exc:
         raise HTTPException(status_code=502, detail={"ok": False, "error": f"Không ghi được lên R2: {exc}"})
+
+
+_REQUEST_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+
+@app.post("/web/job/{job_id}/request-image")
+async def web_request_image_save(request: Request, job_id: str, file: UploadFile = File(...)):
+    # "Ảnh yêu cầu ban đầu" added on the start form, sent right after /web/start by the person who started the job.
+    user = _web_user(request)
+    job = await asyncio.to_thread(get_web_job, job_id)
+    if not job or (job["username"] != user["username"] and user["staff_code"] != "ADMIN"):
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Không tìm thấy lần chạy này"})
+    content_type = (file.content_type or "").lower()
+    if content_type not in _REQUEST_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Chỉ nhận ảnh JPG, PNG, WEBP, GIF"})
+    content = await file.read(web_request_image.MAX_BYTES + 1)
+    if not content or len(content) > web_request_image.MAX_BYTES:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": "Ảnh trống hoặc lớn hơn 5 MB"})
+    await asyncio.to_thread(web_request_image.save_request_image, job_id, user["username"], content_type, content)
+    return {"ok": True, "size": len(content)}
+
+
+@app.get("/web/job/{job_id}/request-image")
+async def web_request_image_get(request: Request, job_id: str):
+    # Curl tab: any signed-in user who reads a curl of this job (the curl carries job_id) sees the image.
+    _web_user(request)
+    found = await asyncio.to_thread(web_request_image.get_request_image, job_id)
+    if not found:
+        raise HTTPException(status_code=404, detail={"ok": False, "error": "Hồ sơ này không có ảnh yêu cầu"})
+    return Response(content=found[1], media_type=found[0], headers={"Cache-Control": "no-store"})
 
 
 @app.get("/web/visa-token.user.js")

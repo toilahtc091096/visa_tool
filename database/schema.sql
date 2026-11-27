@@ -190,3 +190,13 @@ CREATE INDEX IF NOT EXISTS idx_web_curl_history_user_created ON web_curl_history
 ALTER TABLE web_curl_history ADD COLUMN IF NOT EXISTS ok BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE web_curl_history ADD COLUMN IF NOT EXISTS error TEXT NOT NULL DEFAULT '';
 ALTER TABLE web_curl_history ADD COLUMN IF NOT EXISTS timings JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+-- "Ảnh yêu cầu ban đầu": a screenshot of the request (chat message + photos) added on the start
+-- form, one per web job, shown on the curl tab when a curl of that job is read. Kept 30 days.
+CREATE TABLE IF NOT EXISTS web_request_images (
+    job_id TEXT PRIMARY KEY,
+    username TEXT NOT NULL DEFAULT '',
+    content_type TEXT NOT NULL,
+    data BYTEA NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
