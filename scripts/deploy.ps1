@@ -7,7 +7,7 @@
 # Instances are restarted one after another, so the other houses keep working meanwhile.
 # Exit code 1 when git pull fails or an instance does not answer /health in time.
 param(
-    [string[]]$EnvFiles = @(".env", ".env.phong", ".env.viet"),
+    [string[]]$EnvFiles = @(".env", ".env.phong", ".env.nam"),
     [int]$HealthTimeoutSec = 90,
     [switch]$NoPull
 )

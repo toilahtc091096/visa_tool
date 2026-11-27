@@ -95,7 +95,7 @@ Tạo 2 task `VisaTool Server (<tên>)` và `VisaTool Watchdog (<tên>)`
 
 Kiểm tra: `Invoke-RestMethod http://127.0.0.1:<PORT>/health`
 
-Cập nhật code trên VPS (git pull, khởi động lại lần lượt `.env`, `.env.phong`, `.env.viet`,
+Cập nhật code trên VPS (git pull, khởi động lại lần lượt `.env`, `.env.phong`, `.env.nam`,
 rồi chờ `/health` từng cổng và in bảng OK / FAIL):
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\deploy.ps1
