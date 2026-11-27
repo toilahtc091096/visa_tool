@@ -112,7 +112,10 @@ powershell -ExecutionPolicy Bypass -File scripts\install_backup_task.ps1 -EnvFil
 Start-ScheduledTask "VisaTool DB Backup"   # chạy thử ngay
 ```
 Không tìm thấy `pg_dump` thì thêm `PG_DUMP=C:\Program Files\PostgreSQL\<bản>\bin\pg_dump.exe` vào env.
-Biến tuỳ chọn: `BACKUP_R2_BUCKET`, `BACKUP_R2_PREFIX`, `BACKUP_KEEP_DAYS`, `BACKUP_LOCAL_KEEP`.
+DB lấy theo `POSTGRES_DB` (DB thật: `visa_main`), đổi riêng bằng `BACKUP_DB`.
+`visa_user` không đọc được schema `so_loi`: hoặc đặt `BACKUP_EXCLUDE_SCHEMAS=so_loi`, hoặc dùng tài khoản
+đọc được hết: `BACKUP_POSTGRES_USER=postgres`, `BACKUP_POSTGRES_PASSWORD=...`.
+Biến tuỳ chọn khác: `BACKUP_R2_BUCKET`, `BACKUP_R2_PREFIX`, `BACKUP_KEEP_DAYS`, `BACKUP_LOCAL_KEEP`.
 Khôi phục: `pg_restore -h <host> -U <user> -d <db rỗng> --no-owner <file>.dump`.
 
 ## API `/run`

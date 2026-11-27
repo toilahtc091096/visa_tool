@@ -6,6 +6,10 @@
 
 Env (from the env file):
     POSTGRES_HOST / PORT / DB / USER / PASSWORD   database to dump
+    BACKUP_DB           database name, when it differs from POSTGRES_DB
+    BACKUP_POSTGRES_USER / BACKUP_POSTGRES_PASSWORD   other account for the dump (e.g. postgres,
+                        when POSTGRES_USER cannot read every schema)
+    BACKUP_EXCLUDE_SCHEMAS  comma list of schemas left out (e.g. so_loi)
     R2_ENDPOINT_URL / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME
     BACKUP_R2_BUCKET    bucket for the dumps (default R2_BUCKET_NAME)
     BACKUP_R2_PREFIX    key prefix (default _db-backup/)
@@ -49,16 +53,25 @@ def find_pg_dump() -> str:
     raise RuntimeError("pg_dump not found: set PG_DUMP=<path of pg_dump.exe> in the env file")
 
 
+def backup_db_name() -> str:
+    return os.getenv("BACKUP_DB", "").strip() or os.getenv("POSTGRES_DB", "visa_db")
+
+
 def dump(out_file: Path) -> None:
-    env = dict(os.environ, PGPASSWORD=os.getenv("POSTGRES_PASSWORD", ""))
+    user = os.getenv("BACKUP_POSTGRES_USER", "").strip() or os.getenv("POSTGRES_USER", "visa_user")
+    password = os.getenv("BACKUP_POSTGRES_PASSWORD", "") if os.getenv("BACKUP_POSTGRES_USER", "").strip() \
+        else os.getenv("POSTGRES_PASSWORD", "")
+    env = dict(os.environ, PGPASSWORD=password)
     cmd = [
         find_pg_dump(),
         "-h", os.getenv("POSTGRES_HOST", "localhost"),
         "-p", os.getenv("POSTGRES_PORT", "5432"),
-        "-U", os.getenv("POSTGRES_USER", "visa_user"),
-        "-d", os.getenv("POSTGRES_DB", "visa_db"),
+        "-U", user,
+        "-d", backup_db_name(),
         "-Fc", "--no-owner", "-f", str(out_file),
     ]
+    for schema in filter(None, (s.strip() for s in os.getenv("BACKUP_EXCLUDE_SCHEMAS", "").split(","))):
+        cmd += ["-N", schema]
     result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=1800)
     if result.returncode != 0:
         out_file.unlink(missing_ok=True)
@@ -111,7 +124,7 @@ def main() -> int:
 
     load_dotenv(args.env)
     LOCAL_DIR.mkdir(exist_ok=True)
-    db = os.getenv("POSTGRES_DB", "visa_db")
+    db = backup_db_name()
     out_file = LOCAL_DIR / f"{db}-{datetime.now():%Y%m%d-%H%M}.dump"
     try:
         dump(out_file)
