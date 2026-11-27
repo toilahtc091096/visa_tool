@@ -237,7 +237,9 @@
   table.data td.mark { width: 22px; text-align: center; color: var(--muted); }
   table.data tr.cur td.mark { color: var(--accent); }
   table.data tr.okrow td.mark { color: var(--ok); }
-  .substep { font-weight: 400; color: var(--muted); font-size: 12px; }
+  /* fixed width so a changing file name (upload_files) never resizes the table; too long -> … */
+  .substep { font-weight: 400; color: var(--muted); font-size: 12px; display: inline-block; vertical-align: bottom;
+             width: min(260px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tbar.run { background: repeating-linear-gradient(45deg, var(--accent) 0 8px, color-mix(in srgb, var(--accent) 60%, transparent) 8px 16px);
               background-size: 22px 22px; animation: tbar-move 1s linear infinite; }
   @keyframes tbar-move { to { background-position: 22px 0; } }
@@ -1681,7 +1683,7 @@ function renderLive(p, extra) {
       const s = Number(p.phase_elapsed || 0) + extra;
       const pct = elapsed > 0 ? Math.min(100, (100 * s) / elapsed) : 0;
       const sub = STEP_LABEL[p.step] || p.step;
-      return `<tr class="cur"><td class="mark">▶</td><td>${label}${sub ? ` <span class="substep">· đang ${esc(sub)}…</span>` : ''}</td>`
+      return `<tr class="cur"><td class="mark">▶</td><td>${label}${sub ? ` <span class="substep" title="${esc(sub)}">· đang ${esc(sub)}</span>` : ''}</td>`
         + `<td class="num">${secs(s)}</td><td class="num">${pct.toFixed(0)}%</td>`
         + `<td class="barcell"><div class="tbar run" style="width:${Math.max(pct, 3).toFixed(1)}%"></div></td></tr>`;
     }
