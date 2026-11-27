@@ -1107,9 +1107,8 @@ $('startBtn').onclick = async () => {
       try { await api(`/web/job/${encodeURIComponent(r.job_id)}/request-image`, fd, true); }
       catch (e) { reqWarn = `Hồ sơ đã gửi, nhưng chưa lưu được ảnh yêu cầu: ${e.message}`; }
     }
-    picked = []; uploadedTo = ''; $('dir').value = ''; $('dirInfo').textContent = ''; $('upBox').classList.add('hidden'); $('drop').classList.remove('has');
-    $('prefix').value = ''; pickRelation(null); $('inviterPhone').value = ''; $('payMobile').value = '';
-    setReqImage(null);
+    // the form stays as it is after Gửi (folder, R2 folder, choices, request image): only "Làm mới" clears it.
+    // uploadedTo stays set, so sending the same house + folder again does not upload the files twice.
     watchJob(r.job_id);
     if (reqWarn) show($('startMsg'), reqWarn, false);
   } catch (e) { show($('startMsg'), e.message, false); }
