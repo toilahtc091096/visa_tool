@@ -17,3 +17,6 @@ tools/
 
 # example photos of the guide popup: added by ADMIN on the server, not in git
 web/guide/vd/
+
+# database dumps of scripts/backup_db.py (personal data)
+backups/

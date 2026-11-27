@@ -95,19 +95,25 @@ Tạo 2 task `VisaTool Server (<tên>)` và `VisaTool Watchdog (<tên>)`
 
 Kiểm tra: `Invoke-RestMethod http://127.0.0.1:<PORT>/health`
 
-Cập nhật code trên VPS:
+Cập nhật code trên VPS (git pull, khởi động lại lần lượt `.env`, `.env.phong`, `.env.viet`,
+rồi chờ `/health` từng cổng và in bảng OK / FAIL):
 ```powershell
-git pull
-foreach ($name in "default", "phong", "viet") {
-    $file = if ($name -eq "default") { ".env" } else { ".env.$name" }
-    $port = (Select-String -Path $file -Pattern '^PORT\s*=\s*(\d+)').Matches.Groups[1].Value
-    Stop-ScheduledTask "VisaTool Server ($name)"
-    Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |
-        ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }
-    Start-Sleep 2
-    Start-ScheduledTask "VisaTool Server ($name)"
-}
+powershell -ExecutionPolicy Bypass -File scripts\deploy.ps1
 ```
+`-NoPull` chỉ khởi động lại; `-EnvFiles .env.phong` chỉ một nhà.
+
+### Sao lưu DB
+
+Task "VisaTool DB Backup" chạy `scripts\backup_db.py` mỗi đêm: `pg_dump` (định dạng custom) vào
+`backups\` (giữ 7 bản), đẩy lên R2 `<bucket>/_db-backup/` (xoá bản quá 30 ngày, luôn giữ bản mới nhất).
+Log: `logs\backup.log`.
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install_backup_task.ps1 -EnvFile .env -At 02:00
+Start-ScheduledTask "VisaTool DB Backup"   # chạy thử ngay
+```
+Không tìm thấy `pg_dump` thì thêm `PG_DUMP=C:\Program Files\PostgreSQL\<bản>\bin\pg_dump.exe` vào env.
+Biến tuỳ chọn: `BACKUP_R2_BUCKET`, `BACKUP_R2_PREFIX`, `BACKUP_KEEP_DAYS`, `BACKUP_LOCAL_KEEP`.
+Khôi phục: `pg_restore -h <host> -U <user> -d <db rỗng> --no-owner <file>.dump`.
 
 ## API `/run`
 
