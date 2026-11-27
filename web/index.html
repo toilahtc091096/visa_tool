@@ -363,7 +363,22 @@
           <span class="spin-icon" aria-hidden="true">↻</span> Làm mới
         </button>
       </div>
-      <label for="house" style="margin-top:0">Nhà</label>
+      <!-- the request comes first: everything below is filled from it -->
+      <label style="margin-top:0">Ảnh yêu cầu ban đầu <span class="hint">không bắt buộc — ảnh chụp tin nhắn yêu cầu, hiện lại ở tab Chạy curl để người làm theo dõi</span></label>
+      <div id="reqDrop" class="drop req-drop" tabindex="0" role="button" aria-label="Dán, kéo thả hoặc bấm để chọn ảnh yêu cầu">
+        <div id="reqEmpty">
+          <div class="drop-icon" aria-hidden="true">🖼️</div>
+          <div class="drop-title">Dán ảnh (Ctrl+V) hoặc kéo thả vào đây</div>
+          <div class="hint">hoặc bấm để chọn ảnh</div>
+        </div>
+        <div id="reqPreview" class="req-preview hidden">
+          <img id="reqImg" alt="Ảnh yêu cầu ban đầu">
+          <div class="req-meta"><span id="reqInfo" class="hint"></span><button id="reqRemove" class="secondary mini" type="button">× Bỏ ảnh</button></div>
+        </div>
+      </div>
+      <input id="reqFile" type="file" accept="image/*" class="hidden">
+
+      <label for="house">Nhà</label>
       <select id="house"></select>
 
       <div class="row">
@@ -408,20 +423,6 @@
 
       <label for="prefix">Thư mục hồ sơ trên R2 <span class="hint">tự điền khi chọn thư mục; hoặc gõ tên thư mục đã có</span></label>
       <input id="prefix" placeholder="vd: L30 - NGUYEN VAN A">
-
-      <label>Ảnh yêu cầu ban đầu <span class="hint">không bắt buộc — ảnh chụp tin nhắn yêu cầu, hiện lại ở tab Chạy curl để người làm theo dõi</span></label>
-      <div id="reqDrop" class="drop req-drop" tabindex="0" role="button" aria-label="Dán, kéo thả hoặc bấm để chọn ảnh yêu cầu">
-        <div id="reqEmpty">
-          <div class="drop-icon" aria-hidden="true">🖼️</div>
-          <div class="drop-title">Dán ảnh (Ctrl+V) hoặc kéo thả vào đây</div>
-          <div class="hint">hoặc bấm để chọn ảnh</div>
-        </div>
-        <div id="reqPreview" class="req-preview hidden">
-          <img id="reqImg" alt="Ảnh yêu cầu ban đầu">
-          <div class="req-meta"><span id="reqInfo" class="hint"></span><button id="reqRemove" class="secondary mini" type="button">× Bỏ ảnh</button></div>
-        </div>
-      </div>
-      <input id="reqFile" type="file" accept="image/*" class="hidden">
       <button id="startBtn">Gửi</button>
       <div id="startMsg"></div>
     </div>
