@@ -107,20 +107,12 @@
   .req-preview img { max-width: 100%; max-height: 260px; border-radius: 6px; border: 1px solid var(--line); }
   .req-meta { display: flex; gap: 10px; align-items: center; }
   .req-meta button { margin: 0; }
-  /* curl tab: fixed on the left, vertically centred; only while the curl tab is open (body.on-curl) */
-  .req-view { position: fixed; left: 12px; top: 50%; transform: translateY(-50%); z-index: 15;
-              width: 280px; max-height: 92vh; display: flex; flex-direction: column; gap: 6px;
-              padding: 10px 12px; background: var(--card); color: var(--text); border: 1px solid var(--accent);
-              border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .22); }
-  .req-view-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .req-view-head button { margin: 0; padding: 2px 10px; }
-  .req-view img { display: block; width: 100%; min-height: 0; max-height: calc(92vh - 80px); object-fit: contain;
-                  border-radius: 6px; border: 1px solid var(--line); background: var(--bg); cursor: zoom-in; }
-  .req-view-tab { position: fixed; left: 0; top: 50%; transform: translateY(-50%); z-index: 15; margin: 0;
-                  padding: 12px 8px; border-radius: 0 10px 10px 0; writing-mode: vertical-rl; font-size: 14px; }
-  body:not(.on-curl) .req-view, body:not(.on-curl) .req-view-tab { display: none; }
-  /* wide screens: push the page right so the panel never covers it */
-  @media (min-width: 1200px) { body.on-curl.has-req { padding-left: 304px; } }
+  /* curl tab, top of the left column: the request image of the curl being read */
+  .req-view { display: flex; flex-direction: column; gap: 6px; }
+  .req-view.has { padding: 10px; margin: -10px -10px 0; border: 1px solid var(--accent); border-radius: 10px; }
+  .req-view img { display: block; width: 100%; max-height: 60vh; object-fit: contain; border-radius: 6px;
+                  border: 1px solid var(--line); background: var(--bg); cursor: zoom-in; }
+  #failBlock { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
   /* ADMIN: failed curls on the left -> 3 columns; narrower screens put that list above the editor */
   main.wide.curl.with-fail { max-width: 1840px; }
   .curl-layout.with-fail { grid-template-columns: 320px minmax(0, 1fr) 340px; }
@@ -129,6 +121,7 @@
     .curl-layout.with-fail { grid-template-columns: minmax(0, 1fr) 340px; }
     .curl-layout.with-fail .curl-fail { grid-column: 1 / -1; border-right: 0; padding-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 16px; }
     .curl-layout.with-fail .curl-fail .side-list { max-height: 40vh; }
+    .curl-layout.with-fail .req-view img { width: auto; max-width: 100%; max-height: 40vh; align-self: flex-start; }
   }
   @media (max-width: 980px) { .curl-layout.with-fail { grid-template-columns: 1fr; } }
   /* loading of a side list: ↻ turns, list faded and not clickable, pager disabled */
@@ -250,7 +243,10 @@
              background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: -12px 0 40px rgba(0, 0, 0, .25);
              animation: iv-in .16s ease-out; }
   @keyframes iv-in { from { opacity: 0; transform: translateX(24px); } }
-  @media (max-width: 900px) { .imgview { left: 12px; width: auto; } }
+  /* left half: the request image (the passport images open on the right) */
+  .imgview.left { right: auto; left: 12px; animation-name: iv-in-left; }
+  @keyframes iv-in-left { from { opacity: 0; transform: translateX(-24px); } }
+  @media (max-width: 900px) { .imgview, .imgview.left { left: 12px; right: 12px; width: auto; } }
   .iv-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .iv-head h3 { margin: 0; font-size: 16px; }
   .iv-tools { display: flex; gap: 6px; align-items: center; }
@@ -437,7 +433,14 @@
 
     <div id="curlCard" class="card hidden">
      <div class="curl-layout" id="curlLayout">
-      <aside class="curl-fail hidden" id="failSide" aria-label="Curl chạy lỗi">
+      <!-- left column: "Ảnh yêu cầu ban đầu" of the curl being read (everyone), then the failed curls (ADMIN) -->
+      <aside class="curl-fail" id="failSide" aria-label="Ảnh yêu cầu và curl lỗi">
+        <section class="req-view" id="reqView">
+          <div class="side-head"><h2>Ảnh yêu cầu ban đầu</h2></div>
+          <div class="hint" id="reqViewInfo">Đọc curl để xem ảnh yêu cầu của hồ sơ.</div>
+          <img id="reqViewImg" class="hidden" alt="Ảnh yêu cầu ban đầu" title="Bấm để xem ảnh lớn (khung bên trái)">
+        </section>
+        <div id="failBlock" class="hidden">
         <div class="side-head"><h2>Curl lỗi</h2><button id="failReload" class="secondary reload" title="Tải lại"><span class="spin-icon">↻</span></button></div>
         <div class="hint" id="failInfo"></div>
         <div class="hist-filter">
@@ -448,6 +451,7 @@
         </div>
         <div id="failList" class="side-list"></div>
         <div class="pager hist-pager hidden" id="failPager"><button class="secondary" id="failPrev">‹ Trước</button><span id="failPage"></span><button class="secondary" id="failNext">Sau ›</button></div>
+        </div>
       </aside>
       <div class="curl-main">
       <p class="hint">Dán lệnh curl nhận từ Telegram → <b>Đọc curl</b> → sửa JSON nếu cần → <b>Chạy</b>. Nhà lấy theo cổng trong curl (10000 HAI, 20000 PHONG, 30000 TAI). Hồ sơ khởi chạy từ trang này sẽ tự điền curl vào đây khi chạy xong.</p>
@@ -620,17 +624,6 @@
     <div class="exbody" id="exBody"></div>
   </div>
 </div>
-<!-- "Ảnh yêu cầu ban đầu" of the curl being read: outside the tab, fixed on the left, vertically centred,
-     so it stays in sight while scrolling the curl tab; "‹" folds it into a small tab -->
-<aside id="reqView" class="req-view hidden" aria-label="Ảnh yêu cầu ban đầu">
-  <div class="req-view-head">
-    <b>Ảnh yêu cầu ban đầu</b>
-    <button id="reqViewMin" class="secondary mini" type="button" title="Thu gọn">‹</button>
-  </div>
-  <div class="hint" id="reqViewInfo"></div>
-  <img id="reqViewImg" alt="Ảnh yêu cầu ban đầu" title="Bấm để xem ảnh lớn (khung bên phải)">
-</aside>
-<button id="reqViewTab" class="req-view-tab hidden" type="button" title="Mở ảnh yêu cầu ban đầu">🖼️ Ảnh yêu cầu</button>
 <!-- big image viewer, right half of the screen, no backdrop: the curl JSON on the left stays usable -->
 <div id="imgView" class="imgview hidden" role="dialog" aria-labelledby="ivTitle">
   <div class="iv-head">
@@ -1347,9 +1340,7 @@ Object.keys(TABS).forEach((tab) => {
     });
     $('jobCard').classList.toggle('hidden', tab !== 'tabStart' || !ls.get('visa_web_job'));
     document.querySelector('main').classList.toggle('wide', tab === 'tabAdmin' || tab === 'tabCurl');
-    document.querySelector('main').classList.toggle('curl', tab === 'tabCurl');
-    document.body.classList.toggle('on-curl', tab === 'tabCurl');   // the request image panel shows on the curl tab only
-    if (tab === 'tabAdmin' && !adminLoaded) adminLoad();
+    document.querySelector('main').classList.toggle('curl', tab === 'tabCurl');    if (tab === 'tabAdmin' && !adminLoaded) adminLoad();
   };
 });
 
@@ -1712,42 +1703,41 @@ async function showCaseImages(house, passport, date, visa) {
 }
 // ---------- "Ảnh yêu cầu ban đầu" of the curl's job (curls built by n8n carry job_id) ----------
 let reqViewUrl = '', reqViewFor = '';
-let reqViewMin = ls.get('visa_web_req_min') === '1';   // folded into the small tab (kept across reloads)
-function syncReqView() {
+// top of the left column of the curl tab; text when there is no image
+function syncReqView(text) {
   const has = !!reqViewUrl;
-  $('reqView').classList.toggle('hidden', !has || reqViewMin);
-  $('reqViewTab').classList.toggle('hidden', !has || !reqViewMin);
-  document.body.classList.toggle('has-req', has && !reqViewMin);
+  $('reqViewImg').classList.toggle('hidden', !has);
+  $('reqView').classList.toggle('has', has);
+  if (!has) $('reqViewInfo').textContent = text || 'Đọc curl để xem ảnh yêu cầu của hồ sơ.';
 }
-function setReqViewMin(min) { reqViewMin = min; ls.set('visa_web_req_min', min ? '1' : ''); syncReqView(); }
-$('reqViewMin').onclick = () => setReqViewMin(true);
-$('reqViewTab').onclick = () => setReqViewMin(false);
-function clearReqView() {
+function clearReqView(text) {
   if (reqViewUrl) {
     if ($('ivImg').getAttribute('src') === reqViewUrl) closeImgView();
     URL.revokeObjectURL(reqViewUrl);
   }
   reqViewUrl = ''; reqViewFor = '';
   $('reqViewImg').removeAttribute('src');
-  syncReqView();
+  syncReqView(text);
 }
 async function showReqView(jobId, passport) {
   if (jobId && jobId === reqViewFor && reqViewUrl) return;   // same job: keep it
-  clearReqView();
+  const none = 'Hồ sơ này không có ảnh yêu cầu.';
+  clearReqView(jobId ? 'Đang tải ảnh yêu cầu…' : none);
   if (!jobId) return;
   reqViewFor = jobId;
   try {
     const res = await fetch(`/web/job/${encodeURIComponent(jobId)}/request-image`, { headers: { 'X-Api-Key': key } });
-    if (!res.ok || reqViewFor !== jobId) return;   // 404 = no image for this job (it is optional)
+    if (reqViewFor !== jobId) return;
+    if (!res.ok) { syncReqView(none); return; }   // 404 = no image for this job (it is optional)
     const url = URL.createObjectURL(await res.blob());
     if (reqViewFor !== jobId) { URL.revokeObjectURL(url); return; }   // another curl was read meanwhile
     reqViewUrl = url;
     $('reqViewImg').src = url;
-    $('reqViewInfo').textContent = [passport ? 'hộ chiếu ' + passport : '', jobId].filter(Boolean).join(' · ');
+    $('reqViewInfo').textContent = [passport ? 'hộ chiếu ' + passport : '', jobId].filter(Boolean).join(' · ') + ' · bấm ảnh để xem lớn';
     syncReqView();
-  } catch (e) { /* optional image: nothing to show */ }
+  } catch (e) { if (reqViewFor === jobId) syncReqView(none); }
 }
-$('reqViewImg').onclick = () => { if (reqViewUrl) openImgView(reqViewUrl, `Ảnh yêu cầu ban đầu · ${reqViewFor}`); };
+$('reqViewImg').onclick = () => { if (reqViewUrl) openImgView(reqViewUrl, `Ảnh yêu cầu ban đầu · ${reqViewFor}`, 'left'); };
 
 // ---------- big image viewer (right half, no backdrop: compare with the JSON on the left) ----------
 const iv = { scale: 1, rot: 0, fit: true };
@@ -1773,8 +1763,10 @@ function ivZoom(factor) {
   body.scrollLeft = cx * body.scrollWidth - body.clientWidth / 2;
   body.scrollTop = cy * body.scrollHeight - body.clientHeight / 2;
 }
-function openImgView(url, title) {
+// side 'left': the request image (its column is on the left); default right half (case images)
+function openImgView(url, title, side) {
   Object.assign(iv, { scale: 1, rot: 0, fit: true });
+  $('imgView').classList.toggle('left', side === 'left');
   $('ivTitle').textContent = title;
   $('ivImg').onload = ivLayout;
   $('ivImg').src = url;
@@ -2207,12 +2199,12 @@ $('failHouse').addEventListener('change', () => { failList.page = 1; failOpen = 
 $('failPrev').onclick = () => { if (failList.go(-1, onFailed)) failOpen = null; };
 $('failNext').onclick = () => { if (failList.go(1, onFailed)) failOpen = null; };
 $('failReload').onclick = loadFailed;
-// the left column exists for ADMIN only (render() sets isAdmin after login)
+// left column: request image for everyone, the failed curls below it for ADMIN only (render() sets isAdmin)
 function showFailSide() {
-  $('failSide').classList.toggle('hidden', !isAdmin);
-  $('curlLayout').classList.toggle('with-fail', isAdmin);
+  $('failBlock').classList.toggle('hidden', !isAdmin);
+  $('curlLayout').classList.add('with-fail');
   const main = $('curlCard').closest('main');
-  if (main) main.classList.toggle('with-fail', isAdmin);
+  if (main) main.classList.add('with-fail');
 }
 
 // "Áp dụng M" / "Áp dụng F": a record from the history gives its passport (as company_passport /
