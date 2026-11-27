@@ -267,7 +267,15 @@
   .img-empty { color: var(--muted); font-size: 14px; padding: 0 12px; text-align: center; }
   .img-card figcaption { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; font-weight: 600; background: var(--card); }
   .img-dl { padding: 6px 12px; border-radius: 7px; background: var(--accent); color: var(--accent-text); text-decoration: none; font-size: 14px; }
-  .card-head { display: flex; justify-content: flex-end; margin: -8px 0 4px; }
+  .card-head { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin: -8px 0 4px; }
+  .tok-status { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+  .tok-chip { margin: 0; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--line);
+              background: var(--bg); color: var(--text); cursor: default; }
+  .tok-chip.ok { border-color: var(--ok); color: var(--ok); }
+  .tok-chip.bad { border-color: var(--err); color: var(--err); background: var(--err-bg); cursor: pointer; }
+  .tok-chip.wait { color: var(--muted); }
+  .tok-warn { flex-basis: 100%; color: var(--err); font-size: 13px; }
+  .tok-chip.cur { box-shadow: 0 0 0 2px currentColor; }
   .card-head button { margin: 0; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px; }
   .spin-icon { display: inline-block; font-size: 20px; line-height: 1; transition: transform .4s; }
   .card-head button:hover .spin-icon { transform: rotate(180deg); }
@@ -355,7 +363,9 @@
 
     <div id="startCard" class="card">
       <div class="card-head">
-        <button id="resetBtn" class="secondary" type="button" title="Xoá những gì đã nhập, giữ nguyên Nhà đang chọn">
+        <!-- token of each house (each house keeps its own): checked at login and on every "Làm mới" -->
+        <div id="tokStatus" class="tok-status" aria-live="polite"></div>
+        <button id="resetBtn" class="secondary" type="button" title="Xoá những gì đã nhập (giữ nguyên Nhà đang chọn) và kiểm tra token các nhà">
           <span class="spin-icon" aria-hidden="true">↻</span> Làm mới
         </button>
       </div>
@@ -751,6 +761,7 @@ function render(info) {
   if (isAdmin) { fill($('aVisa'), [{ value: '', label: 'Tất cả' }, ...info.visa_codes]); adminInit(); }
   const last = ls.get('visa_web_job');
   if (last) watchJob(last);
+  checkAllTokens();
 }
 
 function logout() {
@@ -1143,7 +1154,7 @@ $('tOpen').onclick = async () => {
         const st = await api(`/web/bio/ticket/${r.ticket}/status`);
         const wait = mmss((Date.now() - t0) / 1000);
         if (st.state === 'done') {
-          stopTokenPoll(); show($('tokenMsg'), `✓ ${st.message}. Các curl của nhà ${house} dùng token mới.`, true); toast(`Đã cập nhật token nhà ${house}`);
+          stopTokenPoll(); show($('tokenMsg'), `✓ ${st.message}. Các curl của nhà ${house} dùng token mới.`, true); toast(`Đã cập nhật token nhà ${house}`); checkAllTokens();
         } else if (st.state === 'expired') {
           stopTokenPoll(); show($('tokenMsg'), st.message, false);
         } else if (st.message.startsWith('Đang chờ đăng nhập') && Date.now() - t0 > 15000) {
@@ -1203,7 +1214,7 @@ $('tManualSave').onclick = async () => {
   try {
     const r = await api('/web/bio/manual', { house: $('tHouse').value, value: $('tManual').value });
     show($('tokenMsg'), `✓ Đã cập nhật token nhà ${r.house}. Các curl của nhà này dùng token mới.`, true);
-    $('tManual').value = ''; toast(`Đã cập nhật token nhà ${r.house}`);
+    $('tManual').value = ''; toast(`Đã cập nhật token nhà ${r.house}`); checkAllTokens();
   } catch (e) { show($('tokenMsg'), e.message, false); }
   b.disabled = false;
 };
@@ -1229,8 +1240,49 @@ function resetStartForm() {
 $('resetBtn').onclick = () => {
   if ($('startBtn').disabled) { toast('Đang tải lên / đang gửi — chờ xong rồi hãy làm mới'); return; }
   resetStartForm();
+  checkAllTokens();
   toast('Đã làm mới');
 };
+
+// ---------- token of every house (each house keeps its own token file on the server) ----------
+// One chip per house: ✓ usable, ✗ not (click -> "Lấy token" for that house). Two houses on the
+// same token file would overwrite each other's token: that is reported too.
+let tokChecking = false, tokRes = {};
+function drawTokens() {
+  const houses = [...$('tHouse').options].map((o) => o.value).filter(Boolean);
+  const files = {};
+  houses.forEach((h) => { const f = tokRes[h] && tokRes[h].token_file; if (f) (files[f] = files[f] || []).push(h); });
+  const shared = Object.entries(files).filter(([, hs]) => hs.length > 1);
+  const cur = $('house').value;   // the house chosen in the form: marked
+  $('tokStatus').innerHTML = '<span class="hint">Token:</span>' + houses.map((h) => {
+    const r = tokRes[h], mark = h === cur ? ' cur' : '';
+    if (!r) return `<span class="tok-chip wait${mark}">${esc(h)} …</span>`;
+    if (r.valid) return `<span class="tok-chip ok${mark}" title="${esc(r.message || 'Token dùng được')}">${esc(h)} ✓</span>`;
+    return `<button type="button" class="tok-chip bad${mark}" data-house="${esc(h)}" title="${esc(r.message || '')} — bấm để lấy token nhà ${esc(h)}">${esc(h)} ✗ ${esc(r.short || 'hết hạn')}</button>`;
+  }).join('') + shared.map(([f, hs]) => `<span class="tok-warn">⚠ Nhà ${esc(hs.join(', '))} dùng chung file token ${esc(f)}: lấy token nhà này sẽ đè nhà kia — sửa TOKEN_FILE_NAME trong .env của các nhà đó.</span>`).join('');
+}
+$('house').addEventListener('change', drawTokens);
+async function checkAllTokens() {
+  if (tokChecking || !key) return;
+  tokChecking = true;
+  const houses = [...$('tHouse').options].map((o) => o.value).filter(Boolean);
+  tokRes = {};
+  const res = tokRes;
+  const draw = drawTokens;
+  draw();
+  await Promise.all(houses.map(async (h) => {
+    try {
+      const r = await api('/web/bio/check?house=' + encodeURIComponent(h));
+      res[h] = { ...r, short: r.valid ? '' : (/chưa có/i.test(r.message || '') ? 'chưa có' : 'hết hạn') };
+    } catch (e) { res[h] = { valid: false, message: e.message, short: 'lỗi' }; }
+    draw();
+  }));
+  tokChecking = false;
+}
+$('tokStatus').addEventListener('click', (e) => {
+  const b = e.target.closest('.tok-chip.bad');
+  if (b) openTokenCard(b.dataset.house);
+});
 
 // ---------- progress ----------
 let pollTimer = null, clockTimer = null, skew = 0, curJob = null;

@@ -67,7 +67,7 @@ from database.crud.web_job import add_web_job_step, create_web_job, get_job_staf
 from database.crud.web_job import now_iso as web_now_iso
 from database.crud import admin_report
 from database.house import HOUSES as HOUSE_NAMES
-from utils.token_store import append_authorization, load_authorization
+from utils.token_store import TOKEN_FILE_NAME, append_authorization, load_authorization
 
 print("START", flush=True)
 
@@ -623,11 +623,12 @@ def bio_current_authorization(request: Request):
 
 @app.get("/bio/authorization/check")
 def bio_check_saved_authorization():
+    # token_file: the page warns when two houses read the same file (one token would overwrite the other).
     token = load_authorization()
     if not token:
-        return {"ok": True, "valid": False, "message": "Chưa có token"}
+        return {"ok": True, "valid": False, "message": "Chưa có token", "token_file": TOKEN_FILE_NAME}
     valid, message = bio_token.check_authorization(token)
-    return {"ok": True, "valid": valid, "message": message}
+    return {"ok": True, "valid": valid, "message": message, "token_file": TOKEN_FILE_NAME}
 
 
 @app.post("/web/bio/start")

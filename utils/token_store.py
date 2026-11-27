@@ -5,7 +5,17 @@ from typing import Optional
 from typing import Any, Dict
 from dataclasses import asdict
 
-TOKEN_FILE_NAME = os.getenv("TOKEN_FILE_NAME", "token.json").strip() or "token.json"
+from database.house import current_house  # also loads .env
+
+
+def _default_token_file_name() -> str:
+    # One file per house, so a token taken for one house never overwrites another house's
+    # (all instances run from the same folder). TOKEN_FILE_NAME in .env still wins.
+    house = current_house(required=False)
+    return f"token_{house.lower()}.json" if house else "token.json"
+
+
+TOKEN_FILE_NAME = os.getenv("TOKEN_FILE_NAME", "").strip() or _default_token_file_name()
 TOKEN_FILE = Path(__file__).resolve().parents[1] / "resources" / TOKEN_FILE_NAME
 TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
 
