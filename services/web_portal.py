@@ -478,6 +478,25 @@ def bio_check_authorization(house_name: str) -> dict[str, Any]:
     return _json_or_error(requests.get(_local(house, "/bio/authorization/check"), timeout=60))
 
 
+def sync_status(house_name: str) -> dict[str, Any]:
+    """Draft-status sync state of the house (running?, last result); never raises."""
+    try:
+        house = house_config(house_name)
+        return _json_or_error(requests.get(_local(house, "/sync/status"), timeout=10))
+    except Exception as exc:  # house instance down, unknown house ...
+        return {"ok": False, "error": f"Không hỏi được nhà {house_name}: {exc}"}
+
+
+def sync_start(house_name: str) -> dict[str, Any]:
+    """Start the draft-status sync of the house now (or queue one more pass)."""
+    house = house_config(house_name)
+    try:
+        resp = requests.post(_local(house, "/sync/start"), timeout=15)
+    except requests.RequestException as exc:
+        return {"ok": False, "error": f"Không gọi được nhà {house_name} (cổng {house['api_port']}): {exc}"}
+    return _json_or_error(resp)
+
+
 def house_by_port(port: Any) -> str:
     for name, cfg in HOUSES.items():
         if str(port).strip() == cfg["api_port"]:

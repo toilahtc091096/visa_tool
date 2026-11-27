@@ -125,10 +125,12 @@ async def _sync_draft_scheduler_loop() -> None:
         try:
             # DB, xóa R2, Google Sheet bên trong đều là blocking -> chạy ở thread
             # riêng với event loop riêng để không làm đứng các request khác.
+            started_text, started_at = _now_text(), time.perf_counter()
             result = await asyncio.to_thread(
                 asyncio.run,
                 sync_draft_visa_registrations(**_scheduled_sync_kwargs()),
             )
+            _record_sync(_sync_summary(result, "scheduler", started_text, time.perf_counter() - started_at))
             print(
                 "[sync_draft_scheduler] completed "
                 f"matched={result.get('matched', 0)} "
@@ -581,6 +583,28 @@ def web_admin_records(request: Request, limit: int = Query(50), offset: int = Qu
     return {"ok": True, **admin_report.list_records(_admin_filters(request), limit=limit, offset=offset)}
 
 
+@app.get("/web/admin/sync")
+async def web_admin_sync_status(request: Request):
+    """Sync state of every house (asks each house instance)."""
+    _web_admin(request)
+    names = list(WEB_HOUSES)
+    states = await asyncio.gather(*(asyncio.to_thread(web_portal.sync_status, h) for h in names))
+    return {"ok": True, "houses": [{"house": h, **s} for h, s in zip(names, states)]}
+
+
+@app.post("/web/admin/sync/{house}")
+async def web_admin_sync_start(house: str, request: Request):
+    """Start the draft-status sync of one house now."""
+    user = _web_admin(request)
+    try:
+        result = await asyncio.to_thread(web_portal.sync_start, house.upper())
+    except web_portal.FormError as exc:
+        raise HTTPException(status_code=400, detail={"ok": False, "error": str(exc)})
+    log_event({"step": "web_admin_sync", "house": house.upper(), "user": user.get("staff_code"),
+               "ok": result.get("ok"), "started": result.get("started"), "queued": result.get("queued")})
+    return {"house": house.upper(), **result}
+
+
 # ---------- bio token (Tampermonkey script fills the house account, sends the token back) ----------
 def _is_local_request(request: Request) -> bool:
     return (request.client.host if request.client else "") in ("127.0.0.1", "::1")
@@ -948,34 +972,74 @@ def _is_sync_after_run_enabled() -> bool:
     )
 
 
-# One sync after /run at a time: runs that succeed while it is going only ask
-# for one more pass after it (a sync covers every draft record anyway).
+# One sync at a time on this instance (after /run or started by ADMIN): a request
+# while one is going only asks for one more pass after it (a sync covers every record anyway).
 _SYNC_AFTER_RUN_LOCK = threading.Lock()
-_sync_after_run_state = {"running": False, "pending": False}
+_sync_after_run_state: dict[str, Any] = {
+    "running": False, "pending": False, "source": "", "started_at": "", "last": None,
+}
+
+
+def _now_text() -> str:
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _sync_summary(result: dict[str, Any] | None, source: str, started_at: str, seconds: float,
+                  error: str = "") -> dict[str, Any]:
+    """What the ADMIN page shows about a finished sync (no item list)."""
+    result = result or {}
+    reasons: dict[str, int] = {}
+    for item in result.get("items") or []:
+        if isinstance(item, dict) and not item.get("ok"):
+            reason = str(item.get("reason") or "unknown")
+            reasons[reason] = reasons.get(reason, 0) + 1
+    return {
+        "ok": not error and result.get("ok", True) is not False,
+        "source": source,
+        "started_at": started_at,
+        "finished_at": _now_text(),
+        "seconds": round(seconds, 1),
+        "error": error,
+        **{k: result.get(k, 0) for k in ("total", "matched", "updated", "skipped", "display_only")},
+        "skip_reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:8]),
+    }
+
+
+def _record_sync(summary: dict[str, Any]) -> None:
+    with _SYNC_AFTER_RUN_LOCK:
+        _sync_after_run_state["last"] = summary
+
+
+def _start_sync(source: str, record_id: int | None = None) -> dict[str, Any]:
+    """Start a sync in a thread, or queue one more pass when one is going."""
+    with _SYNC_AFTER_RUN_LOCK:
+        if _sync_after_run_state["running"]:
+            _sync_after_run_state["pending"] = True
+            log_event({"step": "sync", "source": source, "record_id": record_id, "queued": True})
+            return {"started": False, "queued": True}
+        _sync_after_run_state.update(running=True, source=source, started_at=_now_text())
+    threading.Thread(
+        target=_sync_after_run_worker, args=(record_id, source), daemon=True
+    ).start()
+    return {"started": True, "queued": False}
 
 
 def _request_sync_after_run(record_id: int | None) -> None:
     if not _is_sync_after_run_enabled():
         return
-    with _SYNC_AFTER_RUN_LOCK:
-        if _sync_after_run_state["running"]:
-            _sync_after_run_state["pending"] = True
-            log_event({"step": "sync_after_run", "record_id": record_id, "queued": True})
-            return
-        _sync_after_run_state["running"] = True
-    threading.Thread(
-        target=_sync_after_run_worker, args=(record_id,), daemon=True
-    ).start()
+    _start_sync("after_run", record_id)
 
 
-def _sync_after_run_worker(record_id: int | None) -> None:
+def _sync_after_run_worker(record_id: int | None, source: str = "after_run") -> None:
     while True:
         started_at = time.perf_counter()
+        started_text = _sync_after_run_state.get("started_at") or _now_text()
         try:
             result = asyncio.run(sync_draft_visa_registrations(**_scheduled_sync_kwargs()))
             log_event(
                 {
-                    "step": "sync_after_run",
+                    "step": "sync_after_run" if source == "after_run" else "sync",
+                    "source": source,
                     "record_id": record_id,
                     "ok": True,
                     "matched": result.get("matched", 0),
@@ -984,14 +1048,43 @@ def _sync_after_run_worker(record_id: int | None) -> None:
                     "duration": round(time.perf_counter() - started_at, 2),
                 }
             )
+            _record_sync(_sync_summary(result, source, started_text, time.perf_counter() - started_at))
         except Exception as exc:
-            log_exception(exc, {"path": "sync_after_run", "record_id": record_id})
+            log_exception(exc, {"path": "sync_after_run", "source": source, "record_id": record_id})
+            _record_sync(_sync_summary(None, source, started_text, time.perf_counter() - started_at,
+                                       error=f"{type(exc).__name__}: {exc}"))
         with _SYNC_AFTER_RUN_LOCK:
             if not _sync_after_run_state["pending"]:
                 _sync_after_run_state["running"] = False
                 return
             _sync_after_run_state["pending"] = False
-            record_id = None  # this pass covers the queued runs
+            _sync_after_run_state["started_at"] = _now_text()
+            record_id = None  # this pass covers the queued requests
+
+
+def _sync_status() -> dict[str, Any]:
+    with _SYNC_AFTER_RUN_LOCK:
+        state = dict(_sync_after_run_state)
+    return {"ok": True, "enabled": _is_sync_draft_enabled(), **state}
+
+
+@app.get("/sync/status")
+def sync_status(request: Request):
+    """Draft-status sync of this house: running?, last result. Local only (the /web admin asks)."""
+    if not _is_local_request(request):
+        raise HTTPException(status_code=403, detail={"ok": False, "error": "local only"})
+    return _sync_status()
+
+
+@app.post("/sync/start")
+def sync_start(request: Request):
+    """Start the draft-status sync of this house now (same sync as the scheduler). Local only."""
+    if not _is_local_request(request):
+        raise HTTPException(status_code=403, detail={"ok": False, "error": "local only"})
+    if not _is_sync_draft_enabled():
+        raise HTTPException(status_code=400, detail={
+            "ok": False, "error": "Nhà này đang tắt đồng bộ (SYNC_DRAFT_ENABLED=0 trong .env của nhà)"})
+    return {**_sync_status(), **_start_sync("admin")}
 
 
 def _parse_is_vip(value: Any) -> bool:

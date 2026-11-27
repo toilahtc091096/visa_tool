@@ -779,6 +779,44 @@
         padding: 7px 14px;
         font-size: 15px;
       }
+      .sync-box {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 18px;
+      }
+      .sync-box h3 {
+        font-size: 16px;
+        margin: 0 0 4px;
+      }
+      .sync-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+      }
+      .sync-row:first-of-type {
+        border-top: 0;
+      }
+      .sync-row .h {
+        font-weight: 700;
+        min-width: 64px;
+      }
+      .sync-row .info {
+        flex: 1 1 260px;
+        font-size: 14px;
+        color: var(--muted);
+        white-space: pre-wrap;
+      }
+      .sync-row .info b {
+        color: var(--text, inherit);
+      }
+      .badge.run {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
       .tiles {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -1950,6 +1988,16 @@
           <div id="rerunMsg"></div>
         </div>
         <div id="adminCard" class="card hidden">
+          <div class="sync-box">
+            <h3>Đồng bộ trạng thái theo nhà</h3>
+            <div class="hint">
+              Lấy trạng thái mới nhất của hồ sơ trên web visa về (nháp, đã nộp,
+              đã duyệt…) cho từng nhà, dùng token của nhà đó. Mất vài phút, có
+              thể đóng trang trong lúc chạy.
+            </div>
+            <div id="syncRows"></div>
+            <div id="syncMsg"></div>
+          </div>
           <div class="filters">
             <div>
               <label for="aFrom">Từ ngày</label><input id="aFrom" type="date" />
@@ -3604,8 +3652,106 @@
         return q.toString();
       }
 
+      // ---------- admin: draft-status sync, one button per house ----------
+      const SYNC_SOURCE = {
+        admin: "ADMIN bấm",
+        after_run: "sau khi chạy /run",
+        scheduler: "theo lịch",
+      };
+      let syncTimer = null;
+
+      function syncInfo(h) {
+        if (h.ok === false) return `<span class="badge error">Lỗi</span> ${esc(h.error || "")}`;
+        const parts = [];
+        if (h.running) {
+          parts.push(
+            `<span class="badge run">Đang đồng bộ</span> từ ${esc(h.started_at || "")}` +
+              ` (${esc(SYNC_SOURCE[h.source] || h.source || "")})` +
+              (h.pending ? " · đã xếp thêm 1 lượt sau" : ""),
+          );
+        } else if (!h.enabled) {
+          parts.push(`<span class="badge">Đang tắt</span> SYNC_DRAFT_ENABLED=0 trong .env của nhà`);
+        }
+        const l = h.last;
+        if (!l) {
+          if (!h.running) parts.push("Chưa đồng bộ lần nào từ khi khởi động lại server.");
+          return parts.join("\n");
+        }
+        const head = l.ok
+          ? `<span class="badge done">Xong</span>`
+          : `<span class="badge error">Lỗi</span>`;
+        let line =
+          `${head} Lần cuối: ${esc(l.finished_at)} (${esc(SYNC_SOURCE[l.source] || l.source)}, ${num(l.seconds)} s)` +
+          ` · <b>${num(l.total)}</b> hồ sơ · cập nhật <b>${num(l.updated)}</b>` +
+          ` · khớp ${num(l.matched)} · chỉ hiển thị ${num(l.display_only)} · bỏ qua ${num(l.skipped)}`;
+        if (l.error) line += `\nLỗi: ${esc(l.error)}`;
+        const reasons = Object.entries(l.skip_reasons || {});
+        if (reasons.length)
+          line += `\nBỏ qua vì: ${reasons.map(([r, n]) => `${esc(r)} (${num(n)})`).join(", ")}`;
+        parts.push(line);
+        return parts.join("\n");
+      }
+
+      function renderSync(houses) {
+        $("syncRows").innerHTML = houses
+          .map(
+            (h) => `<div class="sync-row">
+              <span class="h">${esc(h.house)}</span>
+              <span class="info">${syncInfo(h)}</span>
+              <button class="secondary" data-sync="${esc(h.house)}"${
+                h.ok === false || !h.enabled ? " disabled" : ""
+              }>${h.running ? "Xếp thêm 1 lượt" : "Đồng bộ"}</button>
+            </div>`,
+          )
+          .join("");
+      }
+
+      async function syncLoad() {
+        clearTimeout(syncTimer);
+        try {
+          const d = await api("/web/admin/sync");
+          renderSync(d.houses || []);
+          // follow while a house is syncing (only when the admin tab is open)
+          if ((d.houses || []).some((h) => h.running) && !$("adminCard").classList.contains("hidden"))
+            syncTimer = setTimeout(syncLoad, 5000);
+        } catch (e) {
+          show($("syncMsg"), e.message, false);
+        }
+      }
+
+      $("syncRows").addEventListener("click", async (e) => {
+        const b = e.target.closest("button[data-sync]");
+        if (!b) return;
+        const house = b.dataset.sync;
+        const go = await ask({
+          icon: "⟳",
+          title: `Đồng bộ nhà ${house}?`,
+          message:
+            "Lấy trạng thái mới nhất của các hồ sơ nhà này trên web visa về. Chạy nền, mất vài phút.",
+          okText: "Đồng bộ",
+          cancelText: "Huỷ",
+        });
+        if (!go) return;
+        b.disabled = true;
+        clear($("syncMsg"));
+        try {
+          const r = await api(`/web/admin/sync/${encodeURIComponent(house)}`, {});
+          show(
+            $("syncMsg"),
+            r.queued
+              ? `Nhà ${house} đang đồng bộ: đã xếp thêm 1 lượt chạy ngay sau lượt này.`
+              : `Đã bắt đầu đồng bộ nhà ${house}.`,
+            true,
+          );
+        } catch (err) {
+          show($("syncMsg"), `Nhà ${house}: ${err.message}`, false);
+        }
+        await syncLoad();
+      });
+
       async function adminLoad() {
         adminLoaded = true;
+        syncLoad();
         aOffset = 0;
         await adminInit();
         const b = $("aLoad");
