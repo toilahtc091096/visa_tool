@@ -1,4 +1,4 @@
-"""South S2 to get married (inviter CHONG SAP CUOI): SaveApplyInfo uses SPM (710021) + 登记结婚."""
+"""S2 to get married (inviter CHONG SAP CUOI), both regions: SaveApplyInfo uses SPM (710021) + 登记结婚."""
 
 import sys
 import types
@@ -33,8 +33,15 @@ class SouthS2MarriageTest(unittest.TestCase):
         d = apply(fp.REGION_SOUTH, relation="Chồng sắp cưới")
         self.assertEqual(reason(d)["personalMatters"], "登记结婚")
 
+    def test_north_fiance(self):
+        # same as the South: SPM + 登记结婚; the relation is sent as given (North rule for every relation)
+        d = apply("north")
+        self.assertEqual((d["visaType"], d["visaPurpose"]), (710021, 709007))
+        self.assertEqual(reason(d)["personalMatters"], "登记结婚")
+        self.assertEqual(reason(d)["relation"], "CHONG SAP CUOI")
+
     def test_unchanged_otherwise(self):
-        for kw in (dict(region="north"), dict(region=fp.REGION_SOUTH, relation="CHONG"),
+        for kw in (dict(region="north", relation="CHONG"), dict(region=fp.REGION_SOUTH, relation="CHONG"),
                    dict(region=fp.REGION_SOUTH, visa="Q2", sub="QCV")):
             d = apply(**kw)
             self.assertEqual(reason(d)["personalMatters"], "", kw)

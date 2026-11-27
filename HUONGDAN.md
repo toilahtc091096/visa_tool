@@ -238,8 +238,8 @@ Lỗi hay gặp: dùng tiền tố Q (`qmoi_`) cho S2; `smoiruot` / `smoi_1_ruot
 **Sang TQ để kết hôn** (quan hệ "Chồng sắp cưới" = `CHONG SAP CUOI`, mục `s2marry` trong guide.js):
 
 - Thư mời (cả 2 miền): tick 未婚妻（夫） và mục đích 登记结婚 thay cho 探亲.
-- Form COVA SaveApplyInfo, **chỉ miền Nam**: tự đổi `type_of_visa_sub_value` → `SPM` (visaType 710021, mục B 因其他私人事务), `applyReason.personalMatters` = `登记结婚`, `relation` = 未婚夫 (`flows/flow_payloads.south_s2_marriage`). Các trường khác như cũ.
-- Miền Bắc: form COVA giữ theo curl, không tự đổi.
+- Form COVA SaveApplyInfo, **cả 2 miền như nhau**: tự đổi `type_of_visa_sub_value` → `SPM` (visaType 710021, mục B 因其他私人事务), `applyReason.personalMatters` = `登记结婚` (`flows/flow_payloads.s2_marriage`). Các trường khác như cũ.
+- `relation`: miền Nam đổi sang 未婚夫; miền Bắc gửi nguyên nhãn như mọi quan hệ khác (`CHONG SAP CUOI`).
 
 ---
 

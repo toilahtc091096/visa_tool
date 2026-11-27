@@ -525,7 +525,7 @@ JOB_TYPE = (
     ("Other", "713002"),
 )
 
-PREFER_JOB_TYPE = ("Self-employed", "Businessperson")
+PREFER_JOB_TYPE = ("Self-employed",)  # Businessperson removed (both regions, 2026-11-27)
 # Work info when neither the request nor an approved previous visa gives any:
 # job type Self-employed, no work experience, with this remark.
 SELF_EMPLOYED_NOT_APPLY_REMARK = "KINH DOANH TU DO"
@@ -537,7 +537,7 @@ JOB_TYPE_BY_LABEL = dict(JOB_TYPE)
 # Family info, children[].profession (both regions): Student up to this age,
 # then one of CHILD_WORKING_JOB_TYPES.
 CHILD_STUDENT_MAX_AGE = 22
-CHILD_WORKING_JOB_TYPES = ("Businessperson", "Company employee")
+CHILD_WORKING_JOB_TYPES = ("Company employee",)  # Businessperson removed (both regions, 2026-11-27)
 # Family info, spouses[].profession (both regions): one of these.
 SPOUSE_JOB_TYPES = ("Company employee", "Self-employed")
 SELF_EMPLOYED_JOB_DESCS = (
@@ -864,6 +864,10 @@ CHINA_RESIDENCE_PERMIT_OUTPUT_PATH = (
 L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH = (
     "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang"
 )
+
+# L15 / L30 (both regions): other documents of the applicant, files lkhac_1..lkhac_n put
+# there by n8n (WF-04 group visit_other_document); uploaded to OTHER_MATERIALS.
+L_KHAC_OUTPUT_PATH = "chung\\khac"
 
 L_15_RESIDENCE_DOCUMENT_OUTPUT_PATH = (
     "lich_su_xuat_canh\\chua_tung_di_ho_chieu_trang\\giay_cu_tru"
@@ -1561,7 +1565,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "FLIGHT_TICKET": _files(L_15_TICKET_OUTPUT_PATH, 1),
         "HOTEL_RESERVATION_WITH_PAYMENT": _files(L_15_HOTEL_OUTPUT_PATH, 1),
         "OTHER_MATERIALS": [
-            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
+            # empty passport: 2 slots; lkhac_* (chung\khac, from n8n): 2 slots
+            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 2),
+            _files(L_KHAC_OUTPUT_PATH, 2),
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         ],
         "PREV_CHINESE_VISA": _files(
@@ -1577,7 +1583,9 @@ UPLOAD_CONFIG: dict[str, dict[str, object]] = {
         "FLIGHT_TICKET": _files(L_15_TICKET_OUTPUT_PATH, 1),
         "HOTEL_RESERVATION_WITH_PAYMENT": _files(L_15_HOTEL_OUTPUT_PATH, 1),
         "OTHER_MATERIALS": [
-            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 4),
+            # empty passport: 2 slots; lkhac_* (chung\khac, from n8n): 2 slots
+            _files(L_15_NEVER_TRAVELED_EMPTY_PASSPORT_OUTPUT_PATH, 2),
+            _files(L_KHAC_OUTPUT_PATH, 2),
             _files(L_15_VISA_CENTER_CONFIRMATION_OUTPUT_PATH, 1),
         ],
         "PREV_CHINESE_VISA": _files(

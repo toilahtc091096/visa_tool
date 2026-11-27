@@ -426,18 +426,15 @@ GUIDES.Q2 = typeGuide({
 const s2MarriageSection = {
   id: 's2marry', title: 'Sang Trung Quốc để kết hôn (Chồng sắp cưới)', hint: 'quan hệ CHONG SAP CUOI', open: true,
   html: (o, h) => {
-    const north = NORTH_HOUSES.includes(h);
     return `<p>Chọn quan hệ <b>"Chồng sắp cưới"</b> ở form (người mời là chồng sắp cưới, người xin visa sang để đăng ký kết hôn).</p>
     <p><b>Thư mời</b> (cả 2 miền): hệ thống tự tick <b>未婚妻（夫）</b> và mục đích <b>登记结婚</b> (đăng ký kết hôn) thay cho 探亲.</p>
-    <p><b>Form COVA — mục loại visa (SaveApplyInfo)</b>:</p>
+    <p><b>Form COVA — mục loại visa (SaveApplyInfo)</b>, cả 2 miền như nhau:</p>
     <div class="tbl-wrap"><table class="data"><tr><th></th><th>Miền Nam (TAI)</th><th>Miền Bắc (HAI, PHONG)</th></tr>
-      <tr><td>Loại visa S2</td><td><b>tự đổi</b> sang mục <b>B</b> — 因其他私人事务 (việc riêng khác), <code>type_of_visa_sub_value</code> = <code>SPM</code></td><td rowspan="3">giữ như cũ: theo <code>type_of_visa_sub_value</code> trong curl, không tự đổi</td></tr>
-      <tr><td>Việc riêng (personalMatters)</td><td><b>登记结婚</b></td></tr>
-      <tr><td>Quan hệ</td><td><b>未婚夫</b> (tự dịch)</td></tr>
+      <tr><td>Loại visa S2</td><td colspan="2"><b>tự đổi</b> sang mục <b>B</b> — 因其他私人事务 (việc riêng khác), <code>type_of_visa_sub_value</code> = <code>SPM</code></td></tr>
+      <tr><td>Việc riêng (personalMatters)</td><td colspan="2"><b>登记结婚</b> (đăng ký kết hôn)</td></tr>
+      <tr><td>Quan hệ</td><td><b>未婚夫</b> (tự dịch)</td><td>gửi nguyên nhãn <code>CHONG SAP CUOI</code> (như mọi quan hệ ở miền Bắc)</td></tr>
     </table></div>
-    <p class="hint">${north
-      ? 'Nhà đang chọn là miền Bắc: form COVA không tự đổi. Cần mục B thì kiểm tra tay trên COVA sau khi chạy.'
-      : 'Nhà đang chọn là miền Nam: không cần sửa curl, hệ thống tự đổi khi quan hệ là "Chồng sắp cưới". Các mục khác của form giữ như cũ.'}</p>`;
+    <p class="hint">Không cần sửa curl: hệ thống tự đổi khi quan hệ là "Chồng sắp cưới". Các mục khác của form giữ như cũ.</p>`;
   },
 };
 

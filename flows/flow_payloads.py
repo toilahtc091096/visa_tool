@@ -199,10 +199,10 @@ S2_MARRIAGE_SUB_VALUE = "SPM"
 S2_MARRIAGE_PERSONAL_MATTERS = "登记结婚"
 
 
-def south_s2_marriage(visa_type: str, inviter_relation: Any) -> bool:
-    """South only: S2 whose inviter is the fiance (inviterRelation "CHONG SAP
+def s2_marriage(visa_type: str, inviter_relation: Any) -> bool:
+    """Both regions: S2 whose inviter is the fiance (inviterRelation "CHONG SAP
     CUOI", constants.INVITER_RELATION_FIANCE) - the trip is to get married."""
-    if REGION != REGION_SOUTH or str(visa_type or "").strip().upper() != "S2":
+    if str(visa_type or "").strip().upper() != "S2":
         return False
     key = " ".join(_normalize_ascii_upper(str(inviter_relation or "")).replace("Đ", "D").lower().split())
     return key in INVITER_RELATION_FIANCE
@@ -222,9 +222,9 @@ def build_apply_info_profile(
     inviter_relation: str = "",
 ) -> ApplyInfoProfile:
     personal_matters = ""
-    if south_s2_marriage(first_letter_visa_type, inviter_relation):
-        # South S2 to get married (inviter = fiance): "B. other private matters"
-        # (SPM, 710021), personal matter 登记结婚; the rest as for any S2.
+    if s2_marriage(first_letter_visa_type, inviter_relation):
+        # S2 to get married (inviter = fiance), both regions: "B. other private
+        # matters" (SPM, 710021), personal matter 登记结婚; the rest as for any S2.
         type_of_visa_sub_value = S2_MARRIAGE_SUB_VALUE
         personal_matters = S2_MARRIAGE_PERSONAL_MATTERS
     visa_sub = VISA_TYPE_VALUE.get(first_letter_visa_type, {}).get(
