@@ -422,6 +422,59 @@
         font-weight: 600;
         color: var(--ok);
       }
+      /* kiểm tra thư mục trước khi tải lên (web/file_check.js, update.md K2) */
+      .fcheck {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: var(--card);
+      }
+      .fcheck .fc-head {
+        font-weight: 700;
+      }
+      .fcheck .fc-head.ok {
+        color: var(--ok);
+      }
+      .fcheck .fc-head.warn {
+        color: var(--warn);
+      }
+      .fcheck .fc-head.err {
+        color: var(--err);
+      }
+      .fcheck ul {
+        margin: 8px 0 0;
+        padding-left: 0;
+        list-style: none;
+      }
+      .fcheck li {
+        padding: 5px 8px;
+        border-radius: 6px;
+        margin-top: 4px;
+      }
+      .fcheck li.err {
+        background: var(--err-bg);
+        color: var(--err);
+      }
+      .fcheck li.warn {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .fcheck li.info {
+        background: var(--info-bg);
+        color: var(--info);
+      }
+      .fcheck .fc-file {
+        font-family: ui-monospace, Consolas, monospace;
+        font-weight: 700;
+        word-break: break-all;
+      }
+      .fcheck .fc-fix {
+        margin: 0 0 0 6px;
+        padding: 1px 8px;
+        font-size: 0.9em;
+        vertical-align: baseline;
+      }
       .toast {
         position: fixed;
         left: 50%;
@@ -1699,6 +1752,7 @@
             <div class="hint">hoặc bấm để chọn thư mục</div>
             <div id="dirInfo" class="drop-info"></div>
           </div>
+          <div id="fcheck" class="fcheck hidden" aria-live="polite"></div>
           <input
             id="dir"
             type="file"
@@ -2232,7 +2286,9 @@
     </div>
 
     <script src="/web/guide.js"></script>
+    <script src="/web/file_check.js"></script>
     <script>
+      var fcOn = false; // true once `picked` exists (guard of runFileCheck)
       const $ = (id) => document.getElementById(id);
       const ls = {
         get: (k) => {
@@ -2612,6 +2668,7 @@
         $("relation").value = r ? relText(r) : "";
         $("relationPicked").textContent = r ? `Gửi trong curl: ${r.value}` : "";
         $("relationList").classList.add("hidden");
+        runFileCheck();
       }
 
       function openCombo() {
@@ -2657,6 +2714,7 @@
       $("relation").addEventListener("input", () => {
         relationValue = "";
         $("relationPicked").textContent = "";
+        runFileCheck();
         openCombo();
       });
       $("relation").addEventListener("keydown", (e) => {
@@ -2708,6 +2766,7 @@
       const SKIP = /(^|\/)(\.|desktop\.ini$|thumbs\.db$)/i;
       let picked = []; // [{file, rel}]
       let uploadedTo = ""; // "<house>|<prefix>" already uploaded
+      fcOn = true;
       // list = [{file, top, rel}]: top = tên thư mục (điền vào ô R2), rel = đường dẫn bên trong thư mục
       function setPicked(list) {
         picked = list.filter((x) => !SKIP.test(x.rel) && x.file.size > 0);
@@ -2715,12 +2774,80 @@
         $("drop").classList.toggle("has", picked.length > 0);
         if (!picked.length) {
           $("dirInfo").textContent = "Thư mục trống hoặc không có file hợp lệ";
+          runFileCheck();
           return;
         }
         if (picked[0].top) $("prefix").value = picked[0].top;
         $("dirInfo").textContent =
           `${picked[0].top ? "📂 " + picked[0].top + " · " : ""}${picked.length} file, ${mb(picked.reduce((s, x) => s + x.file.size, 0))} — sẽ tải lên khi bấm Gửi`;
+        runFileCheck();
       }
+
+      // ---------- kiểm tra thư mục trước khi tải lên (web/file_check.js, update.md K2) ----------
+      // Chạy lại khi đổi thư mục / loại visa / nhà / quan hệ. ❌ = không cho Gửi, ⚠️ = Gửi sau khi xác nhận.
+      // "Đổi tên" chỉ đổi tên khi tải lên R2; file trên máy giữ nguyên.
+      // false (lúc đầu): ❌ chỉ hỏi xác nhận như ⚠️. Khi bộ kiểm tra hết báo nhầm (update.md K2) -> true: ❌ chặn hẳn.
+      const FC_BLOCK_ERRORS = false;
+      const FC_ICON = { err: "❌", warn: "⚠️", info: "ℹ️" };
+      const FC_ORDER = { err: 0, warn: 1, info: 2 };
+      const fcExt = (rel) => (rel.match(/\.[^./]+$/) || [""])[0];
+      function runFileCheck() {
+        if (!fcOn) return null;
+        const box = $("fcheck");
+        if (!picked.length || !window.FileCheck) {
+          box.classList.add("hidden");
+          return null;
+        }
+        const r = FileCheck.checkFolder(
+          picked.map((x) => ({ rel: x.rel, size: x.file.size })),
+          { visa: $("visa").value, house: $("house").value, relation: relationValue },
+        );
+        const head = r.errors
+          ? `<div class="fc-head err">❌ ${r.errors} lỗi nên sửa${r.warns ? ` · ⚠️ ${r.warns} cảnh báo` : ""} — ${FC_BLOCK_ERRORS ? "chưa Gửi được" : "Gửi sẽ hỏi xác nhận"}</div>`
+          : r.warns
+            ? `<div class="fc-head warn">⚠️ ${r.warns} cảnh báo — xem lại trước khi Gửi</div>`
+            : `<div class="fc-head ok">✅ Tên file ổn (${picked.length} file, visa ${esc($("visa").value)}, nhà ${esc($("house").value)})</div>`;
+        const folder = [...r.folder]
+          .sort((a, b) => FC_ORDER[a.level] - FC_ORDER[b.level])
+          .map((i) => `<li class="${i.level}">${FC_ICON[i.level]} ${esc(i.msg)}</li>`);
+        const files = r.files
+          .map((f, idx) => ({ f, idx }))
+          .filter(({ f }) => f.issues.length)
+          .sort((a, b) => FC_ORDER[a.f.level] - FC_ORDER[b.f.level])
+          .flatMap(({ f, idx }) =>
+            f.issues.map((i) => {
+              const btn = i.fix
+                ? `<button type="button" class="secondary fc-fix" data-i="${idx}" data-fix="${esc(i.fix)}">Đổi tên → ${esc(i.fix + fcExt(f.rel))}</button>`
+                : "";
+              return `<li class="${i.level}">${FC_ICON[i.level]} <span class="fc-file">${esc(f.rel)}</span>: ${esc(i.msg)}${btn}</li>`;
+            }),
+          );
+        const okCount = r.files.filter((f) => !f.issues.length).length;
+        box.innerHTML =
+          head +
+          (folder.length || files.length ? `<ul>${[...folder, ...files].join("")}</ul>` : "") +
+          (files.length
+            ? `<div class="hint" style="margin-top:6px">${okCount} file khác ổn. "Đổi tên" chỉ đổi tên khi tải lên, file trên máy giữ nguyên.</div>`
+            : "");
+        box.classList.remove("hidden");
+        return r;
+      }
+      $("fcheck").addEventListener("click", (e) => {
+        const b = e.target.closest(".fc-fix");
+        const x = b && picked[Number(b.dataset.i)];
+        if (!x) return;
+        const dir = x.rel.includes("/") ? x.rel.slice(0, x.rel.lastIndexOf("/") + 1) : "";
+        const rel = dir + b.dataset.fix + fcExt(x.rel);
+        if (picked.some((y) => y !== x && y.rel.toLowerCase() === rel.toLowerCase())) {
+          toast(`Đã có file ${rel} — đổi tên khác hoặc bỏ bớt 1 file`);
+          return;
+        }
+        toast(`Đổi tên khi tải lên: ${x.rel} → ${rel}`);
+        x.rel = rel;
+        uploadedTo = "";
+        runFileCheck();
+      });
+      ["visa", "house"].forEach((id) => $(id).addEventListener("change", runFileCheck));
 
       $("dir").addEventListener("change", () => {
         setPicked(
@@ -3000,6 +3127,35 @@
             picked.length &&
             uploadedTo !== `${$("house").value}|${$("prefix").value.trim()}`
           ) {
+            const fc = runFileCheck();
+            if (fc && fc.errors && FC_BLOCK_ERRORS) {
+              $("fcheck").scrollIntoView({ behavior: "smooth", block: "center" });
+              throw new Error(
+                `Thư mục còn ${fc.errors} lỗi (❌ trong khung kiểm tra dưới ô thư mục) — sửa rồi Gửi lại`,
+              );
+            }
+            if (
+              fc &&
+              (fc.errors || fc.warns) &&
+              !(await ask({
+                tone: fc.errors ? "danger" : "warn",
+                title: fc.errors ? "Thư mục còn lỗi" : "Thư mục còn cảnh báo",
+                message: fc.errors
+                  ? "Các dòng ❌ dưới ô thư mục: hệ thống có thể không nhận đúng file. Nên sửa trước; chắc chắn đúng thì vẫn gửi."
+                  : "Xem lại các dòng ⚠️ dưới ô thư mục. Chắc chắn đúng thì vẫn gửi.",
+                details: [
+                  ["Lỗi", fc.errors ? `${fc.errors}` : ""],
+                  ["Cảnh báo", fc.warns ? `${fc.warns}` : ""],
+                  ["Visa", $("visa").value],
+                  ["Nhà", $("house").value],
+                ],
+                okText: "Vẫn gửi",
+                cancelText: "Xem lại",
+              }))
+            ) {
+              $("fcheck").scrollIntoView({ behavior: "smooth", block: "center" });
+              throw new Error("Đã dừng để xem lại thư mục (khung kiểm tra dưới ô thư mục)");
+            }
             b.textContent = "Đang tải lên…";
             await uploadPicked();
           }
@@ -3250,6 +3406,7 @@
       function resetStartForm() {
         picked = [];
         uploadedTo = "";
+        runFileCheck();
         $("dir").value = "";
         $("dirInfo").textContent = "";
         $("drop").classList.remove("has", "over");

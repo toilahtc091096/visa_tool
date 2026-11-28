@@ -233,8 +233,10 @@ def web_page():
 
 
 _GUIDE_PAGE = _WEB_PAGE.parent / "guide.html"
-# Guide content + styles shared by the popup in /web and the page /web/huong-dan.
-_GUIDE_ASSETS = {"guide.js": "text/javascript; charset=utf-8", "guide.css": "text/css; charset=utf-8"}
+# Guide content + styles shared by the popup in /web and the page /web/huong-dan;
+# file_check.js = the folder check of the start form (update.md K2).
+_GUIDE_ASSETS = {"guide.js": "text/javascript; charset=utf-8", "guide.css": "text/css; charset=utf-8",
+                 "file_check.js": "text/javascript; charset=utf-8"}
 
 
 @app.get("/web/huong-dan")
@@ -247,6 +249,7 @@ def web_guide_page():
 
 @app.get("/web/guide.js")
 @app.get("/web/guide.css")
+@app.get("/web/file_check.js")
 def web_guide_asset(request: Request):
     name = request.url.path.rsplit("/", 1)[-1]
     return Response((_WEB_PAGE.parent / name).read_bytes(), media_type=_GUIDE_ASSETS[name],
